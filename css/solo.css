@@ -19,35 +19,6 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Fundo: campo de estrelas
-   Entra DENTRO do .fundo de dashboard.css, atrás do painel de vidro e
-   junto com o .fundo-anel. Sem pintura no fundo, o backdrop-filter do
-   .vidro não tem o que desfocar e o painel vira retângulo cinza.
-
-   As estrelas são gradientes radiais repetidos, não imagem: são alguns
-   bytes de CSS em vez de uma requisição, e acompanham qualquer tamanho de
-   tela. Duas camadas em passos diferentes (180px e 260px) para o olho não
-   achar o padrão; a terceira é um brilho difuso que dá profundidade.
-   ------------------------------------------------------------------------- */
-.fundo-estrelas {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1.4px 1.4px at 22% 18%, rgba(255, 255, 255, 0.55), transparent 60%),
-    radial-gradient(1.2px 1.2px at 74% 32%, rgba(255, 255, 255, 0.40), transparent 60%),
-    radial-gradient(1px 1px at 46% 72%, rgba(255, 255, 255, 0.35), transparent 60%),
-    radial-gradient(1.6px 1.6px at 88% 84%, rgba(255, 255, 255, 0.30), transparent 60%),
-    radial-gradient(1px 1px at 12% 62%, rgba(255, 255, 255, 0.30), transparent 60%),
-    radial-gradient(1.2px 1.2px at 62% 8%, rgba(255, 255, 255, 0.25), transparent 60%);
-  background-size: 180px 180px, 260px 260px, 180px 180px, 260px 260px, 320px 320px, 320px 320px;
-  /* Some perto do centro: ali mora o painel, e estrela atrás de vidro
-     desfocado só suja a leitura. */
-  -webkit-mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
-  mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
-  opacity: 0.7;
-}
-
-/* ---------------------------------------------------------------------------
    Botões
 
    .btn e .btn-solido não existem em dashboard.css — só em escola.css,
@@ -118,26 +89,9 @@
 }
 .estado .btn { margin-top: var(--e-5, 24px); }
 
-/* ---------------------------------------------------------------------------
-   Lobby — o corpo do painel
 
-   O .lobby-corpo é o único filho do painel abaixo do cabeçalho, e tem
-   min-height: é ele que segura a altura enquanto o esqueleto está no ar.
-   Sem isso, o painel encolheria e cresceria de novo quando a campanha
-   chegasse, e a tela pularia na frente de quem está olhando.
-   ------------------------------------------------------------------------- */
-.lobby-corpo {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 268px;      /* a altura do painel COM campanha */
-  margin-top: var(--e-7, 48px);
-}
-
-/* Cada estado é uma coluna centrada. O gap é o respiro do mundo Solo. */
-.lobby-convite,
-.lobby-progresso,
-.lobby-esqueleto {
+/* O convite é uma coluna centrada. O gap é o respiro do mundo Solo. */
+.lobby-convite {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -166,29 +120,6 @@
   max-width: 46ch;
   font-size: 13px;
   color: var(--cor-erro, #ff5a5a);
-}
-
-/* --- estado 2: nível e XP ------------------------------------------------ */
-.lobby-nivel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e-1, 4px);
-}
-.lobby-nivel-rotulo {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-.lobby-nivel-valor {
-  /* Mono porque é dado, não texto: a regra dos dois papéis de tokens.css. */
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-4xl, 49px);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-apertada, 1.1);
-  text-shadow: var(--brilho-suave, 0 0 24px rgba(255, 255, 255, 0.05));
 }
 
 .lobby-xp {
@@ -261,19 +192,6 @@
   border-bottom-color: rgba(255, 255, 255, 0.35);
 }
 
-/* --- esqueleto de carregamento ------------------------------------------- */
-/* Cada bloco tem a altura da peça que vai ocupar o lugar dele, na mesma
-   ordem do painel com campanha: número do nível, barra, legenda e botão.
-   Quando a campanha chega, nada muda de lugar. */
-.lobby-esqueleto > * {
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.07);
-}
-.lobby-esqueleto-nivel  { width: 92px;  height: 72px; border-radius: var(--raio-n, 8px); }
-.lobby-esqueleto-barra  { width: 100%;  max-width: 420px; height: 8px; }
-.lobby-esqueleto-legenda{ width: 210px; height: 12px; }
-.lobby-esqueleto-acao   { width: 100%;  max-width: 420px; height: 46px; }
-
 /* ---------------------------------------------------------------------------
    Responsivo — o painel encolhe, nada rola para o lado
 
@@ -283,23 +201,14 @@
    recusa a encolher abaixo do conteúdo e empurra a largura da página.
    ------------------------------------------------------------------------- */
 @media (max-width: 700px) {
-  .lobby-corpo {
-    min-height: 240px;
-    margin-top: var(--e-6, 32px);
-  }
-  .lobby-convite > *,
-  .lobby-progresso > *,
-  .lobby-esqueleto > * {
+  .lobby-convite > * {
     min-width: 0;
     max-width: 100%;
   }
   .lobby-xp,
-  .lobby-acao,
-  .lobby-esqueleto-barra,
-  .lobby-esqueleto-acao {
+  .lobby-acao {
     max-width: 100%;
   }
-  .lobby-nivel-valor { font-size: var(--fs-3xl, 39px); }
   .lobby-convite-titulo { font-size: var(--fs-lg, 20px); }
   /* Os dois atalhos lado a lado ficam apertados no talo da tela; com o gap
      menor eles continuam na mesma linha em vez de quebrar em duas. */
@@ -816,4 +725,601 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
   .campanha-esqueleto-barra,
   .campanha-esqueleto-acao { max-width: 100%; }
   .campanha-nivel-valor { font-size: var(--fs-xl, 25px); }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — o painel da campanha (pages/solo/dashboard.html)
+
+   O lobby deixou de ser um cartão centrado de 640px e passou a ser a
+   página larga do desenho: nav em pílula no topo, duas colunas de altura
+   igual (personagem e sequência) e, abaixo, a ação que o lobby sempre
+   teve. Só acabamento — a lógica do botão e dos atalhos não mudou.
+
+   O que NÃO se repete aqui:
+     - a receita do vidro, que é a .vidro de componentes/vidro.css;
+     - a barra de XP, que continua sendo as .lobby-xp* lá de cima, escritas
+       pela <BarraXp>. O que este bloco faz com ela é só mudar onde a
+       legenda aparece dentro do painel do personagem.
+
+   Onde o desenho tinha número solto e o projeto tem token, o token ganha:
+   o gap de 24px é --e-5, o mono é --fonte-mono, a pílula é --raio-total.
+   Os valores que ficaram crus (42px do quadrado, 92px do retrato, 30px do
+   nome) são medidas do desenho sem token correspondente na escala.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Nav em pílula
+
+   Mesmas classes da <Nav> de componentes/Nav.tsx — o componente é um só,
+   e as seções vêm por propriedade (SECOES_SOLO). As regras estão aqui e
+   não são importadas de escola.css porque as duas folhas nunca andam
+   juntas: cada mundo carrega a própria, como já acontece com .btn.
+
+   As medidas são as do desenho do Solo, que difere do Escola de propósito:
+   pílula mais folgada, item em sans e caixa normal em vez de mono
+   maiúsculo. A marca continua em mono, que é a regra dos dois papéis.
+   ------------------------------------------------------------------------- */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+}
+
+.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 26px;
+  padding: 9px 10px 9px 22px;
+  border-radius: var(--raio-total, 9999px);
+}
+
+.nav-marca {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 13px;
+  letter-spacing: 0.34em;
+  color: var(--cor-texto, #fff);
+}
+/* O letter-spacing sobra à direita da última letra; compensa. */
+.nav-marca span { margin-right: -0.34em; }
+
+.nav-item {
+  padding: 7px 16px;
+  border-radius: var(--raio-total, 9999px);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.38);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
+
+/* Ativo: fundo claro, como a aba em que se está. aria-current="page" é o
+   que o leitor de tela anuncia; a cor é para quem enxerga. */
+.nav-item[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--cor-texto, #fff);
+}
+
+/* Conta: avatar redondo com o menu que já traz "Ir para o Professor" e
+   "Sair" — os dois botões que moravam no cabeçalho do painel antigo. */
+.conta { position: relative; flex: none; }
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto, #fff);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.avatar:hover { background: rgba(255, 255, 255, 0.22); }
+
+.menu-conta {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-flutuante, 10);
+  min-width: 190px;
+  padding: 8px;
+  border-radius: var(--raio-n, 8px);
+}
+
+.menu-cabecalho {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+.menu-nome {
+  font-size: 13px;
+  color: var(--cor-texto, #fff);
+  overflow-wrap: anywhere;
+}
+.menu-modo {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border-radius: var(--raio-p, 4px);
+  text-align: left;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
+
+/* Texto só para quem ouve a tela. Existe em escola.css, e o Solo precisa
+   da própria cópia pelo mesmo motivo do .btn: as folhas não andam juntas. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   As duas colunas
+
+   830fr / 450fr é a proporção do desenho. align-items: stretch (o padrão
+   da grade) é o que dá aos dois painéis a MESMA altura — é o requisito, e
+   é por isso que nenhum dos dois tem height fixa.
+   ------------------------------------------------------------------------- */
+.lobby-topo {
+  display: grid;
+  grid-template-columns: 830fr 450fr;
+  gap: var(--e-5, 24px);
+  margin-top: 34px;
+  align-items: stretch;
+}
+
+/* Sem campanha, ou com o histórico fora do ar: sobra um painel só, e ele
+   ocupa a largura toda em vez de ficar torto na coluna da esquerda. */
+.lobby-topo-unico { grid-template-columns: 1fr; }
+
+/* O .painel de dashboard.css é o cartão único de 640px centrado; aqui ele
+   é célula de grade. Só isto muda — borda, raio e vidro continuam de lá. */
+.lobby-topo .painel {
+  max-width: none;
+  padding: 30px 34px;
+}
+
+/* ---------------------------------------------------------------------------
+   Painel do personagem
+   ------------------------------------------------------------------------- */
+.lobby-personagem {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 26px;
+}
+
+.lobby-quem {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+/* O retrato é a inicial num disco de luz. Não é avatar de verdade: a
+   tabela Users não tem coluna de imagem, e o disco é desenho, não dado. */
+.lobby-retrato {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: var(--raio-total, 9999px);
+  background: radial-gradient(circle at 50% 42%,
+    rgba(255, 255, 255, 0.30) 0%,
+    rgba(255, 255, 255, 0.05) 72%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 30px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lobby-identidade { min-width: 0; }
+
+.lobby-linha-nome {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* Mono porque é o nome como identidade da campanha, na mesma família do
+   resto dos dados da tela. */
+.lobby-nome {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 30px;
+  font-weight: var(--peso-medio, 500);
+  letter-spacing: 0.08em;
+  line-height: var(--lh-apertada, 1.1);
+  overflow-wrap: anywhere;
+}
+
+.lobby-selo {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+}
+
+/* O rótulo mono miúdo dos dois painéis: EXPERIÊNCIA e SEQUÊNCIA. */
+.lobby-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* --- a barra de XP dentro do painel -------------------------------------- */
+/* A <BarraXp> continua a mesma e escreve o mesmo trilho e a mesma legenda.
+   O desenho só quer a legenda EM CIMA, à direita do rótulo, em vez de
+   embaixo. Em vez de um segundo componente, as três peças (rótulo,
+   legenda, trilho) entram na mesma grade: o display: contents dissolve o
+   .lobby-xp, que aqui é só um invólucro, e deixa os filhos dele serem
+   células — assim o trilho pode atravessar as duas colunas. */
+.lobby-experiencia {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: var(--e-4, 16px);
+}
+.lobby-experiencia .lobby-rotulo { grid-row: 1; grid-column: 1; }
+.lobby-experiencia .lobby-xp { display: contents; }
+
+.lobby-experiencia .lobby-xp-legenda {
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: end;
+  font-size: 10px;
+  letter-spacing: normal;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Trilho mais fino e preenchimento em degradê com brilho, como o desenho.
+   O .lobby-xp-preenchimento lá de cima já tem a transição de largura e o
+   comportamento sob movimento reduzido — nada disso se repete aqui. */
+.lobby-experiencia .lobby-xp-trilho {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+}
+.lobby-experiencia .lobby-xp-preenchimento {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), #fff);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   Painel de sequência
+   ------------------------------------------------------------------------- */
+.lobby-sequencia {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.lobby-dias {
+  display: flex;
+  gap: 8px;
+}
+
+.lobby-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.lobby-quad {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--raio-n, 8px);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Dia com treino: branco quase cheio, com brilho. É o único elemento aceso
+   da tela fora do botão — é o que faz a sequência ser lida de relance. */
+.lobby-quad-cheio {
+  background: rgba(255, 255, 255, 0.90);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.30);
+}
+
+/* O resto da semana depois de hoje: mais apagado que um dia perdido, sem
+   ser outro estado visual. Ainda não é falta — só não chegou. */
+.lobby-quad-futuro {
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+}
+
+.lobby-dia-inicial {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: var(--peso-normal, 400);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.lobby-frase {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* ---------------------------------------------------------------------------
+   Rodapé: a ação e os dois atalhos
+
+   O lugar que a grade de missões ocupa no desenho. Aqui as lições moram em
+   campanhas.html, então fica o que o lobby sempre teve — e a .lobby-acao,
+   a .lobby-atalhos e o .lobby-atalho continuam sendo as regras de cima.
+   ------------------------------------------------------------------------- */
+.lobby-rodape {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-5, 24px);
+  margin-top: 44px;
+}
+.lobby-rodape .lobby-acao { max-width: 420px; }
+
+/* --- convite (primeira vez, sem campanha) -------------------------------- */
+/* Painel único e centrado. O .lobby-convite lá de cima já empilha e
+   centraliza; aqui ele só ganha o respiro do painel largo. */
+.lobby-convite {
+  justify-content: center;
+  padding-top: 56px;
+  padding-bottom: 56px;
+}
+.lobby-convite .lobby-acao { max-width: 420px; }
+
+/* --- esboço de carregamento ---------------------------------------------- */
+/* Os dois painéis já no lugar, com as peças na altura que terão. Cada
+   peça se pinta sozinha (a lista de seletores abaixo), e não por um
+   `> *`: aqui há invólucro que não é peça e não pode virar bloco cinza. */
+.lobby-esboco:first-child {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.lobby-esboco:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+.lobby-esboco-retrato,
+.lobby-esboco-nome,
+.lobby-esboco-barra,
+.lobby-esboco-rotulo,
+.lobby-esboco-dias,
+.lobby-esboco-frase {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: var(--raio-total, 9999px);
+}
+.lobby-esboco-retrato { flex: none; width: 92px; height: 92px; }
+.lobby-esboco-linhas  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.lobby-esboco-nome    { width: 220px; max-width: 100%; height: 30px; border-radius: var(--raio-n, 8px); }
+.lobby-esboco-barra   { width: 100%; height: 6px; }
+.lobby-esboco-rotulo  { width: 90px; height: 9px; }
+.lobby-esboco-dias    { width: 100%; max-width: 342px; height: 42px; border-radius: var(--raio-n, 8px); }
+.lobby-esboco-frase   { width: 180px; height: 12px; }
+
+/* ---------------------------------------------------------------------------
+   Responsivo
+
+   1100px é o ponto do desenho: abaixo dele as duas colunas viram uma. Os
+   sete quadrados continuam em linha até 700px, onde encolhem para caber —
+   quebrar a semana em duas linhas faria a leitura de relance sumir.
+   ------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .lobby-topo { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .nav { gap: 14px; padding-left: 16px; }
+  .nav-item { padding: 7px 10px; }
+  .lobby-topo { margin-top: 24px; }
+  .lobby-topo .painel { padding: 24px 22px; }
+
+  .lobby-quem { gap: 16px; }
+  .lobby-retrato { width: 68px; height: 68px; font-size: 22px; }
+  .lobby-nome { font-size: 22px; }
+
+  /* Os quadrados passam a dividir a largura disponível em sete partes
+     iguais em vez de valer 42px cada. aspect-ratio mantém o quadrado. */
+  .lobby-dias { gap: 6px; }
+  .lobby-dia { flex: 1; min-width: 0; }
+  .lobby-quad { width: 100%; height: auto; aspect-ratio: 1; }
+
+  /* A legenda do XP não cabe ao lado do rótulo no talo da tela: desce para
+     a própria linha, alinhada à esquerda com ele. */
+  .lobby-experiencia { grid-template-columns: 1fr; }
+  .lobby-experiencia .lobby-xp-legenda { grid-row: 2; grid-column: 1; justify-self: start; }
+  .lobby-experiencia .lobby-xp-trilho { grid-row: 3; }
+
+  .lobby-rodape { margin-top: 32px; }
+  .lobby-esboco:first-child { gap: 16px; }
+  .lobby-esboco-retrato { width: 68px; height: 68px; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — Design das Lições (pages/solo/campanhas.html)
+
+   A tela ganhou a nav em pílula do lobby (as .nav*, .barra, .conta e
+   .avatar já estão nesta folha — o componente é a mesma <Nav>) e o
+   acabamento dos cartões e dos cabeçalhos de nível na linguagem do
+   desenho: vidro, rótulo mono 9px com letter-spacing .30em, número em
+   tabular-nums e a pílula de repetições no formato do desenho.
+
+   Não se repete aqui: a receita do vidro (.vidro), a barra de XP
+   (.lobby-xp*, escrita pela <BarraXp>), a página e o fundo (.pagina e
+   .fundo-largo, acima). Agrupamento, ordem, pílulas, marcas de concluída,
+   grupo aberto por padrão e o botão Continuar não mudaram — isto é só
+   acabamento.
+   ========================================================================== */
+
+/* O painel deixa de ser o cartão de 640px centrado na janela e passa a ser
+   a coluna da página, abaixo da nav. Raio 24 e respiro largo: é mundo
+   Solo, a mesma densidade do lobby. */
+.pagina-media .painel.campanhas {
+  max-width: none;
+  margin-top: 34px;
+  padding: 30px 34px;
+  border-radius: 24px;
+}
+
+/* O "← Solo" é o caminho de volta ao lobby. Com a nav em cima ele é o
+   segundo caminho para o mesmo lugar, e por isso fica discreto: rótulo
+   mono miúdo, acima do cabeçalho, sem peso de botão. */
+.campanhas .voltar { margin-bottom: var(--e-5, 24px); }
+
+/* --- cabeçalho do painel -------------------------------------------------- */
+/* O rótulo "MODO · SOLO" na escala do desenho: mono 9px, .30em. É o mesmo
+   tamanho do EXPERIÊNCIA e do SEQUÊNCIA do lobby — um rótulo só, uma
+   medida só. */
+.campanhas .rotulo {
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  color: rgba(255, 255, 255, 0.62);
+}
+.campanhas .titulo { font-size: 30px; }
+.campanhas .subtitulo { color: rgba(255, 255, 255, 0.38); }
+
+/* Sem o botão "Sair" ao lado, o cabeçalho deixa de ser duas colunas. */
+.campanhas .cabecalho { display: block; }
+
+/* --- o bloco da campanha ------------------------------------------------- */
+/* O rótulo "NÍVEL" na mesma escala dos outros; o número continua grande e
+   em tabular-nums, como já estava. */
+.campanhas .campanha-nivel-rotulo {
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* A barra do desenho: trilho de 6px, preenchimento em degradê com brilho.
+   Mesmas .lobby-xp* do lobby — aqui só a pele muda, e a transição de
+   largura e o comportamento sob movimento reduzido continuam vindo de lá. */
+.campanha-progresso .lobby-xp-trilho {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+}
+.campanha-progresso .lobby-xp-preenchimento {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), #fff);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+.campanha-progresso .lobby-xp-legenda {
+  font-size: 10px;
+  letter-spacing: normal;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- rótulo de seção ------------------------------------------------------ */
+/* "PERCURSO": mesma escala de rótulo do resto da tela. A linha embaixo
+   fica, porque aqui ela separa o cabeçalho da lista. */
+.campanhas .secao-rotulo {
+  margin-top: 40px;
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* --- cabeçalho de nível --------------------------------------------------- */
+/* Mesma escala de rótulo, e o cabeçalho ganha corpo de linha de vidro
+   quando o grupo está aberto: é o que separa o grupo em que a pessoa está
+   dos nove recolhidos, sem precisar de cor. */
+.grupo-titulo {
+  font-size: 9px;
+  letter-spacing: 0.30em;
+}
+.grupo-cabecalho {
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-g, 16px);
+}
+.grupo-cabecalho[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.grupo-cabecalho[aria-expanded="true"]:hover { background: rgba(255, 255, 255, 0.09); }
+
+/* --- cartão da lição ------------------------------------------------------ */
+/* O cartão do desenho: raio 18, respiro maior e a borda acendendo no
+   hover. O fundo continua o véu leve de dashboard.css — vidro de verdade
+   (backdrop-filter) em 76 cartões empilhados custa caro e não acrescenta
+   nada: eles já estão sobre o painel de vidro. */
+.item.licao {
+  padding: 16px 20px;
+  border-radius: 18px;
+}
+a.item.licao:hover { border-color: rgba(255, 255, 255, 0.30); }
+
+.licao .item-titulo {
+  font-size: 16px;
+  font-weight: var(--peso-normal, 400);
+}
+
+/* O meta do cartão na escala do desenho, e os números sem tremer. */
+.licao .item-meta {
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A pílula "10×" no formato do desenho: mono 9px, .14em, fundo sem borda. */
+.licao-repeticoes {
+  padding: 5px 10px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* O esqueleto do grupo acompanha o cabeçalho, que cresceu. */
+.grupo-esqueleto {
+  height: 48px;
+  border-radius: var(--raio-g, 16px);
+}
+
+@media (max-width: 700px) {
+  .pagina-media .painel.campanhas { margin-top: 24px; padding: 24px 22px; }
+  .campanhas .titulo { font-size: 24px; }
+  .campanhas .secao-rotulo { margin-top: 28px; }
+  .grupo-cabecalho { padding: 12px 12px; }
+  .item.licao { padding: 14px 16px; }
 }

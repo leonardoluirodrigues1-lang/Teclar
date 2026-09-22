@@ -41,6 +41,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Campanha, ErroDaApi, Missao, SessaoSolo, Usuario } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { PainelErro } from '../componentes/PainelErro.js';
+import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
 import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
 import { maisRecentesPrimeiro } from '../utils/desempenho.js';
 
@@ -421,34 +422,41 @@ function Campanhas({ usuario }: PropsCampanhas) {
   }
 
   return (
-    <section className="painel vidro campanhas" aria-labelledby="titulo">
-      <a className="voltar" href={ROTA_LOBBY}>
-        <span className="voltar-seta" aria-hidden="true">
-          ←
-        </span>
-        Solo
-      </a>
+    <>
+      {/* A mesma <Nav> do lobby, com as mesmas SECOES_SOLO — o componente é
+          um só. "Sair" e "Ir para o Professor" moram no menu do avatar
+          dela, e por isso saíram do cabeçalho do painel: dois lugares para
+          a mesma ação é o que o desenho não quer. */}
+      <Nav secoes={SECOES_SOLO} ativo="missoes" />
 
-      <header className="cabecalho">
-        <div>
-          <p className="rotulo">Modo · Solo</p>
-          <h1 className="titulo" id="titulo">
-            Lições
-          </h1>
-          <p className="subtitulo" id="subtitulo">
-            {usuario.nome ?? sessao.nomeExibicao()}
-          </p>
-        </div>
-        <button type="button" className="btn-sair vidro" id="btn-sair" onClick={() => guarda.sair()}>
-          Sair
-        </button>
-      </header>
+      <main className="conteudo">
+        <section className="painel vidro campanhas" aria-labelledby="titulo">
+          <a className="voltar" href={ROTA_LOBBY}>
+            <span className="voltar-seta" aria-hidden="true">
+              ←
+            </span>
+            Solo
+          </a>
 
-      {renderizarCampanha()}
+          <header className="cabecalho">
+            <div>
+              <p className="rotulo">Modo · Solo</p>
+              <h1 className="titulo" id="titulo">
+                Lições
+              </h1>
+              <p className="subtitulo" id="subtitulo">
+                {usuario.nome ?? sessao.nomeExibicao()}
+              </p>
+            </div>
+          </header>
 
-      <h2 className="secao-rotulo">Percurso</h2>
-      {renderizarCorpo()}
-    </section>
+          {renderizarCampanha()}
+
+          <h2 className="secao-rotulo">Percurso</h2>
+          {renderizarCorpo()}
+        </section>
+      </main>
+    </>
   );
 }
 

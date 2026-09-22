@@ -40,7 +40,29 @@ function token(): string | null {
   return localStorage.getItem(CHAVES.TOKEN);
 }
 
+// Apaga TODA chave 'teclar:' do localStorage, inclusive o modo, que o
+// sair() preserva de propósito. Usado só para descartar sessão inválida:
+// se o formato do que está gravado não é mais reconhecido, o modo salvo
+// junto também não vale nada.
+function limparTudo(): void {
+  for (const chave of Object.keys(localStorage)) {
+    if (chave.startsWith('teclar:')) localStorage.removeItem(chave);
+  }
+  cacheUsuario = null;
+}
+
 // Lê do cache; se não tiver, lê do localStorage e faz parse.
+//
+// Uma sessão gravada só vale se tiver tipo ('conta' | 'aluno') e token. O
+// localStorage pode ter sobrado de antes da conta única, quando o usuário
+// tinha `perfil` e não tinha `tipo`: esse formato o resto do front não sabe
+// ler — o guarda não resolve a casa da pessoa e a devolve para a landing,
+// então login.html entra e sai na hora e não há como chegar a lugar nenhum
+// sem limpar o navegador na mão. JSON corrompido cai no mesmo caso.
+//
+// O tratamento é o mesmo nos três: limpar e devolver null, uma vez, aqui na
+// leitura. Ninguém redireciona daqui — quem decide para onde ir é o guarda,
+// que passa a ver "ninguém logado" e manda para o login.
 function usuario(): Usuario | null {
   if (cacheUsuario !== undefined) return cacheUsuario;
 
@@ -50,15 +72,27 @@ function usuario(): Usuario | null {
     return null;
   }
 
-  // Único ponto do módulo que precisa de try/catch: o JSON pode estar
-  // corrompido (edição manual, escrita interrompida, formato antigo).
+  let lido: unknown;
   try {
-    cacheUsuario = JSON.parse(bruto) ?? null;
+    lido = JSON.parse(bruto);
   } catch {
-    // Melhor deslogar do que quebrar toda tela que depende do usuário.
-    sair();
+    limparTudo();
     return null;
   }
+
+  const candidato = lido as (Usuario & { perfil?: unknown }) | null;
+  const valido =
+    candidato != null &&
+    (candidato.tipo === 'conta' || candidato.tipo === 'aluno') &&
+    candidato.perfil === undefined &&
+    token() != null;
+
+  if (!valido) {
+    limparTudo();
+    return null;
+  }
+
+  cacheUsuario = candidato;
   return cacheUsuario;
 }
 

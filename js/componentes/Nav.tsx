@@ -30,8 +30,11 @@ export interface SecoesNav {
   rotulo: string;
   /** Texto abaixo do nome no menu da conta, ex.: 'Professor'. */
   modo: string;
-  /** O item "Ir para ..." do menu: o outro modo da conta. */
-  outroModo: { rotulo: string; modo: Modo };
+  /** O item "Ir para ..." do menu: o outro modo da conta. Ausente para o
+   *  ALUNO, que não tem outro modo — a sessão dele é de aluno, não de
+   *  conta, e sessao.definirModo() nem grava. Mostrar o item levaria a
+   *  pessoa a turmas.html, de onde o guarda.soConta a expulsaria. */
+  outroModo?: { rotulo: string; modo: Modo };
   itens: ItemNav[];
 }
 
@@ -46,6 +49,32 @@ export const SECOES_PROFESSOR: SecoesNav = {
     { chave: 'turmas', rotulo: 'Turmas', href: 'turmas.html' },
     { chave: 'biblioteca', rotulo: 'Biblioteca', href: 'biblioteca.html' },
     { chave: 'relatorios', rotulo: 'Relatórios', href: 'relatorios.html' },
+  ],
+};
+
+export type SecaoSolo = 'campanha' | 'missoes' | 'estatisticas';
+export type SecaoAluno = 'exercicios' | 'historico';
+
+/** As seções do aluno. Os hrefs valem para pages/aluno/. Sem outroModo:
+ *  ver a nota em SecoesNav. */
+export const SECOES_ALUNO: SecoesNav = {
+  rotulo: 'Seções do aluno',
+  modo: 'Aluno',
+  itens: [
+    { chave: 'exercicios', rotulo: 'Exercícios', href: 'dashboard.html' },
+    { chave: 'historico', rotulo: 'Histórico', href: 'historico.html' },
+  ],
+};
+
+/** As seções do mundo Solo. Os hrefs valem para pages/solo/. */
+export const SECOES_SOLO: SecoesNav = {
+  rotulo: 'Seções do Solo',
+  modo: 'Solo',
+  outroModo: { rotulo: 'Ir para o Professor', modo: 'professor' },
+  itens: [
+    { chave: 'campanha', rotulo: 'Campanha', href: 'dashboard.html' },
+    { chave: 'missoes', rotulo: 'Missões', href: 'campanhas.html' },
+    { chave: 'estatisticas', rotulo: 'Estatísticas', href: 'estatisticas.html' },
   ],
 };
 
@@ -169,19 +198,22 @@ export function Nav({ secoes, ativo }: PropsNav) {
             <p className="menu-modo">{secoes.modo}</p>
           </div>
           {/* Troca de modo: sem logout, sem tela intermediária. A mesma
-              conta abre os dois mundos. */}
-          <button
-            type="button"
-            className="menu-item"
-            id="btn-trocar-modo"
-            role="menuitem"
-            onClick={() => {
-              guarda.trocarModo(secoes.outroModo.modo);
-              fechar();
-            }}
-          >
-            {secoes.outroModo.rotulo}
-          </button>
+              conta abre os dois mundos. O aluno não tem outro mundo, e
+              para ele este item simplesmente não existe. */}
+          {secoes.outroModo && (
+            <button
+              type="button"
+              className="menu-item"
+              id="btn-trocar-modo"
+              role="menuitem"
+              onClick={() => {
+                guarda.trocarModo(secoes.outroModo!.modo);
+                fechar();
+              }}
+            >
+              {secoes.outroModo.rotulo}
+            </button>
+          )}
           {/* Sair fecha o menu antes de navegar, para o menu não ficar
               aberto se a navegação demorar. */}
           <button

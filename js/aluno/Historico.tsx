@@ -10,9 +10,10 @@
 // tempo acabou é "Tempo esgotado", nunca uma falha. O que a tela destaca
 // é o que ele conquistou: melhor marca, sequência, evolução.
 //
-// O cabeçalho é o mesmo do dashboard do aluno (header.cabecalho dentro de
-// .painel.vidro, com "Aluno", título, subtítulo e "Sair"), como
-// em Dashboard.tsx: o aluno não tem a Nav em pílula do professor.
+// A moldura é a mesma do dashboard do aluno (a <Nav> em pílula com
+// SECOES_ALUNO no topo, e o header.cabecalho dentro de .painel.vidro com
+// "Aluno", título e subtítulo), como em Dashboard.tsx. "Sair" mora no menu
+// do avatar da nav, e não solto no cabeçalho: um lugar só para a ação.
 //
 // Do relatório do professor vêm reaproveitados, sem cópia: o tipo da
 // sessão (SessaoDoHistorico estende SessaoDoAluno), a Tabela ordenável, o
@@ -34,6 +35,7 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
+import { Nav, SECOES_ALUNO } from '../componentes/Nav.js';
 import {
   evolucaoDe,
   maisRecentesPrimeiro,
@@ -364,31 +366,34 @@ function Historico({ usuario }: PropsHistorico) {
   }
 
   return (
-    <section className="painel vidro historico" aria-labelledby="titulo">
-      <a className="voltar" href="dashboard.html">
-        <span className="voltar-seta" aria-hidden="true">
-          ←
-        </span>
-        Meus exercícios
-      </a>
+    <>
+      <Nav secoes={SECOES_ALUNO} ativo="historico" />
 
-      <header className="cabecalho">
-        <div>
-          <p className="rotulo">Aluno</p>
-          <h1 className="titulo" id="titulo">
-            Seu histórico
-          </h1>
-          <p className="subtitulo" id="subtitulo">
-            {subtitulo}
-          </p>
-        </div>
-        <button type="button" className="btn-sair vidro" id="btn-sair" onClick={() => guarda.sair()}>
-          Sair
-        </button>
-      </header>
+      <main className="conteudo">
+        <section className="painel vidro historico" aria-labelledby="titulo">
+          <a className="voltar" href="dashboard.html">
+            <span className="voltar-seta" aria-hidden="true">
+              ←
+            </span>
+            Meus exercícios
+          </a>
 
-      {renderizarCorpo()}
-    </section>
+          <header className="cabecalho">
+            <div>
+              <p className="rotulo">Aluno</p>
+              <h1 className="titulo" id="titulo">
+                Seu histórico
+              </h1>
+              <p className="subtitulo" id="subtitulo">
+                {subtitulo}
+              </p>
+            </div>
+          </header>
+
+          {renderizarCorpo()}
+        </section>
+      </main>
+    </>
   );
 }
 

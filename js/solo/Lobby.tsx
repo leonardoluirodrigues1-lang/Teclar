@@ -12,7 +12,7 @@
 //
 // Dois estados, e a tela mostra um só:
 //   1. sem campanha — primeira vez no Solo: o convite e o botão que cria.
-//   2. com campanha — nível, barra de XP e o botão de continuar.
+//   2. com campanha — o painel do personagem, a sequência e o botão.
 // Quem decide qual é GET /solo/campanha: ele devolve null quando não há
 // campanha, e null aqui é ESTADO, não falha (ver api.solo.campanhaAtual).
 //
@@ -21,18 +21,28 @@
 // campanha, pelo sessao.definirCampanha(), porque campanhas.html e a tela
 // de treino precisam dele — e id é coluna, existe no banco.
 //
-// Mesmo desenho de Campanhas.tsx e Dashboard.tsx: o painel de vidro com
-// .cabecalho (rótulo, título, subtítulo e "Sair"). O que é só daqui — a
-// barra de XP, o convite e o esqueleto — mora em css/solo.css.
+// O DESENHO é o do painel da campanha: nav em pílula de vidro no topo,
+// duas colunas de altura igual (personagem à esquerda, sequência à
+// direita) e, abaixo, a ação. A grade de missões que o desenho traz NÃO
+// mora aqui: as lições vivem em campanhas.html, agrupadas por nível. O
+// lugar delas é ocupado pelo que o lobby sempre fez — o botão grande e os
+// dois atalhos —, com a lógica intacta e só o acabamento novo.
+//
+// Uma coisa do desenho não sobrevive ao banco: o "Campanha iniciada em 2
+// de setembro". A tabela CampanhasSolo não tem data de criação, e inventar
+// uma aqui seria escrever na tela um dado que não existe.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { Campanha, ErroDaApi } from '../nucleo/tipos.js';
+import type { Campanha, ErroDaApi, SessaoSolo } from '../nucleo/tipos.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
+import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
+import { desembrulhar } from '../componentes/listaExercicios.js';
+import { semanaDeDias, sequenciaDeDias, type DiaDaSemana } from '../utils/desempenho.js';
 
 // A tela de missões, vizinha desta em pages/solo/. Caminho relativo: as
 // duas moram na mesma pasta.
@@ -52,24 +62,122 @@ const MENSAGENS = {
 // progressoDe() e a <BarraXp> moram em componentes/BarraXp.tsx desde que a
 // tela de estatísticas passou a mostrar a mesma barra. O NÍVEL continua
 // vindo pronto na campanha (campanha.nivelAtual), como o back o gravou —
-// ver a nota lá.
+// ver a nota lá. O painel do personagem usa a MESMA barra: o que muda é
+// só onde a legenda dela aparece, e isso é css/solo.css, não outro
+// componente.
+
+// A inicial do retrato. Uma letra, como no desenho — a Nav usa duas no
+// avatar dela, e as duas coisas continuam sendo o que já eram.
+function inicial(nome: string): string {
+  return nome.trim().slice(0, 1).toUpperCase();
+}
 
 // ============================================================================
-// Esqueleto — a altura do painel final
+// Esqueleto — a altura dos painéis finais
 // ============================================================================
 
-// Os blocos têm a altura das peças que vão ocupar o lugar deles (nível,
-// barra, legenda e botão), na mesma ordem: quando a campanha chega, nada
-// pula. A medida é a do painel COM campanha, que é o caso de quem volta —
-// o convite da primeira vez acontece uma única vez por conta.
-function EsqueletoLobby() {
+// Os dois painéis já ocupam o lugar que terão, na mesma grade: quando a
+// campanha chega, nada pula. A medida é a do estado COM campanha, que é o
+// caso de quem volta — o convite da primeira vez acontece uma única vez
+// por conta.
+function EsbocoLobby() {
   return (
-    <div className="lobby-esqueleto" aria-hidden="true">
-      <div className="lobby-esqueleto-nivel" />
-      <div className="lobby-esqueleto-barra" />
-      <div className="lobby-esqueleto-legenda" />
-      <div className="lobby-esqueleto-acao" />
+    <div className="lobby-topo" aria-hidden="true">
+      <article className="painel vidro lobby-esboco">
+        <div className="lobby-esboco-retrato" />
+        <div className="lobby-esboco-linhas">
+          <div className="lobby-esboco-nome" />
+          <div className="lobby-esboco-barra" />
+        </div>
+      </article>
+      <article className="painel vidro lobby-esboco">
+        <div className="lobby-esboco-rotulo" />
+        <div className="lobby-esboco-dias" />
+        <div className="lobby-esboco-frase" />
+      </article>
     </div>
+  );
+}
+
+// ============================================================================
+// Painel do personagem
+// ============================================================================
+
+function PainelPersonagem({ nome, campanha }: { nome: string; campanha: Campanha }) {
+  const progresso = progressoDe(campanha);
+
+  return (
+    <article className="painel vidro lobby-personagem">
+      <div className="lobby-quem">
+        <div className="lobby-retrato" aria-hidden="true">
+          {inicial(nome)}
+        </div>
+        <div className="lobby-identidade">
+          <div className="lobby-linha-nome">
+            <h1 className="lobby-nome">{nome}</h1>
+            <span className="lobby-selo">Nível {progresso.nivel}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* O rótulo e a barra dividem a mesma grade: a legenda que a
+          <BarraXp> já escreve sobe para a direita do rótulo (ver
+          .lobby-experiencia em css/solo.css). Nenhuma segunda barra, e
+          nenhum segundo texto de XP. */}
+      <div className="lobby-experiencia">
+        <span className="lobby-rotulo">Experiência</span>
+        <BarraXp progresso={progresso} />
+      </div>
+    </article>
+  );
+}
+
+// ============================================================================
+// Painel de sequência
+// ============================================================================
+// O dado não existe em tabela: sai das datas de GET /solo/historico, pela
+// semanaDeDias() de utils/desempenho.ts — a mesma aritmética de dia que a
+// sequência já usava. Se o histórico falhar, este painel simplesmente não
+// é montado e o resto da tela abre normalmente: é a regra do Solo, e o
+// lobby não vale menos sem os sete quadrados.
+
+function fraseDaSequencia(sequencia: number): string {
+  if (sequencia === 0) return 'Comece hoje.';
+  if (sequencia === 1) return '1 dia seguido. Não quebre agora.';
+  return `${sequencia} dias seguidos. Não quebre agora.`;
+}
+
+function PainelSequencia({ dias, sequencia }: { dias: DiaDaSemana[]; sequencia: number }) {
+  return (
+    <article className="painel vidro lobby-sequencia">
+      <span className="lobby-rotulo">Sequência</span>
+
+      {/* <ul> e não um monte de <div>: são sete itens de uma lista, e o
+          leitor de tela anuncia quantos são. A letra embaixo do quadrado
+          é ambígua de propósito no desenho (S T Q Q S S D), então cada
+          item carrega o dia por extenso e o estado em texto só para quem
+          ouve. */}
+      <ul className="lobby-dias" aria-label="Seus dias de treino nesta semana">
+        {dias.map((dia) => (
+          <li className="lobby-dia" key={dia.dia}>
+            <span
+              className={
+                'lobby-quad' + (dia.treinou ? ' lobby-quad-cheio' : '') + (dia.futuro ? ' lobby-quad-futuro' : '')
+              }
+              aria-hidden="true"
+            />
+            <b className="lobby-dia-inicial" aria-hidden="true">
+              {dia.inicial}
+            </b>
+            <span className="sr-only">
+              {dia.nome}: {dia.treinou ? 'treinou' : dia.futuro ? 'ainda não chegou' : 'sem treino'}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="lobby-frase">{fraseDaSequencia(sequencia)}</p>
+    </article>
   );
 }
 
@@ -81,7 +189,9 @@ type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
   // null é o estado 1 (ainda não começou), não um erro disfarçado.
-  | { estado: 'pronto'; campanha: Campanha | null };
+  // `sessoes` é null quando o histórico falhou: o painel de sequência some
+  // e o resto da tela continua de pé.
+  | { estado: 'pronto'; campanha: Campanha | null; sessoes: SessaoSolo[] | null };
 
 function Lobby() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -101,7 +211,21 @@ function Lobby() {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        const campanha = (await api.solo.campanhaAtual()) ?? null;
+        // As duas juntas, e a campanha manda: sem ela não há o que mostrar.
+        // O histórico vem no mesmo ida-e-volta, mas com a própria rede de
+        // segurança — ele alimenta só o painel de sequência, e uma falha
+        // ali não pode derrubar a tela inteira. Por isso o catch local em
+        // vez de deixar o Promise.all rejeitar por ele.
+        const [campanha, sessoes] = await Promise.all([
+          api.solo.campanhaAtual(),
+          api.solo
+            .historico()
+            .then((historico) => desembrulhar(historico))
+            .catch((excecao) => {
+              console.error(excecao);
+              return null;
+            }),
+        ]);
         if (cancelado) return;
 
         // O id da campanha vai para a sessão porque campanhas.html e a tela
@@ -110,7 +234,7 @@ function Lobby() {
         // tela de missões pedir uma campanha que não existe mais.
         sessao.atualizarUsuario({ campanhaAtiva: campanha?.campanhaId ?? null });
 
-        setCarga({ estado: 'pronto', campanha });
+        setCarga({ estado: 'pronto', campanha: campanha ?? null, sessoes });
       } catch (excecao) {
         if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
       }
@@ -121,6 +245,10 @@ function Lobby() {
       cancelado = true;
     };
   }, [tentativa]);
+
+  const sessoes = carga.estado === 'pronto' ? carga.sessoes : null;
+  const dias = useMemo(() => (sessoes == null ? null : semanaDeDias(sessoes)), [sessoes]);
+  const sequencia = useMemo(() => (sessoes == null ? 0 : sequenciaDeDias(sessoes)), [sessoes]);
 
   // --- começar a campanha ---------------------------------------------------
 
@@ -154,7 +282,7 @@ function Lobby() {
 
   function renderizarCorpo() {
     if (carga.estado === 'carregando') {
-      return <EsqueletoLobby />;
+      return <EsbocoLobby />;
     }
 
     if (carga.estado === 'erro') {
@@ -168,94 +296,78 @@ function Lobby() {
     }
 
     // --- estado 1: ainda não começou ---
+    // Painel único, o mesmo texto de sempre, no acabamento novo. Sem
+    // sequência: não há campanha, e portanto não há histórico nenhum.
     if (carga.campanha == null) {
       return (
-        <div className="lobby-convite">
-          <h2 className="lobby-convite-titulo">Sua campanha começa aqui</h2>
-          <p className="lobby-convite-texto">
-            No Solo você treina no seu ritmo: cada missão concluída rende XP, o XP sobe de
-            nível e o nível abre missões novas.
-          </p>
-          <button
-            type="button"
-            className="btn btn-solido lobby-acao"
-            onClick={comecar}
-            disabled={criando}
-          >
-            {criando ? 'Criando…' : 'Começar campanha'}
-          </button>
-          {falhaAoCriar && (
-            <p className="lobby-falha" role="alert">
-              {falhaAoCriar}
+        <div className="lobby-topo lobby-topo-unico">
+          <article className="painel vidro lobby-convite">
+            <span className="lobby-rotulo">Modo · Solo</span>
+            <h1 className="lobby-convite-titulo">Sua campanha começa aqui</h1>
+            <p className="lobby-convite-texto">
+              No Solo você treina no seu ritmo: cada missão concluída rende XP, o XP sobe de
+              nível e o nível abre missões novas.
             </p>
-          )}
+            <button
+              type="button"
+              className="btn btn-solido lobby-acao"
+              onClick={comecar}
+              disabled={criando}
+            >
+              {criando ? 'Criando…' : 'Começar campanha'}
+            </button>
+            {falhaAoCriar && (
+              <p className="lobby-falha" role="alert">
+                {falhaAoCriar}
+              </p>
+            )}
+          </article>
         </div>
       );
     }
 
     // --- estado 2: já começou ---
-    const progresso = progressoDe(carga.campanha);
-
     return (
-      <div className="lobby-progresso">
-        <p className="lobby-nivel">
-          <span className="lobby-nivel-rotulo">Nível</span>
-          <span className="lobby-nivel-valor">{progresso.nivel}</span>
-        </p>
+      <>
+        <div className={'lobby-topo' + (dias == null ? ' lobby-topo-unico' : '')}>
+          <PainelPersonagem nome={nome} campanha={carga.campanha} />
+          {/* Histórico falhou: o painel some e o do personagem ocupa a
+              largura toda. Nenhum aviso — a tela não deve nada aqui. */}
+          {dias && <PainelSequencia dias={dias} sequencia={sequencia} />}
+        </div>
 
-        <BarraXp progresso={progresso} />
-
-        <a className="btn btn-solido lobby-acao" href={ROTA_MISSOES}>
-          Continuar
-        </a>
-
-        <nav className="lobby-atalhos" aria-label="Mais do Solo">
-          <a className="lobby-atalho" href={ROTA_ESTATISTICAS}>
-            Estatísticas
+        {/* A ação e os dois atalhos: mesma lógica de sempre. */}
+        <div className="lobby-rodape">
+          <a className="btn btn-solido lobby-acao" href={ROTA_MISSOES}>
+            Continuar
           </a>
-          <a className="lobby-atalho" href={ROTA_MISSOES}>
-            Missões
-          </a>
-        </nav>
-      </div>
+
+          <nav className="lobby-atalhos" aria-label="Mais do Solo">
+            <a className="lobby-atalho" href={ROTA_ESTATISTICAS}>
+              Estatísticas
+            </a>
+            <a className="lobby-atalho" href={ROTA_MISSOES}>
+              Missões
+            </a>
+          </nav>
+        </div>
+      </>
     );
   }
 
   return (
-    <section className="painel vidro lobby" aria-labelledby="titulo">
-      <header className="cabecalho">
-        <div>
-          <p className="rotulo">Modo · Solo</p>
-          <h1 className="titulo" id="titulo">
-            Solo
-          </h1>
-          <p className="subtitulo" id="subtitulo">
-            {nome}
-          </p>
-        </div>
-        <div className="cabecalho-acoes">
-          {/* Troca de modo: a mesma conta abre o Professor. Sem logout,
-              sem tela intermediária. */}
-          <button
-            type="button"
-            className="btn-sair vidro"
-            id="btn-trocar-modo"
-            onClick={() => guarda.trocarModo('professor')}
-          >
-            Ir para Professor
-          </button>
-          <button type="button" className="btn-sair vidro" id="btn-sair" onClick={() => guarda.sair()}>
-            Sair
-          </button>
-        </div>
-      </header>
+    <>
+      {/* A mesma Nav do mundo Escola, com as seções do Solo. Ela já traz o
+          menu da conta — "Ir para o Professor" e "Sair" moram lá dentro,
+          que é onde o desenho os coloca. */}
+      <Nav secoes={SECOES_SOLO} ativo="campanha" />
 
       {/* Sem aria-live neste invólucro: o PainelErro já é role="status" e
           se anuncia sozinho, e a barra de XP tem o próprio rótulo. Uma
           região viva por fora faria o leitor de tela ler a mesma coisa
           duas vezes. */}
-      <div className="lobby-corpo">{renderizarCorpo()}</div>
-    </section>
+      <main className="lobby-conteudo">{renderizarCorpo()}</main>
+    </>
   );
 }
 

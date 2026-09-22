@@ -7,7 +7,14 @@
 <link rel="stylesheet" href="../../css/base/fontes.css">
 <link rel="stylesheet" href="../../css/base/tokens.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
+<!-- A mesma dupla das outras telas do mundo Escola. De dashboard.css vem a
+     casca (base m&iacute;nima, o fundo, .pagina, .painel, o cabe&ccedil;alho e o cart&atilde;o
+     .item de cada exerc&iacute;cio); de escola.css vem o que &eacute; deste mundo &mdash; a
+     nav em p&iacute;lula que a <Nav> desenha, o menu da conta, o .sr-only e os
+     bot&otilde;es. escola.css vem DEPOIS, e o acr&eacute;scimo no fim dela &eacute; o que d&aacute; a
+     esta tela o acabamento do desenho. -->
 <link rel="stylesheet" href="../../css/dashboard.css">
+<link rel="stylesheet" href="../../css/escola.css">
 
 <!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
      projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
@@ -24,13 +31,20 @@
 </head>
 <body>
 
-<div class="fundo" aria-hidden="true">
+<!-- A luz de fundo: o eco do horizonte de eventos mais o campo de estrelas,
+     os dois de dashboard.css. S&oacute; pintura, e o aria-hidden diz isso a quem
+     ouve a tela. Sem essa luz o backdrop-filter do vidro n&atilde;o tem o que
+     desfocar e o painel vira ret&acirc;ngulo cinza. -->
+<div class="fundo fundo-largo" aria-hidden="true">
   <div class="fundo-anel"></div>
+  <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta o painel aqui dentro. A raiz &eacute; o pr&oacute;prio
-     <main class="tela"> de antes, para o CSS n&atilde;o mudar. -->
-<main id="raiz" class="tela"></main>
+<!-- O React monta a p&aacute;gina inteira aqui dentro: a nav em p&iacute;lula e, abaixo
+     dela, o painel dos exerc&iacute;cios. N&Atilde;O &eacute; mais o <main class="tela">, que
+     centraliza UM painel na altura da janela. O <main> de verdade vem do
+     Dashboard.tsx, abaixo da nav. -->
+<div id="raiz" class="pagina pagina-media pagina-aluno"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
 <script type="module" src="../../js/aluno/Dashboard.js"></script>

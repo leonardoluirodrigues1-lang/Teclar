@@ -33,14 +33,17 @@
 
 <!-- A luz de fundo do mundo Solo: o anel de dashboard.css mais o campo de
      estrelas de solo.css, como no lobby e nas estat&iacute;sticas. -->
-<div class="fundo" aria-hidden="true">
+<div class="fundo fundo-largo" aria-hidden="true">
   <div class="fundo-anel"></div>
   <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta o painel aqui dentro. A raiz &eacute; o pr&oacute;prio
-     <main class="tela"> de antes, para o CSS n&atilde;o mudar. -->
-<main id="raiz" class="tela"></main>
+<!-- O React monta a p&aacute;gina inteira aqui dentro: a nav em p&iacute;lula e, abaixo
+     dela, o painel das li&ccedil;&otilde;es. N&Atilde;O &eacute; mais o <main class="tela">, que
+     centraliza UM painel na altura da janela &mdash; com a nav no topo, a
+     p&aacute;gina passa a ser uma coluna. O <main> de verdade vem do
+     Campanhas.tsx, abaixo da nav. -->
+<div id="raiz" class="pagina pagina-media"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
 <script type="module" src="../../js/solo/Campanhas.js"></script>

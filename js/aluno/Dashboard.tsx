@@ -15,6 +15,10 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { Usuario } from '../nucleo/tipos.js';
 import { criarListaExercicios, desembrulhar } from '../componentes/listaExercicios.js';
+import { Nav, SECOES_ALUNO } from '../componentes/Nav.js';
+
+// Vizinha desta em pages/aluno/: caminho relativo.
+const ROTA_HISTORICO = 'historico.html';
 
 interface PropsDashboard {
   usuario: Usuario;
@@ -65,26 +69,39 @@ function Dashboard({ usuario }: PropsDashboard) {
   }, []);
 
   return (
-    <section className="painel vidro" aria-labelledby="titulo">
-      <header className="cabecalho">
-        <div>
-          <p className="rotulo">Aluno</p>
-          <h1 className="titulo" id="titulo">
-            Aluno
-          </h1>
-          <p className="subtitulo" id="subtitulo">
-            {subtitulo}
-          </p>
-        </div>
-        <button type="button" className="btn-sair vidro" id="btn-sair" onClick={() => guarda.sair()}>
-          Sair
-        </button>
-      </header>
+    <>
+      {/* A mesma <Nav> das outras telas, com as seções do aluno. O "Sair"
+          que ficava solto no cabeçalho mora agora no menu do avatar dela,
+          e é de lá que sai também o link para o histórico. SECOES_ALUNO
+          não tem outroModo: aluno não troca de mundo. */}
+      <Nav secoes={SECOES_ALUNO} ativo="exercicios" />
 
-      <h2 className="secao-rotulo">Exercícios da turma</h2>
-      {/* Só o listaExercicios.ts escreve aqui dentro. */}
-      <div id="lista" aria-live="polite" ref={hostLista} />
-    </section>
+      <main className="conteudo">
+        <section className="painel vidro" aria-labelledby="titulo">
+          <header className="cabecalho">
+            <div>
+              <p className="rotulo">Aluno</p>
+              <h1 className="titulo" id="titulo">
+                Aluno
+              </h1>
+              <p className="subtitulo" id="subtitulo">
+                {subtitulo}
+              </p>
+            </div>
+            {/* O histórico também à mão aqui, além da nav: é para onde a
+                pessoa vai depois de treinar, e é o único outro lugar que
+                esta tela leva. */}
+            <a className="btn-sair vidro" href={ROTA_HISTORICO}>
+              Histórico
+            </a>
+          </header>
+
+          <h2 className="secao-rotulo">Exercícios da turma</h2>
+          {/* Só o listaExercicios.ts escreve aqui dentro. */}
+          <div id="lista" aria-live="polite" ref={hostLista} />
+        </section>
+      </main>
+    </>
   );
 }
 

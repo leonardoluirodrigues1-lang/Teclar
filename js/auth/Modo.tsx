@@ -8,8 +8,9 @@
 // sessão (sessao.definirModo) e, da próxima vez que a conta entrar, o
 // login pula esta tela e cai direto no modo salvo.
 //
-// Era a antiga pages/perfil.html (escolha de perfil ANTES do login, com
-// cartão de aluno). Mesmo markup, mesmas classes de css/auth.css.
+// Substituiu a antiga tela de escolha de perfil (que ficava ANTES do login,
+// com cartão de aluno), removida quando o projeto passou a ter conta única.
+// Mesmo markup, mesmas classes de css/auth.css.
 
 import { createRoot } from 'react-dom/client';
 import { ROTA_INICIAL } from '../config.js';

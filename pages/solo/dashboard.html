@@ -40,14 +40,16 @@
 <!-- A luz de fundo do mundo Solo: o anel de dashboard.css mais o campo de
      estrelas de solo.css. Os dois s&atilde;o s&oacute; pintura, e o aria-hidden diz
      isso para quem ouve a tela. -->
-<div class="fundo" aria-hidden="true">
+<div class="fundo fundo-lobby" aria-hidden="true">
   <div class="fundo-anel"></div>
   <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta o painel aqui dentro. A raiz &eacute; o mesmo
-     <main class="tela"> de campanhas.html, para o CSS n&atilde;o mudar. -->
-<main id="raiz" class="tela"></main>
+<!-- O React monta a p&aacute;gina inteira aqui dentro: a nav em p&iacute;lula, a grade
+     de dois pain&eacute;is e o rodap&eacute; com a a&ccedil;&atilde;o. N&Atilde;O &eacute; o <main class="tela"> de
+     campanhas.html &mdash; aquele centraliza UM painel de 640px, e esta tela &eacute;
+     larga. O <main> de verdade vem do Lobby.tsx, abaixo da nav. -->
+<div id="raiz" class="lobby-pagina"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
      Caixa importa: o arquivo &eacute; Lobby.js (de Lobby.tsx), e ele se chama

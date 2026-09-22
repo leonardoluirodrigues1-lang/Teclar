@@ -13,9 +13,12 @@
      De escola.css vem o mundo escola: a tabela s&oacute;lida, o esqueleto, os
      pain&eacute;is de estado, o seletor e a receita dos n&uacute;meros (.metrica-rotulo
      e .metrica-valor).
-     De dashboard.css vem o painel do ALUNO: .tela, .painel, o cabe&ccedil;alho
-     (.rotulo/.titulo/.subtitulo/.btn-sair) e o fundo &mdash; o mesmo de
-     dashboard.html, porque o aluno n&atilde;o tem a Nav em p&iacute;lula do professor.
+     De dashboard.css vem a casca: .pagina, .painel, o cabe&ccedil;alho
+     (.rotulo/.titulo/.subtitulo/.btn-sair), o fundo e o campo de estrelas
+     &mdash; a mesma de dashboard.html. A nav em p&iacute;lula do topo &eacute; a <Nav> de
+     componentes/Nav.tsx com SECOES_ALUNO, e o desenho dela est&aacute; no
+     acr&eacute;scimo "telas do Aluno" no fim de escola.css, escopado em
+     .pagina-aluno para as telas do professor n&atilde;o mudarem.
      dashboard.css vem DEPOIS de prop&oacute;sito: nos nomes que as duas definem
      (.titulo, .subtitulo, .secao-rotulo, .cabecalho, .fundo) quem deve
      ganhar &eacute; o painel do aluno. Onde isso atropelaria algo que a tela
@@ -39,13 +42,18 @@
 </head>
 <body>
 
-<div class="fundo" aria-hidden="true">
+<!-- A luz de fundo: o eco do horizonte de eventos mais o campo de estrelas,
+     os dois de dashboard.css. S&oacute; pintura, e o aria-hidden diz isso a quem
+     ouve a tela. Sem essa luz o backdrop-filter do vidro n&atilde;o tem o que
+     desfocar e o painel vira ret&acirc;ngulo cinza. -->
+<div class="fundo fundo-largo" aria-hidden="true">
   <div class="fundo-anel"></div>
+  <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta o painel aqui dentro. A raiz &eacute; o mesmo
-     <main class="tela"> do dashboard do aluno, para o CSS n&atilde;o mudar. -->
-<main id="raiz" class="tela"></main>
+<!-- O React monta a p&aacute;gina inteira aqui dentro: a nav em p&iacute;lula e, abaixo
+     dela, o painel do hist&oacute;rico. Mesma raiz do dashboard do aluno. -->
+<div id="raiz" class="pagina pagina-tabela pagina-aluno"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
      Caixa importa: o arquivo &eacute; Historico.js (de Historico.tsx). -->

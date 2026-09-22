@@ -118,3 +118,61 @@ export function mediaDe(numeros: number[]): number {
 export function arredondar(valor: number): number {
   return Math.round(valor * 10) / 10;
 }
+
+// ============================================================================
+// A semana corrente, dia a dia
+// ============================================================================
+// Os sete quadrados do painel de sequência do lobby: segunda a domingo da
+// semana em que hoje cai, cada dia sabendo se houve treino. Como a
+// sequência, não existe tabela para isto — sai das datas do histórico.
+//
+// Fica aqui, e não no Lobby.tsx, porque é a mesma aritmética de dia em
+// cima de 'AAAA-MM-DD' que sequenciaDeDias() já usa (diaDe e somarDias), e
+// porque sem React em volta dá para conferir com node (desempenho.check.mjs).
+//
+// A semana começa na segunda: é o calendário brasileiro, e é o que o
+// desenho mostra (S T Q Q S S D). O dia de hoje entra por parâmetro para o
+// check poder fixar a data; a tela chama sem argumento.
+
+/** Um dos sete quadrados. */
+export interface DiaDaSemana {
+  /** 'AAAA-MM-DD'. */
+  dia: string;
+  /** A letra embaixo do quadrado. Repete de propósito: S T Q Q S S D. */
+  inicial: string;
+  /** Por extenso, para quem ouve a tela — a inicial sozinha é ambígua. */
+  nome: string;
+  /** Houve ao menos uma sessão neste dia. */
+  treinou: boolean;
+  /** Ainda não aconteceu: o resto da semana depois de hoje. */
+  futuro: boolean;
+}
+
+const DIAS_DA_SEMANA = [
+  { inicial: 'S', nome: 'segunda-feira' },
+  { inicial: 'T', nome: 'terça-feira' },
+  { inicial: 'Q', nome: 'quarta-feira' },
+  { inicial: 'Q', nome: 'quinta-feira' },
+  { inicial: 'S', nome: 'sexta-feira' },
+  { inicial: 'S', nome: 'sábado' },
+  { inicial: 'D', nome: 'domingo' },
+];
+
+export function semanaDeDias(
+  sessoes: SessaoComData[],
+  hoje: string = diaDe(new Date().toISOString())
+): DiaDaSemana[] {
+  // getUTCDay() devolve 0 para domingo; a semana aqui começa na segunda,
+  // então o domingo é o sexto passo, não o primeiro.
+  const diaDaSemana = (new Date(`${hoje}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const segunda = somarDias(hoje, -diaDaSemana);
+
+  // Set, não includes() em array: o histórico pode ter centenas de sessões
+  // e esta varredura acontece uma vez por carga.
+  const treinados = new Set(sessoes.map((s) => diaDe(s.data)).filter(Boolean));
+
+  return DIAS_DA_SEMANA.map((rotulo, passo) => {
+    const dia = somarDias(segunda, passo);
+    return { dia, ...rotulo, treinou: treinados.has(dia), futuro: dia > hoje };
+  });
+}

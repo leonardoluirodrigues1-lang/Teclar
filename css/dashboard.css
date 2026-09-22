@@ -60,6 +60,124 @@ ul { list-style: none; }
 }
 
 /* ---------------------------------------------------------------------------
+   MOVIDO DE solo.css — a casca das telas com nav no topo
+
+   Estes blocos moravam em css/solo.css enquanto só o mundo Solo os usava.
+   As telas do aluno passaram a precisar dos mesmos: a página larga, o
+   campo de estrelas e o eco do horizonte jogado para o canto. Copiá-los
+   para escola.css seria a segunda maneira de fazer a mesma coisa, então
+   eles subiram para cá — dashboard.css é a folha que TODAS estas telas
+   carregam, e é onde o .fundo e o .fundo-anel já moravam.
+
+   Nada mudou de conteúdo na mudança de casa; os nomes .lobby-pagina,
+   .lobby-conteudo e .fundo-lobby continuam valendo como apelido.
+   ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   A página — a alternativa ao .tela, para telas com nav no topo
+
+   O .tela logo abaixo centraliza UM painel na altura da janela. Quem tem
+   nav em pílula no topo não é um painel centrado, e sim uma coluna: nav,
+   conteúdo, fim. Para essas, a raiz do HTML usa .pagina no lugar de .tela.
+   z-index: 1 pelo mesmo motivo do .tela — ficar acima do .fundo, que é
+   fixed.
+   ------------------------------------------------------------------------- */
+.pagina,
+.lobby-pagina {
+  position: relative;
+  z-index: 1;
+  width: 1280px;
+  max-width: calc(100% - 48px);
+  margin: 0 auto;
+  padding: 40px 0 96px;
+}
+
+.conteudo,
+.lobby-conteudo { display: block; }
+
+/* A largura média: as telas que são UMA coluna de conteúdo (as lições, e
+   as duas do aluno) em vez das duas colunas do lobby. A nav acompanha, e
+   fica alinhada com o painel em vez de flutuar 400px mais larga que ele.
+
+   Duas classes no seletor de propósito: escola.css também tem um .pagina
+   (o contêiner das telas do professor) e é carregada DEPOIS desta folha
+   nas telas do aluno. Com uma classe só, o width: 100% de lá venceria. */
+.pagina.pagina-media { width: 880px; }
+
+/* Mais larga que a média, para as telas cujo conteúdo é uma TABELA: ela
+   tem mais colunas do que uma coluna de leitura comporta. É a largura que
+   o .painel.historico já tinha antes de a nav existir — a página é que
+   passou a acompanhar o painel, para as duas bordas baterem. */
+.pagina.pagina-tabela { width: 1040px; }
+
+/* No talo da tela a margem lateral encolhe e o respiro vertical cai. */
+@media (max-width: 700px) {
+  .pagina,
+  .lobby-pagina { max-width: calc(100% - 32px); padding: 24px 0 64px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Fundo das telas de página larga
+
+   O .fundo-anel abaixo nasceu centrado, atrás de um painel centrado. Numa
+   .pagina ele iria parar bem no meio do vidro, onde não ajuda ninguém: o
+   desenho joga a luz para o canto inferior direito, de onde ela ilumina o
+   conteúdo de viés. A receita do gradiente é a mesma — aqui só mudam
+   posição e tamanho.
+   ------------------------------------------------------------------------- */
+.fundo-largo .fundo-anel,
+.fundo-lobby .fundo-anel {
+  left: auto;
+  right: -180px;
+  top: auto;
+  bottom: -320px;
+  /* Fixos aqui porque escola.css redimensiona o .fundo-anel para 1200px
+     e é carregada depois: sem isto, a luz mudaria de tamanho conforme a
+     tela carregue ou não aquela folha. */
+  width: 1000px;
+  height: 1000px;
+  transform: none;
+}
+
+/* O campo de estrelas some perto do centro por padrão, porque ali mora o
+   painel do .tela. Numa .pagina o centro é conteúdo com vidro por cima, e
+   o desenho quer estrela no quadro inteiro: a máscara sai. */
+.fundo-largo .fundo-estrelas,
+.fundo-lobby .fundo-estrelas {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Fundo: campo de estrelas
+   Entra DENTRO do .fundo de dashboard.css, atrás do painel de vidro e
+   junto com o .fundo-anel. Sem pintura no fundo, o backdrop-filter do
+   .vidro não tem o que desfocar e o painel vira retângulo cinza.
+
+   As estrelas são gradientes radiais repetidos, não imagem: são alguns
+   bytes de CSS em vez de uma requisição, e acompanham qualquer tamanho de
+   tela. Duas camadas em passos diferentes (180px e 260px) para o olho não
+   achar o padrão; a terceira é um brilho difuso que dá profundidade.
+   ------------------------------------------------------------------------- */
+.fundo-estrelas {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 22% 18%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.2px 1.2px at 74% 32%, rgba(255, 255, 255, 0.40), transparent 60%),
+    radial-gradient(1px 1px at 46% 72%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1.6px 1.6px at 88% 84%, rgba(255, 255, 255, 0.30), transparent 60%),
+    radial-gradient(1px 1px at 12% 62%, rgba(255, 255, 255, 0.30), transparent 60%),
+    radial-gradient(1.2px 1.2px at 62% 8%, rgba(255, 255, 255, 0.25), transparent 60%);
+  background-size: 180px 180px, 260px 260px, 180px 180px, 260px 260px, 320px 320px, 320px 320px;
+  /* Some perto do centro: ali mora o painel, e estrela atrás de vidro
+     desfocado só suja a leitura. */
+  -webkit-mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
+  mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------------------
    Painel
    ------------------------------------------------------------------------- */
 .tela {
