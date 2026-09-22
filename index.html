@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclar &mdash; Aprenda a digitar com foco e precis&atilde;o</title>
+<meta name="description" content="Teclar e uma plataforma de treino de digitacao: foco, pratica, precisao, velocidade e dominio do teclado.">
+<link rel="stylesheet" href="css/base/fontes.css">
+<link rel="stylesheet" href="css/landing.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. -->
+<script type="importmap">
+{ "imports": {
+    "react": "vendor/react/react.mjs",
+    "react-dom": "vendor/react/react-dom.mjs",
+    "react-dom/client": "vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "vendor/react/jsx-runtime.mjs"
+}}
+</script>
+</head>
+<body>
+
+<!-- O React monta a p&aacute;gina inteira aqui dentro (hero, intro, passos,
+     CTA e rodap&eacute;), com o mesmo markup de antes. O css/landing.css
+     n&atilde;o tem seletor "body >", ent&atilde;o o div a mais n&atilde;o muda nada. -->
+<div id="raiz"></div>
+
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
+<script type="module" src="js/landing/Landing.js"></script>
+</body>
+</html>

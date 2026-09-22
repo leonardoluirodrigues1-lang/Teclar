@@ -1,0 +1,819 @@
+/* ============================================================================
+   TECLAR — solo.css
+   O que é só do mundo Solo:
+     - o lobby (pages/solo/dashboard.html), a porta de entrada da conta
+       individual;
+     - as lições (pages/solo/campanhas.html), no acréscimo do fim da folha.
+
+   Carregar DEPOIS de tokens.css, componentes/vidro.css e dashboard.css.
+   Esta folha não redefine nada de dashboard.css: a casca do painel (.tela,
+   .painel, .cabecalho, .rotulo, .titulo, .subtitulo, .btn-sair, .fundo,
+   .fundo-anel) continua vindo de lá, igual em campanhas.html. Aqui entram
+   só nomes novos — e uma exceção anotada no .estado.vidro, que é regra
+   nova, mais específica, e não edição da classe existente.
+
+   A linguagem é a do Solo: vidro, luz de fundo e espaço para respirar.
+   Nada da densidade do mundo Escola — a classe .mundo-solo no <body> (ver
+   guarda.aplicarMundo) já abre --espaco-secao e --espaco-card, e o lobby
+   consome essas variáveis em vez da escala --e-* crua.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Fundo: campo de estrelas
+   Entra DENTRO do .fundo de dashboard.css, atrás do painel de vidro e
+   junto com o .fundo-anel. Sem pintura no fundo, o backdrop-filter do
+   .vidro não tem o que desfocar e o painel vira retângulo cinza.
+
+   As estrelas são gradientes radiais repetidos, não imagem: são alguns
+   bytes de CSS em vez de uma requisição, e acompanham qualquer tamanho de
+   tela. Duas camadas em passos diferentes (180px e 260px) para o olho não
+   achar o padrão; a terceira é um brilho difuso que dá profundidade.
+   ------------------------------------------------------------------------- */
+.fundo-estrelas {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 22% 18%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.2px 1.2px at 74% 32%, rgba(255, 255, 255, 0.40), transparent 60%),
+    radial-gradient(1px 1px at 46% 72%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1.6px 1.6px at 88% 84%, rgba(255, 255, 255, 0.30), transparent 60%),
+    radial-gradient(1px 1px at 12% 62%, rgba(255, 255, 255, 0.30), transparent 60%),
+    radial-gradient(1.2px 1.2px at 62% 8%, rgba(255, 255, 255, 0.25), transparent 60%);
+  background-size: 180px 180px, 260px 260px, 180px 180px, 260px 260px, 320px 320px, 320px 320px;
+  /* Some perto do centro: ali mora o painel, e estrela atrás de vidro
+     desfocado só suja a leitura. */
+  -webkit-mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
+  mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------------------
+   Botões
+
+   .btn e .btn-solido não existem em dashboard.css — só em escola.css,
+   auth.css e resultado.css, cada folha com a sua cópia. O Solo segue a
+   mesma convenção do projeto: cada mundo carrega a receita na própria
+   folha, e as folhas nunca são carregadas juntas.
+   ------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2, 8px);
+  padding: 13px 26px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+/* cursor: progress e não not-allowed: o botão desabilitado do lobby está
+   ocupado criando a campanha, não proibido. */
+.btn:disabled { opacity: 0.55; cursor: progress; }
+
+.btn-solido {
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+  font-weight: var(--peso-medio, 500);
+}
+.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+
+/* ---------------------------------------------------------------------------
+   Painel de estado (PainelErro / PainelEstado)
+
+   Os componentes de js/componentes/PainelErro.tsx montam
+   <section class="estado vidro">, e dashboard.css já tem um .estado: a
+   caixinha pontilhada que a lista de exercícios usa para "carregando" e
+   "vazio". São dois desenhos com o mesmo nome.
+
+   Regra NOVA e mais específica (.estado.vidro, 0-2-0), não alteração da
+   existente: quando o .estado é um painel de vidro, ele é o painel de
+   estado do Solo. A caixinha pontilhada da lista segue intacta, porque ela
+   nunca tem .vidro.
+   ------------------------------------------------------------------------- */
+.estado.vidro {
+  margin-top: 0;
+  padding: var(--espaco-card, 32px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-style: solid;
+  border-radius: var(--raio-card, 16px);
+  text-align: center;
+  font-size: var(--fs-base, 16px);
+  color: var(--cor-texto, #fff);
+}
+.estado-titulo {
+  font-size: 20px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+.estado-texto {
+  max-width: 44ch;
+  margin: 10px auto 0;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.estado .btn { margin-top: var(--e-5, 24px); }
+
+/* ---------------------------------------------------------------------------
+   Lobby — o corpo do painel
+
+   O .lobby-corpo é o único filho do painel abaixo do cabeçalho, e tem
+   min-height: é ele que segura a altura enquanto o esqueleto está no ar.
+   Sem isso, o painel encolheria e cresceria de novo quando a campanha
+   chegasse, e a tela pularia na frente de quem está olhando.
+   ------------------------------------------------------------------------- */
+.lobby-corpo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 268px;      /* a altura do painel COM campanha */
+  margin-top: var(--e-7, 48px);
+}
+
+/* Cada estado é uma coluna centrada. O gap é o respiro do mundo Solo. */
+.lobby-convite,
+.lobby-progresso,
+.lobby-esqueleto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-5, 24px);
+  text-align: center;
+}
+
+/* --- estado 1: convite --------------------------------------------------- */
+.lobby-convite-titulo {
+  font-size: var(--fs-xl, 25px);
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+.lobby-convite-texto {
+  /* Em ch, não em px: a medida acompanha o tamanho da fonte de quem lê. */
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: var(--lh-solta, 1.75);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* O aviso de que a criação falhou. Fica ao lado do botão, não no lugar
+   dele: o convite continua de pé e dá para tentar de novo ali mesmo. */
+.lobby-falha {
+  max-width: 46ch;
+  font-size: 13px;
+  color: var(--cor-erro, #ff5a5a);
+}
+
+/* --- estado 2: nível e XP ------------------------------------------------ */
+.lobby-nivel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-1, 4px);
+}
+.lobby-nivel-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.lobby-nivel-valor {
+  /* Mono porque é dado, não texto: a regra dos dois papéis de tokens.css. */
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-4xl, 49px);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-apertada, 1.1);
+  text-shadow: var(--brilho-suave, 0 0 24px rgba(255, 255, 255, 0.05));
+}
+
+.lobby-xp {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lobby-xp-trilho {
+  /* overflow hidden + o mesmo raio do preenchimento: a ponta da barra
+     acompanha a curva do trilho em vez de vazar um retângulo. */
+  overflow: hidden;
+  height: 8px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.lobby-xp-preenchimento {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cor-texto, #fff);
+  box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12));
+  /* --ease-energico: o leve overshoot reservado em tokens.css para XP,
+     recompensa e nível. --dur-lenta já vira 0ms sob movimento reduzido;
+     o bloco no fim desta folha desliga a transição de vez. */
+  transition: width var(--dur-lenta, 480ms) var(--ease-energico, ease-out);
+}
+.lobby-xp-legenda {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.lobby-xp-legenda strong {
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+
+/* O botão grande do lobby: é a ação da tela, então ocupa a largura da
+   barra em vez do tamanho do texto. */
+.lobby-acao {
+  width: 100%;
+  max-width: 420px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* Os dois links discretos. Discretos de propósito: não competem com o
+   botão de continuar, que é o que a pessoa veio fazer. */
+.lobby-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--e-5, 24px);
+}
+.lobby-atalho {
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.lobby-atalho:hover {
+  color: var(--cor-texto, #fff);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+
+/* --- esqueleto de carregamento ------------------------------------------- */
+/* Cada bloco tem a altura da peça que vai ocupar o lugar dele, na mesma
+   ordem do painel com campanha: número do nível, barra, legenda e botão.
+   Quando a campanha chega, nada muda de lugar. */
+.lobby-esqueleto > * {
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.07);
+}
+.lobby-esqueleto-nivel  { width: 92px;  height: 72px; border-radius: var(--raio-n, 8px); }
+.lobby-esqueleto-barra  { width: 100%;  max-width: 420px; height: 8px; }
+.lobby-esqueleto-legenda{ width: 210px; height: 12px; }
+.lobby-esqueleto-acao   { width: 100%;  max-width: 420px; height: 46px; }
+
+/* ---------------------------------------------------------------------------
+   Responsivo — o painel encolhe, nada rola para o lado
+
+   Abaixo de 700px o painel perde a largura fixa das peças internas: a barra
+   e o botão passam a valer 100% do que sobrar, e o max-width de 420px deixa
+   de ser piso. min-width: 0 nos filhos flex porque, sem ele, um filho se
+   recusa a encolher abaixo do conteúdo e empurra a largura da página.
+   ------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  .lobby-corpo {
+    min-height: 240px;
+    margin-top: var(--e-6, 32px);
+  }
+  .lobby-convite > *,
+  .lobby-progresso > *,
+  .lobby-esqueleto > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .lobby-xp,
+  .lobby-acao,
+  .lobby-esqueleto-barra,
+  .lobby-esqueleto-acao {
+    max-width: 100%;
+  }
+  .lobby-nivel-valor { font-size: var(--fs-3xl, 39px); }
+  .lobby-convite-titulo { font-size: var(--fs-lg, 20px); }
+  /* Os dois atalhos lado a lado ficam apertados no talo da tela; com o gap
+     menor eles continuam na mesma linha em vez de quebrar em duas. */
+  .lobby-atalhos { gap: var(--e-4, 16px); }
+}
+
+/* ---------------------------------------------------------------------------
+   Movimento reduzido
+
+   tokens.css já zera --dur-rapida/normal/lenta sob prefers-reduced-motion,
+   o que sozinho bastaria. A regra abaixo é explícita porque a barra de XP é
+   o único movimento do lobby e não pode depender de um token continuar
+   zerado no futuro: aqui ela troca de largura de uma vez, sem varrer a
+   tela. O Lobby.tsx faz a outra metade — com movimento reduzido a barra
+   nasce já na marca, sem o passo em zero.
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .lobby-xp-preenchimento { transition: none; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — Lições do Solo (pages/solo/campanhas.html)
+
+   As 76 lições agrupadas por nível. O cartão de cada lição continua sendo
+   o .item de dashboard.css, sem alteração nenhuma: aqui entram só o grupo
+   que o envolve, a pílula de repetições e o esqueleto dos grupos.
+   ========================================================================== */
+
+.grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2, 8px);
+  margin-top: var(--e-4, 16px);
+}
+
+/* ---------------------------------------------------------------------------
+   Cabeçalho do grupo
+
+   É um <button> de verdade (ver Campanhas.tsx), então precisa perder a
+   cara de botão e ganhar a de linha clicável: largura toda, texto à
+   esquerda, sem fundo até o hover.
+   ------------------------------------------------------------------------- */
+.grupo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--raio-n, 8px);
+  text-align: left;
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.grupo-cabecalho:hover { background: rgba(255, 255, 255, 0.07); }
+
+/* A seta gira em vez de trocar de caractere: um caractere só, e o estado
+   aberto/fechado fica legível mesmo em fonte sem os dois glifos. */
+.grupo-seta {
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.grupo-cabecalho[aria-expanded="true"] .grupo-seta {
+  transform: rotate(90deg);
+  color: var(--cor-texto, #fff);
+}
+
+/* "NÍVEL 3 · VOCABULÁRIO REAL · 7 LIÇÕES" — mono e em caixa alta, como os
+   outros rótulos estruturais do projeto (.rotulo, .secao-rotulo). */
+.grupo-titulo {
+  min-width: 0;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.grupo-cabecalho[aria-expanded="true"] .grupo-titulo { color: var(--cor-texto, #fff); }
+
+/* A lista de um grupo aberto encosta um pouco no cabeçalho e recua à
+   direita da seta, para a hierarquia aparecer sem linha de guia. */
+.grupo .lista {
+  margin-top: var(--e-2, 8px);
+  margin-left: var(--e-6, 32px);
+  margin-bottom: var(--e-4, 16px);
+}
+
+/* ---------------------------------------------------------------------------
+   Pílula de repetições ("10×")
+   Só aparece quando a lição repete mais de uma vez. Mesmo desenho do
+   .item-requisito de dashboard.css, mas classe própria: aquela diz
+   "requisito para entrar", e esta diz "quantas vezes repetir" — mesma
+   forma, sentidos diferentes, e um dia um dos dois muda.
+   ------------------------------------------------------------------------- */
+.licao-repeticoes {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* ---------------------------------------------------------------------------
+   Esqueleto: um bloco por nível, na altura de um cabeçalho de grupo
+   fechado. São dez, porque os níveis são dez e o percurso não muda.
+   ------------------------------------------------------------------------- */
+.grupo-esqueleto {
+  height: 44px;
+  border-radius: var(--raio-n, 8px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 700px) {
+  /* O recuo da lista cai quase todo: em tela estreita ele custa largura
+     que o título da lição precisa mais do que a hierarquia. */
+  .grupo .lista { margin-left: var(--e-3, 12px); }
+  .grupo-cabecalho { padding: 12px 8px; }
+  .grupo-titulo { letter-spacing: 0.14em; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — Estatísticas do Solo (pages/solo/estatisticas.html)
+
+   O painel largo com os seis números, a barra de XP do lobby (as mesmas
+   .lobby-xp*, sem alteração), a linha de evolução, o filtro por nível e a
+   tabela sólida por lição. Nada acima nesta folha muda.
+
+   A tabela, o seletor, o link de volta e o esqueleto de tabela têm aqui a
+   MESMA receita de escola.css, com os MESMOS nomes (.tabela-painel,
+   .tabela, .tabela-ordenar, .seletor, .voltar, .tabela-esqueleto-*): os
+   nomes são fixos porque componentes/Tabela.tsx e Esqueleto.tsx os escrevem
+   no markup, e a receita é copiada porque escola.css não é carregada no
+   Solo — cada mundo carrega a própria folha, como já acontece com .btn.
+   Não é redefinição de classe existente: nesta página, esses nomes não
+   existem em nenhuma outra folha carregada.
+   ========================================================================== */
+
+/* O painel do Solo tem 640px (dashboard.css), a medida de uma lista. Aqui
+   dentro mora uma tabela de seis colunas: .painel.estatisticas (duas
+   classes) passa na frente do .painel de 640. */
+.painel.estatisticas {
+  max-width: 1040px;
+  min-width: 0;
+}
+
+/* --- link de volta, primeira linha do painel ------------------------------ */
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.voltar:hover { color: var(--cor-texto, #fff); }
+.voltar-seta { font-size: 13px; }
+
+/* --- os seis números: dois grupos de três --------------------------------- */
+.estatisticas-numeros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-6, 32px);
+  margin-top: var(--e-5, 24px);
+}
+.estatisticas-grupo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e-4, 16px);
+}
+/* Os dois grupos separados por uma hairline: o que a campanha diz de um
+   lado, o que as sessões dizem do outro. */
+.estatisticas-grupo + .estatisticas-grupo {
+  padding-left: var(--e-6, 32px);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+.estatisticas-metrica { min-width: 0; }
+.estatisticas-metrica-rotulo {
+  display: block;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.estatisticas-metrica-valor {
+  display: block;
+  margin-top: 6px;
+  /* Mono porque é dado, não texto: a regra dos dois papéis de tokens.css. */
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-xl, 25px);
+  font-weight: var(--peso-leve, 300);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--brilho-suave, 0 0 24px rgba(255, 255, 255, 0.05));
+}
+/* A unidade de "sequência": o número continua sendo o número, e "dias" só
+   diz do que ele é. Menor, apagado e fora do tabular-nums. */
+.estatisticas-metrica-unidade {
+  margin-left: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* --- barra de XP: a do lobby, centrada no painel largo ------------------- */
+.estatisticas-xp {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--e-6, 32px);
+}
+
+/* A linha de evolução: é o recado da tela, não um rótulo. Tom suave, sem
+   ícone e sem cor de estado — melhorar não é "sucesso" nem manter é
+   "atenção". */
+.estatisticas-evolucao {
+  margin-top: var(--e-5, 24px);
+  text-align: center;
+  font-size: 15px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* --- filtro por nível, entre o rótulo da seção e a tabela ---------------- */
+.estatisticas-filtro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: var(--e-4, 16px);
+}
+.estatisticas-filtro label {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.estatisticas-filtro .seletor { max-width: 240px; }
+
+/* A nota de escopo, quando há filtro: diz até onde ele vale e sai da frente. */
+.estatisticas-nota {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Pílula escura com seta própria (a nativa não acompanha o fundo preto). */
+.seletor {
+  flex: none;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 10px 36px 10px 14px;
+  background: rgba(0, 0, 0, 0.45)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8a8a' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 14px center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-total, 9999px);
+  font: inherit;
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+  cursor: pointer;
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.seletor:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.seletor:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+.seletor option { background: var(--cor-superficie, #0e0e0e); color: var(--cor-texto, #fff); }
+
+/* --- tabela: a exceção ao vidro ------------------------------------------ */
+/* Superfície sólida, contraste máximo, linhas separadas por hairline. Uma
+   grade de números precisa de fundo estável, não de um vidro que troca de
+   tom conforme o que passa atrás. */
+.tabela-painel {
+  margin-top: var(--e-5, 24px);
+  background: var(--cor-superficie, #0e0e0e);
+  border: 1px solid var(--cor-borda, #2b2b2b);
+  border-radius: var(--raio-card, 8px);
+  /* Abaixo de 900px a tabela rola na horizontal AQUI DENTRO, não a
+     página: a min-width da .tabela é o que dispara o scroll. */
+  overflow-x: auto;
+}
+.tabela {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+.tabela th, .tabela td {
+  padding: 13px var(--e-4, 16px);
+  text-align: left;
+  white-space: nowrap;
+}
+.tabela thead th {
+  border-bottom: 1px solid var(--cor-borda, #2b2b2b);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.tabela tbody tr + tr td { border-top: 1px solid var(--cor-borda, #2b2b2b); }
+.tabela tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+/* Cabeçalho ordenável: botão sem cara de botão, só o cursor e o hover
+   entregam que dá para clicar. */
+.tabela-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.tabela-ordenar:hover { color: var(--cor-texto, #fff); }
+.tabela-ordenar-seta {
+  font-size: 9px;
+  opacity: 0.7;
+}
+th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
+
+.tabela td.col-numero { font-variant-numeric: tabular-nums; }
+
+/* --- esqueleto de carregamento ------------------------------------------- */
+/* Cada bloco tem a altura da peça que vai ocupar o lugar dele, na ordem do
+   painel pronto. Quando os dados chegam, nada muda de lugar. */
+.estatisticas-esqueleto > *,
+.estatisticas-esqueleto-metrica,
+.tabela-esqueleto-barra {
+  border-radius: var(--raio-n, 8px);
+  background: rgba(255, 255, 255, 0.07);
+  animation: teclar-pulso-solo 1.4s ease-in-out infinite;
+}
+/* A grade dos números e a tabela são contêineres, não barras. */
+.estatisticas-esqueleto > .estatisticas-numeros,
+.estatisticas-esqueleto > .tabela-painel {
+  background: none;
+  animation: none;
+  border-radius: 0;
+}
+.estatisticas-esqueleto > .tabela-painel { border-radius: var(--raio-card, 8px); }
+.estatisticas-esqueleto-rotulo  { width: 160px; height: 14px; margin-top: 36px; margin-bottom: 12px; }
+.estatisticas-esqueleto-metrica { height: 46px; }
+.estatisticas-esqueleto-barra   { width: 100%; max-width: 420px; height: 44px; margin: var(--e-6, 32px) auto 0; }
+.estatisticas-esqueleto-linha   { width: 60%; max-width: 520px; height: 16px; margin: var(--e-5, 24px) auto 0; }
+.estatisticas-esqueleto-filtro  { width: 220px; height: 40px; margin-top: var(--e-4, 16px); border-radius: var(--raio-total, 9999px); }
+
+.tabela-esqueleto-linha {
+  height: 46px;
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--e-4, 16px);
+}
+.tabela-esqueleto-linha:first-child { border-top: 0; }
+.tabela-esqueleto-barra {
+  height: 14px;
+  width: 40%;
+  max-width: 220px;
+  border-radius: var(--raio-p, 4px);
+}
+
+@keyframes teclar-pulso-solo {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* O painel de estado (vazio) dentro do painel largo, com respiro do cabeçalho. */
+.estatisticas .estado.vidro { margin-top: var(--e-6, 32px); }
+
+/* --- responsivo ------------------------------------------------------------ */
+@media (max-width: 900px) {
+  /* Os dois grupos empilham; a hairline vira horizontal. */
+  .estatisticas-numeros { grid-template-columns: 1fr; gap: var(--e-5, 24px); }
+  .estatisticas-grupo + .estatisticas-grupo {
+    padding-left: 0;
+    padding-top: var(--e-5, 24px);
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+@media (max-width: 700px) {
+  /* Os seis números viram três linhas de dois: os grupos somem como caixa
+     (display: contents) e os seis itens fluem na mesma grade. */
+  .estatisticas-numeros { grid-template-columns: repeat(2, 1fr); gap: var(--e-5, 24px) var(--e-4, 16px); }
+  .estatisticas-grupo { display: contents; }
+  .estatisticas-metrica-valor { font-size: var(--fs-lg, 20px); }
+  .estatisticas-filtro { flex-wrap: wrap; }
+  .estatisticas-filtro .seletor { max-width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estatisticas-esqueleto > *,
+  .estatisticas-esqueleto-metrica,
+  .tabela-esqueleto-barra { animation: none; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — Acabamento das Lições (pages/solo/campanhas.html)
+
+   A tela de lições ganhou o cabeçalho das irmãs (o .voltar e o .cabecalho
+   já existem acima e em dashboard.css), o bloco da campanha (nível, a barra
+   .lobby-xp* do lobby, sem alteração, e o botão "Continuar") e o acabamento
+   dos cartões: foco visível, tempo em tabular-nums e o sinal discreto de
+   lição concluída. Grupos, ordem e pílula de repetições não mudam — as
+   regras do acréscimo "Lições do Solo", acima, continuam valendo.
+   ========================================================================== */
+
+/* --- bloco da campanha: nível, barra de XP e "Continuar" ------------------ */
+/* Uma coluna centrada entre o cabeçalho e o percurso, com o respiro do
+   Solo. É a mesma leitura do lobby, mais compacta: aqui ele é contexto para
+   escolher a próxima lição, não a peça principal. */
+.campanha-progresso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-4, 16px);
+  margin-top: var(--e-6, 32px);
+  text-align: center;
+}
+.campanha-nivel {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2, 8px);
+}
+.campanha-nivel-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.campanha-nivel-valor {
+  /* Mono porque é dado, não texto: a regra dos dois papéis de tokens.css. */
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-2xl, 31px);
+  font-weight: var(--peso-leve, 300);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--brilho-suave, 0 0 24px rgba(255, 255, 255, 0.05));
+}
+
+/* O botão leva à próxima lição e diz qual é: duas linhas dentro do mesmo
+   .btn — a ação em cima, o título da lição embaixo, menor e sem caixa alta
+   (título de lição não é rótulo). */
+.campanha-acao {
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  max-width: 420px;
+  padding-top: 13px;
+  padding-bottom: 12px;
+}
+.campanha-acao-licao {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: var(--peso-normal, 400);
+  opacity: 0.7;
+}
+
+/* Esqueleto do bloco: nível, barra e botão, nas alturas das peças finais. */
+.campanha-esqueleto > * {
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.07);
+}
+.campanha-esqueleto-nivel { width: 110px; height: 31px; border-radius: var(--raio-n, 8px); }
+.campanha-esqueleto-barra { width: 100%; max-width: 420px; height: 8px; margin-top: var(--e-1, 4px); }
+.campanha-esqueleto-acao  { width: 100%; max-width: 420px; height: 54px; margin-top: 14px; }
+
+/* --- cabeçalho do grupo: quantas já foram ---------------------------------- */
+/* Um tom abaixo do resto do título: é informação de apoio, não o nome. */
+.grupo-feitas { color: var(--cor-texto-fraco, #8a8a8a); }
+.grupo-cabecalho[aria-expanded="true"] .grupo-feitas { color: var(--cor-texto-suave, #c4c4c4); }
+
+/* --- cartão da lição -------------------------------------------------------- */
+/* O foco pelo teclado ganha o anel do projeto com a borda do cartão
+   acompanhando, em vez do anel colado numa caixa apagada. */
+a.item.licao:focus-visible {
+  outline: 2px solid var(--cor-anel-foco, #fff);
+  outline-offset: 2px;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+/* O hover já vem de dashboard.css (a.item:hover); aqui só o título
+   acompanha, para o cartão inteiro responder e não só o fundo. */
+a.item.licao .item-titulo {
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+
+/* "3:06" com dígitos de mesma largura: a coluna de tempos não treme. */
+.licao-tempo { font-variant-numeric: tabular-nums; }
+
+/* Lição concluída: o título recua um tom e o meta ganha "· ✓ concluída".
+   Sinal, não prêmio — sem cor, sem ícone além do ✓, sem borda diferente.
+   O hover devolve o título ao branco, como em qualquer cartão. */
+.licao-feita .item-titulo { color: var(--cor-texto-suave, #c4c4c4); }
+a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
+.licao-marca { color: var(--cor-texto-suave, #c4c4c4); }
+
+@media (max-width: 700px) {
+  .campanha-progresso { margin-top: var(--e-5, 24px); }
+  .campanha-progresso > * { min-width: 0; max-width: 100%; }
+  .campanha-acao,
+  .campanha-esqueleto-barra,
+  .campanha-esqueleto-acao { max-width: 100%; }
+  .campanha-nivel-valor { font-size: var(--fs-xl, 25px); }
+}

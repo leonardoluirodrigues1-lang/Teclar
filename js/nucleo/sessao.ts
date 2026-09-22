@@ -1,0 +1,189 @@
+// sessao.ts
+// Guarda quem está logado. É o ÚNICO arquivo do projeto que lê ou escreve
+// as chaves de autenticação no localStorage (token e usuário). Todo o resto
+// do front pergunta o estado da sessão através deste módulo.
+
+import { CONFIG } from '../config.js';
+import type { Usuario, RespostaLogin, Mundo, Modo, TipoSessao } from './tipos.js';
+
+const CHAVES = CONFIG.CHAVES_STORAGE;
+
+// Cache em memória do usuário logado. O api.js consulta a sessão em toda
+// requisição, então não vale reparsear o JSON do localStorage a cada chamada.
+//   undefined -> ainda não lido do localStorage nesta carga de página
+//   null      -> já lido, não há usuário
+//   objeto    -> usuário atual
+let cacheUsuario: Usuario | null | undefined;
+
+// Grava a resposta de login OU de cadastro — as duas têm o mesmo formato:
+//   { token, usuario: { id, nome?, email?, tipo } }
+// `tipo` diz de qual tabela o login veio ('conta' = Users, 'aluno' =
+// Alunos); não é coluna do banco, o back sabe porque autenticou num lugar
+// ou no outro. nome e email são opcionais de propósito: a tabela Alunos não
+// tem nenhum dos dois (um aluno é matrícula e senha), então o objeto do
+// aluno chega só com id e tipo. Ver nomeExibicao().
+function entrar(resposta: RespostaLogin): Usuario {
+  const token = resposta?.token;
+  const usuario = resposta?.usuario;
+  if (!token || (usuario?.tipo !== 'conta' && usuario?.tipo !== 'aluno')) {
+    // Resposta fora do contrato: gravar meia sessão deixa o app num estado
+    // que nenhuma tela sabe tratar. Melhor falhar aqui, onde dá para ver.
+    throw new Error('sessao.entrar: resposta sem token ou sem tipo.');
+  }
+  localStorage.setItem(CHAVES.TOKEN, token);
+  localStorage.setItem(CHAVES.USUARIO, JSON.stringify(usuario));
+  cacheUsuario = usuario;
+  return usuario;
+}
+
+function token(): string | null {
+  return localStorage.getItem(CHAVES.TOKEN);
+}
+
+// Lê do cache; se não tiver, lê do localStorage e faz parse.
+function usuario(): Usuario | null {
+  if (cacheUsuario !== undefined) return cacheUsuario;
+
+  const bruto = localStorage.getItem(CHAVES.USUARIO);
+  if (bruto == null) {
+    cacheUsuario = null;
+    return null;
+  }
+
+  // Único ponto do módulo que precisa de try/catch: o JSON pode estar
+  // corrompido (edição manual, escrita interrompida, formato antigo).
+  try {
+    cacheUsuario = JSON.parse(bruto) ?? null;
+  } catch {
+    // Melhor deslogar do que quebrar toda tela que depende do usuário.
+    sair();
+    return null;
+  }
+  return cacheUsuario;
+}
+
+// Tem token E usuário.
+function logado(): boolean {
+  return token() != null && usuario() != null;
+}
+
+function tipo(): TipoSessao | null {
+  return usuario()?.tipo ?? null;
+}
+
+// O que a tela escreve quando precisa chamar a pessoa por algo. Aluno não
+// tem nome no banco: cai na matrícula (o próprio id). Nunca devolve
+// undefined — string vazia é o pior caso, e string vazia não aparece.
+function nomeExibicao(): string {
+  const atual = usuario();
+  if (atual == null) return '';
+  return atual.nome ?? String(atual.id ?? '');
+}
+
+// --- Modo: onde a conta está navegando (solo | professor) --------------------
+// Estado de NAVEGAÇÃO, não permissão: qualquer conta abre os dois mundos.
+// Não vai ao back nem ao token. Só existe para sessão de conta — para
+// aluno, modo() é sempre null.
+//
+// Fica no localStorage junto com o id da conta, e o sair() NÃO apaga: é
+// assim que "da última vez" funciona — quem entra de novo com a mesma
+// conta pula a tela de modo e cai direto no modo em que estava. Outra
+// conta no mesmo navegador não herda (o id não bate) e vê a tela de modo.
+
+function modo(): Modo | null {
+  const atual = usuario();
+  if (atual == null || atual.tipo !== 'conta') return null;
+  try {
+    const salvo = JSON.parse(localStorage.getItem(CHAVES.MODO) ?? 'null');
+    if (salvo?.id !== atual.id) return null;
+    return salvo.modo === 'solo' || salvo.modo === 'professor' ? salvo.modo : null;
+  } catch {
+    return null;
+  }
+}
+
+function definirModo(novo: Modo): void {
+  const atual = usuario();
+  if (atual == null || atual.tipo !== 'conta') return;
+  localStorage.setItem(CHAVES.MODO, JSON.stringify({ id: atual.id, modo: novo }));
+}
+
+// 'solo' para conta em modo solo; 'escola' para aluno e conta em modo
+// professor. Casa com as classes .mundo-solo / .mundo-escola aplicadas no
+// <body>. null sem sessão, e null para conta sem modo: devolver 'escola'
+// nesses casos seria estado errado em silêncio — pior que erro visível.
+function mundo(): Mundo | null {
+  const atual = tipo();
+  if (atual == null) return null;
+  if (atual === 'aluno') return 'escola';
+  const m = modo();
+  if (m == null) return null;
+  return m === 'solo' ? 'solo' : 'escola';
+}
+
+// --- Modo Solo: campanha escolhida no lobby ---------------------------------
+// Fica gravada dentro do próprio usuário, então persiste entre as telas
+// (lobby -> treino -> resultado) e é apagada junto no sair().
+
+function campanhaAtiva(): string | null {
+  return usuario()?.campanhaAtiva ?? null;
+}
+
+function definirCampanha(id: string): Usuario | null {
+  return atualizarUsuario({ campanhaAtiva: id });
+}
+
+// --- Modo Escola: turma em uso --------------------------------------------
+// Um aluno pode estar matriculado em várias turmas; a tela precisa saber
+// qual está aberta. Sem escolha explícita, cai na primeira da lista de
+// turmas do usuário.
+
+function turmaAtiva(): string | null {
+  return usuario()?.turmaAtiva ?? usuario()?.turmas?.[0]?.id ?? null;
+}
+
+function definirTurma(id: string): Usuario | null {
+  return atualizarUsuario({ turmaAtiva: id });
+}
+
+// Mescla campos no usuário salvo (ex.: nível novo, xp, avatar, campanha).
+function atualizarUsuario(campos: Partial<Usuario>): Usuario | null {
+  const atual = usuario();
+  if (atual == null) return null;
+
+  const novo = { ...atual, ...campos };
+  localStorage.setItem(CHAVES.USUARIO, JSON.stringify(novo));
+  cacheUsuario = novo;
+  return novo;
+}
+
+// Apaga TUDO o que pertence à pessoa que estava logada e esfria o cache.
+// A campanha ativa e a turma ativa moram dentro do objeto usuário, então
+// saem junto. A fila de sessões pendentes é apagada à parte: são resultados
+// de treino de quem saiu, e reenviá-los com o token do próximo a entrar
+// gravaria sessão de uma pessoa na conta de outra.
+// O modo fica de propósito (ver modo()): é amarrado ao id da conta.
+function sair(): void {
+  localStorage.removeItem(CHAVES.TOKEN);
+  localStorage.removeItem(CHAVES.USUARIO);
+  localStorage.removeItem(CHAVES.FILA_SESSOES);
+  cacheUsuario = null;
+}
+
+export const sessao = {
+  entrar,
+  sair,
+  token,
+  usuario,
+  logado,
+  tipo,
+  nomeExibicao,
+  modo,
+  definirModo,
+  mundo,
+  campanhaAtiva,
+  definirCampanha,
+  turmaAtiva,
+  definirTurma,
+  atualizarUsuario,
+};

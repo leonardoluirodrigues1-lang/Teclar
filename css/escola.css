@@ -1,0 +1,1369 @@
+/* ============================================================================
+   TECLAR — escola.css
+   Mundo ESCOLA: as telas de trabalho do professor (turmas, biblioteca,
+   relatórios). Mesma identidade das outras telas — preto, vidro, mono para
+   dado e Inter para texto —, outra DENSIDADE: aqui se administra turma, não
+   se joga. Cartão menor, menos respiro, raio 16 em vez de 24.
+
+   A densidade vem da classe .mundo-escola no <body> (tokens.css), aplicada
+   pelo guarda.aplicarMundo(). Esta folha consome --espaco-card e
+   --raio-card; não redefine nenhum dos dois.
+
+   Carregar DEPOIS de tokens.css, componentes/vidro.css, componentes/
+   toasts.css e componentes/modais.css. A receita do vidro é a de lá: aqui
+   só se usa a classe .vidro.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Base mínima (reset.css do projeto ainda está vazio)
+   ------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100vh;
+  background: var(--cor-fundo, #000);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-normal, 1.5);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+ul { list-style: none; }
+[hidden] { display: none !important; }
+
+/* Texto que só o leitor de tela lê. Some da vista sem sair da árvore de
+   acessibilidade — display:none o tiraria dos dois. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Anel de foco só para quem navega por teclado. */
+:focus-visible {
+  outline: 2px solid var(--cor-anel-foco, #fff);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Fundo: o mesmo eco do horizonte de eventos das outras telas, mais fraco.
+   Não é decoração opcional: backdrop-filter só desfoca o que está ATRÁS, e
+   sem luz nenhuma no fundo todo o vidro desta tela vira retângulo cinza.
+   Numa tela de trabalho o anel fica bem discreto — ele não pode competir
+   com a leitura de uma grade de turmas.
+   ------------------------------------------------------------------------- */
+.fundo {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-base, 0);
+}
+.fundo-anel {
+  position: absolute;
+  left: 50%;
+  top: -18vh;
+  width: 1200px;
+  height: 1200px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      transparent 0%,
+      transparent 34%,
+      rgba(255, 255, 255, 0.13) 40%,
+      rgba(255, 255, 255, 0.05) 46%,
+      transparent 55%),
+    radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 30%,
+      transparent 62%);
+  filter: blur(60px);
+}
+
+/* ---------------------------------------------------------------------------
+   Estrutura: coluna de 1280 centralizada
+   ------------------------------------------------------------------------- */
+.pagina {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px var(--e-5, 24px) var(--e-8, 64px);
+}
+
+/* ---------------------------------------------------------------------------
+   Barra do topo: pílula de navegação à esquerda, conta à direita
+   ------------------------------------------------------------------------- */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--raio-total, 9999px);
+}
+
+.nav-marca {
+  padding: 0 14px 0 10px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.30em;
+  color: var(--cor-texto, #fff);
+}
+/* O letter-spacing sobra à direita da última letra; compensa. */
+.nav-marca span { margin-right: -0.30em; }
+
+.nav-item {
+  padding: 8px 16px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
+
+/* Ativo: fundo claro, como a aba em que se está. aria-current="page" é o
+   que o leitor de tela anuncia; a cor é para quem enxerga. */
+.nav-item[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--cor-texto, #fff);
+}
+
+/* Conta: avatar redondo com menu de sair */
+.conta { position: relative; flex: none; }
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: var(--peso-medio, 500);
+  letter-spacing: 0.04em;
+  color: var(--cor-texto, #fff);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.avatar:hover { background: rgba(255, 255, 255, 0.16); }
+
+.menu-conta {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-flutuante, 10);
+  min-width: 190px;
+  padding: 8px;
+  border-radius: var(--raio-n, 8px);
+}
+
+.menu-cabecalho {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+.menu-nome {
+  font-size: 13px;
+  color: var(--cor-texto, #fff);
+  overflow-wrap: anywhere;
+}
+.menu-modo {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border-radius: var(--raio-p, 4px);
+  text-align: left;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
+
+/* ---------------------------------------------------------------------------
+   Cabeçalho da tela
+   ------------------------------------------------------------------------- */
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+  margin-top: var(--espaco-secao, 32px);
+}
+
+.titulo {
+  font-size: 26px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+
+/* Botão principal da tela: pílula sólida. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+  padding: 11px 20px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn:disabled { opacity: 0.55; cursor: progress; }
+
+.btn-solido {
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+  font-weight: var(--peso-medio, 500);
+}
+.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+
+.btn-vidro { color: var(--cor-texto, #fff); }
+.btn-vidro:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ---------------------------------------------------------------------------
+   Busca — só aparece quando a lista fica grande o bastante para precisar
+   ------------------------------------------------------------------------- */
+.busca {
+  position: relative;
+  margin-top: var(--e-5, 24px);
+  max-width: 360px;
+}
+.busca input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-total, 9999px);
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.busca input::placeholder { color: var(--cor-texto-fraco, #8a8a8a); }
+.busca input:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.busca input:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+.busca .lupa {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Grade de turmas
+   ------------------------------------------------------------------------- */
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: var(--e-5, 24px);
+}
+
+/* O cartão inteiro é clicável, mas o link é só o nome: o <a> se estica por
+   cima do cartão com ::after. Assim o HTML continua válido (botão de
+   renomear FORA do link) e o leitor de tela anuncia um destino só. */
+.cartao {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 132px;
+  padding: var(--espaco-card, 16px);
+  border-radius: var(--raio-card, 8px);
+  transition: background var(--dur-normal, 240ms) var(--ease-padrao, ease),
+              transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.cartao:hover { background: rgba(255, 255, 255, 0.14); }
+
+.cartao-nome {
+  font-size: 17px;
+  line-height: var(--lh-apertada, 1.1);
+  /* Espaço para o botão de renomear no canto. */
+  padding-right: 92px;
+  overflow-wrap: anywhere;
+}
+.cartao-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* O anel de foco cerca o cartão todo, não as letras do nome: é o cartão que
+   o Tab está selecionando. :has() não chega em todo lugar — a regra
+   seguinte é o mesmo anel no link, para o foco nunca ficar invisível. */
+.cartao-link:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
+.cartao:has(.cartao-link:focus-visible) {
+  outline: 2px solid var(--cor-anel-foco, #fff);
+  outline-offset: 3px;
+}
+.cartao:has(.cartao-link:focus-visible) .cartao-link:focus-visible { outline: none; }
+
+/* Renomear: fica acima do link esticado (z-index) e não navega. */
+.btn-renomear {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  padding: 6px 12px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn-renomear:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.16); }
+
+.metricas {
+  display: flex;
+  gap: 32px;
+  margin-top: auto;
+  padding-top: var(--e-4, 16px);
+}
+
+.metrica-rotulo {
+  display: block;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.metrica-valor {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 22px;
+  font-weight: var(--peso-leve, 300);
+  line-height: 1;
+  /* Números de mesma largura: as duas colunas não dançam de cartão para
+     cartão quando a contagem passa de 9 para 10. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Carregando — esqueleto do MESMO tamanho do cartão final
+   Altura igual evita o pulo do layout quando os dados chegam.
+   ------------------------------------------------------------------------- */
+.esqueleto {
+  min-height: 132px;
+  padding: var(--espaco-card, 16px);
+  border-radius: var(--raio-card, 8px);
+  display: flex;
+  flex-direction: column;
+}
+.esqueleto-barra {
+  height: 17px;
+  width: 62%;
+  border-radius: var(--raio-p, 4px);
+  background: rgba(255, 255, 255, 0.10);
+}
+.esqueleto-metricas {
+  display: flex;
+  gap: 32px;
+  margin-top: auto;
+  padding-top: var(--e-4, 16px);
+}
+.esqueleto-metrica {
+  height: 34px;
+  width: 58px;
+  border-radius: var(--raio-p, 4px);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Pulso lento, só para dizer "está vindo". Fica de fora para quem pediu
+   menos movimento — aí o esqueleto é estático, e continua fazendo o
+   trabalho dele, que é segurar o espaço. */
+@media (prefers-reduced-motion: no-preference) {
+  .esqueleto-barra, .esqueleto-metrica, .tabela-esqueleto-barra { animation: pulso 1.4s ease-in-out infinite; }
+  @keyframes pulso {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Estados: vazio, erro e busca sem resultado
+   ------------------------------------------------------------------------- */
+.estado {
+  margin-top: var(--e-5, 24px);
+  padding: var(--e-7, 48px) var(--e-6, 32px);
+  border-radius: var(--raio-g, 16px);
+  text-align: center;
+}
+.estado-titulo {
+  font-size: 20px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+.estado-texto {
+  max-width: 44ch;
+  margin: 10px auto 0;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.estado .btn { margin-top: var(--e-5, 24px); }
+
+/* ---------------------------------------------------------------------------
+   Formulário dentro do modal (criar e renomear turma)
+   ------------------------------------------------------------------------- */
+.campo-modal label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.campo-modal input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-p, 4px);
+  font-size: 15px;
+  color: var(--cor-texto, #fff);
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.campo-modal input:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.campo-modal input:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+.campo-modal input[aria-invalid="true"] { border-color: var(--cor-erro, #ff5a5a); }
+
+/* Erro embaixo do campo — nunca em alert. Sempre no DOM por causa do
+   aria-live; só ocupa espaço quando tem texto. */
+.erro-campo {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--cor-erro, #ff5a5a);
+}
+.erro-campo:empty { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------
+   Tela de turma — link de volta
+   ------------------------------------------------------------------------- */
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--espaco-secao, 32px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.voltar:hover { color: var(--cor-texto, #fff); }
+.voltar-seta { font-size: 13px; }
+
+/* O cabeçalho da tela de turma tem duas ações, não uma: o .cabecalho de
+   turmas.js continua servindo de base (título + margem), só o lado direito
+   ganha um agrupador. */
+.cabecalho { margin-top: var(--e-3, 12px); }
+.cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* "Matricular alunos" é um link (leva para outra tela), mas veste o mesmo
+   botão de vidro que qualquer ação secundária — a pessoa não deve notar
+   que um é <a> e o outro é <button>. */
+.cabecalho-acoes .btn { text-decoration: none; }
+
+/* ---------------------------------------------------------------------------
+   Painel de métricas — um vidro só, três números lado a lado
+   ------------------------------------------------------------------------- */
+.metricas-turma {
+  display: flex;
+  gap: var(--e-7, 48px);
+  margin-top: var(--e-5, 24px);
+  padding: var(--espaco-card, 16px) var(--e-6, 32px);
+  border-radius: var(--raio-card, 8px);
+}
+.metrica-item + .metrica-item {
+  padding-left: var(--e-7, 48px);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+/* .metrica-rotulo e .metrica-valor são as mesmas classes da grade de
+   turmas (ver acima) — mesmo rótulo mono 9px, mesmo número mono 22px com
+   tabular-nums. O painel aqui só muda o entorno, não a receita do dado. */
+
+/* ---------------------------------------------------------------------------
+   Abas — Alunos / Exercícios, estado de URL (?aba=)
+   ------------------------------------------------------------------------- */
+.abas {
+  display: flex;
+  gap: var(--e-5, 24px);
+  margin-top: var(--e-6, 32px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.aba {
+  position: relative;
+  padding: 10px 2px 14px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.aba:hover { color: var(--cor-texto, #fff); }
+.aba[aria-selected="true"] { color: var(--cor-texto, #fff); }
+.aba[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--cor-texto, #fff);
+}
+
+/* ---------------------------------------------------------------------------
+   Tabela — a exceção ao vidro do projeto. Superfície sólida, contraste
+   máximo, linhas separadas por hairline. Nada de backdrop-filter aqui: uma
+   grade de números longa precisa de fundo estável, não de um vidro que
+   troca de tom conforme o que passa atrás.
+   ------------------------------------------------------------------------- */
+.tabela-painel {
+  margin-top: var(--e-5, 24px);
+  background: var(--cor-superficie, #0e0e0e);
+  border: 1px solid var(--cor-borda, #2b2b2b);
+  border-radius: var(--raio-card, 8px);
+  /* Rola na horizontal abaixo de 900px (ver media query); acima disso o
+     conteúdo cabe e overflow não faz nada. */
+  overflow-x: auto;
+}
+.tabela {
+  width: 100%;
+  min-width: 720px; /* abaixo disso a tabela vira scroll, não cartão empilhado */
+  border-collapse: collapse;
+}
+.tabela th, .tabela td {
+  padding: 13px var(--e-4, 16px);
+  text-align: left;
+  white-space: nowrap;
+}
+.tabela thead th {
+  border-bottom: 1px solid var(--cor-borda, #2b2b2b);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.tabela tbody tr + tr td { border-top: 1px solid var(--cor-borda, #2b2b2b); }
+.tabela tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+/* Cabeçalho ordenável: botão sem cara de botão, só o cursor e o hover
+   entregam que dá para clicar. */
+.tabela-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.tabela-ordenar:hover { color: var(--cor-texto, #fff); }
+.tabela-ordenar-seta {
+  font-size: 9px;
+  opacity: 0.7;
+}
+/* Cabeçalho sem ordenação ativa não mostra seta nenhuma — só os três que
+   aceitam clique (matrícula, PPM médio, última atividade) têm o botão. */
+th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
+
+.tabela .col-mono, .tabela td.col-mono {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+}
+.tabela td.col-numero {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Aluno sem nenhuma sessão: a linha inteira perde ênfase, para o olho ir
+   direto a quem já tem o que mostrar. */
+.tabela tr.linha-sem-dado td { color: var(--cor-texto-fraco, #8a8a8a); }
+.tabela tr.linha-sem-dado td.col-mono { color: inherit; opacity: 0.7; }
+
+/* .btn-mini é a mesma pílula fora da tabela (copiar senha, etc.): uma
+   receita, dois nomes, para o de dentro da lista não se chamar "tabela". */
+.tabela-acao, .btn-mini {
+  padding: 6px 12px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.tabela-acao:hover, .btn-mini:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.14); }
+
+/* Esqueleto de tabela — mesma altura da tabela cheia, para o layout não
+   pular quando os dados chegam. O pulso é o mesmo @keyframes pulso da
+   grade de turmas, ali em cima — não uma segunda animação com outro nome. */
+.tabela-esqueleto-linha {
+  height: 46px;
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--e-4, 16px);
+}
+.tabela-esqueleto-linha:first-child { border-top: 0; }
+.tabela-esqueleto-barra {
+  height: 14px;
+  width: 40%;
+  max-width: 220px;
+  border-radius: var(--raio-p, 4px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------------------------------------------------------------------------
+   Modal "Atribuir exercício" — busca + biblioteca com checkbox
+   ------------------------------------------------------------------------- */
+.modal-busca {
+  margin-bottom: 14px;
+}
+.modal-busca input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-total, 9999px);
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+}
+.modal-busca input:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.modal-busca input:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+
+.lista-biblioteca {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--raio-n, 8px);
+}
+.item-biblioteca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.item-biblioteca + .item-biblioteca { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.item-biblioteca:has(input:disabled) { cursor: default; opacity: 0.55; }
+.item-biblioteca input[type="checkbox"] { flex: none; width: 16px; height: 16px; }
+.item-biblioteca-texto { flex: 1; min-width: 0; }
+.item-biblioteca-titulo {
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+  overflow-wrap: anywhere;
+}
+.item-biblioteca-meta {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.item-biblioteca-legenda {
+  flex: none;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.modal-vazio-texto {
+  font-size: 14px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  line-height: var(--lh-normal, 1.5);
+}
+.modal-vazio-texto + .btn { margin-top: 18px; }
+
+/* ---------------------------------------------------------------------------
+   Tela de matrícula — cabeçalho com subtítulo apagado
+   ------------------------------------------------------------------------- */
+.cabecalho-texto { min-width: 0; }
+.subtitulo {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   Um por um — formulário curto num painel de vidro
+   O campo veste a mesma receita de .campo-modal (label mono, input escuro):
+   é o mesmo formulário de uma linha, só que fora do modal.
+   ------------------------------------------------------------------------- */
+.painel-form {
+  margin-top: var(--e-5, 24px);
+  padding: var(--e-5, 24px);
+  border-radius: var(--raio-card, 8px);
+}
+.linha-campo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.linha-campo input { flex: 1; min-width: 0; }
+.linha-campo .btn { flex: none; padding-top: 13px; padding-bottom: 13px; }
+
+.ajuda-campo {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  max-width: 60ch;
+}
+.ajuda-campo code {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+}
+
+/* Lista de senhas geradas nesta visita */
+.recentes { margin-top: var(--e-6, 32px); }
+.secao-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.lista-senhas {
+  margin-top: 12px;
+  background: var(--cor-superficie, #0e0e0e);
+  border: 1px solid var(--cor-borda, #2b2b2b);
+  border-radius: var(--raio-card, 8px);
+}
+.item-senha {
+  display: flex;
+  align-items: center;
+  gap: var(--e-5, 24px);
+  padding: 12px var(--e-4, 16px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.item-senha + .item-senha { border-top: 1px solid var(--cor-borda, #2b2b2b); }
+.item-senha-rotulo {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.item-senha-valor { display: block; margin-top: 2px; font-size: 15px; }
+.item-senha .btn-mini { margin-left: auto; }
+
+/* Campo selecionável que aparece quando a área de transferência falha:
+   melhor um texto para copiar à mão do que um erro. */
+.campo-copia {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-p, 4px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto, #fff);
+  resize: vertical;
+}
+
+/* ---------------------------------------------------------------------------
+   Importar CSV — três passos, um embaixo do outro
+   ------------------------------------------------------------------------- */
+.passo { margin-top: var(--e-6, 32px); }
+.passo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+.passo-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+}
+.passo-linha {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  margin-top: var(--e-4, 16px);
+}
+.passo-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: var(--e-4, 16px);
+}
+
+/* Área de soltar: o <input type="file"> de verdade está dentro (sr-only),
+   então o anel de foco do teclado cerca a área inteira via :focus-within. */
+.soltar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: var(--e-6, 32px) var(--e-5, 24px);
+  border-radius: var(--raio-card, 8px);
+  border-style: dashed;
+  text-align: center;
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.soltar.arrastando { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.5); }
+.soltar:focus-within { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
+.soltar[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+.soltar-texto { font-size: 15px; }
+.soltar-ou {
+  margin: 8px 0;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.soltar-ajuda {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.soltar-ajuda code { font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace); }
+.soltar .erro-campo { margin-top: 10px; }
+.soltar .erro-campo:empty { margin-top: 0; }
+
+.modelo {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  width: 200px;
+}
+.modelo-texto { font-size: 13px; color: var(--cor-texto-fraco, #8a8a8a); }
+
+/* Passo 2: resumo "38 linhas · 2 com problema" */
+.resumo-linha {
+  margin-top: var(--e-4, 16px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-suave, #c4c4c4);
+  font-variant-numeric: tabular-nums;
+}
+.resumo-linha strong { font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
+
+/* Linha com problema na prévia: marcada, com o motivo na última coluna. */
+.tabela tr.linha-problema td { color: var(--cor-texto-fraco, #8a8a8a); }
+.tabela tr.linha-problema td.col-motivo { color: var(--cor-erro, #ff5a5a); }
+.tabela td.col-motivo { white-space: normal; min-width: 220px; }
+.tabela td.col-ok { color: var(--cor-texto-fraco, #8a8a8a); }
+.tabela-rodape {
+  padding: 10px var(--e-4, 16px);
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Passo 3: resultado — os três números no mesmo painel das métricas da
+   turma (.metricas-turma), e as listas abaixo, cada uma com o próprio
+   rótulo. */
+.resultado-grupo { margin-top: var(--e-5, 24px); }
+.resultado-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: var(--e-5, 24px);
+}
+.resultado-acoes .btn { text-decoration: none; }
+.lista-falhas {
+  margin-top: 12px;
+  background: var(--cor-superficie, #0e0e0e);
+  border: 1px solid var(--cor-borda, #2b2b2b);
+  border-radius: var(--raio-card, 8px);
+}
+.item-falha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--e-5, 24px);
+  padding: 12px var(--e-4, 16px);
+  font-size: 13px;
+}
+.item-falha + .item-falha { border-top: 1px solid var(--cor-borda, #2b2b2b); }
+.item-falha-id {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.item-falha-motivo { color: var(--cor-erro, #ff5a5a); }
+
+/* ---------------------------------------------------------------------------
+   Responsivo
+   ------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .grade { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Abaixo de 900px a tabela rola na horizontal DENTRO do próprio painel —
+   .tabela-painel já nasce com overflow-x: auto e a tabela com min-width,
+   então a rolagem já existe sem media query nenhuma; não há aqui uma
+   segunda regra fingindo empilhar célula em cartão. */
+
+@media (max-width: 700px) {
+  .grade { grid-template-columns: 1fr; }
+  .pagina { padding: 18px var(--e-4, 16px) var(--e-7, 48px); }
+  .barra { flex-wrap: wrap; }
+  .nav { flex: 1; justify-content: center; }
+  .cabecalho { flex-wrap: wrap; }
+  .busca { max-width: none; }
+  .metricas-turma { flex-wrap: wrap; gap: var(--e-5, 24px) var(--e-6, 32px); }
+  .metrica-item + .metrica-item { padding-left: 0; border-left: 0; }
+  .abas { gap: var(--e-4, 16px); }
+  .linha-campo { flex-wrap: wrap; }
+  .linha-campo input { flex-basis: 100%; }
+  .passo-linha { flex-direction: column; }
+  .modelo { width: auto; flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* ---------------------------------------------------------------------------
+   Biblioteca — filtros numa linha, tabela de trabalho e o modal do exercício
+   Reaproveita .cabecalho, .busca, .tabela-painel, .tabela-acao, .campo-modal
+   e .erro-campo; abaixo só o que essas telas ainda não tinham.
+   ------------------------------------------------------------------------- */
+
+/* Busca + seletor de dificuldade, lado a lado. A .busca já tem margem de
+   topo própria; dentro dos filtros quem dá o respiro é o container. */
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  margin-top: var(--e-5, 24px);
+}
+.filtros .busca { margin-top: 0; flex: 1; }
+
+/* Mesma receita do input da busca, em <select>: pílula escura, seta
+   própria (a nativa não acompanha o fundo preto). */
+.seletor {
+  flex: none;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 10px 36px 10px 14px;
+  background: rgba(0, 0, 0, 0.45)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8a8a' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 14px center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-total, 9999px);
+  font: inherit;
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+  cursor: pointer;
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.seletor:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.seletor:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+.seletor option { background: var(--cor-superficie, #0e0e0e); color: var(--cor-texto, #fff); }
+
+/* Título clicável na tabela: abre a prévia no treino. Sublinhado só no
+   hover, para a coluna não virar uma pilha de links azuis. */
+.tabela-link { color: inherit; }
+.tabela-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.tabela-link:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; border-radius: 2px; }
+
+/* Duas ações na mesma célula (Editar, Excluir). */
+.tabela-acoes { display: inline-flex; gap: 6px; }
+
+/* Formulário do exercício: vários .campo-modal um embaixo do outro, e a
+   mesma receita do input para textarea e select. */
+.form-exercicio .campo-modal + .campo-modal { margin-top: 18px; }
+.campo-modal textarea,
+.campo-modal select {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--raio-p, 4px);
+  font: inherit;
+  font-size: 15px;
+  color: var(--cor-texto, #fff);
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.campo-modal textarea {
+  display: block;
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.campo-modal select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+.campo-modal select option { background: var(--cor-superficie, #0e0e0e); }
+.campo-modal textarea:focus, .campo-modal select:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.campo-modal textarea:focus-visible, .campo-modal select:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+.campo-modal textarea[aria-invalid="true"] { border-color: var(--cor-erro, #ff5a5a); }
+/* Setinha do number: some, o campo é curto e o teclado resolve. */
+.campo-modal input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.campo-modal input[type="number"]::-webkit-inner-spin-button,
+.campo-modal input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Dificuldade e tempo limite dividem uma linha. */
+.campos-lado-a-lado { display: flex; gap: var(--e-3, 12px); }
+.campos-lado-a-lado .campo-modal { flex: 1; min-width: 0; }
+.form-exercicio .campos-lado-a-lado { margin-top: 18px; }
+.form-exercicio .campos-lado-a-lado .campo-modal + .campo-modal { margin-top: 0; }
+
+/* Contador vivo do texto: mono, à direita, apagado; vermelho quando passa
+   do limite. */
+.contador-texto {
+  margin-top: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.contador-texto.excedido { color: var(--cor-erro, #ff5a5a); }
+
+/* Aviso discreto embaixo do campo (quebras de linha viram espaço). Não é
+   erro: cor de apoio, não vermelha. Sempre no DOM pelo aria-live. */
+.aviso-campo {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.aviso-campo:empty { margin-top: 0; }
+
+@media (max-width: 700px) {
+  .filtros { flex-wrap: wrap; }
+  .filtros .busca { flex-basis: 100%; }
+  .campos-lado-a-lado { flex-direction: column; }
+  .form-exercicio .campos-lado-a-lado .campo-modal + .campo-modal { margin-top: 18px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Relatórios — seletor de turma, identificação em duas linhas, destaque de
+   precisão e a lista de sessões do modal de histórico.
+   Reaproveita .cabecalho, .cabecalho-texto, .cabecalho-acoes, .secao-rotulo,
+   .seletor, .metricas-turma (os quatro números), .abas, .tabela-painel,
+   .tabela, .linha-sem-dado, .tabela-link, .estado e .modal-vazio-texto;
+   abaixo só o que nenhuma tela tinha ainda.
+   ------------------------------------------------------------------------- */
+
+/* Rótulo + seletor sob o título: quem define o que a tela toda mostra fica
+   junto do nome da tela, não na fileira de filtros. */
+.relatorio-turma {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.relatorio-turma .seletor { max-width: 320px; }
+/* Enquanto as turmas não chegaram o seletor fica desabilitado: apagado,
+   mas no lugar dele — nada pula quando a lista aparece. */
+.relatorio-turma .seletor:disabled { opacity: 0.55; cursor: progress; }
+
+/* A linha inteira abre o histórico do aluno; o cursor é o que avisa. O
+   alvo clicável de verdade é o botão .relatorio-historico da primeira
+   célula, para quem navega por teclado chegar nele com Tab. */
+.relatorio-linhas-clicaveis .tabela tbody tr { cursor: pointer; }
+.relatorio-historico {
+  display: block;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+/* Identificação do aluno: nome em cima, matrícula embaixo em mono menor.
+   Sem nome na tabela Alunos, sobra só a matrícula — e aí ela ocupa a linha
+   de cima, sem um espaço vazio fingindo que o nome existe. */
+.celula-aluno { display: block; }
+.celula-aluno-nome {
+  display: block;
+  font-size: 15px;
+}
+.celula-aluno-matricula {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+/* Sozinha, a matrícula é o nome do aluno: mesmo tamanho do resto da linha,
+   sem o recuo de legenda e sem a margem que a segunda linha teria. */
+.celula-aluno-so-matricula {
+  margin-top: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: inherit;
+}
+
+/* Precisão média abaixo de 85%: tom mais forte e peso um pouco maior — o
+   olho para nela. NÃO é cor de alerta: nem vermelho, nem amarelo, nem
+   ícone. É informação, não acusação. */
+.tabela td.precisao-destaque {
+  color: var(--cor-texto, #fff);
+  font-weight: var(--peso-medio, 500);
+}
+/* Na linha de quem nunca treinou não há precisão nenhuma para destacar; a
+   linha apagada continua apagada. */
+.tabela tr.linha-sem-dado td.precisao-destaque { color: var(--cor-texto-fraco, #8a8a8a); }
+
+/* Lista de sessões do modal de histórico. Mesma caixa rolante do
+   .lista-biblioteca (uma turma rende muitas sessões), mas cada item aqui
+   tem três blocos: exercício + data, os números e se concluiu. Não é uma
+   .tabela porque a .tabela tem min-width de 720px e não caberia no modal. */
+.lista-sessoes {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--raio-card, 8px);
+}
+.item-sessao {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4, 16px);
+  padding: 11px var(--e-4, 16px);
+}
+.item-sessao + .item-sessao { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.item-sessao-texto { flex: 1; min-width: 0; }
+.item-sessao-titulo {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-sessao-meta {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+/* PPM e precisão: mono com tabular-nums, para as colunas de números não
+   dançarem de uma sessão para a outra. */
+.item-sessao-numeros {
+  display: flex;
+  flex: none;
+  gap: 12px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.item-sessao-estado {
+  flex: none;
+  min-width: 96px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.lista-sessoes-rodape {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+@media (max-width: 700px) {
+  /* O seletor passa a ocupar a linha inteira sob o rótulo: a 320px de
+     largura, rótulo e pílula lado a lado não cabem mais. */
+  .relatorio-turma { flex-wrap: wrap; gap: 6px 12px; }
+  .relatorio-turma .seletor { flex: 1; max-width: none; }
+  /* A tabela já rola na horizontal dentro do .tabela-painel (overflow-x
+     desde a regra base, com o min-width da .tabela); aqui só os números
+     das sessões descem para debaixo do título, dentro do modal estreito. */
+  .item-sessao { flex-wrap: wrap; gap: 6px var(--e-4, 16px); }
+  .item-sessao-texto { flex-basis: 100%; }
+  .item-sessao-estado { min-width: 0; margin-left: auto; }
+}
+
+/* ---------------------------------------------------------------------------
+   Histórico do aluno — pages/aluno/historico.html
+   A única tela que carrega ESTA folha e a dashboard.css juntas: o miolo é
+   do mundo escola (tabela sólida, esqueleto, painéis de estado, seletor e
+   a receita dos números), e a moldura é o painel do aluno (.tela, .painel,
+   .rotulo/.titulo/.subtitulo/.btn-sair), porque o aluno não tem a Nav em
+   pílula do professor.
+   A dashboard.css é carregada DEPOIS, para ganhar nos nomes que as duas
+   definem. As regras abaixo reajustam o que essa vitória atropelaria, e
+   por isso vêm com o .historico na frente: mais específicas que a regra
+   solta da outra folha, sem tocar em nenhuma classe existente.
+   ------------------------------------------------------------------------- */
+
+/* O painel do dashboard tem 640px, que é a medida de uma lista de
+   exercícios. Aqui dentro mora uma tabela de seis colunas: .painel.historico
+   (duas classes) passa na frente do .painel de 640. */
+.painel.historico { max-width: 1040px; }
+
+/* O .voltar nasceu no topo de uma PÁGINA (tela de turma), com 32px de
+   respiro acima; aqui ele é a primeira linha DENTRO do painel. */
+.historico .voltar {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+/* O .cabecalho do mundo escola traz margem de topo própria; o do painel do
+   aluno é o primeiro bloco depois do .voltar e não precisa dela. */
+.historico .cabecalho { margin-top: 0; }
+
+/* Os painéis de estado (vazio e erro) aqui estão DENTRO de um painel de
+   vidro. Vidro sobre vidro fica turvo e a sombra do de dentro suja o de
+   fora: neste contexto o .estado é um bloco quieto, com a mesma geometria
+   do mundo escola e sem a receita do vidro. */
+.historico .estado {
+  margin-top: var(--e-5, 24px);
+  padding: var(--e-7, 48px) var(--e-6, 32px);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: var(--raio-g, 16px);
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  text-align: center;
+  font-size: inherit;
+  color: var(--cor-texto, #fff);
+}
+/* O texto de apoio continua apagado; o título, não. */
+.historico .estado-texto { color: var(--cor-texto-fraco, #8a8a8a); }
+
+/* Os quatro números. Mesmos .metrica-item / .metrica-rotulo /
+   .metrica-valor das telas do professor — rótulo mono 9px e número mono
+   22px com tabular-nums —, só sem o painel de vidro em volta: aqui eles já
+   estão dentro de um. */
+.historico-numeros {
+  display: flex;
+  gap: var(--e-7, 48px);
+  margin-top: var(--e-5, 24px);
+}
+
+/* A unidade de "sequência": o número continua sendo o número, e "dias" só
+   diz do que ele é. Menor, apagado e sem entrar no tabular-nums. */
+.metrica-unidade {
+  margin-left: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* A linha de evolução: é o recado da tela, não um rótulo. Tom suave, sem
+   ícone e sem cor de estado — melhorar não é "sucesso" nem manter é
+   "atenção". */
+.historico-evolucao {
+  margin-top: var(--e-4, 16px);
+  font-size: 15px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* A nota de escopo, quando há filtro: diz a que os números acima se
+   referem e sai da frente. */
+.historico-nota {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Filtro por exercício, entre o rótulo da seção e a tabela. */
+.historico-filtro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: var(--e-4, 16px);
+}
+.historico-filtro label {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.historico-filtro .seletor { max-width: 320px; }
+
+/* Sessão em que o tempo acabou: a célula fica um tom abaixo, e nada mais.
+   Sem vermelho, sem ícone, sem negrito — quem tentou e ficou sem tempo
+   tentou, e esta tela não trata isso como erro. */
+.tabela td.resultado-parcial { color: var(--cor-texto-fraco, #8a8a8a); }
+
+/* Abaixo de 900px a tabela rola na horizontal DENTRO do painel: o
+   .tabela-painel já nasce com overflow-x e a .tabela com min-width, então
+   a rolagem existe sem media query — o painel do aluno não vaza da tela. */
+
+@media (max-width: 700px) {
+  /* Quatro números não cabem numa linha: viram duas de dois, e a divisória
+     vertical sai (ela separava colunas de uma fileira só). */
+  .historico-numeros { flex-wrap: wrap; gap: var(--e-5, 24px) var(--e-6, 32px); }
+  .historico-numeros .metrica-item { flex: 1 1 40%; }
+  .historico-numeros .metrica-item + .metrica-item { padding-left: 0; border-left: 0; }
+  .historico-filtro { flex-wrap: wrap; gap: 6px 12px; }
+  .historico-filtro .seletor { flex: 1; max-width: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Nome do aluno (coluna opcional de Alunos) — acréscimos
+   ------------------------------------------------------------------------- */
+/* Um por um: dois campos empilhados, matrícula e nome. */
+.painel-form .campo-form + .campo-form { margin-top: 18px; }
+
+/* "Matriculados agora": o nome, quando houver, na fonte de texto — o mono
+   é da matrícula e da senha, que a pessoa vai conferir dígito a dígito. */
+.item-senha-nome { font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif); }
+
+/* Duas ações por linha na tabela de alunos: lado a lado, quebrando quando
+   não cabem. */
+.tabela-acoes { display: inline-flex; gap: 8px; flex-wrap: wrap; }

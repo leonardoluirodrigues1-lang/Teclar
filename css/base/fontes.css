@@ -1,0 +1,58 @@
+/* fontes.css
+   JetBrains Mono e Inter servidas de dentro do projeto (vendor/fontes/),
+   para a tipografia não depender de internet — a apresentação não pode
+   cair para a fonte do sistema porque o wi-fi da sala falhou.
+
+   Os @font-face saíram do CSS que o Google Fonts entregava para
+   ?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500,
+   recortados aos subsets latin e latin-ext (o que o português usa) e com
+   o src apontando para o .woff2 local. O Google servia o MESMO arquivo
+   para os três pesos — são fontes variáveis —, então aqui é um bloco por
+   família e subset, com font-weight em faixa (300 500), e não um por
+   peso. font-display: swap, como antes: o texto aparece na fonte do
+   sistema e troca quando a nossa carrega.
+
+   Trocar de família ou ampliar a faixa de peso: baixar o .woff2 novo para
+   vendor/fontes/ e acrescentar o bloco aqui — o token --fonte-* de
+   tokens.css não muda. */
+
+
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url(../../vendor/fontes/inter-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url(../../vendor/fontes/inter-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url(../../vendor/fontes/jetbrains-mono-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url(../../vendor/fontes/jetbrains-mono-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

@@ -1,0 +1,113 @@
+node_modules/
+
+# .js gerados pelo tsc a partir dos .ts do núcleo. Listados um a um, de
+# propósito: os demais .js de js/ continuam sendo FONTE e não podem ser
+# ignorados por engano.
+js/config.js
+js/config.js.map
+js/nucleo/api.js
+js/nucleo/api.js.map
+js/nucleo/sessao.js
+js/nucleo/sessao.js.map
+js/nucleo/guarda.js
+js/nucleo/guarda.js.map
+js/nucleo/mocks.js
+js/nucleo/mocks.js.map
+js/nucleo/tipos.js
+js/nucleo/tipos.js.map
+
+# .js gerados a partir dos .tsx das telas do professor e dos componentes
+# React. Não sobrou .js fonte nessas pastas. Os antigos biblioteca.js e
+# relatorios.js (placeholders vazios) foram apagados: no Windows eles
+# receberiam o Biblioteca.js / Relatorios.js gerado por cima, com o nome
+# em minúscula.
+js/professor/Turmas.js
+js/professor/Turmas.js.map
+js/professor/Turma.js
+js/professor/Turma.js.map
+js/professor/Alunos.js
+js/professor/Alunos.js.map
+js/professor/Biblioteca.js
+js/professor/Biblioteca.js.map
+js/professor/Relatorios.js
+js/professor/Relatorios.js.map
+js/componentes/Nav.js
+js/componentes/Nav.js.map
+js/componentes/ModalReact.js
+js/componentes/ModalReact.js.map
+js/componentes/Tabela.js
+js/componentes/Tabela.js.map
+js/componentes/Esqueleto.js
+js/componentes/Esqueleto.js.map
+js/componentes/PainelErro.js
+js/componentes/PainelErro.js.map
+
+# .js gerados a partir dos .ts de apoio (utilitários e componentes em JS
+# puro convertidos).
+js/utils/csv.js
+js/utils/csv.js.map
+js/utils/validacao.js
+js/utils/validacao.js.map
+js/utils/desempenho.js
+js/utils/desempenho.js.map
+js/utils/formato.js
+js/utils/formato.js.map
+js/utils/ordenacao.js
+js/utils/ordenacao.js.map
+js/componentes/toast.js
+js/componentes/toast.js.map
+js/componentes/listaExercicios.js
+js/componentes/listaExercicios.js.map
+js/componentes/BarraXp.js
+js/componentes/BarraXp.js.map
+
+# .js gerados a partir dos .tsx das telas do aluno e do Solo. Não sobrou
+# .js fonte em js/solo/. O lobby é Lobby.tsx, e o nome é outro de
+# propósito: na época havia um dashboard.js placeholder ali, e no Windows
+# um Dashboard.tsx geraria "Dashboard.js" por cima dele (ver tsconfig.json).
+js/aluno/Dashboard.js
+js/aluno/Dashboard.js.map
+js/aluno/Historico.js
+js/aluno/Historico.js.map
+js/solo/Campanhas.js
+js/solo/Campanhas.js.map
+js/solo/Lobby.js
+js/solo/Lobby.js.map
+js/solo/Estatisticas.js
+js/solo/Estatisticas.js.map
+
+# .js gerados a partir de js/treino/: o motor (typingEngine.ts, só tipado)
+# e as duas telas em React (Treino.tsx, Resultado.tsx). Não sobrou .js
+# fonte nessa pasta.
+js/treino/typingEngine.js
+js/treino/typingEngine.js.map
+js/treino/Treino.js
+js/treino/Treino.js.map
+js/treino/Resultado.js
+js/treino/Resultado.js.map
+
+# .js gerados a partir de js/auth/: comum.ts (utilidades puras), Formulario.tsx
+# (peças de formulário React) e as três telas (Modo, Login, Cadastro).
+# Não sobrou .js fonte nessa pasta.
+js/auth/comum.js
+js/auth/comum.js.map
+js/auth/Formulario.js
+js/auth/Formulario.js.map
+js/auth/Modo.js
+js/auth/Modo.js.map
+js/auth/Login.js
+js/auth/Login.js.map
+js/auth/Cadastro.js
+js/auth/Cadastro.js.map
+
+# .js gerados a partir de js/landing/: buracoNegro.ts (WebGL, sem React),
+# letras.ts (rng + camadas, sem React), reveal.ts (hook) e Landing.tsx (a
+# página). Não sobrou .js fonte nessa pasta.
+js/landing/buracoNegro.js
+js/landing/buracoNegro.js.map
+js/landing/letras.js
+js/landing/letras.js.map
+js/landing/reveal.js
+js/landing/reveal.js.map
+js/landing/Landing.js
+js/landing/Landing.js.map

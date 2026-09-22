@@ -1,0 +1,223 @@
+/* ============================================================================
+   TECLAR — dashboard.css
+   Versão mínima dos três dashboards (Solo, Aluno, Professor): um painel de
+   vidro com título, botão de sair e a lista de exercícios. Não é a tela
+   final — é o suficiente para fechar o caminho até o treino.
+   Carregar depois de tokens.css e componentes/vidro.css.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Base mínima (reset.css do projeto ainda está vazio)
+   ------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100vh;
+  background: var(--cor-fundo, #000);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-normal, 1.5);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+ul { list-style: none; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
+
+/* ---------------------------------------------------------------------------
+   Fundo: eco do horizonte de eventos (mesmo anel das telas de auth)
+   ------------------------------------------------------------------------- */
+.fundo {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-base, 0);
+}
+.fundo-anel {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 6vh);
+  width: 1000px;
+  height: 1000px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      transparent 0%,
+      transparent 33%,
+      rgba(255, 255, 255, 0.20) 39%,
+      rgba(255, 255, 255, 0.07) 45%,
+      transparent 54%),
+    radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(255, 255, 255, 0.03) 30%,
+      transparent 62%);
+  filter: blur(50px);
+}
+
+/* ---------------------------------------------------------------------------
+   Painel
+   ------------------------------------------------------------------------- */
+.tela {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e-8, 64px) var(--e-5, 24px);
+}
+
+.painel {
+  width: 100%;
+  max-width: 640px;
+  padding: 40px 44px;
+  border-radius: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-5, 24px);
+}
+
+.rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.titulo {
+  margin-top: 10px;
+  font-size: 36px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+
+.subtitulo {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Os botões do cabeçalho ("Ir para Professor" e "Sair"), lado a lado */
+.cabecalho-acoes {
+  display: flex;
+  flex: none;
+  gap: var(--e-2, 8px);
+}
+
+/* Botão de sair: pílula de vidro discreta */
+.btn-sair {
+  flex: none;
+  padding: 9px 16px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave, #c4c4c4);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn-sair:hover { background: rgba(255, 255, 255, 0.14); color: var(--cor-texto, #fff); }
+
+/* ---------------------------------------------------------------------------
+   Lista de exercícios
+   ------------------------------------------------------------------------- */
+.secao-rotulo {
+  margin-top: 36px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.lista { display: grid; gap: 8px; margin-top: 12px; }
+
+/* Cada item é um <a> (disponível) ou um <div> (bloqueado). Mesmo desenho. */
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--raio-n, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+a.item:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.20); }
+a.item:hover .item-seta { transform: translateX(4px); }
+
+.item-texto { min-width: 0; }
+.item-titulo {
+  font-size: 15px;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto, #fff);
+}
+.item-meta {
+  margin-top: 4px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.item-seta {
+  flex: none;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  color: var(--cor-texto-suave, #c4c4c4);
+  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+
+/* Bloqueado: sem link, mais apagado, com o requisito à direita */
+.item.bloqueado {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+.item.bloqueado .item-titulo { color: var(--cor-texto-fraco, #8a8a8a); }
+.item-requisito {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Estados: carregando, vazio, erro. Nunca tela em branco. */
+.estado {
+  margin-top: 12px;
+  padding: 28px 16px;
+  border-radius: var(--raio-n, 8px);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  text-align: center;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.estado.erro { color: var(--cor-erro, #ff5a5a); border-color: rgba(255, 90, 90, 0.35); }
+
+@media (max-width: 640px) {
+  .painel { padding: 28px 22px; }
+  .titulo { font-size: 28px; }
+  .cabecalho { flex-direction: column; }
+  .fundo-anel { width: 720px; height: 720px; }
+}

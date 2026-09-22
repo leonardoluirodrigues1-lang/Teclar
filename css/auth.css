@@ -1,0 +1,465 @@
+/* ============================================================================
+   TECLAR — auth.css
+   Estilo das telas de entrada: pages/login.html, pages/cadastro.html e
+   pages/modo.html (a escolha Solo/Professor, depois do login).
+   Carregar DEPOIS de css/base/tokens.css. Todo token vem com fallback
+   concreto: a tela continua de pé mesmo se um nome de variável não bater.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Base mínima (reset.css do projeto ainda está vazio)
+   ------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  position: relative;
+  min-height: 100vh;
+  background: var(--cor-fundo, #000);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-normal, 1.5);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+/* O atributo hidden precisa ganhar de qualquer display declarado depois:
+   as seções de login trocam de modo por hidden, não por classe. */
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+ul { list-style: none; }
+
+/* Anel de foco visível só para navegação por teclado. */
+:focus-visible {
+  outline: 2px solid var(--cor-anel-foco, #fff);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Fundo: eco do horizonte de eventos + campo de estrelas
+   backdrop-filter só desfoca o que está atrás. Sem o shader da landing, o
+   vidro precisa desta luz própria para não virar retângulo cinza.
+   ------------------------------------------------------------------------- */
+.fundo {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-base, 0);
+}
+
+/* Anel luminoso desfocado, ~1000px, um pouco acima do centro como o
+   buraco negro da landing (--hole-offset: -6vh). Discreto: é fundo. */
+.fundo-anel {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 6vh);
+  width: 1000px;
+  height: 1000px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      transparent 0%,
+      transparent 33%,
+      rgba(255, 255, 255, 0.20) 39%,
+      rgba(255, 255, 255, 0.07) 45%,
+      transparent 54%),
+    radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(255, 255, 255, 0.03) 30%,
+      transparent 62%);
+  filter: blur(50px);
+}
+
+.fundo-estrelas { position: absolute; inset: 0; }
+.estrela {
+  position: absolute;
+  border-radius: var(--raio-total, 9999px);
+  background: var(--cor-texto, #fff);
+}
+
+/* A classe .vidro vem de css/componentes/vidro.css (carregar antes). */
+
+/* ---------------------------------------------------------------------------
+   Pílula do topo: "← TECLAR"
+   ------------------------------------------------------------------------- */
+.topo {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  z-index: var(--z-fixa, 100);
+}
+.pilula-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px 10px 16px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 14px;
+  letter-spacing: 0.34em;
+  color: var(--cor-texto, #fff);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.pilula-marca:hover { background: rgba(255, 255, 255, 0.14); }
+.pilula-marca .seta {
+  letter-spacing: 0;
+  display: inline-block;
+  transition: transform var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.pilula-marca:hover .seta { transform: translateX(-3px); }
+/* o letter-spacing sobra à direita da última letra; compensa */
+.pilula-marca .marca { margin-right: -0.34em; }
+
+/* ---------------------------------------------------------------------------
+   Estrutura comum
+   ------------------------------------------------------------------------- */
+.tela {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px var(--e-5, 24px) var(--e-8, 64px);
+}
+
+.rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* ---------------------------------------------------------------------------
+   TELA 1 — modo.html (cartões Solo / Professor, só depois do login)
+   ------------------------------------------------------------------------- */
+.cabecalho {
+  text-align: center;
+  margin-bottom: 44px;
+}
+.cabecalho .rotulo { font-size: 10px; }
+.cabecalho h1 {
+  margin-top: var(--e-4, 16px);
+  font-size: 52px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+.cabecalho p {
+  margin-top: var(--e-3, 12px);
+  font-size: 15px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.cartoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1240px;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  width: 398px;
+  max-width: 100%;
+  min-height: 404px;
+  padding: 30px;
+  border-radius: 22px;
+  color: var(--cor-texto, #fff);
+  transition:
+    background var(--dur-normal, 240ms) var(--ease-padrao, ease),
+    transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.cartao:hover { background: rgba(255, 255, 255, 0.14); }
+.cartao:focus-visible { outline-offset: 4px; }
+
+.cartao-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 24px;
+}
+.cartao-nome {
+  font-weight: var(--peso-medio, 500);
+  letter-spacing: 0.20em;
+}
+.cartao-numero { color: rgba(255, 255, 255, 0.22); }
+
+.cartao-resumo {
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+.cartao-divisoria {
+  height: 1px;
+  margin: 22px 0;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cartao-itens {
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.cartao-itens li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cartao-itens li::before {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--raio-total, 9999px);
+  background: var(--cor-texto, #fff);
+  opacity: 0.7;
+}
+
+.cartao-rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding: 12px 18px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.cartao-rodape .seta {
+  display: inline-block;
+  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.cartao:hover .cartao-rodape .seta { transform: translateX(5px); }
+
+.ajuda {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 36px;
+  padding: 10px 20px 10px 12px;
+  border-radius: var(--raio-total, 9999px);
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.ajuda .interrogacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto, #fff);
+}
+.ajuda strong { font-weight: var(--peso-normal, 400); color: var(--cor-texto, #fff); }
+
+/* ---------------------------------------------------------------------------
+   TELA 2 — login.html
+   ------------------------------------------------------------------------- */
+.painel {
+  width: 480px;
+  max-width: 100%;
+  padding: 44px;
+  border-radius: 24px;
+}
+.painel .rotulo { font-size: 11px; }
+.painel h1 {
+  margin-top: 14px;
+  font-size: 40px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+.painel .descricao {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.painel .acoes { margin-top: 32px; }
+
+/* Botões */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 15px 22px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  transition:
+    background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn:disabled { opacity: 0.55; cursor: progress; }
+
+.btn-solido {
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+  font-weight: var(--peso-medio, 500);
+}
+.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+
+.btn-vidro { color: var(--cor-texto, #fff); }
+.btn-vidro:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
+
+.btn-texto {
+  display: block;
+  margin: 22px auto 0;
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  text-decoration: underline transparent;
+  text-underline-offset: 4px;
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              text-decoration-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn-texto:hover { color: var(--cor-texto, #fff); text-decoration-color: currentColor; }
+
+/* Campos do aluno */
+.campo { display: block; }
+.campo + .campo { margin-top: 18px; }
+.campo .rotulo { display: block; margin-bottom: 8px; }
+.campo input {
+  width: 100%;
+  padding: 13px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto, #fff);
+  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.campo input::placeholder { color: var(--cor-texto-fraco, #8a8a8a); opacity: 0.6; }
+.campo input:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
+.campo input:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
+
+.ajuda-campo {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.formulario .btn-solido { margin-top: 26px; }
+
+/* Erro: sempre presente no DOM (aria-live precisa existir antes da
+   mensagem); ocupa espaço só quando tem texto. */
+.erro {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--cor-erro, #ff5a5a);
+}
+.erro:empty { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------
+   TELA 3 — cadastro.html
+   Mesma linguagem do login.
+   ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Formulário — peças novas (campo com erro, senha à mostra, links)
+   ------------------------------------------------------------------------- */
+
+/* O .campo do login era <label> com o input dentro; agora é um bloco com
+   label, input e a linha de erro. A regra antiga de espaçamento continua
+   valendo para os dois. */
+.campo .rotulo { font-size: 11px; }
+.campo label.rotulo { cursor: pointer; }
+
+/* Campo reprovado na validação. A borda vermelha acompanha a mensagem de
+   texto embaixo — cor sozinha não é mensagem. */
+.campo input[aria-invalid="true"],
+.campo input.invalido {
+  border-color: var(--cor-erro, #ff5a5a);
+}
+
+/* Erro embaixo do campo. Sempre no DOM (o aria-live precisa existir antes
+   da mensagem); só ocupa espaço quando tem texto. */
+.erro-campo {
+  margin-top: 7px;
+  font-size: 12px;
+  line-height: var(--lh-normal, 1.5);
+  color: var(--cor-erro, #ff5a5a);
+}
+.erro-campo:empty { margin-top: 0; }
+
+/* Senha: o botão mostrar/esconder mora dentro do campo, e o input ganha
+   espaço à direita para o texto não passar por baixo dele. */
+.campo-senha { position: relative; }
+.campo-senha input { padding-right: 92px; }
+
+.btn-olho {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: var(--raio-p, 4px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.btn-olho:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
+
+/* Link dentro de texto corrido (rodapé do painel, mensagem de erro). */
+.link {
+  color: var(--cor-texto, #fff);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  transition: text-decoration-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.link:hover { text-decoration-color: currentColor; }
+
+/* O "Entrar" que acompanha o erro de e-mail já cadastrado herda o vermelho
+   da mensagem: é a continuação da frase, não um aviso à parte. */
+.link-erro {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linha-rodape {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* ---------------------------------------------------------------------------
+   Responsivo
+   ------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .topo { top: 16px; left: 16px; }
+  .tela { padding-top: 96px; }
+  .cabecalho h1 { font-size: 36px; }
+  .cartao { min-height: 0; }
+  .painel { padding: 32px 24px; }
+  .painel h1 { font-size: 32px; }
+  .ajuda { text-align: left; }
+  .fundo-anel { width: 720px; height: 720px; }
+}

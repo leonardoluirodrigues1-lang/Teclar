@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclar &mdash; Matricular alunos</title>
+<meta name="description" content="Matricule alunos numa turma: um por um ou importando um CSV de matr&iacute;culas.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/toasts.css">
+<link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/escola.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. "react-dom" (sem /client) &eacute; de onde saem
+     createPortal e flushSync, usados pelo Modal e pelas telas. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+</head>
+<body>
+
+<!-- Luz de fundo: sem ela o backdrop-filter do vidro n&atilde;o tem o que desfocar. -->
+<div class="fundo" aria-hidden="true">
+  <div class="fundo-anel"></div>
+</div>
+
+<!-- O React monta a tela inteira aqui dentro (barra do topo, conte&uacute;do,
+     estados). Fora da raiz s&oacute; fica o que n&atilde;o depende de estado. -->
+<div id="raiz" class="pagina"></div>
+
+<!-- Host dos toasts: continua com js/componentes/toast.js, fora da raiz. -->
+<div id="toasts"></div>
+
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
+<script type="module" src="../../js/professor/Alunos.js"></script>
+</body>
+</html>

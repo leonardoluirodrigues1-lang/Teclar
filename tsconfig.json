@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+
+    // Desligado de propósito: o código atual foi escrito sem tipagem, e
+    // strict exigiria tratar cada valor possivelmente nulo em código que
+    // já funciona. Fica para quando o restante dos .js for convertido.
+    "strict": false,
+
+    // Não existe mais .js fonte no projeto: todo .js em js/ é gerado pelo
+    // tsc. Se allowJs precisar voltar, é porque um .js fonte ficou para
+    // trás — converter para .ts em vez de religar.
+    "allowJs": false,
+
+    // O DevTools mostra o .ts, não o .js gerado.
+    "sourceMap": true,
+
+    // JSX vira import de "react/jsx-runtime" no .js gerado. No navegador esse
+    // nome é resolvido pelo import map de cada HTML (vendor/react/, cópia
+    // local); os @types/react em node_modules existem só para o tsc conferir
+    // tipo.
+    "jsx": "react-jsx",
+
+    // Sem outDir: o .js gerado fica AO LADO do .ts, porque o navegador
+    // carrega caminhos fixos como js/nucleo/api.js e eles não podem mudar.
+
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true
+  },
+  // Só os .ts entram como raiz. Com "js/**/*", o tsc pegaria também os .js
+  // GERADOS e, sem outDir, tentaria reemitir cada um por cima de si mesmo
+  // (erro TS5055).
+  //
+  // Nome de arquivo: o .js gerado nasce ao lado do .ts/.tsx com o MESMO
+  // nome, e o Windows não distingue caixa. ModalReact.tsx e Lobby.tsx têm
+  // esses nomes porque, na época, havia um modal.js e um dashboard.js
+  // fonte ao lado — um Modal.tsx geraria "Modal.js" por cima. Os .js fonte
+  // já se foram; os nomes ficaram.
+  "include": ["js/**/*.ts", "js/**/*.tsx"]
+}

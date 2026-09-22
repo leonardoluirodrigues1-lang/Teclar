@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclar &mdash; Seu hist&oacute;rico</title>
+<meta name="description" content="Seu desempenho no Teclar: melhor PPM, melhor precis&atilde;o, sequ&ecirc;ncia de dias e todas as suas sess&otilde;es.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+
+<!-- Esta tela usa as DUAS folhas, e a ordem importa.
+     De escola.css vem o mundo escola: a tabela s&oacute;lida, o esqueleto, os
+     pain&eacute;is de estado, o seletor e a receita dos n&uacute;meros (.metrica-rotulo
+     e .metrica-valor).
+     De dashboard.css vem o painel do ALUNO: .tela, .painel, o cabe&ccedil;alho
+     (.rotulo/.titulo/.subtitulo/.btn-sair) e o fundo &mdash; o mesmo de
+     dashboard.html, porque o aluno n&atilde;o tem a Nav em p&iacute;lula do professor.
+     dashboard.css vem DEPOIS de prop&oacute;sito: nos nomes que as duas definem
+     (.titulo, .subtitulo, .secao-rotulo, .cabecalho, .fundo) quem deve
+     ganhar &eacute; o painel do aluno. Onde isso atropelaria algo que a tela
+     precisa, a se&ccedil;&atilde;o "Hist&oacute;rico do aluno" no fim do escola.css reajusta
+     pelo seletor mais espec&iacute;fico .historico. -->
+<link rel="stylesheet" href="../../css/escola.css">
+<link rel="stylesheet" href="../../css/dashboard.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+</head>
+<body>
+
+<div class="fundo" aria-hidden="true">
+  <div class="fundo-anel"></div>
+</div>
+
+<!-- O React monta o painel aqui dentro. A raiz &eacute; o mesmo
+     <main class="tela"> do dashboard do aluno, para o CSS n&atilde;o mudar. -->
+<main id="raiz" class="tela"></main>
+
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
+     Caixa importa: o arquivo &eacute; Historico.js (de Historico.tsx). -->
+<script type="module" src="../../js/aluno/Historico.js"></script>
+</body>
+</html>

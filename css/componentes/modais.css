@@ -1,0 +1,120 @@
+/* ============================================================================
+   TECLAR — modais.css
+   Modal genérico (js/componentes/ModalReact.tsx). Overlay escuro cobrindo a tela,
+   painel de vidro centralizado. Requer tokens.css e componentes/vidro.css.
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e-5, 24px);
+  background: rgba(0, 0, 0, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.modal-overlay.aberto { opacity: 1; }
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  padding: 36px;
+  border-radius: var(--raio-g, 16px);
+  color: var(--cor-texto, #fff);
+  transform: translate3d(0, 12px, 0) scale(0.98);
+  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.modal-overlay.aberto .modal { transform: none; }
+
+.modal-eyebrow {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-xs, 0.75rem);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+.modal-titulo {
+  margin-top: 10px;
+  font-family: var(--fonte-leitura, "Inter", system-ui, sans-serif);
+  font-size: var(--fs-2xl, 1.9531rem);
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+}
+
+.modal-corpo {
+  margin-top: 18px;
+  font-size: var(--fs-sm, 0.8rem);
+  color: var(--cor-texto-suave, #c4c4c4);
+  line-height: var(--lh-normal, 1.5);
+}
+
+/* Números em destaque dentro do modal (PPM, erros, XP...) */
+.modal-metricas {
+  display: flex;
+  gap: 28px;
+  margin-top: 22px;
+}
+.modal-metrica-rotulo {
+  display: block;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.modal-metrica-valor {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-3xl, 2.4414rem);
+  font-weight: var(--peso-medio, 500);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.modal-botao {
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.modal-botao:focus-visible {
+  outline: 2px solid var(--cor-anel-foco, #fff);
+  outline-offset: 3px;
+}
+.modal-botao-solido {
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+  border: 1px solid transparent;
+  font-weight: var(--peso-medio, 500);
+}
+.modal-botao-solido:hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+.modal-botao-vidro {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--cor-texto, #fff);
+}
+.modal-botao-vidro:hover { background: rgba(255, 255, 255, 0.14); }
+
+@media (max-width: 480px) {
+  .modal { padding: 28px 22px; }
+}

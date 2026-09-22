@@ -1,0 +1,347 @@
+/* ============ TOKENS ============ */
+:root{
+  --background:#000; --foreground:#fff;
+  --muted-foreground:rgba(255,255,255,.72);
+  --border:rgba(255,255,255,.14);
+  --font-mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,monospace;
+  --font-sans:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --container:72rem;
+  /* deslocamento do centro do buraco negro em relacao ao centro da tela.
+     no shader o furo esta em uv (0, 0.06), entao sobe 6% da altura. */
+  --hole-offset:-6vh;
+}
+*{margin:0;padding:0;box-sizing:border-box;border-color:var(--border)}
+html{scroll-behavior:smooth}
+body{background:var(--background);color:var(--foreground);font-family:var(--font-sans);
+  font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* ============ HERO ============ */
+.hero{position:relative;min-height:100vh;width:100%;overflow:hidden;background:var(--background)}
+.hero canvas{position:absolute;inset:0;height:100%;width:100%}
+.layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+
+/* transicao do hero para o conteudo: gradiente + desfoque progressivo */
+.hero-fade{position:absolute;left:0;right:0;bottom:0;height:34vh;pointer-events:none;z-index:6;
+  background:linear-gradient(to bottom,
+    transparent 0%,
+    rgba(0,0,0,.35) 32%,
+    rgba(0,0,0,.72) 58%,
+    rgba(0,0,0,.93) 80%,
+    var(--background) 100%)}
+.hero-blur{position:absolute;left:0;right:0;bottom:0;height:26vh;pointer-events:none;z-index:5;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 55%,#000 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 55%,#000 100%)}
+
+.hero-content{position:relative;z-index:10;display:flex;min-height:100vh;flex-direction:column;
+  align-items:center;justify-content:center;padding:0 1.5rem}
+
+/* titulo centralizado no buraco, nao na viewport */
+.titulo-wrap{transform:translateY(var(--hole-offset));display:flex;justify-content:center;width:100%}
+h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;white-space:nowrap;
+  font-family:var(--font-mono);font-size:2.75rem;font-weight:500;letter-spacing:.42em;
+  color:var(--foreground);text-shadow:0 0 32px rgba(0,0,0,.85),0 0 90px rgba(0,0,0,.6)}
+@media(min-width:640px){h1.titulo{font-size:4.5rem}}
+@media(min-width:768px){h1.titulo{font-size:6rem}}
+
+.teclar-caret{display:inline-block;height:.95em;width:.07em;margin-left:-.30em;
+  background:var(--foreground);vertical-align:middle}
+
+.cta-hero{position:absolute;bottom:3rem;left:0;right:0;display:flex;justify-content:center;z-index:10}
+.btn{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:5px;
+  padding:.75rem 2rem;font-family:var(--font-mono);font-size:.875rem;letter-spacing:.18em;
+  color:var(--foreground);text-decoration:none;background:rgba(0,0,0,.3);
+  backdrop-filter:blur(2px);transition:background .25s,color .25s,box-shadow .25s}
+.btn:hover{background:var(--foreground);color:var(--background);box-shadow:0 0 40px rgba(255,255,255,.25)}
+
+/* ancora de orbita centrada no buraco negro */
+.orbit-anchor{position:absolute;left:50%;top:calc(50% + var(--hole-offset));height:0;width:0}
+.glyph{display:block;user-select:none;font-family:var(--font-mono);color:var(--foreground);
+  text-shadow:0 0 12px rgba(255,255,255,.35)}
+.scatter{position:absolute;display:block;user-select:none;font-family:var(--font-mono);color:var(--foreground)}
+.particle{display:block;border-radius:9999px;background:var(--foreground)}
+
+/* ============ ANIMACOES DAS LETRAS ============ */
+/* queda em espiral com aceleracao: devagar longe, rapido perto do horizonte */
+@keyframes tc-infall{
+  0%   {transform:translate3d(var(--r),0,0) scale(1) rotate(0deg);opacity:0;filter:blur(0px)}
+  10%  {opacity:var(--o,.4)}
+  62%  {opacity:var(--o,.4);filter:blur(0px)}
+  88%  {opacity:calc(var(--o,.4) * .55);filter:blur(.8px)}
+  100% {transform:translate3d(calc(var(--r) * .06),0,0) scale(.18) rotate(var(--spin,220deg));
+        opacity:0;filter:blur(2.4px)}
+}
+/* giro do proprio glifo enquanto cai */
+@keyframes tc-tumble{
+  from{transform:rotate(0deg)}
+  to  {transform:rotate(var(--tumble,360deg))}
+}
+@keyframes tc-orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes tc-orbit-rev{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+
+/* letras distantes cruzando o campo */
+@keyframes tc-drift{
+  0%   {transform:translate3d(var(--fx),var(--fy),0) scale(var(--fs,1)) rotate(0deg);opacity:0}
+  14%  {opacity:var(--fo,.28)}
+  78%  {opacity:var(--fo,.28)}
+  100% {transform:translate3d(var(--tx),var(--ty),0) scale(calc(var(--fs,1) * .72))
+        rotate(var(--rot,40deg));opacity:0}
+}
+/* letras puxadas para o centro */
+@keyframes tc-pull{
+  0%   {transform:translate3d(0,0,0) scale(var(--fs,1));opacity:0;filter:blur(0px)}
+  16%  {opacity:var(--fo,.32)}
+  70%  {opacity:calc(var(--fo,.32) * .85)}
+  100% {transform:translate3d(var(--tx),var(--ty),0) scale(calc(var(--fs,1) * .12));
+        opacity:0;filter:blur(1.8px)}
+}
+/* respiracao suave para as mais distantes */
+@keyframes tc-breathe{
+  0%,100%{transform:translate3d(0,0,0) scale(var(--fs,1));opacity:var(--fo,.2)}
+  50%    {transform:translate3d(var(--tx),var(--ty),0) scale(calc(var(--fs,1) * 1.12));
+          opacity:calc(var(--fo,.2) * 1.7)}
+}
+
+/* ============ CONTEUDO ============ */
+.wrap{margin:0 auto;max-width:var(--container);padding:0 1.5rem}
+@media(min-width:640px){.wrap{padding:0 2.5rem}}
+
+.intro{display:grid;grid-template-columns:1fr;gap:3rem;padding-top:8rem;padding-bottom:10rem}
+@media(min-width:768px){.intro{grid-template-columns:repeat(12,1fr);padding-top:12rem}}
+.intro h2{font-size:2.25rem;line-height:1.06;letter-spacing:-.02em}
+@media(min-width:640px){.intro h2{font-size:3.75rem}}
+@media(min-width:768px){.intro h2{font-size:4.5rem}.intro .col-a{grid-column:span 8}
+  .intro .col-b{grid-column:9/-1;align-self:end}}
+.intro h2 .linha2{display:block;color:var(--muted-foreground)}
+.eyebrow{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.35em;color:var(--muted-foreground)}
+.intro p.body{margin-top:1.5rem;font-size:1rem;line-height:1.7;color:var(--muted-foreground)}
+@media(min-width:640px){.intro p.body{font-size:1.125rem}}
+
+.step{border-top:1px solid var(--border);padding:7rem 0}
+@media(min-width:640px){.step{padding:10rem 0}}
+.step .grid{display:grid;grid-template-columns:1fr;align-items:end;gap:2.5rem}
+@media(min-width:768px){.step .grid{grid-template-columns:repeat(12,1fr)}
+  .step .num{grid-column:span 5}.step .txt{grid-column:span 7}
+  .step.flip .num{order:2}.step.flip .txt{order:1}}
+.step .num span{display:block;font-family:var(--font-mono);font-size:18vw;line-height:.8;color:rgba(255,255,255,.1)}
+@media(min-width:640px){.step .num span{font-size:10rem}}
+.step h3{font-family:var(--font-mono);font-size:3rem;letter-spacing:.24em}
+@media(min-width:640px){.step h3{font-size:4.5rem}}
+.step p{margin-top:2rem;max-width:36rem;font-size:1.125rem;line-height:1.7;color:var(--muted-foreground)}
+@media(min-width:640px){.step p{font-size:1.25rem}}
+.cta-final{position:relative;overflow:hidden;border-top:1px solid var(--border);
+  padding:10rem 1.5rem;text-align:center}
+.cta-final .glow{pointer-events:none;position:absolute;left:50%;top:50%;height:60vh;width:60vh;
+  transform:translate(-50%,-50%);border-radius:9999px;
+  background:radial-gradient(circle,rgba(255,255,255,.07) 0%,transparent 68%)}
+.cta-final h2{margin:2.5rem auto 0;max-width:48rem;font-size:2.25rem;line-height:1.15;letter-spacing:-.02em}
+@media(min-width:640px){.cta-final h2{font-size:3.75rem}}
+.cta-final .btn{margin-top:3.5rem;background:transparent;backdrop-filter:none}
+
+footer{margin:0 auto;max-width:var(--container);padding:0 1.5rem 4rem}
+footer p{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.3em;color:var(--muted-foreground)}
+
+/* ============ REVEAL: PALAVRA POR PALAVRA ============ */
+.w{display:inline-block;opacity:0;transform:translateY(.85em) rotateX(-70deg) scale(.94);
+  transform-origin:50% 100%;filter:blur(6px);
+  transition:opacity .8s cubic-bezier(.16,1,.3,1),
+             transform .8s cubic-bezier(.16,1,.3,1),
+             filter .8s cubic-bezier(.16,1,.3,1)}
+.on .w{transform:translateY(0) rotateX(0) scale(1)}
+.on .w{opacity:1;transform:none;filter:blur(0)}
+
+/* blocos que sobem inteiros (numeros, teclas, botoes) */
+.reveal{opacity:0;transform:translateY(26px);
+  transition:opacity .85s cubic-bezier(.16,1,.3,1),transform .85s cubic-bezier(.16,1,.3,1)}
+.reveal.on{opacity:1;transform:none}
+
+/* NOTA: o projeto original forca animation-play-state:running em tudo.
+   Nao colocar bloco global de prefers-reduced-motion aqui, senao o hero
+   inteiro morre em quem desativou animacoes no sistema. */
+@media(prefers-reduced-motion:reduce){
+  .reveal,.w{opacity:1;transform:none;filter:none;transition:none}
+}
+@keyframes teclar-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes teclar-type-delete {
+  0%,  3%  { width: 0; }
+  40%, 60% { width: var(--tw-word); }
+  97%, 100% { width: 0; }
+}
+
+.teclar-typed-word {
+  --tw-word: calc(6ch + 6 * 0.42em);
+  display: inline-block;
+  width: 0;
+  max-width: none;
+  overflow: hidden;
+  white-space: nowrap;
+  animation-name: teclar-type-delete;
+  animation-duration: 7.2s;
+  animation-timing-function: steps(6, end);
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+  will-change: width;
+}
+
+
+.teclar-caret {
+  animation-name: teclar-caret;
+  animation-duration: 1.05s;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+}
+
+.teclar-canvas-motion {
+  animation-name: teclar-canvas-drift;
+  animation-duration: 18s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+  will-change: transform;
+}
+
+@keyframes teclar-orbit-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.05; }
+  20%  { opacity: 0.35; }
+  55%  { transform: translate3d(-7vw, -5vh, 0) scale(0.9); }
+  85%  { transform: translate3d(-13vw, 3vh, 0) scale(0.55); opacity: 0.08; }
+  100% { transform: translate3d(-16vw, 6vh, 0) scale(0.3); opacity: 0; }
+}
+
+@keyframes teclar-orbit-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.05; }
+  25%  { opacity: 0.3; }
+  60%  { transform: translate3d(6vw, 6vh, 0) scale(0.85); }
+  100% { transform: translate3d(14vw, -4vh, 0) scale(0.3); opacity: 0; }
+}
+
+/* --- Teclar living hero: compositor-driven motion ------------------ */
+
+@keyframes teclar-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes teclar-spin-rev {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes teclar-infall {
+  0%   { transform: translate3d(var(--r), 0, 0) scale(1); opacity: 0; }
+  12%  { opacity: var(--o, 0.35); }
+  70%  { opacity: var(--o, 0.35); }
+  100% { transform: translate3d(calc(var(--r) * 0.12), 0, 0) scale(0.35); opacity: 0; }
+}
+@keyframes teclar-letter-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(var(--spin, 180deg)); }
+}
+@keyframes teclar-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(var(--dx, 3vw), var(--dy, -3vh), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+@keyframes teclar-streak {
+  0%   { transform: translate3d(-60%, 0, 0) scaleX(0.6); opacity: 0; }
+  15%  { opacity: var(--so, 0.5); }
+  85%  { opacity: var(--so, 0.5); }
+  100% { transform: translate3d(60%, 0, 0) scaleX(1.6); opacity: 0; }
+}
+@keyframes teclar-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50%      { transform: scale(1.06); opacity: 0.85; }
+}
+@keyframes teclar-particle {
+  0%   { transform: translate3d(var(--r), 0, 0) scale(1); opacity: 0; }
+  20%  { opacity: var(--o, 0.6); }
+  100% { transform: translate3d(0, 0, 0) scale(0.2); opacity: 0; }
+}
+
+/* --- Event horizon: real positional CSS motion (compositor only) --- */
+
+@keyframes teclar-flow-a {
+  0%   { transform: translate3d(-7%, 3%, 0) scale(1.02) rotate(0deg); opacity: 0.6; }
+  33%  { transform: translate3d(8%, -6%, 0) scale(1.22) rotate(9deg); opacity: 1; }
+  66%  { transform: translate3d(3%, 8%, 0) scale(0.96) rotate(-7deg); opacity: 0.55; }
+  100% { transform: translate3d(-7%, 3%, 0) scale(1.02) rotate(0deg); opacity: 0.6; }
+}
+@keyframes teclar-flow-b {
+  0%   { transform: translate3d(7%, -4%, 0) scale(1.12) rotate(0deg); opacity: 0.9; }
+  40%  { transform: translate3d(-9%, 6%, 0) scale(0.88) rotate(-13deg); opacity: 0.5; }
+  75%  { transform: translate3d(-3%, -8%, 0) scale(1.26) rotate(11deg); opacity: 1; }
+  100% { transform: translate3d(7%, -4%, 0) scale(1.12) rotate(0deg); opacity: 0.9; }
+}
+@keyframes teclar-flow-c {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 0.7; }
+  30%  { transform: translate3d(-6%, 5%, 0) scale(1.14) rotate(-9deg); opacity: 1; }
+  65%  { transform: translate3d(9%, 4%, 0) scale(1.3) rotate(16deg); opacity: 0.8; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 0.7; }
+}
+@keyframes teclar-flow-d {
+  0%   { transform: translate3d(0, 0, 0) scale(1.1) rotate(360deg); opacity: 0.95; }
+  50%  { transform: translate3d(-9%, -5%, 0) scale(0.9) rotate(180deg); opacity: 0.5; }
+  100% { transform: translate3d(0, 0, 0) scale(1.1) rotate(0deg); opacity: 0.95; }
+}
+@keyframes teclar-canvas-drift {
+  0%   { transform: scale(1.1) translate3d(-2.5%, 1.5%, 0); }
+  50%  { transform: scale(1.18) translate3d(3%, -2.5%, 0); }
+  100% { transform: scale(1.1) translate3d(-2.5%, 1.5%, 0); }
+}
+
+/* --- Scattered letters across the whole hero ----------------------- */
+
+@keyframes teclar-cross {
+  0%   { transform: translate3d(var(--fx, -60vw), 0, 0) scale(var(--fs, 1)); opacity: 0; }
+  12%  { opacity: var(--fo, 0.3); }
+  80%  { opacity: var(--fo, 0.3); }
+  100% { transform: translate3d(var(--tx, 60vw), var(--ty, -6vh), 0) scale(calc(var(--fs, 1) * 0.7)); opacity: 0; }
+}
+@keyframes teclar-pull {
+  0%   { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: 0; }
+  15%  { opacity: var(--fo, 0.35); }
+  70%  { opacity: calc(var(--fo, 0.35) * 0.8); }
+  100% { transform: translate3d(var(--tx, 0), var(--ty, 0), 0) scale(calc(var(--fs, 1) * 0.2)); opacity: 0; }
+}
+@keyframes teclar-float {
+  0%   { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: var(--fo, 0.25); }
+  50%  { transform: translate3d(var(--tx, 2vw), var(--ty, -3vh), 0) scale(calc(var(--fs, 1) * 1.1)); opacity: calc(var(--fo, 0.25) * 1.6); }
+  100% { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: var(--fo, 0.25); }
+}
+
+/* curved, natural trajectories for the scattered letters */
+@keyframes teclar-arc {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--fs, 1)); opacity: 0; }
+  10%  { opacity: var(--fo, 0.3); }
+  35%  { transform: translate3d(calc(var(--tx) * 0.28), calc(var(--ty) * 0.62), 0) rotate(calc(var(--rot, 40deg) * 0.4)) scale(calc(var(--fs, 1) * 1.08)); }
+  70%  { transform: translate3d(calc(var(--tx) * 0.74), calc(var(--ty) * 0.3), 0) rotate(calc(var(--rot, 40deg) * 0.8)) scale(calc(var(--fs, 1) * 0.9)); opacity: var(--fo, 0.3); }
+  100% { transform: translate3d(var(--tx), var(--ty), 0) rotate(var(--rot, 40deg)) scale(calc(var(--fs, 1) * 0.6)); opacity: 0; }
+}
+
+/* extra horizon rotation layers */
+@keyframes teclar-swirl {
+  0%   { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.12); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes teclar-swirl-rev {
+  0%   { transform: rotate(360deg) scale(1.08) translate3d(2%, -1%, 0); }
+  50%  { transform: rotate(180deg) scale(0.94) translate3d(-3%, 2%, 0); }
+  100% { transform: rotate(0deg) scale(1.08) translate3d(2%, -1%, 0); }
+}
+
+/* --- Scroll reveal -------------------------------------------------- */
+
+.teclar-reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.teclar-reveal[data-visible="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}

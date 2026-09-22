@@ -1,0 +1,252 @@
+/* ============================================================================
+   TECLAR — tokens.css
+   Fonte da verdade de cor, tipografia, espaçamento e movimento do projeto.
+   Nenhum outro CSS pode escrever hex ou valor de espaçamento direto:
+   tudo referencia as variáveis definidas aqui.
+   Este arquivo só declara variáveis. Não há regra aplicada a elemento
+   ou classe de componente.
+   ========================================================================== */
+
+:root {
+
+  /* ==========================================================================
+     COR — SUPERFÍCIES
+     Três níveis de profundidade sobre o fundo preto. Como sombra projetada
+     quase não aparece em fundo preto, a separação entre camadas vem da
+     diferença sutil de luminância entre estas superfícies.
+     ========================================================================== */
+
+  --cor-fundo: #000000;              /* fundo da página */
+  --cor-superficie: #0e0e0e;         /* superfície de cartão, painel, linha de tabela */
+  --cor-superficie-elevada: #1c1c1c; /* superfície elevada: modal e estado hover */
+
+  /* ==========================================================================
+     COR — TEXTO
+     Quatro níveis de ênfase. Do mais forte ao mais discreto, mais a cor
+     de texto para uso sobre o botão branco.
+     ========================================================================== */
+
+  --cor-texto: #ffffff;         /* texto principal: títulos, valores, ênfase */
+  --cor-texto-suave: #c4c4c4;   /* parágrafos e texto de leitura corrida */
+  --cor-texto-fraco: #8a8a8a;   /* legendas, metadados, texto de apoio */
+  --cor-texto-inverso: #000000; /* texto sobre botão branco / superfície clara */
+
+  /* ==========================================================================
+     COR — BORDAS E FOCO
+     ========================================================================== */
+
+  --cor-borda: #2b2b2b;         /* divisórias e contornos discretos */
+  --cor-borda-forte: #454545;   /* contorno de campo ativo, separador enfático */
+  --cor-anel-foco: #ffffff;     /* anel de foco visível por teclado */
+
+  /* ==========================================================================
+     COR SEMÂNTICA DA DIGITAÇÃO
+     Única parte que abre mão do monocromático: acerto e erro precisam ser
+     distinguidos num relance, durante o treino, sem o usuário parar para ler.
+     ========================================================================== */
+
+  --cor-char-pendente: #5c5c5c;              /* caractere ainda não digitado (cinza médio) */
+  --cor-char-correto: #ffffff;               /* caractere digitado corretamente */
+  --cor-char-errado: #ff5a5a;                /* caractere digitado errado */
+  --cor-char-errado-fundo: rgba(255, 90, 90, 0.16); /* realce de fundo do caractere errado */
+  --cor-cursor: #ffffff;                     /* cursor de digitação */
+
+  /* Cores de status para mensagens gerais da interface (toasts, validação). */
+  --cor-sucesso: #3ddc84;
+  --cor-alerta: #f5b93b;
+  --cor-erro: #ff5a5a;
+
+  /* ==========================================================================
+     TIPOGRAFIA — FAMÍLIAS
+     Dois papéis separados, nunca intercambiáveis:
+     mono para tudo que é dado (teclado, números, WPM, código, IDs);
+     leitura para texto corrido de interface e conteúdo.
+     ========================================================================== */
+
+  --fonte-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Cascadia Code",
+    "Roboto Mono", Menlo, Consolas, monospace;
+  --fonte-leitura: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  /* ==========================================================================
+     TIPOGRAFIA — ESCALA DE TAMANHO
+     Progressão geométrica de razão 1.25 ancorada em 16px (1rem).
+     Comentário à direita: equivalente aproximado em px a 16px de raiz.
+     ========================================================================== */
+
+  /* Degrau quebrado de propósito: a razão 1.25 levaria --fs-xs a ~10px, e
+     abaixo de 12px texto cinza sobre fundo preto fica ilegível. O piso de
+     legibilidade ganha da razão matemática. */
+  --fs-xs: 0.75rem;    /*  12 px  — micro-rótulos */
+  --fs-sm: 0.8rem;     /* ~13 px  — legendas, texto auxiliar */
+  --fs-base: 1rem;     /*  16 px  — corpo padrão */
+  --fs-lg: 1.25rem;    /*  20 px  — subtítulo, destaque de parágrafo */
+  --fs-xl: 1.5625rem;  /* ~25 px  — título de seção */
+  --fs-2xl: 1.9531rem; /* ~31 px  — título de página */
+  --fs-3xl: 2.4414rem; /* ~39 px  — título grande */
+  --fs-4xl: 3.0518rem; /* ~49 px  — display / herói */
+
+  /* ==========================================================================
+     TIPOGRAFIA — PESOS
+     Só três pesos em uso no projeto.
+     ========================================================================== */
+
+  --peso-leve: 300;
+  --peso-normal: 400;
+  --peso-medio: 500;
+
+  /* ==========================================================================
+     TIPOGRAFIA — ALTURA DE LINHA
+     ========================================================================== */
+
+  --lh-apertada: 1.1;  /* títulos grandes, wordmark */
+  --lh-normal: 1.5;    /* interface em geral */
+  --lh-solta: 1.75;    /* parágrafos longos de leitura */
+
+  /* ==========================================================================
+     TIPOGRAFIA — ESPAÇAMENTO ENTRE LETRAS
+     ========================================================================== */
+
+  --ls-titulo: -0.02em; /* títulos grandes fecham um pouco */
+  --ls-marca: 0.42em;   /* wordmark TECLAR do herói */
+  --ls-rotulo: 0.08em;  /* rótulos e overlines, geralmente em maiúsculas */
+
+  /* ==========================================================================
+     TIPOGRAFIA — MEDIDA DE LINHA
+     Largura máxima confortável para leitura corrida, em ch.
+     ========================================================================== */
+
+  --medida-leitura: 66ch;
+
+  /* ==========================================================================
+     ESPAÇAMENTO
+     Escala baseada em 4px. Todos os passos são múltiplos de 4.
+     Nomeados de --e-1 (4px) a --e-10 (128px).
+     ========================================================================== */
+
+  --e-1: 0.25rem;  /*   4 px */
+  --e-2: 0.5rem;   /*   8 px */
+  --e-3: 0.75rem;  /*  12 px */
+  --e-4: 1rem;     /*  16 px */
+  --e-5: 1.5rem;   /*  24 px */
+  --e-6: 2rem;     /*  32 px */
+  --e-7: 3rem;     /*  48 px */
+  --e-8: 4rem;     /*  64 px */
+  --e-9: 6rem;     /*  96 px */
+  --e-10: 8rem;    /* 128 px */
+
+  /* ==========================================================================
+     FORMA
+     Raios de borda e uma borda fina já montada para reuso.
+     ========================================================================== */
+
+  --raio-p: 4px;        /* pequeno: campos, tags */
+  --raio-n: 8px;        /* normal: cartões, botões */
+  --raio-g: 16px;       /* grande: painéis, modais */
+  --raio-total: 9999px; /* total: pílulas, avatar, indicadores */
+
+  --borda-fina: 1px solid var(--cor-borda);
+
+  /* ==========================================================================
+     PROFUNDIDADE
+     Em fundo preto, sombra projetada não aparece. A hierarquia vem de
+     brilho (halo claro) e de borda. A sombra de texto aqui é escura:
+     serve para o título do herói não sumir sobre o disco brilhante do fundo.
+     ========================================================================== */
+
+  --brilho-suave: 0 0 24px rgba(255, 255, 255, 0.05);
+  --brilho-forte: 0 0 56px rgba(255, 255, 255, 0.12);
+  --sombra-texto: 0 0 32px rgba(0, 0, 0, 0.9);
+
+  /* ==========================================================================
+     MOVIMENTO
+     Três durações e duas curvas de suavização.
+     ========================================================================== */
+
+  --dur-rapida: 120ms; /* micro-feedback: hover, foco */
+  --dur-normal: 240ms; /* transição padrão de estado */
+  --dur-lenta: 480ms;  /* entrada de painel, revelação */
+
+  --ease-padrao: cubic-bezier(0.4, 0, 0.2, 1);        /* uso geral, entra e sai macio */
+  --ease-energico: cubic-bezier(0.34, 1.56, 0.64, 1); /* leve overshoot: XP, recompensa, nível */
+
+  /* ==========================================================================
+     LAYOUT
+     Larguras máximas, dimensões de chrome e camadas de empilhamento.
+     ========================================================================== */
+
+  --largura-conteudo: 1120px; /* container principal */
+  --largura-estreita: 560px;  /* formulários, texto centrado, login */
+  --largura-treino: 700px;    /* área de texto da tela de treino */
+
+  --altura-cabecalho: 64px;   /* header fixo */
+  --largura-sidebar: 248px;   /* barra lateral de navegação */
+
+  --z-base: 0;        /* fluxo normal */
+  --z-flutuante: 10;  /* dropdown, tooltip, elemento colado */
+  --z-fixa: 100;      /* header e sidebar fixos */
+  --z-modal: 1000;    /* modal e seu overlay */
+  --z-aviso: 10000;   /* toast e avisos críticos, acima de tudo */
+
+  /* ==========================================================================
+     DENSIDADE (valores padrão)
+     Variáveis que as classes de mundo abaixo sobrescrevem. Componentes
+     consomem estas, nunca a escala --e-* diretamente para respiro estrutural.
+     ========================================================================== */
+
+  --espaco-secao: var(--e-7); /* distância entre blocos maiores de uma página */
+  --espaco-card: var(--e-5);  /* respiro interno de um cartão */
+  --raio-card: var(--raio-n); /* raio de borda de um cartão */
+}
+
+/* ============================================================================
+   DOIS MUNDOS
+   Aplicar no <body>. Compartilham toda a base do :root e sobrescrevem
+   apenas densidade de espaçamento e raio de cartão.
+   SOLO respira mais: é lazer, gamificado, tem tempo de folga.
+   ESCOLA é mais compacto: é trabalho, precisa caber turma, relatório e lista.
+   ========================================================================== */
+
+.mundo-solo {
+  --espaco-secao: var(--e-8); /* 64px entre blocos */
+  --espaco-card: var(--e-6);  /* 32px de respiro interno */
+  --raio-card: var(--raio-g); /* cartão mais macio */
+}
+
+.mundo-escola {
+  --espaco-secao: var(--e-6); /* 32px entre blocos */
+  --espaco-card: var(--e-4);  /* 16px de respiro interno */
+  --raio-card: var(--raio-n); /* cartão mais seco */
+}
+
+/* ============================================================================
+   ACESSIBILIDADE — MOVIMENTO REDUZIDO
+   Zera as durações para quem pediu menos animação. As transições continuam
+   existindo nos componentes, mas acontecem em 0ms (troca instantânea).
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-rapida: 0ms;
+    --dur-normal: 0ms;
+    --dur-lenta: 0ms;
+  }
+}
+
+/* ============================================================================
+   ACESSIBILIDADE — MAIS CONTRASTE
+   Clareia os tons que ficam perto do fundo. O cinza do caractere "não
+   digitado" é o primeiro a desaparecer para quem enxerga pouco, porque é
+   o de menor contraste contra o preto; por isso ele sobe mais que os outros.
+   Também clareia os textos fracos e as bordas.
+   ========================================================================== */
+
+@media (prefers-contrast: more) {
+  :root {
+    --cor-char-pendente: #9a9a9a; /* sobe bastante: era o primeiro a sumir */
+    --cor-texto-suave: #e4e4e4;
+    --cor-texto-fraco: #b6b6b6;
+    --cor-borda: #4a4a4a;
+    --cor-borda-forte: #6c6c6c;
+  }
+}

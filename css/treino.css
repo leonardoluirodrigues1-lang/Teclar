@@ -1,0 +1,358 @@
+/* ============================================================================
+   TECLAR — treino.css
+   Tela de treino: HUD fixo em vidro, texto do exercício centralizado, barra
+   de progresso, pausa e captura invisível. Carregar depois de tokens.css,
+   componentes/vidro.css, componentes/toasts.css e componentes/modais.css.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Base mínima (reset.css do projeto ainda está vazio)
+   ------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100vh;
+  background: var(--cor-fundo, #000);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-normal, 1.5);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
+/* O atributo hidden precisa ganhar de qualquer display: definido abaixo. */
+[hidden] { display: none !important; }
+
+/* Luz de fundo discreta para o vidro ter o que desfocar. Sem estrelas: a
+   tela de treino pede silêncio, o foco é o texto. */
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-base, 0);
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 38%, rgba(255, 255, 255, 0.05), transparent 70%),
+    radial-gradient(ellipse 80% 30% at 50% 100%, rgba(255, 255, 255, 0.025), transparent 70%);
+}
+
+/* ---------------------------------------------------------------------------
+   HUD
+   ------------------------------------------------------------------------- */
+.hud {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-6, 32px);
+  width: calc(100% - 48px);
+  max-width: 1280px;
+  min-height: var(--altura-cabecalho, 64px);
+  padding: 12px 24px;
+  border-radius: var(--raio-g, 16px);
+}
+
+.hud-esq { min-width: 0; }
+.hud-contexto {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.hud-titulo {
+  margin-top: 2px;
+  font-size: var(--fs-lg, 1.25rem);
+  font-weight: var(--peso-normal, 400);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-dir {
+  display: flex;
+  gap: var(--e-6, 32px);
+  flex: none;
+}
+.hud-metrica { text-align: right; }
+.hud-metrica dt {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.hud-metrica dd {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-xl, 1.5625rem);
+  font-weight: var(--peso-medio, 500);
+  line-height: 1.1;
+  /* Sem isto os dígitos mudam de largura e o número treme a cada tecla. */
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.hud-unidade {
+  font-size: 0.6em;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto-fraco, #8a8a8a);
+  margin-left: 2px;
+}
+/* Abaixo da precisao_minima do banco (90). */
+.hud-metrica dd.abaixo { color: var(--cor-erro, #ff5a5a); }
+.hud-metrica dd.abaixo .hud-unidade { color: inherit; }
+.hud-metrica dd.urgente { color: var(--cor-alerta, #f5b93b); }
+
+/* ---------------------------------------------------------------------------
+   Palco: texto + progresso
+   ------------------------------------------------------------------------- */
+.palco {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  /* Em cima: espaço do HUD. Embaixo: faixa reservada aos toasts, para nunca
+     caírem sobre o texto. */
+  padding: 132px 24px 150px;
+}
+
+.area-texto {
+  width: 100%;
+  max-width: 1000px;
+  cursor: text;
+}
+
+.texto {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: clamp(1.05rem, 1.6vw, 1.45rem);
+  font-weight: var(--peso-normal, 400);
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+  color: var(--cor-char-pendente, #5c5c5c);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transition: opacity var(--dur-lenta, 480ms) var(--ease-padrao, ease);
+}
+/* Enquanto o exercício carrega: o placeholder esmaecido marca o lugar. */
+.texto.carregando { opacity: 0.28; }
+
+/* Um <span> por caractere. Só a cor muda: sem animação por tecla, para o
+   texto não "piscar". */
+.texto .c { transition: color var(--dur-rapida, 120ms) linear, background var(--dur-rapida, 120ms) linear; }
+.texto .c.correto { color: var(--cor-char-correto, #fff); }
+.texto .c.errado {
+  color: var(--cor-char-errado, #ff5a5a);
+  background: var(--cor-char-errado-fundo, rgba(255, 90, 90, 0.16));
+  border-radius: 2px;
+}
+.texto .c.atual {
+  color: var(--cor-texto, #fff);
+  box-shadow: inset 0 -2px 0 var(--cor-cursor, #fff);
+  animation: teclar-cursor 1.05s steps(1, end) infinite;
+}
+/* Quando o input perde o foco o cursor para de piscar, sinal de que a
+   digitação não vai chegar ao motor. */
+.area-texto.sem-foco .texto .c.atual { animation: none; opacity: 0.6; }
+
+@keyframes teclar-cursor {
+  0%, 49%  { box-shadow: inset 0 -2px 0 var(--cor-cursor, #fff); }
+  50%, 100% { box-shadow: inset 0 -2px 0 transparent; }
+}
+
+.progresso {
+  height: 2px;
+  margin-top: 28px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+}
+.progresso-barra {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--cor-texto, #fff);
+  transition: width var(--dur-rapida, 120ms) linear;
+}
+
+.dica {
+  margin-top: 16px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  transition: opacity var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.dica.oculta { opacity: 0; }
+
+/* Erro de carga: reaproveita a tipografia do modal, sem overlay. */
+.erro-carga {
+  width: 100%;
+  max-width: 440px;
+  padding: 36px;
+  border-radius: var(--raio-g, 16px);
+}
+
+/* ---------------------------------------------------------------------------
+   Captura invisível
+   Fora da vista mas NÃO display:none (precisa receber foco e teclas).
+   Fixa em 0,0 para o navegador não rolar a página ao focar.
+   ------------------------------------------------------------------------- */
+.captura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Pausa
+   ------------------------------------------------------------------------- */
+.pausa {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+.pausa-caixa {
+  padding: 28px 40px;
+  border-radius: var(--raio-g, 16px);
+  text-align: center;
+}
+.pausa-texto {
+  margin-top: 10px;
+  font-size: var(--fs-base, 1rem);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* ---------------------------------------------------------------------------
+   Toasts: ancorados acima da faixa da barra de progresso, 24px das bordas,
+   240px no máximo. Somem em telas estreitas, onde o texto ocupa quase tudo.
+   ------------------------------------------------------------------------- */
+.toasts { right: 24px; bottom: 24px; max-width: 240px; }
+
+@media (max-width: 900px) {
+  .toasts { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Responsivo
+   ------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .hud {
+    top: 12px;
+    width: calc(100% - 24px);
+    padding: 10px 16px;
+    gap: 16px;
+  }
+  .hud-titulo { font-size: var(--fs-base, 1rem); }
+  .hud-dir { gap: 16px; }
+  .hud-metrica dd { font-size: var(--fs-lg, 1.25rem); }
+  .palco { padding: 110px 16px 80px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Repetições (Solo): "REPETIÇÃO N DE T" no HUD e a passagem entre voltas
+   ------------------------------------------------------------------------- */
+/* Continua a linha do contexto, um tom acima para se distinguir do nível. */
+.hud-repeticao {
+  color: var(--cor-texto-suave, #c4c4c4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Enquanto a passagem está na tela o texto recua, sem sumir: a volta
+   seguinte é o mesmo texto e ele volta ao normal em seguida. */
+.area-texto.em-passagem .texto { opacity: 0.22; }
+.area-texto.em-passagem .texto .c.atual { animation: none; box-shadow: none; }
+
+/* A passagem NÃO é modal: nada de foco, botão ou bloqueio. pointer-events
+   none deixa o clique chegar ao texto (e devolver o foco ao input) e o
+   fundo é bem mais leve que o da pausa — a pausa pede ação, isto não. */
+.passagem {
+  position: fixed;
+  inset: 0;
+  /* Um degrau abaixo do HUD: o "REPETIÇÃO N DE T" continua nítido em cima. */
+  z-index: calc(var(--z-fixa, 100) - 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.28);
+  animation: teclar-passagem-entrar var(--dur-normal, 240ms) var(--ease-padrao, ease) both;
+}
+.passagem-caixa {
+  padding: 28px 44px;
+  border-radius: var(--raio-g, 16px);
+  text-align: center;
+}
+.passagem-metricas {
+  display: flex;
+  justify-content: center;
+  gap: var(--e-6, 32px);
+  margin-top: 14px;
+}
+.passagem-metricas > div + div {
+  padding-left: var(--e-6, 32px);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+.passagem-metricas dt {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.passagem-metricas dd {
+  margin-top: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 34px;
+  font-weight: var(--peso-medio, 500);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.passagem-metricas dd.abaixo { color: var(--cor-erro, #ff5a5a); }
+.passagem-metricas dd.abaixo .hud-unidade { color: inherit; }
+.passagem-dica {
+  margin-top: 18px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+@keyframes teclar-passagem-entrar {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passagem { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .passagem-caixa { padding: 22px 28px; }
+  .passagem-metricas { gap: 20px; }
+  .passagem-metricas > div + div { padding-left: 20px; }
+  .passagem-metricas dd { font-size: 26px; }
+}

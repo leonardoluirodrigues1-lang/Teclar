@@ -1,0 +1,43 @@
+/* ============================================================================
+   TECLAR — toasts.css
+   Avisos curtos que aparecem e somem sozinhos. Empilham no canto inferior
+   direito; quem posiciona a pilha na tela é quem a usa (ver .toasts).
+   Requer tokens.css e componentes/vidro.css.
+   ========================================================================== */
+
+.toasts {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: var(--z-aviso, 10000);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: max-content;
+  max-width: 240px;
+  pointer-events: none; /* nunca captura clique nem foco */
+}
+
+.toast {
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--raio-n, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-xs, 0.75rem);
+  letter-spacing: var(--ls-rotulo, 0.08em);
+  color: var(--cor-texto, #fff);
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  transition:
+    opacity var(--dur-normal, 240ms) var(--ease-padrao, ease),
+    transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+}
+.toast.visivel {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.toast.saindo {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+}
