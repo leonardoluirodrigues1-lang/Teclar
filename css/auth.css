@@ -463,3 +463,36 @@ ul { list-style: none; }
   .ajuda { text-align: left; }
   .fundo-anel { width: 720px; height: 720px; }
 }
+
+/* ---------------------------------------------------------------------------
+   modo.html — terceiro cartão (Aluno) e a grade de três
+   A grade vira grid no lugar do flex-wrap de .cartoes, para controlar a
+   quebra: três colunas acima de 1100px; duas entre 700 e 1100, com o Aluno
+   embaixo ocupando as duas; uma coluna abaixo de 700.
+   ------------------------------------------------------------------------- */
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 398px));
+  justify-content: center;
+}
+.cartoes .cartao { width: auto; }
+
+/* O Aluno é saída da conta, não troca de modo: mesmo cartão, rodapé com
+   menos peso (sem fundo, borda mais fraca, texto suave). Sem cor de alerta. */
+.cartao-aluno .cartao-rodape {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.cartao-aluno:hover .cartao-rodape { color: var(--cor-texto, #fff); }
+
+@media (max-width: 1100px) {
+  .cartoes { grid-template-columns: repeat(2, minmax(0, 398px)); }
+  /* Largo e com pouco conteúdo: sem a altura mínima, para não virar um
+     retângulo vazio. */
+  .cartao-aluno { grid-column: 1 / -1; min-height: 0; }
+}
+
+@media (max-width: 699px) {
+  .cartoes { grid-template-columns: minmax(0, 398px); }
+}

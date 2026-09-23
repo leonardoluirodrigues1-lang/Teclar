@@ -8,24 +8,38 @@
 // sessão (sessao.definirModo) e, da próxima vez que a conta entrar, o
 // login pula esta tela e cai direto no modo salvo.
 //
-// Substituiu a antiga tela de escolha de perfil (que ficava ANTES do login,
-// com cartão de aluno), removida quando o projeto passou a ter conta única.
-// Mesmo markup, mesmas classes de css/auth.css.
+// O terceiro cartão, Aluno, NÃO é modo: aluno é outro tipo de sessão
+// (tabela Alunos, login por matrícula). Por isso ele não navega sozinho —
+// abre um modal avisando que vai sair da conta e, confirmado, encerra a
+// sessão e manda para o login já no formulário de matrícula (?aluno=1).
+//
+// Substituiu a antiga tela de escolha de perfil (que ficava ANTES do login),
+// removida quando o projeto passou a ter conta única. Classes de
+// css/auth.css; o modal é o ModalReact, com css/componentes/modais.css.
 
+import { useState, type MouseEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ROTA_INICIAL } from '../config.js';
+import { ROTA_INICIAL, ROTA_LOGIN } from '../config.js';
+import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import { sessao } from '../nucleo/sessao.js';
 import type { Modo } from '../nucleo/tipos.js';
+import { Modal } from '../componentes/ModalReact.js';
 import { montarEstrelas } from './comum.js';
 
-interface Cartao {
-  modo: Modo;
+// O login já aberto no formulário de matrícula.
+const ROTA_LOGIN_ALUNO = `${ROTA_LOGIN}?aluno=1`;
+
+interface ConteudoCartao {
   nome: string;
   numero: string;
   resumo: string;
   itens: string[];
   rodape: string;
+}
+
+interface Cartao extends ConteudoCartao {
+  modo: Modo;
 }
 
 const CARTOES: Cartao[] = [
@@ -51,7 +65,63 @@ const CARTOES: Cartao[] = [
   },
 ];
 
+const CARTAO_ALUNO: ConteudoCartao = {
+  nome: 'ALUNO',
+  numero: '03',
+  resumo: 'Entrar com a matrícula da escola.',
+  itens: ['Exercícios da sua turma', 'Seu histórico de desempenho', 'Acompanhado pelo professor'],
+  rodape: 'Entrar como aluno',
+};
+
+// O miolo de todo cartão — o mesmo desenho para os três.
+function CorpoCartao({ cartao }: { cartao: ConteudoCartao }) {
+  return (
+    <>
+      <div className="cartao-topo">
+        <span className="cartao-nome">{cartao.nome}</span>
+        <span className="cartao-numero" aria-hidden="true">
+          {cartao.numero}
+        </span>
+      </div>
+      <p className="cartao-resumo">{cartao.resumo}</p>
+      <div className="cartao-divisoria" aria-hidden="true" />
+      <ul className="cartao-itens">
+        {cartao.itens.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <div className="cartao-rodape">
+        <span>{cartao.rodape}</span>
+        <span className="seta" aria-hidden="true">
+          →
+        </span>
+      </div>
+    </>
+  );
+}
+
+// Sai da conta do mesmo jeito que o guarda.sair() — aviso ao back
+// disparado e esquecido, sessão local apagada —, mas o destino é o login
+// de aluno, não a landing. replace: o voltar não traz de volta uma tela
+// de modo que já não tem sessão.
+function sairParaAluno() {
+  api.auth.sair().catch(() => {});
+  sessao.sair();
+  window.location.replace(ROTA_LOGIN_ALUNO);
+}
+
 function TelaModo() {
+  // Chave do modal aberto (null = fechado). Muda a cada abertura, como o
+  // ModalReact pede.
+  const [modal, setModal] = useState<number | null>(null);
+
+  // O href existe para o cartão ser link como os outros (Tab, Enter, leitor
+  // de tela); o clique normal é interceptado e abre a confirmação.
+  function aoClicarAluno(evento: MouseEvent) {
+    evento.preventDefault();
+    setModal(Date.now());
+  }
+
   return (
     <>
       <div className="cabecalho">
@@ -74,28 +144,33 @@ function TelaModo() {
             data-modo={cartao.modo}
             onClick={() => sessao.definirModo(cartao.modo)}
           >
-            <div className="cartao-topo">
-              <span className="cartao-nome">{cartao.nome}</span>
-              <span className="cartao-numero" aria-hidden="true">
-                {cartao.numero}
-              </span>
-            </div>
-            <p className="cartao-resumo">{cartao.resumo}</p>
-            <div className="cartao-divisoria" aria-hidden="true" />
-            <ul className="cartao-itens">
-              {cartao.itens.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <div className="cartao-rodape">
-              <span>{cartao.rodape}</span>
-              <span className="seta" aria-hidden="true">
-                →
-              </span>
-            </div>
+            <CorpoCartao cartao={cartao} />
           </a>
         ))}
+        <a
+          className="cartao cartao-aluno vidro"
+          href={ROTA_LOGIN_ALUNO}
+          aria-haspopup="dialog"
+          onClick={aoClicarAluno}
+        >
+          <CorpoCartao cartao={CARTAO_ALUNO} />
+        </a>
       </nav>
+
+      {modal != null && (
+        <Modal
+          key={modal}
+          eyebrow="Aluno"
+          titulo="Entrar como aluno?"
+          acoes={[
+            { rotulo: 'Sair e entrar como aluno', principal: true, fecha: false, aoClicar: sairParaAluno },
+            { rotulo: 'Cancelar' },
+          ]}
+          aoFechar={() => setModal(null)}
+        >
+          <p>Entrar como aluno vai sair da conta de {sessao.nomeExibicao()}.</p>
+        </Modal>
+      )}
 
       <p className="ajuda vidro">
         <span className="interrogacao" aria-hidden="true">

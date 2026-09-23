@@ -5,7 +5,8 @@
 //                     Professor), ou direto no último modo salvo
 //   Aluno          -> matrícula e senha, sem cadastro; vai para o
 //                     dashboard do aluno
-// O de aluno é alcançado pelo "Sou aluno, tenho matrícula e senha".
+// O de aluno é alcançado pelo "Sou aluno, tenho matrícula e senha", ou
+// abre direto com ?aluno=1 (o cartão "Aluno" da tela de modo).
 //
 // A tela não decide quem a pessoa é: o `tipo` da resposta do back (de
 // qual tabela o login veio) é que diz, e o guarda.entrar() roteia por ele.
@@ -41,8 +42,12 @@ interface OpcoesEnvio {
 }
 
 function Login() {
-  // O formulário de conta é o padrão; o de aluno só pelo botão.
-  const [modo, setModo] = useState<Modo>('conta');
+  // O formulário de conta é o padrão; o de aluno pelo botão ou por
+  // ?aluno=1 — o cartão "Aluno" da tela de modo sai da conta e chega aqui
+  // com ele, para a pessoa não ter de achar o botão.
+  const [modo, setModo] = useState<Modo>(() =>
+    new URLSearchParams(window.location.search).get('aluno') === '1' ? 'aluno' : 'conta'
+  );
 
   // Uma requisição por vez: bloqueia clique repetido e Enter duplo. O ref é
   // a trava síncrona (o estado só muda no próximo render); o estado é o que
