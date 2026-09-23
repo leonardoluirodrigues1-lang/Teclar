@@ -152,7 +152,7 @@ export function Nav({ secoes, ativo }: PropsNav) {
         {secoes.itens.map((item) => (
           <a
             key={item.chave}
-            className="nav-item"
+            className="nav-item tecla"
             href={item.href}
             aria-current={ativo === item.chave ? 'page' : undefined}
           >
@@ -164,7 +164,7 @@ export function Nav({ secoes, ativo }: PropsNav) {
       <div className="conta">
         <button
           type="button"
-          className="avatar vidro"
+          className="avatar vidro tecla"
           id="avatar"
           ref={avatar}
           aria-haspopup="menu"

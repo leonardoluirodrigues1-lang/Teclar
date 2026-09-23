@@ -183,7 +183,7 @@ function Alunos() {
         <Nav secoes={SECOES_PROFESSOR} ativo="turmas" />
         <main id="corpo">
           <PainelEstado titulo="Turma não encontrada" texto={semTurma}>
-            <a className="btn btn-solido" href="turmas.html">
+            <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
               Ver minhas turmas
             </a>
           </PainelEstado>
@@ -216,7 +216,7 @@ function Alunos() {
         <div className="abas" role="tablist" aria-label="Formas de matricular">
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-um"
             ref={abaUm}
             role="tab"
@@ -230,7 +230,7 @@ function Alunos() {
           </button>
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-csv"
             ref={abaCsv}
             role="tab"
@@ -396,7 +396,7 @@ function UmPorUm() {
               onChange={(evento) => setNome(evento.target.value)}
               onBlur={() => setErroNome(validarNomeAluno(nome))}
             />
-            <button type="submit" className="btn btn-solido" id="btn-matricular" disabled={ocupado}>
+            <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-matricular" disabled={ocupado}>
               {ocupado ? 'Matriculando…' : 'Matricular'}
             </button>
           </div>
@@ -509,7 +509,7 @@ function ItemSenha({
       </div>
       <button
         type="button"
-        className="btn-mini"
+        className="btn-mini tecla"
         aria-label={`Copiar matrícula ${id} e senha inicial`}
         onClick={() => copiarTexto(`${id}\t${senhaInicial}`, setCopia, ++vez.current)}
       >
@@ -719,7 +719,7 @@ function ImportarCsv() {
             <p className="soltar-ou">ou</p>
             <button
               type="button"
-              className="btn btn-vidro vidro"
+              className="btn btn-vidro vidro tecla"
               id="btn-escolher"
               disabled={travado}
               onClick={() => arquivo.current?.click()}
@@ -735,7 +735,7 @@ function ImportarCsv() {
           </div>
           <div className="modelo">
             <p className="modelo-texto">Não tem o arquivo ainda?</p>
-            <button type="button" className="btn btn-vidro vidro" id="btn-modelo" onClick={baixarModelo}>
+            <button type="button" className="btn btn-vidro vidro tecla" id="btn-modelo" onClick={baixarModelo}>
               Baixar modelo
             </button>
           </div>
@@ -776,7 +776,7 @@ function ImportarCsv() {
         <div className="passo-acoes">
           <button
             type="button"
-            className="btn btn-solido"
+            className="btn btn-solido tecla tecla-clara"
             id="btn-importar"
             ref={btnImportar}
             disabled={ocupado || validas.length === 0}
@@ -786,7 +786,7 @@ function ImportarCsv() {
           </button>
           <button
             type="button"
-            className="btn btn-vidro vidro"
+            className="btn btn-vidro vidro tecla"
             id="btn-trocar"
             disabled={ocupado}
             onClick={() => {
@@ -965,7 +965,7 @@ function ResultadoImportado({
         {criados.length > 0 && (
           <button
             type="button"
-            className="btn btn-vidro vidro"
+            className="btn btn-vidro vidro tecla"
             onClick={() =>
               copiarTexto(
                 criados.map((c) => `${c.id}\t${c.senhaInicial}`).join('\n'),
@@ -981,7 +981,7 @@ function ResultadoImportado({
         {totalFalhas > 0 && (
           <button
             type="button"
-            className="btn btn-vidro vidro"
+            className="btn btn-vidro vidro tecla"
             onClick={() => {
               // CSV pronto para reimportar: cabeçalho e as linhas como vieram
               // (as do back, pela matrícula; as puladas, com as células brutas).
@@ -1000,11 +1000,11 @@ function ResultadoImportado({
           </button>
         )}
 
-        <a className="btn btn-solido" href={linkVoltar}>
+        <a className="btn btn-solido tecla tecla-clara" href={linkVoltar}>
           Voltar para a turma
         </a>
 
-        <button type="button" className="btn btn-vidro vidro" onClick={aoImportarOutro}>
+        <button type="button" className="btn btn-vidro vidro tecla" onClick={aoImportarOutro}>
           Importar outro arquivo
         </button>
       </div>

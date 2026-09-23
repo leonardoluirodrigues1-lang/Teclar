@@ -148,6 +148,20 @@ function fraseDaSequencia(sequencia: number): string {
   return `${sequencia} dias seguidos. Não quebre agora.`;
 }
 
+// Cada dia é uma tecla (css/base/luz.css): clara quando treinou — a
+// tecla acesa é o que faz a sequência ser lida de relance —, escura nos
+// outros dias.
+function classeDoQuadrado(dia: DiaDaSemana): string {
+  let classe = 'lobby-quad tecla';
+  if (dia.treinou) {
+    classe += ' lobby-quad-cheio tecla-clara';
+  }
+  if (dia.futuro) {
+    classe += ' lobby-quad-futuro';
+  }
+  return classe;
+}
+
 function PainelSequencia({ dias, sequencia }: { dias: DiaDaSemana[]; sequencia: number }) {
   return (
     <article className="painel vidro lobby-sequencia">
@@ -161,12 +175,7 @@ function PainelSequencia({ dias, sequencia }: { dias: DiaDaSemana[]; sequencia: 
       <ul className="lobby-dias" aria-label="Seus dias de treino nesta semana">
         {dias.map((dia) => (
           <li className="lobby-dia" key={dia.dia}>
-            <span
-              className={
-                'lobby-quad' + (dia.treinou ? ' lobby-quad-cheio' : '') + (dia.futuro ? ' lobby-quad-futuro' : '')
-              }
-              aria-hidden="true"
-            />
+            <span className={classeDoQuadrado(dia)} aria-hidden="true" />
             <b className="lobby-dia-inicial" aria-hidden="true">
               {dia.inicial}
             </b>
@@ -311,7 +320,7 @@ function Lobby() {
             </p>
             <button
               type="button"
-              className="btn btn-solido lobby-acao"
+              className="btn btn-solido tecla tecla-clara lobby-acao"
               onClick={comecar}
               disabled={criando}
             >
@@ -339,7 +348,7 @@ function Lobby() {
 
         {/* A ação e os dois atalhos: mesma lógica de sempre. */}
         <div className="lobby-rodape">
-          <a className="btn btn-solido lobby-acao" href={ROTA_MISSOES}>
+          <a className="btn btn-solido tecla tecla-clara lobby-acao" href={ROTA_MISSOES}>
             Continuar
           </a>
 

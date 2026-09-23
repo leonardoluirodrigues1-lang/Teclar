@@ -420,7 +420,7 @@ function Relatorios() {
             titulo="Nenhum exercício atribuído a esta turma"
             texto="Sem exercício atribuído não há o que medir por exercício. Atribua um na tela da turma."
           >
-            <a className="btn btn-solido" href={linkDaTurma(turmaId)}>
+            <a className="btn btn-solido tecla tecla-clara" href={linkDaTurma(turmaId)}>
               Abrir a turma
             </a>
           </PainelEstado>
@@ -443,7 +443,7 @@ function Relatorios() {
           titulo="Nenhum aluno matriculado ainda"
           texto="Matricule alunos nesta turma para acompanhar sessões, PPM e precisão de cada um."
         >
-          <a className="btn btn-solido" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
+          <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
             Matricular alunos
           </a>
         </PainelEstado>
@@ -479,7 +479,7 @@ function Relatorios() {
             titulo="Nenhuma turma para relatar"
             texto="Os relatórios nascem das sessões de uma turma. Crie a primeira, matricule os alunos e atribua exercícios: os números aparecem sozinhos."
           >
-            <a className="btn btn-solido" href="turmas.html">
+            <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
               Criar a primeira turma
             </a>
           </PainelEstado>
@@ -550,7 +550,7 @@ function Relatorios() {
                 pedir nada ao back de novo. */}
             <button
               type="button"
-              className="btn btn-vidro vidro"
+              className="btn btn-vidro vidro tecla"
               id="btn-exportar"
               disabled={!relatorio}
               onClick={exportar}
@@ -592,7 +592,7 @@ function Relatorios() {
         <div className="abas" role="tablist" aria-label="Visões do relatório">
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-alunos"
             ref={abaAlunos}
             role="tab"
@@ -606,7 +606,7 @@ function Relatorios() {
           </button>
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-exercicios"
             ref={abaExercicios}
             role="tab"

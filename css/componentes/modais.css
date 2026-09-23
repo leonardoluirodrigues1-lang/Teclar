@@ -103,8 +103,10 @@
   font-size: 13px;
   letter-spacing: 0.12em;
   cursor: pointer;
+  /* box-shadow e transform no mesmo tempo: juntos formam o afundar da
+     .tecla (css/base/luz.css). */
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
               transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .modal-botao:focus-visible {
@@ -117,7 +119,9 @@
   border: 1px solid transparent;
   font-weight: var(--peso-medio, 500);
 }
-.modal-botao-solido:hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+/* Sem brilho no hover da tecla clara: ele trocaria o relevo e a lateral
+   sumiria. */
+.modal-botao-solido:not(.tecla):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
 .modal-botao-vidro {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);

@@ -92,7 +92,7 @@ function Dashboard({ usuario }: PropsDashboard) {
             {/* O histórico também à mão aqui, além da nav: é para onde a
                 pessoa vai depois de treinar, e é o único outro lugar que
                 esta tela leva. */}
-            <a className="btn-sair vidro" href={ROTA_HISTORICO}>
+            <a className="btn-sair vidro tecla" href={ROTA_HISTORICO}>
               Histórico
             </a>
           </header>

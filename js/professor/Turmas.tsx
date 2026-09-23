@@ -191,7 +191,7 @@ function Turmas() {
         >
           <button
             type="button"
-            className="btn btn-solido"
+            className="btn btn-solido tecla tecla-clara"
             onClick={(evento) => abrirCriar(evento.currentTarget)}
           >
             Criar turma
@@ -209,7 +209,7 @@ function Turmas() {
         >
           <button
             type="button"
-            className="btn btn-vidro vidro"
+            className="btn btn-vidro vidro tecla"
             onClick={() => {
               setBusca('');
               campoBusca.current?.focus();
@@ -241,7 +241,7 @@ function Turmas() {
           </h1>
           <button
             type="button"
-            className="btn btn-solido"
+            className="btn btn-solido tecla tecla-clara"
             id="btn-criar"
             ref={btnCriar}
             onClick={(evento) => abrirCriar(evento.currentTarget)}
@@ -306,7 +306,7 @@ function Cartao({ turma, aoRenomear }: PropsCartao) {
           saber qual turma é. */}
       <button
         type="button"
-        className="btn-renomear"
+        className="btn-renomear tecla"
         aria-label={`Renomear turma ${turma.nome ?? ''}`.trim()}
         onClick={(evento) => {
           // preventDefault e stopPropagation: o link cobre o cartão todo, e sem

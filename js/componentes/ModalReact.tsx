@@ -87,6 +87,15 @@ interface PropsModal {
   children?: ReactNode;
 }
 
+// Todo botão de modal é uma tecla (css/base/luz.css): a ação principal é a
+// tecla clara, as outras são teclas escuras.
+function classeDoBotao(acao: AcaoModal): string {
+  if (acao.principal) {
+    return 'modal-botao modal-botao-solido tecla tecla-clara';
+  }
+  return 'modal-botao modal-botao-vidro tecla';
+}
+
 export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
   {
     eyebrow = '',
@@ -240,7 +249,7 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
               <button
                 key={indice}
                 type="button"
-                className={`modal-botao ${acao.principal ? 'modal-botao-solido' : 'modal-botao-vidro'}`}
+                className={classeDoBotao(acao)}
                 disabled={acao.disabled}
                 hidden={acao.hidden}
                 onClick={() => {

@@ -56,11 +56,10 @@ ul { list-style: none; }
 }
 
 /* ---------------------------------------------------------------------------
-   Fundo: o mesmo eco do horizonte de eventos das outras telas, mais fraco.
-   Não é decoração opcional: backdrop-filter só desfoca o que está ATRÁS, e
-   sem luz nenhuma no fundo todo o vidro desta tela vira retângulo cinza.
-   Numa tela de trabalho o anel fica bem discreto — ele não pode competir
-   com a leitura de uma grade de turmas.
+   Fundo: a camada fixa atrás da página. A luz dentro dela é o disco de
+   acreção de css/base/luz.css. Não é decoração opcional: backdrop-filter
+   só desfoca o que está ATRÁS, e sem luz nenhuma no fundo todo o vidro
+   desta tela vira retângulo cinza.
    ------------------------------------------------------------------------- */
 .fundo {
   position: fixed;
@@ -68,27 +67,6 @@ ul { list-style: none; }
   overflow: hidden;
   pointer-events: none;
   z-index: var(--z-base, 0);
-}
-.fundo-anel {
-  position: absolute;
-  left: 50%;
-  top: -18vh;
-  width: 1200px;
-  height: 1200px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%,
-      transparent 0%,
-      transparent 34%,
-      rgba(255, 255, 255, 0.13) 40%,
-      rgba(255, 255, 255, 0.05) 46%,
-      transparent 55%),
-    radial-gradient(circle at 50% 50%,
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(255, 255, 255, 0.02) 30%,
-      transparent 62%);
-  filter: blur(60px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -139,8 +117,13 @@ ul { list-style: none; }
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--cor-texto-fraco, #8a8a8a);
+  /* Face da tecla: um véu leve, para o relevo (.tecla, css/base/luz.css)
+     ter onde apoiar. */
+  background: rgba(255, 255, 255, 0.05);
   transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
 
@@ -166,7 +149,9 @@ ul { list-style: none; }
   font-weight: var(--peso-medio, 500);
   letter-spacing: 0.04em;
   color: var(--cor-texto, #fff);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .avatar:hover { background: rgba(255, 255, 255, 0.16); }
 
@@ -243,8 +228,10 @@ ul { list-style: none; }
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  /* box-shadow e transform no mesmo tempo: juntos formam o afundar da
+     .tecla (css/base/luz.css). */
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
               opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease),
               transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
@@ -255,7 +242,9 @@ ul { list-style: none; }
   color: var(--cor-texto-inverso, #000);
   font-weight: var(--peso-medio, 500);
 }
-.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+/* Na tecla clara o brilho trocaria o relevo inteiro (é o mesmo
+   box-shadow) e a lateral sumiria no hover; a tecla não precisa dele. */
+.btn-solido:not(.tecla):not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
 
 .btn-vidro { color: var(--cor-texto, #fff); }
 .btn-vidro:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
@@ -362,7 +351,9 @@ ul { list-style: none; }
   text-transform: uppercase;
   color: var(--cor-texto-fraco, #8a8a8a);
   transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .btn-renomear:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.16); }
 
@@ -653,7 +644,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   text-transform: uppercase;
   color: var(--cor-texto-fraco, #8a8a8a);
   transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .tabela-acao:hover, .btn-mini:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.14); }
 
@@ -1528,3 +1521,31 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 /* Matrícula e nome recuam para o destaque sobrar na senha. */
 .item-senha > div:not(.item-senha-destaque) .item-senha-valor { color: var(--cor-texto-suave, #c4c4c4); }
+
+/* ============================================================================
+   ACRÉSCIMO — A luz e a tecla na Escola (css/base/luz.css)
+   ========================================================================== */
+
+/* O disco da Escola fica no canto inferior direito, e as telas de trabalho
+   rolam: a grade de turmas, as listas e o texto de ajuda passam por cima
+   daquele canto, que é fixo. Por isso a luz aqui é mais fraca que no Solo.
+   Vale também para as telas do aluno, que carregam esta folha. */
+:root { --luz-disco-intensidade: 0.6; }
+
+/* A aba como tecla: ganha face e forma de pílula, como o item da nav. A
+   aba selecionada é a de face clara, e o sublinhado sai — ele ficaria
+   embaixo da lateral da tecla. A margem de baixo devolve a altura que a
+   fileira tinha com o sublinhado. */
+.aba.tecla {
+  margin-bottom: 8px;
+  padding: 8px 16px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.05);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.aba.tecla:hover { background: rgba(255, 255, 255, 0.08); }
+.aba.tecla[aria-selected="true"] { background: rgba(255, 255, 255, 0.14); }
+.aba.tecla[aria-selected="true"]::after { content: none; }

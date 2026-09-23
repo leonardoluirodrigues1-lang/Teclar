@@ -228,7 +228,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
           titulo="Sua campanha começa na primeira lição"
           texto="Cada lição concluída rende XP, o XP sobe de nível, e tudo o que você fizer aparece aqui: suas melhores marcas, sua sequência de dias e sua evolução."
         >
-          <a className="btn btn-solido" href={ROTA_MISSOES}>
+          <a className="btn btn-solido tecla tecla-clara" href={ROTA_MISSOES}>
             Começar a primeira lição
           </a>
         </PainelEstado>
@@ -340,7 +340,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
             {usuario.nome ?? sessao.nomeExibicao()}
           </p>
         </div>
-        <button type="button" className="btn-sair vidro" id="btn-sair" onClick={() => guarda.sair()}>
+        <button type="button" className="btn-sair vidro tecla" id="btn-sair" onClick={() => guarda.sair()}>
           Sair
         </button>
       </header>

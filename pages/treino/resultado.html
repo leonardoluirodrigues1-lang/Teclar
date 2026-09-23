@@ -6,6 +6,7 @@
 <title>Teclar &mdash; Resultado</title>
 <link rel="stylesheet" href="../../css/base/fontes.css">
 <link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
 <link rel="stylesheet" href="../../css/base/movimento.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
 <link rel="stylesheet" href="../../css/resultado.css">
@@ -25,8 +26,11 @@
 </head>
 <body>
 
-<div class="fundo" aria-hidden="true">
-  <div class="fundo-anel"></div>
+<!-- A luz de fundo: o disco de acre&ccedil;&atilde;o e o gr&atilde;o (css/base/luz.css). O
+     resultado &eacute; de todos os mundos: o disco nasce no canto do Solo, e o
+     Resultado.tsx o leva para o canto da Escola quando o treino foi de l&aacute;. -->
+<div class="fundo grao" aria-hidden="true">
+  <div class="disco disco-canto-superior-direito"></div>
 </div>
 
 <!-- O React monta o painel (ou o erro) aqui dentro. A raiz &eacute; o

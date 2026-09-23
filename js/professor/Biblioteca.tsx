@@ -231,7 +231,7 @@ function Biblioteca() {
         >
           <button
             type="button"
-            className="btn btn-solido"
+            className="btn btn-solido tecla tecla-clara"
             onClick={(evento) => abrirCriar(evento.currentTarget)}
           >
             Novo exercício
@@ -247,7 +247,7 @@ function Biblioteca() {
           titulo="Nenhum exercício com esses filtros"
           texto="Confira a escrita do título ou mude a dificuldade."
         >
-          <button type="button" className="btn btn-vidro vidro" onClick={limparFiltros}>
+          <button type="button" className="btn btn-vidro vidro tecla" onClick={limparFiltros}>
             Limpar filtros
           </button>
         </PainelEstado>
@@ -326,7 +326,7 @@ function Biblioteca() {
           </h1>
           <button
             type="button"
-            className="btn btn-solido"
+            className="btn btn-solido tecla tecla-clara"
             id="btn-novo"
             ref={btnNovo}
             onClick={(evento) => abrirCriar(evento.currentTarget)}

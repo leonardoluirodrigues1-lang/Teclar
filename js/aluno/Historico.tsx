@@ -272,7 +272,7 @@ function Historico({ usuario }: PropsHistorico) {
           titulo="Seu histórico começa no primeiro treino"
           texto="Assim que você terminar um exercício, ele aparece aqui com seu PPM, sua precisão e sua evolução ao longo do tempo."
         >
-          <a className="btn btn-solido" href="dashboard.html">
+          <a className="btn btn-solido tecla tecla-clara" href="dashboard.html">
             Ver exercícios da turma
           </a>
         </PainelEstado>

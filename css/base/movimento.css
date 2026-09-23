@@ -102,9 +102,11 @@
    ------------------------------------------------------------------------- */
 
 /* Botão afunda de leve enquanto está pressionado. A transição de transform
-   está na regra .btn de cada folha, junto com as que ela já tinha. */
-.btn:not(:disabled):active,
-.modal-botao:active {
+   está na regra .btn de cada folha, junto com as que ela já tinha. A
+   .tecla fica de fora: ela tem o próprio afundar, descendo até a base
+   (css/base/luz.css), e as duas regras brigariam pelo transform. */
+.btn:not(:disabled):not(.tecla):active,
+.modal-botao:not(.tecla):active {
   transform: scale(var(--escala-toque));
 }
 

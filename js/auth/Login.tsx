@@ -248,7 +248,7 @@ function Login() {
             <ErroCampo id="erro-senha" erro={campos.erros.senha} />
           </div>
 
-          <button type="submit" className="btn btn-solido" id="btn-entrar-conta" disabled={ocupado}>
+          <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-entrar-conta" disabled={ocupado}>
             {ocupado ? 'Entrando…' : 'Entrar'}
           </button>
           <p className="erro" id="erro-conta" aria-live="polite">
@@ -316,7 +316,7 @@ function Login() {
 
           <p className="ajuda-campo">Esqueceu a senha? Peça ao professor para gerar uma nova.</p>
 
-          <button type="submit" className="btn btn-solido" id="btn-entrar-aluno" disabled={ocupado}>
+          <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-entrar-aluno" disabled={ocupado}>
             {ocupado ? 'Entrando…' : 'Entrar'}
           </button>
           <p className="erro" id="erro-aluno" aria-live="polite">

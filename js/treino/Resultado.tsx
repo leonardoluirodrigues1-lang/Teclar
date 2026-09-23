@@ -261,7 +261,7 @@ function ResultadoTela() {
           {tela.detalhe}
         </p>
         <div className="acoes">
-          <a className="btn btn-solido" id="btn-voltar-erro" href={casa}>
+          <a className="btn btn-solido tecla tecla-clara" id="btn-voltar-erro" href={casa}>
             Voltar ao início
           </a>
         </div>
@@ -341,10 +341,10 @@ function ResultadoTela() {
       </p>
 
       <div className="acoes">
-        <a className="btn btn-solido" id="btn-repetir" href={hrefRepetir ?? 'treino.html'} hidden={hrefRepetir == null}>
+        <a className="btn btn-solido tecla tecla-clara" id="btn-repetir" href={hrefRepetir ?? 'treino.html'} hidden={hrefRepetir == null}>
           Repetir
         </a>
-        <a className="btn btn-vidro vidro" id="btn-voltar" href={casa}>
+        <a className="btn btn-vidro vidro tecla" id="btn-voltar" href={casa}>
           Voltar
         </a>
       </div>
@@ -488,8 +488,22 @@ function aoTerminarTransicao(elemento: HTMLElement, fn: () => void) {
 // redirecionou: a tela para aqui e nada mais roda.
 const usuario = guarda.qualquerLogado();
 
+// O disco de luz entra pelo canto do mundo de quem treinou (ver
+// css/base/luz.css): o HTML já o traz no canto do Solo, e aqui ele vai para
+// o canto da Escola quando o treino foi de lá. Mesmo critério de mundo que
+// a tela usa: o ?mundo= da URL, senão o da sessão.
+function posicionarDisco(): void {
+  const mundo = (new URLSearchParams(location.search).get('mundo') as Mundo | null) ?? sessao.mundo();
+  if (mundo !== 'escola') {
+    return;
+  }
+  const disco = document.querySelector('.disco');
+  disco?.classList.replace('disco-canto-superior-direito', 'disco-canto-inferior-direito');
+}
+
 if (usuario) {
   guarda.aplicarMundo();
+  posicionarDisco();
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<ResultadoTela />);
 }

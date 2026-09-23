@@ -236,7 +236,7 @@ function Cadastro() {
           <ErroCampo id="erro-confirmacao" erro={campos.erros.confirmacao} />
         </div>
 
-        <button type="submit" className="btn btn-solido" id="btn-criar" disabled={ocupado}>
+        <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-criar" disabled={ocupado}>
           {ocupado ? 'Criando…' : 'Criar conta'}
         </button>
         <p className="erro" id="erro-form" aria-live="polite">

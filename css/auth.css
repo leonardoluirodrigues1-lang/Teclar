@@ -49,29 +49,6 @@ ul { list-style: none; }
   z-index: var(--z-base, 0);
 }
 
-/* Anel luminoso desfocado, ~1000px, um pouco acima do centro como o
-   buraco negro da landing (--hole-offset: -6vh). Discreto: é fundo. */
-.fundo-anel {
-  position: absolute;
-  left: 50%;
-  top: calc(50% - 6vh);
-  width: 1000px;
-  height: 1000px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%,
-      transparent 0%,
-      transparent 33%,
-      rgba(255, 255, 255, 0.20) 39%,
-      rgba(255, 255, 255, 0.07) 45%,
-      transparent 54%),
-    radial-gradient(circle at 50% 50%,
-      rgba(255, 255, 255, 0.09) 0%,
-      rgba(255, 255, 255, 0.03) 30%,
-      transparent 62%);
-  filter: blur(50px);
-}
 
 .fundo-estrelas { position: absolute; inset: 0; }
 .estrela {
@@ -101,7 +78,10 @@ ul { list-style: none; }
   font-size: 14px;
   letter-spacing: 0.34em;
   color: var(--cor-texto, #fff);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+  /* box-shadow e transform: o afundar da .tecla (css/base/luz.css). */
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .pilula-marca:hover { background: rgba(255, 255, 255, 0.14); }
 .pilula-marca .seta {
@@ -313,7 +293,7 @@ ul { list-style: none; }
   letter-spacing: 0.12em;
   transition:
     background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-    box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
     opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease),
     transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
@@ -324,7 +304,9 @@ ul { list-style: none; }
   color: var(--cor-texto-inverso, #000);
   font-weight: var(--peso-medio, 500);
 }
-.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+/* Na tecla clara o brilho trocaria o relevo inteiro (é o mesmo
+   box-shadow) e a lateral sumiria no hover; a tecla não precisa dele. */
+.btn-solido:not(.tecla):not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
 
 .btn-vidro { color: var(--cor-texto, #fff); }
 .btn-vidro:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
@@ -467,7 +449,6 @@ ul { list-style: none; }
   .painel { padding: 32px 24px; }
   .painel h1 { font-size: 32px; }
   .ajuda { text-align: left; }
-  .fundo-anel { width: 720px; height: 720px; }
 }
 
 /* ---------------------------------------------------------------------------

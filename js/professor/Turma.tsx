@@ -194,7 +194,7 @@ function Turma() {
             titulo="Turma não encontrada"
             texto="Ela pode ter sido removida, ou o link usado está incompleto."
           >
-            <a className="btn btn-solido" href="turmas.html">
+            <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
               Ver minhas turmas
             </a>
           </PainelEstado>
@@ -227,7 +227,7 @@ function Turma() {
           >
             <button
               type="button"
-              className="btn btn-solido"
+              className="btn btn-solido tecla tecla-clara"
               onClick={(evento) => abrirAtribuir(evento.currentTarget)}
             >
               Atribuir exercício
@@ -250,7 +250,7 @@ function Turma() {
           titulo="Nenhum aluno matriculado ainda"
           texto="Matricule alunos para acompanhar sessões, PPM e precisão deles nesta turma."
         >
-          <a className="btn btn-solido" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
+          <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
             Matricular alunos
           </a>
         </PainelEstado>
@@ -456,7 +456,7 @@ function Turma() {
           </h1>
           <div className="cabecalho-acoes">
             <a
-              className="btn btn-vidro vidro"
+              className="btn btn-vidro vidro tecla"
               id="btn-matricular"
               href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
             >
@@ -464,7 +464,7 @@ function Turma() {
             </a>
             <button
               type="button"
-              className="btn btn-solido"
+              className="btn btn-solido tecla tecla-clara"
               id="btn-atribuir"
               ref={btnAtribuir}
               onClick={(evento) => abrirAtribuir(evento.currentTarget)}
@@ -502,7 +502,7 @@ function Turma() {
         <div className="abas" role="tablist" aria-label="Seções da turma">
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-alunos"
             ref={abaAlunos}
             role="tab"
@@ -516,7 +516,7 @@ function Turma() {
           </button>
           <button
             type="button"
-            className="aba"
+            className="aba tecla"
             id="aba-exercicios"
             ref={abaExercicios}
             role="tab"
@@ -836,7 +836,7 @@ function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir
       return (
         <>
           <p className="modal-vazio-texto">Você ainda não tem nenhum exercício na biblioteca.</p>
-          <a className="btn btn-solido" href="biblioteca.html" ref={linkCriar}>
+          <a className="btn btn-solido tecla tecla-clara" href="biblioteca.html" ref={linkCriar}>
             Criar exercício
           </a>
         </>

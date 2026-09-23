@@ -25,7 +25,7 @@ a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
 
 /* ---------------------------------------------------------------------------
-   Fundo: eco do horizonte de eventos (o mesmo anel das telas de auth).
+   Fundo: a camada fixa com o disco de acreção (css/base/luz.css).
    É luz própria para o backdrop-filter desfocar; sem ela o vidro vira
    retângulo cinza.
    ------------------------------------------------------------------------- */
@@ -35,27 +35,6 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   pointer-events: none;
   z-index: var(--z-base, 0);
-}
-.fundo-anel {
-  position: absolute;
-  left: 50%;
-  top: calc(50% - 6vh);
-  width: 1000px;
-  height: 1000px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%,
-      transparent 0%,
-      transparent 33%,
-      rgba(255, 255, 255, 0.20) 39%,
-      rgba(255, 255, 255, 0.07) 45%,
-      transparent 54%),
-    radial-gradient(circle at 50% 50%,
-      rgba(255, 255, 255, 0.09) 0%,
-      rgba(255, 255, 255, 0.03) 30%,
-      transparent 62%);
-  filter: blur(50px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -222,7 +201,7 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0.12em;
   transition:
     background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-    box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
     transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .btn-solido {
@@ -230,7 +209,9 @@ a { color: inherit; text-decoration: none; }
   color: var(--cor-texto-inverso, #000);
   font-weight: var(--peso-medio, 500);
 }
-.btn-solido:hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+/* Na tecla clara o brilho trocaria o relevo inteiro (é o mesmo
+   box-shadow) e a lateral sumiria no hover; a tecla não precisa dele. */
+.btn-solido:not(.tecla):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
 .btn-vidro { color: var(--cor-texto, #fff); }
 .btn-vidro:hover { background: rgba(255, 255, 255, 0.14); }
 
@@ -247,7 +228,6 @@ a { color: inherit; text-decoration: none; }
   .metrica dd { font-size: 26px; }
   .metrica { padding: 4px 10px; }
   .acoes { flex-direction: column; }
-  .fundo-anel { width: 720px; height: 720px; }
 }
 
 /* ---------------------------------------------------------------------------

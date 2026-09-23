@@ -37,7 +37,7 @@ interface PropsErro {
 export function PainelErro({ titulo, texto, aoTentarDeNovo }: PropsErro) {
   return (
     <PainelEstado titulo={titulo} texto={texto}>
-      <button type="button" className="btn btn-solido" onClick={aoTentarDeNovo}>
+      <button type="button" className="btn btn-solido tecla tecla-clara" onClick={aoTentarDeNovo}>
         Tentar de novo
       </button>
     </PainelEstado>

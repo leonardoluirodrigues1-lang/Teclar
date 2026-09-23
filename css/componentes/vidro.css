@@ -1,20 +1,35 @@
 /* ============================================================================
    TECLAR — vidro.css
    A receita do glassmorphism do projeto. Uma classe só, usada por painéis,
-   pílulas, HUD, toasts e modais. Carregar depois de tokens.css.
+   pílulas, HUD, toasts e modais. Carregar depois de tokens.css e luz.css.
    backdrop-filter só desfoca o que está ATRÁS: a tela precisa ter luz
    própria no fundo, senão o vidro vira retângulo cinza.
+
+   O vidro obedece a uma fonte de luz no canto SUPERIOR DIREITO da tela
+   (as cores vêm de css/base/luz.css):
+     - o fundo é mais claro no canto de cima à direita e mais escuro no de
+       baixo à esquerda;
+     - a borda é acesa em cima e à direita, apagada embaixo e à esquerda;
+     - a sombra cai para baixo e para a esquerda, longe da luz.
+
+   A borda acesa é uma sombra interna deslocada para cima e para a direita
+   (inset -1px 1px), e não a cor da borda: assim ela é mais forte no canto
+   de cima à direita e vai afinando sozinha até sumir nos dois cantos
+   vizinhos, acompanhando o arredondado. Com border-color por lado, cada
+   quina teria um corte seco entre a cor clara e a escura.
    ========================================================================== */
 
 .vidro {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(to bottom left,
+    var(--luz-vidro-claro, rgba(255, 255, 255, 0.14)),
+    var(--luz-vidro-escuro, rgba(255, 255, 255, 0.05)));
+  border: 1px solid var(--luz-borda-apagada, rgba(255, 255, 255, 0.08));
   -webkit-backdrop-filter: blur(44px) saturate(160%);
   backdrop-filter: blur(44px) saturate(160%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.30),    /* brilho especular na quina */
-    inset 0 -1px 2px rgba(0, 0, 0, 0.30),
-    0 20px 50px -12px rgba(0, 0, 0, 0.45);
+    inset -1px 1px 0 var(--luz-borda-acesa, rgba(255, 255, 255, 0.40)), /* borda acesa e brilho: cima e direita */
+    inset 1px -1px 2px rgba(0, 0, 0, 0.30),                             /* o lado de baixo à esquerda escurece */
+    -12px 20px 50px -12px rgba(0, 0, 0, 0.45);                          /* sombra para baixo e para a esquerda */
 }
 
 /* Sem backdrop-filter o vidro não tem o que desfocar: fica quase opaco. */

@@ -7,8 +7,8 @@
 
    Carregar DEPOIS de tokens.css, componentes/vidro.css e dashboard.css.
    Esta folha não redefine nada de dashboard.css: a casca do painel (.tela,
-   .painel, .cabecalho, .rotulo, .titulo, .subtitulo, .btn-sair, .fundo,
-   .fundo-anel) continua vindo de lá, igual em campanhas.html. Aqui entram
+   .painel, .cabecalho, .rotulo, .titulo, .subtitulo, .btn-sair e
+   .fundo) continua vindo de lá, igual em campanhas.html. Aqui entram
    só nomes novos — e uma exceção anotada no .estado.vidro, que é regra
    nova, mais específica, e não edição da classe existente.
 
@@ -38,8 +38,11 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   text-align: center;
+  /* box-shadow e transform no mesmo tempo: na .tecla (css/base/luz.css) os
+     dois formam o afundar, e fora de sincronia a lateral sumiria antes de
+     a face descer. */
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
               opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease),
               transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
@@ -52,7 +55,10 @@
   color: var(--cor-texto-inverso, #000);
   font-weight: var(--peso-medio, 500);
 }
-.btn-solido:not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
+/* O brilho do hover é só do botão sólido antigo. Na tecla clara ele
+   trocaria o relevo inteiro (é o mesmo box-shadow): a lateral sumiria no
+   hover. A tecla já diz que se aperta; não precisa brilhar. */
+.btn-solido:not(.tecla):not(:disabled):hover { box-shadow: var(--brilho-forte, 0 0 56px rgba(255, 255, 255, 0.12)); }
 
 /* ---------------------------------------------------------------------------
    Painel de estado (PainelErro / PainelEstado)
@@ -789,8 +795,12 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
   border-radius: var(--raio-total, 9999px);
   font-size: 13px;
   color: rgba(255, 255, 255, 0.38);
+  /* Face da tecla: um véu leve, para o relevo (.tecla) ter onde apoiar. */
+  background: rgba(255, 255, 255, 0.05);
   transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
 
@@ -817,7 +827,9 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 12px;
   color: var(--cor-texto, #fff);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .avatar:hover { background: rgba(255, 255, 255, 0.22); }
 
@@ -1049,14 +1061,17 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
   border-radius: var(--raio-n, 8px);
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.14);
+  /* Cada quadrado é uma .tecla (css/base/luz.css); o relevo vem de lá. */
 }
 
-/* Dia com treino: branco quase cheio, com brilho. É o único elemento aceso
-   da tela fora do botão — é o que faz a sequência ser lida de relance. */
+/* Dia com treino: tecla clara, quase branca, com brilho em volta. É o
+   único elemento aceso da tela fora do botão — é o que faz a sequência ser
+   lida de relance. O brilho entra DEPOIS do relevo da tecla clara: o
+   box-shadow é um só, e escrevê-lo sozinho apagaria a lateral. */
 .lobby-quad-cheio {
   background: rgba(255, 255, 255, 0.90);
   border-color: transparent;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.30);
+  box-shadow: var(--relevo-tecla-clara), 0 0 14px rgba(255, 255, 255, 0.30);
 }
 
 /* O resto da semana depois de hoje: mais apagado que um dia perdido, sem

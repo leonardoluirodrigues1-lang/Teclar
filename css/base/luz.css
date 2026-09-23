@@ -1,0 +1,204 @@
+/* ============================================================================
+   TECLAR — luz.css
+   A luz do app e o relevo das teclas. Carregada logo depois de tokens.css
+   em todas as páginas; quem usa:
+     · css/componentes/vidro.css, que lê daqui as cores da luz;
+     · as telas, que põem no HTML as classes .disco, .grao e .tecla.
+
+   Três ideias, todas estáticas — nada aqui anima sozinho:
+     1. A luz vem SEMPRE do canto superior direito da tela. Todo vidro é
+        mais claro naquele canto, tem a borda acesa daquele lado e projeta
+        sombra para baixo e para a esquerda.
+     2. O disco de acreção: a luz do buraco negro da landing continua no
+        app, entrando por um canto só. É luz ambiente, não enfeite: existe
+        para o vidro ter o que desfocar.
+     3. A tecla: tudo que se aperta tem corpo de keycap e afunda no clique.
+   ========================================================================== */
+
+:root {
+  /* --- 1. Luz no vidro ---------------------------------------------------- */
+  --luz-vidro-claro: rgba(255, 255, 255, 0.14);   /* canto do vidro voltado para a luz */
+  --luz-vidro-escuro: rgba(255, 255, 255, 0.05);  /* canto oposto */
+  --luz-borda-acesa: rgba(255, 255, 255, 0.40);   /* lado de cima e da direita */
+  --luz-borda-apagada: rgba(255, 255, 255, 0.08); /* lado de baixo e da esquerda */
+
+  /* --- 2. Disco de acreção -------------------------------------------------- */
+  /* Multiplica a opacidade do disco inteiro. Na dúvida, abaixe: a regra do
+     projeto é que a luz nunca atrapalhe a leitura. */
+  --luz-disco-intensidade: 1;
+
+  /* --- 3. Tecla ------------------------------------------------------------- */
+  --tecla-altura: 3px;                              /* quanto da lateral aparece embaixo da face */
+  --tecla-brilho: rgba(255, 255, 255, 0.26);        /* luz no topo da face */
+  --tecla-lateral: rgba(255, 255, 255, 0.07);       /* a lateral da tecla escura */
+  --tecla-lateral-clara: #8c8c8c;                   /* a lateral da tecla clara */
+  --tecla-sombra: rgba(0, 0, 0, 0.75);              /* sombra curta e dura sob a base */
+
+  /* O relevo inteiro de cada tecla, em uma variável, para quem precisa
+     somar outro brilho por cima (ex.: o hover do botão principal). Três
+     sombras, sempre as mesmas três, para a transição do clique ir de uma
+     para a outra sem saltar:
+       1. brilho no topo da face;
+       2. a lateral: a base aparecendo sob a face;
+       3. a sombra da base, para baixo e para a esquerda — longe da luz. */
+  --relevo-tecla:
+    inset 0 1px 0 var(--tecla-brilho),
+    0 var(--tecla-altura) 0 var(--tecla-lateral),
+    -1px calc(var(--tecla-altura) + 2px) 2px var(--tecla-sombra);
+  --relevo-tecla-apertada:
+    inset 0 1px 0 var(--tecla-brilho),
+    0 0 0 var(--tecla-lateral),
+    0 0 0 transparent;
+  --relevo-tecla-clara:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 var(--tecla-altura) 0 var(--tecla-lateral-clara),
+    -1px calc(var(--tecla-altura) + 2px) 2px var(--tecla-sombra);
+  --relevo-tecla-clara-apertada:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 var(--tecla-lateral-clara),
+    0 0 0 transparent;
+
+  /* --- 4. Grão -------------------------------------------------------------- */
+  /* Ruído gerado por um filtro SVG (feTurbulence) embutido aqui mesmo, sem
+     baixar imagem. O navegador desenha um ladrilho de 160px uma vez e
+     repete. Para desligar numa máquina fraca: --grao-textura: none. */
+  --grao-textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+  --grao-opacidade: 0.05;
+}
+
+/* ============================================================================
+   2. DISCO DE ACREÇÃO
+   Vai dentro do .fundo de cada tela, no lugar do antigo .fundo-anel:
+     <div class="disco disco-canto-superior-direito"></div>
+
+   O elemento é um quadrado de 900px com o centro um pouco FORA da tela,
+   além do canto. Assim só um quarto dele aparece: o disco entra pelo
+   canto e sai pela borda mais próxima, sem nunca chegar ao meio da tela,
+   onde está o texto.
+
+   Duas camadas, cada uma num pseudo-elemento por causa do desfoque:
+     ::before — as faixas do disco: anéis largos, achatados e inclinados
+                (visto de lado, um disco vira elipse), muito desfocados;
+     ::after  — o anel de fóton: o círculo fino e aceso na borda do buraco.
+   Só gradiente e blur: sem imagem, sem canvas, nada anima.
+   ========================================================================== */
+
+.disco {
+  position: absolute;
+  width: 900px;
+  height: 900px;
+  opacity: var(--luz-disco-intensidade);
+  pointer-events: none;
+}
+
+.disco::before,
+.disco::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* As faixas: três anéis concêntricos, cada vez mais fracos para fora. */
+.disco::before {
+  background: radial-gradient(circle at center,
+    transparent 0 170px,
+    rgba(255, 255, 255, 0.10) 200px,
+    rgba(255, 255, 255, 0.03) 250px,
+    rgba(255, 255, 255, 0.07) 300px,
+    rgba(255, 255, 255, 0.02) 360px,
+    rgba(255, 255, 255, 0.04) 400px,
+    transparent 450px);
+  filter: blur(34px);
+}
+
+/* O anel de fóton: uma linha fina, a única coisa nítida do disco. */
+.disco::after {
+  background: radial-gradient(circle at center,
+    transparent 0 150px,
+    rgba(255, 255, 255, 0.40) 154px,
+    rgba(255, 255, 255, 0.10) 160px,
+    transparent 168px);
+  filter: blur(1.5px);
+}
+
+/* Um canto por mundo, para as seções não parecerem a mesma tela.
+   O centro fica 80px além do canto; as faixas, achatadas a 36% e
+   inclinadas 18°, correm rente à borda de cima (ou de baixo) em vez de
+   apontar para o meio. A inclinação espelha de um canto para o outro. */
+
+/* Solo */
+.disco-canto-superior-direito {
+  top: -530px;
+  right: -530px;
+}
+.disco-canto-superior-direito::before { transform: rotate(-18deg) scaleY(0.36); }
+
+/* Escola */
+.disco-canto-inferior-direito {
+  bottom: -530px;
+  right: -530px;
+}
+.disco-canto-inferior-direito::before { transform: rotate(18deg) scaleY(0.36); }
+
+/* Telas de entrada: login, cadastro, modo */
+.disco-canto-superior-esquerdo {
+  top: -530px;
+  left: -530px;
+}
+.disco-canto-superior-esquerdo::before { transform: rotate(18deg) scaleY(0.36); }
+
+/* ============================================================================
+   3. TECLA
+   Para o que se aperta: botão, item de nav, avatar, os quadrados da
+   sequência, abas, pílulas clicáveis. NÃO para campo de formulário, linha
+   de tabela nem cartão grande — tecla é o que se aperta, não tudo.
+
+   A face fica acima da base: a lateral aparece embaixo (--tecla-altura).
+   No :active a face desce até a base e a sombra some — o botão afunda de
+   verdade. Só transform e box-shadow: nada muda de tamanho nem empurra o
+   que está em volta.
+
+   As telas que já têm uma lista de transition na regra do elemento
+   acrescentam lá o transform e o box-shadow; esta aqui vale para quem não
+   tem nenhuma.
+   ========================================================================== */
+
+.tecla {
+  box-shadow: var(--relevo-tecla);
+  transition:
+    transform var(--t-rapido, 160ms) var(--curva, ease-out),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+
+/* Tecla de vidro (o avatar): o relevo no lugar da sombra do vidro. Duas
+   classes para vencer a .vidro, que é carregada depois desta folha. */
+.vidro.tecla { box-shadow: var(--relevo-tecla); }
+
+/* Tecla clara: a face branca do botão principal e do dia com treino. */
+.tecla-clara { box-shadow: var(--relevo-tecla-clara); }
+
+.tecla:not(:disabled):active {
+  transform: translateY(var(--tecla-altura));
+  box-shadow: var(--relevo-tecla-apertada);
+}
+.tecla-clara:not(:disabled):active {
+  box-shadow: var(--relevo-tecla-clara-apertada);
+}
+
+/* ============================================================================
+   4. GRÃO
+   Uma película de ruído sobre o fundo preto, para ele deixar de ser
+   chapado. Vai no mesmo .fundo do disco: <div class="fundo grao">. Fica
+   por cima do disco e das estrelas e por baixo de todo o conteúdo.
+   Grão não é movimento: fica ligado com prefers-reduced-motion.
+   ========================================================================== */
+
+.grao::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grao-textura);
+  opacity: var(--grao-opacidade);
+  pointer-events: none;
+}

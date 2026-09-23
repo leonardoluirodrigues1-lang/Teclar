@@ -292,7 +292,7 @@ function Campanhas({ usuario }: PropsCampanhas) {
             percurso; com tudo concluído, convida a repetir a última. O
             título da lição vai junto para a pessoa saber onde vai cair. */}
         {progresso && (
-          <a className="btn btn-solido campanha-acao" href={hrefDoTreino(progresso.proxima.licao)}>
+          <a className="btn btn-solido tecla tecla-clara campanha-acao" href={hrefDoTreino(progresso.proxima.licao)}>
             <span>{progresso.proxima.repetir ? 'Repetir a última' : progresso.ultimaFeita ? 'Continuar' : 'Começar'}</span>
             <span className="campanha-acao-licao">{progresso.proxima.licao.titulo}</span>
           </a>

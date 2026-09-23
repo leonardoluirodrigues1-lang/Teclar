@@ -7,6 +7,7 @@
 <meta name="description" content="Como a turma e cada aluno est&atilde;o indo: sess&otilde;es, PPM, precis&atilde;o e exerc&iacute;cios conclu&iacute;dos.">
 <link rel="stylesheet" href="../../css/base/fontes.css">
 <link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
 <link rel="stylesheet" href="../../css/base/movimento.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
 <link rel="stylesheet" href="../../css/componentes/toasts.css">
@@ -29,9 +30,11 @@
 </head>
 <body>
 
-<!-- Luz de fundo: sem ela o backdrop-filter do vidro n&atilde;o tem o que desfocar. -->
-<div class="fundo" aria-hidden="true">
-  <div class="fundo-anel"></div>
+<!-- Luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto da
+     Escola) e o gr&atilde;o &mdash; ver css/base/luz.css. Sem ela o backdrop-filter do
+     vidro n&atilde;o tem o que desfocar. -->
+<div class="fundo grao" aria-hidden="true">
+  <div class="disco disco-canto-inferior-direito"></div>
 </div>
 
 <!-- O React monta a tela inteira aqui dentro (barra do topo, seletor de
