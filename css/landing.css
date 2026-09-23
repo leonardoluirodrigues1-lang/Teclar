@@ -345,3 +345,30 @@ footer p{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.3em;color
   opacity: 1;
   transform: translate3d(0, 0, 0);
 }
+
+/* ============ BARRA FIXA ============ */
+/* Marca + Entrar, sempre à vista. Nasce transparente; o .vidro (de
+   css/componentes/vidro.css) entra quando o sentinela sai da tela — ver
+   Barra em Landing.tsx. Aqui só a forma e a transição: a receita do vidro
+   não se repete. z-index 20: acima do hero-content (10), abaixo de
+   qualquer coisa que cubra a tela (modais usam mais). */
+.barra-sentinela{position:absolute;top:0;left:0;width:1px;height:24px;pointer-events:none}
+.barra-landing{position:fixed;top:1rem;left:0;right:0;margin:0 auto;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;gap:1.5rem;
+  width:min(calc(100% - 2rem),40rem);padding:.4rem .45rem .4rem 1.4rem;border-radius:9999px;
+  transition:background .3s,border-color .3s,box-shadow .3s,backdrop-filter .3s,-webkit-backdrop-filter .3s}
+/* Só enquanto não tem o vidro: este arquivo carrega depois do vidro.css e,
+   sem o :not, estas regras apagariam o vidro. A borda transparente segura
+   o tamanho da pílula para ela não pular 1px ao ganhar o vidro. */
+.barra-landing:not(.vidro){border:1px solid transparent}
+.barra-marca{font-family:var(--font-mono);font-size:13px;letter-spacing:.34em;
+  color:var(--foreground);text-decoration:none}
+/* O letter-spacing sobra à direita da última letra; compensa. */
+.barra-marca span{margin-right:-.34em}
+.barra-entrar{padding:.5rem 1.25rem;border-radius:9999px;font-size:.75rem}
+@media(max-width:699px){
+  .barra-landing{top:.75rem;gap:1rem;padding:.3rem .35rem .3rem 1rem}
+  .barra-marca{font-size:11px}
+  .barra-entrar{padding:.4rem .9rem;font-size:.6875rem;letter-spacing:.14em}
+}
+@media(prefers-reduced-motion:reduce){.barra-landing{transition:none}}

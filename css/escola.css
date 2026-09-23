@@ -1491,3 +1491,34 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .pagina-aluno .titulo { font-size: 22px; }
   .pagina-aluno .item { padding: 12px 14px; }
 }
+
+/* ============================================================================
+   ACRÉSCIMO — Aviso da senha do aluno (pages/professor/alunos.html)
+   A explicação de que a senha é gerada pelo sistema subiu para antes dos
+   campos, com peso de informação e não de rodapé. Na lista, a senha é o
+   dado que o professor veio buscar: ganha tamanho e cor sobre os outros.
+   ========================================================================== */
+
+.aviso-senha {
+  margin-top: var(--e-5, 24px);
+  padding: 12px var(--e-4, 16px);
+  max-width: 68ch;
+  border-left: 2px solid var(--cor-texto, #fff);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+/* O aviso já dá o respiro de cima; o formulário cola nele. */
+.aviso-senha + .painel-form { margin-top: var(--e-4, 16px); }
+
+.recentes .ajuda-campo { margin-top: 6px; }
+
+.item-senha-destaque .item-senha-rotulo { color: var(--cor-texto, #fff); }
+.item-senha-destaque .item-senha-valor {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto, #fff);
+}
+/* Matrícula e nome recuam para o destaque sobrar na senha. */
+.item-senha > div:not(.item-senha-destaque) .item-senha-valor { color: var(--cor-texto-suave, #c4c4c4); }

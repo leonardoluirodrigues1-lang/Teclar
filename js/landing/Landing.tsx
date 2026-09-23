@@ -79,6 +79,51 @@ function Hero() {
 }
 
 // ============================================================================
+// Barra fixa: marca + Entrar
+// ============================================================================
+
+// Não é a Nav.tsx: aquela é de tela com sessão (avatar, menu, troca de
+// modo). Aqui só marca e um link. Nasce transparente e ganha o .vidro
+// quando o sentinela do topo sai da tela — IntersectionObserver, e não
+// listener de scroll: o canvas WebGL divide o mesmo quadro, e o observer
+// só dispara ao cruzar a linha. Classe direto no DOM, sem setState, pelo
+// mesmo motivo do resto da tela.
+
+function Barra() {
+  const sentinela = useRef<HTMLDivElement>(null);
+  const barra = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    // O sentinela é uma faixa de 24px no topo da página. Enquanto ela está
+    // na tela, a pessoa ainda não rolou.
+    const observador = new IntersectionObserver((entradas) => {
+      const aindaNoTopo = entradas[0].isIntersecting;
+      if (aindaNoTopo) {
+        barra.current?.classList.remove('vidro');
+      } else {
+        barra.current?.classList.add('vidro');
+      }
+    });
+    observador.observe(sentinela.current);
+    return () => observador.disconnect();
+  }, []);
+
+  return (
+    <>
+      <div className="barra-sentinela" aria-hidden="true" ref={sentinela}></div>
+      <header className="barra-landing" ref={barra}>
+        <a className="barra-marca" href="#top" aria-label="TECLAR, voltar ao topo">
+          <span>TECLAR</span>
+        </a>
+        <a className="btn barra-entrar" href="pages/login.html">
+          Entrar
+        </a>
+      </header>
+    </>
+  );
+}
+
+// ============================================================================
 // Conteúdo: intro, passos e CTA final
 // ============================================================================
 
@@ -119,6 +164,7 @@ function Landing() {
 
   return (
     <>
+      <Barra />
       <Hero />
 
       <section className="wrap intro" id="teclar-pratica">

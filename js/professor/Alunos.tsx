@@ -333,6 +333,12 @@ function UmPorUm() {
 
   return (
     <>
+      {/* Antes dos campos, e não no rodapé: é a dúvida que o professor tem
+          antes de matricular — como o aluno vai entrar. */}
+      <p className="aviso-senha">
+        Você não escolhe a senha: o sistema gera uma para cada aluno. Ela aparece uma única vez, na
+        lista abaixo — anote e entregue ao aluno.
+      </p>
       <form
         className="painel-form vidro campo-modal"
         id="form-um"
@@ -398,9 +404,7 @@ function UmPorUm() {
           </p>
         </div>
         <p className="ajuda-campo" id="ajuda-matricula">
-          Matrícula só com números, de 6 a 15 dígitos; nome de 2 a 150 caracteres, se quiser. A
-          senha inicial é gerada na hora e aparece abaixo — anote e entregue ao aluno; ela não fica
-          guardada.
+          Matrícula só com números, de 6 a 15 dígitos; nome de 2 a 150 caracteres, se quiser.
         </p>
       </form>
 
@@ -414,6 +418,7 @@ function UmPorUm() {
         <h2 className="secao-rotulo" id="recentes-titulo">
           Matriculados agora
         </h2>
+        <p className="ajuda-campo">Esta lista some ao sair da página — a senha não fica guardada.</p>
         <ul className="lista-senhas" id="lista-recentes">
           {recentes.map((recente) => (
             <ItemSenha
@@ -497,7 +502,7 @@ function ItemSenha({
         <span className="item-senha-rotulo">Matrícula</span>
         <span className="item-senha-valor">{id ?? '—'}</span>
       </div>
-      <div>
+      <div className="item-senha-destaque">
         <span className="item-senha-rotulo">Senha inicial</span>
         <span className="item-senha-valor">{senhaInicial ?? '—'}</span>
       </div>
