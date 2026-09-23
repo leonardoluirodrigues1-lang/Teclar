@@ -175,9 +175,14 @@ ul { list-style: none; }
   color: var(--cor-texto, #fff);
   transition:
     background var(--dur-normal, 240ms) var(--ease-padrao, ease),
-    transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+    transform var(--t-rapido, 160ms) var(--curva, ease-out),
+    border-color var(--t-rapido, 160ms) var(--curva, ease-out);
 }
-.cartao:hover { background: rgba(255, 255, 255, 0.14); }
+.cartao:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.34);
+  transform: translateY(var(--deslocamento-cartao, -2px));
+}
 .cartao:focus-visible { outline-offset: 4px; }
 
 .cartao-topo {
@@ -309,7 +314,8 @@ ul { list-style: none; }
   transition:
     background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
     box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-    opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+    opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .btn:disabled { opacity: 0.55; cursor: progress; }
 

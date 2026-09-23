@@ -27,6 +27,7 @@ import {
 } from '../utils/validacao.js';
 import { montarEstrelas, mensagemDoErro, ehConflito } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Tempo que o toast "Conta criada" fica à vista antes de a tela trocar.
 // Curto de propósito: é confirmação, não celebração.
@@ -261,5 +262,6 @@ function Cadastro() {
 if (!guarda.redirecionarSeLogado()) {
   montarEstrelas(document.getElementById('estrelas'));
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 1 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Cadastro />);
 }

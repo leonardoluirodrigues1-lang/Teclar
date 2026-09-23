@@ -16,6 +16,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Usuario } from '../nucleo/tipos.js';
 import { criarListaExercicios, desembrulhar } from '../componentes/listaExercicios.js';
 import { Nav, SECOES_ALUNO } from '../componentes/Nav.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinha desta em pages/aluno/: caminho relativo.
 const ROTA_HISTORICO = 'historico.html';
@@ -121,5 +122,6 @@ const usuario = guarda.soAluno();
 
 if (usuario) {
   guarda.aplicarMundo();
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Dashboard usuario={usuario} />);
 }

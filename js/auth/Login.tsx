@@ -29,6 +29,7 @@ import type { RespostaLogin } from '../nucleo/tipos.js';
 import { validarEmail, validarSenhaLogin, validarMatricula } from '../utils/validacao.js';
 import { montarEstrelas, mensagemDoErro, MENSAGENS } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 type Modo = 'conta' | 'aluno';
 
@@ -172,7 +173,7 @@ function Login() {
     try {
       const resposta = await requisicao();
       // O `tipo` da resposta (conta ou aluno) é o que roteia: o
-      // guarda.entrar() lê daí — e do modo salvo, se houver — o destino.
+      // guarda.entrar() lê daí o destino: aluno no dashboard, conta na tela de modo.
       sessao.entrar(resposta);
       guarda.entrar();
       // Não libera o botão: a página está sendo substituída.
@@ -346,5 +347,6 @@ if (!guarda.redirecionarSeLogado()) {
     criarToasts(document.getElementById('toasts'), { maximo: 1 }).mostrar('Sua sessão expirou');
   }
 
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Login />);
 }

@@ -26,6 +26,7 @@ import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { Mundo, Sessao, SessaoSolo } from '../nucleo/tipos.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
 const PRECISAO_MINIMA = CONFIG.METAS.PRECISAO_ALVO;
@@ -489,5 +490,6 @@ const usuario = guarda.qualquerLogado();
 
 if (usuario) {
   guarda.aplicarMundo();
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<ResultadoTela />);
 }

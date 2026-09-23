@@ -52,6 +52,7 @@ import {
 } from '../utils/desempenho.js';
 import { contagem, formatarDataHora, formatarDecimal, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinhas desta em pages/solo/: caminho relativo.
 const ROTA_LOBBY = 'dashboard.html';
@@ -469,6 +470,7 @@ if (usuario) {
     window.location.replace(ROTA_LOBBY);
   } else {
     guarda.aplicarMundo();
+    ativarSaidaAoNavegar();
     createRoot(document.getElementById('raiz')).render(<Estatisticas usuario={usuario} />);
   }
 }

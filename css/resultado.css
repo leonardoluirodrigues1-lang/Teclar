@@ -177,7 +177,7 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.55);
   /* ~900ms: o JS põe o valor antigo no primeiro quadro e o novo no
      requestAnimationFrame seguinte, senão o CSS não anima. */
-  transition: width 900ms var(--ease-padrao, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: width var(--t-xp, 900ms) var(--ease-padrao, cubic-bezier(0.4, 0, 0.2, 1));
 }
 /* Usado no reset da subida de nível: 100% -> 0 sem animar. */
 .xp-preenchimento.sem-transicao { transition: none; }
@@ -222,7 +222,8 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0.12em;
   transition:
     background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-    box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+    box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+    transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .btn-solido {
   background: var(--cor-texto, #fff);

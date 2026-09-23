@@ -36,6 +36,7 @@ import { parsearCsv, separarCabecalho, gerarCsv } from '../utils/csv.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Limite do arquivo. 1 MB de matrículas de 15 dígitos dá mais de 60 mil
 // linhas — uma turma não tem isso; um arquivo maior é engano de arquivo.
@@ -1102,5 +1103,6 @@ let toasts: Toasts;
 if (usuario) {
   guarda.aplicarMundo();
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Alunos />);
 }

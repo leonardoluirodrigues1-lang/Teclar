@@ -5,8 +5,9 @@
 //
 // Modo não é perfil nem permissão: a mesma conta abre os dois, e pode
 // trocar a qualquer hora pelo "Ir para ..." das telas. A escolha vai para a
-// sessão (sessao.definirModo) e, da próxima vez que a conta entrar, o
-// login pula esta tela e cai direto no modo salvo.
+// sessão (sessao.definirModo) e vale enquanto a conta navega. No próximo
+// login esta tela aparece de novo: a conta sempre escolhe ao entrar (ver
+// destinoAoEntrar() em js/nucleo/guarda.ts).
 //
 // O terceiro cartão, Aluno, NÃO é modo: aluno é outro tipo de sessão
 // (tabela Alunos, login por matrícula). Por isso ele não navega sozinho —
@@ -26,6 +27,7 @@ import { sessao } from '../nucleo/sessao.js';
 import type { Modo } from '../nucleo/tipos.js';
 import { Modal } from '../componentes/ModalReact.js';
 import { montarEstrelas } from './comum.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // O login já aberto no formulário de matrícula.
 const ROTA_LOGIN_ALUNO = `${ROTA_LOGIN}?aluno=1`;
@@ -193,5 +195,6 @@ function TelaModo() {
 // para o dashboard dele. Quando redireciona, nada abaixo roda.
 if (guarda.exigir('conta')) {
   montarEstrelas(document.getElementById('estrelas'));
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<TelaModo />);
 }

@@ -35,6 +35,7 @@ import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { contagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Linhas de esqueleto enquanto a lista não chega: a biblioteca tende a ser
 // comprida, seis já dão a altura que a tabela vai ter.
@@ -783,5 +784,6 @@ let toasts: Toasts;
 if (usuario) {
   guarda.aplicarMundo();
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Biblioteca />);
 }

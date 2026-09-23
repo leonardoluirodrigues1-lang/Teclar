@@ -28,16 +28,18 @@
   letter-spacing: var(--ls-rotulo, 0.08em);
   color: var(--cor-texto, #fff);
   opacity: 0;
-  transform: translate3d(0, 8px, 0);
+  transform: translate3d(0, var(--deslocamento-entrada, 8px), 0);
   transition:
-    opacity var(--dur-normal, 240ms) var(--ease-padrao, ease),
-    transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+    opacity var(--t-medio, 240ms) var(--curva, ease-out),
+    transform var(--t-medio, 240ms) var(--curva, ease-out);
 }
 .toast.visivel {
   opacity: 1;
   transform: translate3d(0, 0, 0);
 }
+/* Sai só com fade, parado no lugar: quem já leu não precisa de mais
+   movimento. toast.ts espera o mesmo --t-medio antes de tirar do DOM. */
 .toast.saindo {
   opacity: 0;
-  transform: translate3d(0, -6px, 0);
+  transition-timing-function: var(--curva-saida, ease-in);
 }

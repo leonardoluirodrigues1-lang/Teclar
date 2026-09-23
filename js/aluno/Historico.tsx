@@ -44,6 +44,7 @@ import {
 } from '../utils/desempenho.js';
 import { contagem, formatarDataHora, formatarDecimal, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Linhas de esqueleto: a altura que a tabela terá com um punhado de
 // sessões, para nada pular de lugar quando os dados chegarem.
@@ -454,5 +455,6 @@ const usuario = guarda.soAluno();
 
 if (usuario) {
   guarda.aplicarMundo();
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Historico usuario={usuario} />);
 }

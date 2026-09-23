@@ -44,6 +44,7 @@ import { PainelErro } from '../componentes/PainelErro.js';
 import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
 import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
 import { maisRecentesPrimeiro } from '../utils/desempenho.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinha desta em pages/solo/: caminho relativo.
 const ROTA_LOBBY = 'dashboard.html';
@@ -365,7 +366,7 @@ function Campanhas({ usuario }: PropsCampanhas) {
                   existir para nada — nem para o leitor de tela, que
                   seguiria achando os links de um grupo recolhido. */}
               {aberto && (
-                <ul className="lista" id={idPainel}>
+                <ul className="lista entrada-escalonada" id={idPainel}>
                   {grupo.licoes.map((licao) => {
                     const feita = progresso?.concluidas.has(licao.exerciseId) ?? false;
                     return (
@@ -495,6 +496,7 @@ if (usuario) {
     window.location.replace(ROTA_LOBBY);
   } else {
     guarda.aplicarMundo();
+    ativarSaidaAoNavegar();
     createRoot(document.getElementById('raiz')).render(<Campanhas usuario={usuario} />);
   }
 }

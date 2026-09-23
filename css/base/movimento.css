@@ -1,0 +1,160 @@
+/* ============================================================================
+   TECLAR — movimento.css
+   As regras do movimento do site: quanto dura cada animação, com que
+   curva, e quanto as coisas se deslocam. Carregada em todas as páginas,
+   logo depois de tokens.css (a landing não tem tokens.css; lá ela vem
+   depois de fontes.css).
+
+   Toda animação nova usa estes tokens. Nada de duração ou curva solta nos
+   outros arquivos: para mudar o ritmo do site, muda-se aqui.
+
+   Regra de ouro: o movimento é acabamento, não cortina. Tudo começa
+   visível o bastante para ser lido e nada espera animação para existir.
+   Por isso as entradas partem de opacidade 0.5, e não de 0, e usam só
+   transform e opacity — que não empurram o resto da página nem obrigam o
+   navegador a recalcular o layout a cada quadro.
+   ========================================================================== */
+
+:root {
+  --t-rapido: 160ms; /* resposta ao toque: botão, hover, foco, saída de página */
+  --t-medio: 240ms;  /* entrada e saída de elemento: modal, toast, item de lista */
+  --t-tela: 300ms;   /* entrada da página */
+  --t-xp: 900ms;     /* enchimento da barra de XP na tela de resultado */
+
+  --curva: cubic-bezier(.22, .61, .36, 1);        /* entrada: rápido no início, pousa macio */
+  --curva-saida: cubic-bezier(.55, .06, .68, .19); /* saída: começa devagar e acelera para fora */
+
+  /* Deslocamentos. Ficam aqui, e não soltos nas regras, para o bloco de
+     movimento reduzido no fim poder zerar todos de uma vez. */
+  --deslocamento-entrada: 8px;  /* página, item e toast sobem isto ao entrar */
+  --deslocamento-cartao: -2px;  /* cartão clicável sobe isto no hover */
+  --escala-toque: 0.97;         /* botão pressionado */
+  --escala-modal: 0.96;         /* modal antes de terminar de abrir */
+  --opacidade-inicial: 0.5;     /* de onde as entradas partem: já legível */
+}
+
+/* ----------------------------------------------------------------------------
+   1. ENTRADA DA PÁGINA
+   A classe vai no #raiz de cada página (no HTML), exceto na landing, que
+   tem o buraco negro e o reveal como movimento próprio, e na tela de
+   treino, onde o motor de digitação mede a posição do texto na tela.
+   Sem fill-mode: terminada a animação, o transform some de vez, e os
+   elementos fixos lá dentro voltam a se posicionar pela tela.
+   ------------------------------------------------------------------------- */
+
+@keyframes surgir {
+  from {
+    opacity: var(--opacidade-inicial);
+    transform: translateY(var(--deslocamento-entrada));
+  }
+}
+
+.entrada-da-pagina {
+  animation: surgir var(--t-tela) var(--curva);
+}
+
+/* ----------------------------------------------------------------------------
+   2. SAÍDA AO NAVEGAR
+   js/utils/movimento.ts põe esta classe no <body> ao clicar num link
+   interno e navega quando o tempo de --t-rapido acaba. Só JavaScript põe
+   a classe: se o script falhar, a página nunca fica apagada.
+   ------------------------------------------------------------------------- */
+
+.saindo-da-pagina {
+  opacity: 0;
+  pointer-events: none; /* um segundo clique durante a saída não faz nada */
+  transition: opacity var(--t-rapido) var(--curva-saida);
+}
+
+/* ----------------------------------------------------------------------------
+   3. ENTRADA ESCALONADA
+   Vai no contêiner (grade de turmas, lista de lições, <tbody>...). Cada
+   filho entra 25ms depois do anterior. Só os 12 primeiros animam: a tela
+   de lições tem 76 cartões, e escalonar todos faria o último aparecer
+   quase dois segundos depois. Do 13º em diante, nada — aparecem na hora.
+
+   fill-mode backwards: enquanto espera o seu atraso, o item já fica no
+   ponto de partida (meio transparente), em vez de aparecer inteiro e
+   depois piscar. O ponto de partida já é legível.
+
+   As 11 regras de atraso estão escritas uma a uma de propósito: é a forma
+   que qualquer um lê, e o CSS ainda não tem como saber o número do item.
+   ------------------------------------------------------------------------- */
+
+.entrada-escalonada > :nth-child(-n + 12) {
+  animation: surgir var(--t-medio) var(--curva) backwards;
+}
+
+.entrada-escalonada > :nth-child(2)  { animation-delay: 25ms; }
+.entrada-escalonada > :nth-child(3)  { animation-delay: 50ms; }
+.entrada-escalonada > :nth-child(4)  { animation-delay: 75ms; }
+.entrada-escalonada > :nth-child(5)  { animation-delay: 100ms; }
+.entrada-escalonada > :nth-child(6)  { animation-delay: 125ms; }
+.entrada-escalonada > :nth-child(7)  { animation-delay: 150ms; }
+.entrada-escalonada > :nth-child(8)  { animation-delay: 175ms; }
+.entrada-escalonada > :nth-child(9)  { animation-delay: 200ms; }
+.entrada-escalonada > :nth-child(10) { animation-delay: 225ms; }
+.entrada-escalonada > :nth-child(11) { animation-delay: 250ms; }
+.entrada-escalonada > :nth-child(12) { animation-delay: 275ms; }
+
+/* ----------------------------------------------------------------------------
+   4. RESPOSTA AO TOQUE
+   ------------------------------------------------------------------------- */
+
+/* Botão afunda de leve enquanto está pressionado. A transição de transform
+   está na regra .btn de cada folha, junto com as que ela já tinha. */
+.btn:not(:disabled):active,
+.modal-botao:active {
+  transform: scale(var(--escala-toque));
+}
+
+/* Anel de foco: em vez de aparecer de uma vez, nasce colado no elemento e
+   cresce até o afastamento de sempre. Animação, e não transição, porque
+   cada folha já tem a sua lista de transition nos botões e campos — uma
+   transição aqui seria sobrescrita. O "to" fica de fora de propósito: o
+   anel termina exatamente como cada folha já o desenha, tão visível
+   quanto antes. outline-offset só repinta o contorno; não mexe no layout. */
+@keyframes anel-de-foco-cresce {
+  from { outline-offset: 0; }
+}
+
+:focus-visible {
+  animation: anel-de-foco-cresce var(--t-rapido) var(--curva);
+}
+
+/* A landing fica de fora da resposta ao toque: o canvas WebGL do buraco
+   negro divide o mesmo quadro, e nenhuma animação nova pode rodar junto
+   dele. */
+.landing :focus-visible { animation: none; }
+.landing .btn:not(:disabled):active { transform: none; }
+
+/* ----------------------------------------------------------------------------
+   MOVIMENTO REDUZIDO
+   Para quem tem sensibilidade vestibular, movimento na tela causa
+   mal-estar físico — não é preferência estética. Zera as durações e todos
+   os deslocamentos. As regras acima continuam valendo, mas acontecem em
+   0ms e sem sair do lugar: nada fica invisível nem pela metade.
+   ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-rapido: 0ms;
+    --t-medio: 0ms;
+    --t-tela: 0ms;
+    --t-xp: 0ms;
+    --deslocamento-entrada: 0px;
+    --deslocamento-cartao: 0px;
+    --escala-toque: 1;
+    --escala-modal: 1;
+    --opacidade-inicial: 1;
+  }
+
+  /* Com duração zero elas já não fariam nada; desligadas, fica explícito.
+     O item escalonado precisa ser desligado aqui: sem isso, o atraso de
+     até 275ms continuaria segurando os itens no ponto de partida. */
+  .entrada-da-pagina,
+  .entrada-escalonada > :nth-child(-n + 12),
+  :focus-visible {
+    animation: none;
+  }
+}

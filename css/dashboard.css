@@ -275,9 +275,14 @@ ul { list-style: none; }
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              border-color var(--t-rapido, 160ms) var(--curva, ease-out),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
-a.item:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.20); }
+a.item:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.20);
+  transform: translateY(var(--deslocamento-cartao, -2px));
+}
 a.item:hover .item-seta { transform: translateX(4px); }
 
 .item-texto { min-width: 0; }

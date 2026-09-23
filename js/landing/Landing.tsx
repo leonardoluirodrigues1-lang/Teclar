@@ -83,11 +83,13 @@ function Hero() {
 // ============================================================================
 
 // Não é a Nav.tsx: aquela é de tela com sessão (avatar, menu, troca de
-// modo). Aqui só marca e um link. Nasce transparente e ganha o .vidro
-// quando o sentinela do topo sai da tela — IntersectionObserver, e não
-// listener de scroll: o canvas WebGL divide o mesmo quadro, e o observer
-// só dispara ao cruzar a linha. Classe direto no DOM, sem setState, pelo
-// mesmo motivo do resto da tela.
+// modo). Aqui só marca e um link, dentro de uma pílula de vidro que existe
+// desde o primeiro quadro. No topo da página ela tem também a classe
+// .barra-no-topo, que a deixa discreta; a classe sai quando o sentinela do
+// topo sai da tela. IntersectionObserver, e não listener de scroll: o
+// canvas WebGL divide o mesmo quadro, e o observer só dispara ao cruzar a
+// linha. Classe direto no DOM, sem setState, pelo mesmo motivo do resto
+// da tela.
 
 function Barra() {
   const sentinela = useRef<HTMLDivElement>(null);
@@ -99,9 +101,9 @@ function Barra() {
     const observador = new IntersectionObserver((entradas) => {
       const aindaNoTopo = entradas[0].isIntersecting;
       if (aindaNoTopo) {
-        barra.current?.classList.remove('vidro');
+        barra.current?.classList.add('barra-no-topo');
       } else {
-        barra.current?.classList.add('vidro');
+        barra.current?.classList.remove('barra-no-topo');
       }
     });
     observador.observe(sentinela.current);
@@ -111,7 +113,7 @@ function Barra() {
   return (
     <>
       <div className="barra-sentinela" aria-hidden="true" ref={sentinela}></div>
-      <header className="barra-landing" ref={barra}>
+      <header className="barra-landing vidro barra-no-topo" ref={barra}>
         <a className="barra-marca" href="#top" aria-label="TECLAR, voltar ao topo">
           <span>TECLAR</span>
         </a>

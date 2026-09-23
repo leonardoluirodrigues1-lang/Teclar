@@ -6,6 +6,7 @@
 <title>Teclar &mdash; Aprenda a digitar com foco e precis&atilde;o</title>
 <meta name="description" content="Teclar e uma plataforma de treino de digitacao: foco, pratica, precisao, velocidade e dominio do teclado.">
 <link rel="stylesheet" href="css/base/fontes.css">
+<link rel="stylesheet" href="css/base/movimento.css">
 <link rel="stylesheet" href="css/componentes/vidro.css">
 <link rel="stylesheet" href="css/landing.css">
 
@@ -22,7 +23,9 @@
 }}
 </script>
 </head>
-<body>
+<!-- class="landing": movimento.css deixa esta p&aacute;gina fora da resposta
+     ao toque, porque o canvas WebGL divide o mesmo quadro. -->
+<body class="landing">
 
 <!-- O React monta a p&aacute;gina inteira aqui dentro (hero, intro, passos,
      CTA e rodap&eacute;), com o mesmo markup de antes. O css/landing.css

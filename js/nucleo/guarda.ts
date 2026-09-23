@@ -6,7 +6,7 @@
 // que a pessoa veja uma tela quebrada, sem dado e sem sentido. Nada impede
 // alguém de burlar este arquivo — e tudo bem, porque a API vai recusar.
 
-import { ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, rotaInicial } from '../config.js';
+import { ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, rotaInicial } from '../config.js';
 import { api } from './api.js';
 import { sessao } from './sessao.js';
 import type { Usuario, Mundo, Modo, TipoSessao } from './tipos.js';
@@ -37,8 +37,10 @@ function mandarParaLogin(): void {
   irPara(`${ROTA_LOGIN}?volta=${encodeURIComponent(urlAtual())}`);
 }
 
-// A casa da sessão atual: aluno -> dashboard do aluno; conta -> a casa do
-// modo, ou a tela de modo se ainda não escolheu. Sem sessão, a landing.
+// A casa da sessão atual, para quem JÁ está navegando: aluno -> dashboard
+// do aluno; conta -> a casa do modo em uso, ou a tela de modo se ainda não
+// escolheu. Sem sessão, a landing. Não é usada logo depois do login: ver
+// destinoAoEntrar().
 function casa(): string {
   const tipo = sessao.tipo();
   return tipo ? rotaInicial(tipo, sessao.modo()) : ROTA_LANDING;
@@ -70,8 +72,8 @@ function exigir(tipoExigido?: TipoSessao | null): Usuario | null {
 
 // Telas do Solo e do Professor: exigem sessão de conta e, ao abrir, gravam
 // o modo. A TELA é a fonte da verdade do modo: abriu uma do Solo, o modo é
-// solo; abriu uma do Professor, é professor. Sem isso, o "Ir para ..." e o
-// login-que-pula-a-tela-de-modo trabalhariam com um modo velho.
+// solo; abriu uma do Professor, é professor. Sem isso, o "Ir para ..." e a
+// casa() trabalhariam com um modo velho.
 function soConta(modo: Modo): Usuario | null {
   const usuario = exigir('conta');
   if (usuario) sessao.definirModo(modo);
@@ -88,20 +90,33 @@ function qualquerLogado(): Usuario | null {
   return exigir();
 }
 
+// Para onde a pessoa vai ao ENTRAR no sistema (login, cadastro, ou quem
+// abre o login já logado). Aluno vai para o dashboard dele. Conta vai
+// SEMPRE para a tela de modo, e não para o último modo usado: a mesma
+// conta abre o Professor, o Solo e a entrada de aluno, e a cada entrada a
+// pessoa escolhe onde quer estar, em vez de cair no mundo da última vez.
+// O modo salvo continua valendo dentro da sessão (casa(), Nav).
+function destinoAoEntrar(): string {
+  if (sessao.tipo() === 'aluno') {
+    return ROTA_INICIAL.aluno;
+  }
+  return ROTA_MODO;
+}
+
 // Para login.html e cadastro.html: quem já está logado não deveria ver a
 // tela de login. Respeita o ?volta= se existir. Devolve true quando
 // redirecionou.
 function redirecionarSeLogado(): boolean {
   if (!sessao.logado()) return false;
-  irPara(voltaSegura() ?? casa());
+  irPara(voltaSegura() ?? destinoAoEntrar());
   return true;
 }
 
 // Chamado logo depois de o login dar certo. Leva para o ?volta= (a tela que
-// a pessoa tentou abrir antes) ou para a casa da sessão — que, para conta
-// sem modo salvo, é a tela de modo.
+// a pessoa tentou abrir antes, ex.: a sessão expirou no meio do trabalho)
+// ou para o destino de quem entra.
 function entrar(): void {
-  irPara(voltaSegura() ?? casa());
+  irPara(voltaSegura() ?? destinoAoEntrar());
 }
 
 // "Ir para o Solo" / "Ir para Professor": troca o modo e navega. Sem

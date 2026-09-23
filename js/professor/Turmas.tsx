@@ -24,6 +24,7 @@ import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { EsqueletoGrade } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // A busca é ruído enquanto a grade cabe na tela de uma olhada só. A partir
 // daqui, procurar pelo nome fica mais rápido que varrer com os olhos.
@@ -221,7 +222,7 @@ function Turmas() {
     }
 
     return (
-      <div className="grade">
+      <div className="grade entrada-escalonada">
         {visiveis.map((turma) => (
           <Cartao key={turma.id} turma={turma} aoRenomear={() => abrirRenomear(turma)} />
         ))}
@@ -518,5 +519,6 @@ if (usuario) {
   // aqui no JS.
   guarda.aplicarMundo();
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Turmas />);
 }

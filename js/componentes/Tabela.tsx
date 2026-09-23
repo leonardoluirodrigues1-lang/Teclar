@@ -9,8 +9,13 @@
 // e o aria-sort acompanha o estado para quem usa leitor de tela. A REGRA de
 // ordenação (nulo por último, etc.) fica com a tela: este componente só
 // diz qual cabeçalho foi clicado e em que direção.
+//
+// As linhas entram escalonadas (.entrada-escalonada, css/base/movimento.css)
+// só até o primeiro clique de ordenação. Reordenar move as <tr> no DOM, e
+// o navegador reinicia a animação de um elemento movido: a tabela inteira
+// piscaria a cada clique. Reordenar não é entrada.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export interface Ordenacao {
   /** null = ordem em que o back mandou. */
@@ -47,9 +52,12 @@ export function Tabela<T>({
   aoOrdenar,
   rodape,
 }: PropsTabela<T>) {
+  const [jaReordenou, setJaReordenou] = useState(false);
+
   // Ordena pelo campo dado, alterna asc/desc num campo já ativo.
   function ordenarPor(campo: string) {
     if (!ordenacao || !aoOrdenar) return;
+    setJaReordenou(true);
     if (ordenacao.campo === campo) {
       aoOrdenar({ campo, direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc' });
     } else {
@@ -97,7 +105,7 @@ export function Tabela<T>({
             })}
           </tr>
         </thead>
-        <tbody>
+        <tbody className={jaReordenou ? undefined : 'entrada-escalonada'}>
           {linhas.map((linha) => (
             <tr key={chave(linha)} className={classeLinha?.(linha)}>
               {colunas.map((coluna) => (

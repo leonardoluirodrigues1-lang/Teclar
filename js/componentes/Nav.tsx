@@ -214,6 +214,17 @@ export function Nav({ secoes, ativo }: PropsNav) {
               {secoes.outroModo.rotulo}
             </button>
           )}
+          {/* A tela dos três cartões (Professor, Solo, Aluno). O item acima é
+              o atalho direto para o outro modo; este é a escolha completa —
+              é por aqui que a conta chega à entrada de aluno sem sair.
+              Mesmo critério do item acima: o aluno não tem sessão de conta,
+              e o guarda o expulsaria de modo.html. O href é relativo às
+              páginas que montam a Nav, todas em pages/<mundo>/. */}
+          {secoes.outroModo && (
+            <a className="menu-item" href="../modo.html" role="menuitem" onClick={() => fechar()}>
+              Trocar de modo
+            </a>
+          )}
           {/* Sair fecha o menu antes de navegar, para o menu não ficar
               aberto se a navegação demorar. */}
           <button

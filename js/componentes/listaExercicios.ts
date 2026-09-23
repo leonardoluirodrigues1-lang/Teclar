@@ -57,7 +57,7 @@ export function criarListaExercicios(host: HTMLElement | null): ListaExercicios 
 
     host.innerHTML = '';
     const ul = document.createElement('ul');
-    ul.className = 'lista';
+    ul.className = 'lista entrada-escalonada';
 
     itens.forEach((item) => {
       const li = document.createElement('li');

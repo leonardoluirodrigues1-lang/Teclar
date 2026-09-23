@@ -42,6 +42,7 @@ import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Linhas de esqueleto: a mesma altura que a tabela final terá numa turma de
 // tamanho comum, para nada pular quando os dados chegam.
@@ -710,7 +711,7 @@ function ModalHistorico({ turmaId, aluno, aoFechar }: PropsHistorico) {
 
     return (
       <>
-        <div className="lista-sessoes">
+        <div className="lista-sessoes entrada-escalonada">
           {carga.sessoes.map((s) => (
             <div key={s.id} className="item-sessao">
               <div className="item-sessao-texto">
@@ -948,5 +949,6 @@ let toasts: Toasts;
 if (usuario) {
   guarda.aplicarMundo();
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Relatorios />);
 }

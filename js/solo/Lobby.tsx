@@ -43,6 +43,7 @@ import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
 import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { semanaDeDias, sequenciaDeDias, type DiaDaSemana } from '../utils/desempenho.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // A tela de missões, vizinha desta em pages/solo/. Caminho relativo: as
 // duas moram na mesma pasta.
@@ -401,5 +402,6 @@ const usuario = guarda.soConta('solo');
 
 if (usuario) {
   guarda.aplicarMundo();
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Lobby />);
 }

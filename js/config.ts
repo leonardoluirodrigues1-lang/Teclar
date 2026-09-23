@@ -117,8 +117,9 @@ export const ROTA_INICIAL = {
 } as const;
 
 /**
- * Para onde a sessão é levada logo depois do login (e para onde "voltar ao
- * início" leva):
+ * Para onde "voltar ao início" leva quem já está navegando (guarda.casa()).
+ * Logo depois do login a conta vai sempre para a tela de modo, não daqui:
+ * ver destinoAoEntrar() em js/nucleo/guarda.ts.
  *   aluno            -> dashboard do aluno
  *   conta com modo   -> a casa do modo
  *   conta sem modo   -> tela de modo

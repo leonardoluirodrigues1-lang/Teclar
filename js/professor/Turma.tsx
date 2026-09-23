@@ -33,6 +33,7 @@ import { ordenar } from '../utils/ordenacao.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Linhas de esqueleto enquanto turma, alunos e atribuições ainda não
 // chegaram. Cinco cabem sem esticar a tela numa turma pequena.
@@ -976,5 +977,6 @@ let toasts: Toasts;
 if (usuario) {
   guarda.aplicarMundo();
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
+  ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Turma />);
 }

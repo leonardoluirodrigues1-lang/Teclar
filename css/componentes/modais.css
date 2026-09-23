@@ -16,9 +16,15 @@
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity var(--dur-normal, 240ms) var(--ease-padrao, ease);
+  /* A regra sem .aberto vale na saída: some acelerando. A com .aberto vale
+     na entrada: chega rápido e pousa macio. JS espera o mesmo --t-medio
+     (ModalReact.tsx) antes de desmontar. */
+  transition: opacity var(--t-medio, 240ms) var(--curva-saida, ease-in);
 }
-.modal-overlay.aberto { opacity: 1; }
+.modal-overlay.aberto {
+  opacity: 1;
+  transition-timing-function: var(--curva, ease-out);
+}
 
 .modal {
   width: 100%;
@@ -26,10 +32,13 @@
   padding: 36px;
   border-radius: var(--raio-g, 16px);
   color: var(--cor-texto, #fff);
-  transform: translate3d(0, 12px, 0) scale(0.98);
-  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
+  transform: scale(var(--escala-modal, 0.96));
+  transition: transform var(--t-medio, 240ms) var(--curva-saida, ease-in);
 }
-.modal-overlay.aberto .modal { transform: none; }
+.modal-overlay.aberto .modal {
+  transform: none;
+  transition-timing-function: var(--curva, ease-out);
+}
 
 .modal-eyebrow {
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
@@ -95,7 +104,8 @@
   letter-spacing: 0.12em;
   cursor: pointer;
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .modal-botao:focus-visible {
   outline: 2px solid var(--cor-anel-foco, #fff);

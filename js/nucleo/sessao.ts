@@ -119,10 +119,11 @@ function nomeExibicao(): string {
 // Não vai ao back nem ao token. Só existe para sessão de conta — para
 // aluno, modo() é sempre null.
 //
-// Fica no localStorage junto com o id da conta, e o sair() NÃO apaga: é
-// assim que "da última vez" funciona — quem entra de novo com a mesma
-// conta pula a tela de modo e cai direto no modo em que estava. Outra
-// conta no mesmo navegador não herda (o id não bate) e vê a tela de modo.
+// Fica no localStorage junto com o id da conta. Ele NÃO decide para onde a
+// conta vai depois do login — ali é sempre a tela de modo (ver
+// destinoAoEntrar() em guarda.ts). Serve durante a sessão: a casa() do
+// guarda e o "Ir para ..." da Nav. Outra conta no mesmo navegador não
+// herda (o id não bate).
 
 function modo(): Modo | null {
   const atual = usuario();

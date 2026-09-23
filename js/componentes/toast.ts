@@ -6,8 +6,9 @@
 //   const toasts = criarToasts(document.getElementById('toasts'), { maximo: 1 });
 //   toasts.mostrar('25 seguidos');
 
+import { duracaoDoToken } from '../utils/movimento.js';
+
 const DURACAO_PADRAO_MS = 1800;
-const SAIDA_MS = 240; // igual a --dur-normal em toasts.css
 
 export interface Toasts {
   /** Mostra um toast e devolve o elemento criado. */
@@ -35,8 +36,9 @@ export function criarToasts(
     ativos.delete(el);
     clearTimeout(el._timer);
     el.classList.add('saindo');
-    // Depois da transição de saída, tira do DOM.
-    setTimeout(() => el.remove(), SAIDA_MS);
+    // Depois da transição de saída de toasts.css (--t-medio), tira do DOM.
+    const saidaMs = duracaoDoToken('--t-medio', 240);
+    setTimeout(() => el.remove(), saidaMs);
   }
 
   function mostrar(texto: string): HTMLDivElement {

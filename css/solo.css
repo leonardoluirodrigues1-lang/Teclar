@@ -40,7 +40,8 @@
   text-align: center;
   transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
               box-shadow var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+              opacity var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 /* cursor: progress e não not-allowed: o botão desabilitado do lobby está
    ocupado criando a campanha, não proibido. */

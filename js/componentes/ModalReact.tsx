@@ -34,7 +34,7 @@
 // Diferenças de mecânica em relação ao modal.js, e só de mecânica:
 //   · o overlay entra no <body> por createPortal, no mesmo lugar em que o
 //     modal.js fazia document.body.appendChild;
-//   · aoFechar é chamado ao FIM da transição de saída (SAIDA_MS), porque é
+//   · aoFechar é chamado ao FIM da transição de saída (--t-medio), porque é
 //     ele que a tela usa para desmontar o componente — se desmontasse na
 //     hora, a saída não animaria;
 //   · a tela deve trocar a `key` a cada abertura. Uma instância fechada não
@@ -51,12 +51,11 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { duracaoDoToken } from '../utils/movimento.js';
 
 const FOCAVEIS =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
   'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const SAIDA_MS = 240; // igual a --dur-normal em modais.css
 
 export interface AcaoModal {
   rotulo: string;
@@ -133,7 +132,9 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
     if (focoAnterior instanceof HTMLElement && document.contains(focoAnterior)) {
       focoAnterior.focus();
     }
-    timer.current = window.setTimeout(() => props.current.aoFechar?.(), SAIDA_MS);
+    // Espera a saída de modais.css (--t-medio) terminar antes de desmontar.
+    const saidaMs = duracaoDoToken('--t-medio', 240);
+    timer.current = window.setTimeout(() => props.current.aoFechar?.(), saidaMs);
   }
 
   useImperativeHandle(ref, () => ({
