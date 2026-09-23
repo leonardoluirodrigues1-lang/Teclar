@@ -4,9 +4,10 @@
     "module": "ES2020",
     "moduleResolution": "bundler",
 
-    // Desligado de propósito: o código atual foi escrito sem tipagem, e
-    // strict exigiria tratar cada valor possivelmente nulo em código que
-    // já funciona. Fica para quando o restante dos .js for convertido.
+    // Desligado de propósito: o código foi escrito sem tipagem e convertido
+    // para TypeScript sem mudar a lógica. Ligar strict hoje gera mais de
+    // cem erros (valores possivelmente nulos, parâmetros sem tipo) em
+    // código que funciona.
     "strict": false,
 
     // Não existe mais .js fonte no projeto: todo .js em js/ é gerado pelo

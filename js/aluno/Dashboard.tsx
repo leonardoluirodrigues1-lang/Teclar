@@ -1,12 +1,12 @@
 // Dashboard.tsx — pages/aluno/dashboard.html
-// Dashboard mínimo do Aluno: lista os exercícios atribuídos à turma ativa.
+// A casa do Aluno: a <Nav> com as seções do aluno e um painel que lista os
+// exercícios atribuídos à turma ativa, com um atalho para o histórico.
 // Cada item leva ao treino com ?exercicio= e &turma=.
-// Não é a tela final — é o suficiente para chegar ao treino.
 //
-// Conversão de js/aluno/dashboard.js para React: mesmo markup, mesmas
-// classes de css/dashboard.css, mesmos textos e estados. A lista continua
-// sendo desenhada por ../componentes/listaExercicios.ts (módulo ES puro):
-// o React só entrega a <div id="lista"> e não põe filho nenhum nela.
+// Estilo: as classes de css/dashboard.css, com os ajustes do mundo Escola
+// em css/escola.css (bloco .pagina-aluno). A lista é desenhada por
+// ../componentes/listaExercicios.ts (módulo ES puro): o React só entrega a
+// <div id="lista"> e não põe filho nenhum nela.
 
 import { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
