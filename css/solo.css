@@ -1339,3 +1339,316 @@ a.item.licao:hover { border-color: rgba(255, 255, 255, 0.30); }
   .grupo-cabecalho { padding: 12px 12px; }
   .item.licao { padding: 14px 16px; }
 }
+
+/* ============================================================================
+   ACRÉSCIMO — o lobby completo (frame "06 — B+C: Solo · Lobby")
+
+   O que faltava do desenho, escrito por js/solo/Lobby.tsx:
+     - o anel de XP no lugar do retrato e da barra (a <BarraXp> continua
+       existindo para campanhas.html e estatisticas.html; aqui ela só não
+       é mais usada);
+     - as três métricas ao lado do nome;
+     - o gráfico de ritmo embaixo dos sete dias;
+     - a faixa "continuar de onde parou", largura toda;
+     - o rodapé com a linha-guia do teclado.
+
+   As regras antigas do painel (.lobby-retrato, .lobby-selo,
+   .lobby-experiencia, .lobby-rodape, .lobby-atalho*) ficam lá em cima sem
+   uso pelo lobby: este bloco só acrescenta.
+   ========================================================================== */
+
+/* --- painel do personagem: anel | nome | métricas ------------------------ */
+/* Deixa de ser coluna e vira linha. flex-wrap: em tela estreita as
+   métricas descem para a linha de baixo em vez de espremer o nome. */
+.lobby-personagem {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 22px 28px;
+}
+
+.lobby-personagem .lobby-identidade {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-xp-texto {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+.lobby-xp-texto strong {
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+
+/* --- o anel -------------------------------------------------------------- */
+/* 92px: a medida do retrato que ele substitui. O número do nível fica
+   sobreposto no meio, pela grade de uma célula só. */
+.lobby-anel {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+}
+.lobby-anel > * { grid-area: 1 / 1; }
+
+.lobby-anel-svg {
+  width: 100%;
+  height: 100%;
+  /* O SVG deixa o brilho da ponta sair da caixa em vez de cortá-lo. */
+  overflow: visible;
+}
+
+.lobby-anel-trilho {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.10);
+  stroke-width: 5;
+}
+
+.lobby-anel-arco {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+/* A ponta acesa: um ponto branco com halo. drop-shadow e não box-shadow,
+   porque é um elemento de SVG. */
+.lobby-anel-ponta {
+  fill: #fff;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95))
+          drop-shadow(0 0 10px rgba(255, 255, 255, 0.55));
+}
+
+.lobby-anel-nivel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+}
+.lobby-anel-nivel b {
+  font-size: 28px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+  font-variant-numeric: tabular-nums;
+}
+.lobby-anel-nivel span {
+  margin-top: 4px;
+  font-size: 7px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* --- as três métricas ---------------------------------------------------- */
+.lobby-metricas {
+  display: flex;
+  gap: 28px;
+}
+
+.lobby-metrica {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lobby-metrica-valor {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 26px;
+  font-weight: var(--peso-leve, 300);
+  line-height: 1;
+  color: var(--cor-texto, #fff);
+  font-variant-numeric: tabular-nums;
+}
+
+.lobby-metrica-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 8px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* --- ritmo: as últimas 12 sessões ---------------------------------------- */
+.lobby-ritmo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* A altura de cada barrinha vem do Lobby.tsx em %; align-items: flex-end
+   faz todas nascerem do chão. */
+.lobby-ritmo-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 44px;
+}
+
+.lobby-ritmo-barra {
+  flex: 1;
+  /* Um PPM baixíssimo ainda desenha um toco visível, e não some. */
+  min-height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.lobby-ritmo-barra-acesa {
+  background: var(--cor-texto, #fff);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+}
+
+/* --- faixa "continuar de onde parou" ------------------------------------- */
+.lobby-faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: none;
+  margin-top: var(--e-5, 24px);
+  padding: 28px 34px;
+}
+
+.lobby-faixa-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lobby-faixa-titulo {
+  font-family: var(--fonte-leitura, "Inter", system-ui, sans-serif);
+  font-size: 30px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  line-height: var(--lh-apertada, 1.1);
+  color: var(--cor-texto, #fff);
+  overflow-wrap: anywhere;
+}
+
+.lobby-pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A mesma pílula das repetições em campanhas.html (.licao-repeticoes). */
+.lobby-pilula {
+  padding: 5px 10px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.07);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O botão é uma tecla clara (as classes .tecla .tecla-clara); aqui só o
+   tamanho: não encolhe, e tem corpo de tecla larga. */
+.lobby-faixa-acao {
+  flex: none;
+  min-width: 180px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* --- rodapé: a linha-guia ------------------------------------------------ */
+.lobby-guia {
+  margin-top: 44px;
+}
+
+/* 1px que acende no meio e se apaga nas pontas. */
+.lobby-guia-linha {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%);
+}
+
+/* A marca central: o relevo da tecla F/J, um traço curto e aceso em cima
+   da linha. */
+.lobby-guia-marca {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.60);
+  transform: translate(-50%, -50%);
+}
+
+.lobby-guia-legenda {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-top: 14px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+}
+
+.lobby-guia-casa {
+  /* A fileira de casa é escrita em minúsculas, como no teclado. */
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.30);
+}
+
+.lobby-guia-link {
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.lobby-guia-link:hover {
+  color: var(--cor-texto, #fff);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+
+/* --- esboço da faixa ----------------------------------------------------- */
+/* A faixa já tem o lugar dela enquanto carrega: nada pula quando chega. */
+.lobby-esboco-faixa {
+  max-width: none;
+  height: 150px;
+  margin-top: var(--e-5, 24px);
+}
+
+/* --- responsivo ---------------------------------------------------------- */
+@media (max-width: 700px) {
+  .lobby-anel { width: 68px; height: 68px; }
+  .lobby-anel-nivel b { font-size: 21px; }
+
+  /* As três métricas dividem a largura em vez de valerem o próprio texto. */
+  .lobby-metricas { width: 100%; gap: 12px; }
+  .lobby-metrica { flex: 1; min-width: 0; }
+  .lobby-metrica-valor { font-size: 22px; }
+
+  /* A faixa empilha: o texto em cima, o botão com a largura toda embaixo. */
+  .lobby-faixa {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 24px 22px;
+  }
+  .lobby-faixa-titulo { font-size: 24px; }
+  .lobby-faixa-acao { min-width: 0; }
+
+  .lobby-guia { margin-top: 32px; }
+  .lobby-guia-legenda { letter-spacing: 0.18em; }
+}

@@ -43,7 +43,7 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
 import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
-import { maisRecentesPrimeiro } from '../utils/desempenho.js';
+import { agruparPorNivel, progressoDoPercurso, textoDoBotao } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinha desta em pages/solo/: caminho relativo.
@@ -86,27 +86,15 @@ interface GrupoDeNivel {
   licoes: Missao[];
 }
 
-// Agrupa por nível e ordena tudo por `ordem`, sem confiar na ordem em que
-// a resposta chegou: os grupos saem na ordem do menor `ordem` de cada um
-// (que é a ordem dos níveis no percurso), e as lições dentro do grupo em
-// ordem crescente. O percurso do professor intercala — o nível 1 tem as
-// lições 1 a 8 e também a 49 e a 50 —, então ordenar é o que junta as
-// duas pontas no mesmo grupo, na sequência certa.
+// A ordem (grupos na ordem da menor `ordem`, lições em `ordem` crescente)
+// é a de utils/percurso.ts, a mesma que o lobby usa para achar a próxima
+// lição. Aqui só entra o nome de cada nível, que é coisa desta tela.
 function agrupar(licoes: Missao[]): GrupoDeNivel[] {
-  const porNivel = new Map<number, Missao[]>();
-  for (const licao of licoes) {
-    const lista = porNivel.get(licao.nivel);
-    if (lista) lista.push(licao);
-    else porNivel.set(licao.nivel, [licao]);
-  }
-
-  return [...porNivel.entries()]
-    .map(([nivel, doNivel]) => ({
-      nivel,
-      nome: NOMES_DE_NIVEL[nivel] ?? '',
-      licoes: [...doNivel].sort((a, b) => a.ordem - b.ordem),
-    }))
-    .sort((a, b) => a.licoes[0].ordem - b.licoes[0].ordem);
+  return agruparPorNivel(licoes).map((grupo) => ({
+    nivel: grupo.nivel,
+    nome: NOMES_DE_NIVEL[grupo.nivel] ?? '',
+    licoes: grupo.licoes,
+  }));
 }
 
 // 186 -> '3:06'. Segundos sempre com dois dígitos, para a coluna não dançar.
@@ -127,37 +115,6 @@ function contagemFeitas(quantas: number): string {
 
 function hrefDoTreino(licao: Missao): string {
   return `../treino/treino.html?${new URLSearchParams({ exercicio: licao.exerciseId })}`;
-}
-
-// ============================================================================
-// Onde a pessoa parou — derivado do histórico
-// ============================================================================
-
-interface Progresso {
-  /** Lições com ao menos uma sessão concluída. */
-  concluidas: Set<string>;
-  /** A lição da sessão mais recente (concluída ou não). null: nunca treinou. */
-  ultimaFeita: Missao | null;
-  /** Para onde "Continuar" leva, e como se chama. */
-  proxima: { licao: Missao; repetir: boolean };
-}
-
-// `licoes` já na ordem do percurso (os grupos, achatados). A próxima é a
-// primeira não concluída nessa ordem; com tudo concluído, o convite é
-// repetir a última feita; sem sessão nenhuma, é a lição 01.
-function progressoDoPercurso(licoes: Missao[], sessoes: SessaoSolo[]): Progresso {
-  const concluidas = new Set(sessoes.filter((s) => s.concluida).map((s) => s.exerciseId));
-  const porId = new Map(licoes.map((l) => [l.exerciseId, l]));
-
-  const maisRecente = maisRecentesPrimeiro(sessoes).find((s) => porId.has(s.exerciseId));
-  const ultimaFeita = maisRecente ? porId.get(maisRecente.exerciseId) : null;
-
-  const primeiraPendente = licoes.find((l) => !concluidas.has(l.exerciseId));
-  const proxima = primeiraPendente
-    ? { licao: primeiraPendente, repetir: false }
-    : { licao: ultimaFeita ?? licoes[0], repetir: true };
-
-  return { concluidas, ultimaFeita, proxima };
 }
 
 // ============================================================================
@@ -293,7 +250,7 @@ function Campanhas({ usuario }: PropsCampanhas) {
             título da lição vai junto para a pessoa saber onde vai cair. */}
         {progresso && (
           <a className="btn btn-solido tecla tecla-clara campanha-acao" href={hrefDoTreino(progresso.proxima.licao)}>
-            <span>{progresso.proxima.repetir ? 'Repetir a última' : progresso.ultimaFeita ? 'Continuar' : 'Começar'}</span>
+            <span>{textoDoBotao(progresso)}</span>
             <span className="campanha-acao-licao">{progresso.proxima.licao.titulo}</span>
           </a>
         )}

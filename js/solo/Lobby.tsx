@@ -21,12 +21,33 @@
 // campanha, pelo sessao.definirCampanha(), porque campanhas.html e a tela
 // de treino precisam dele — e id é coluna, existe no banco.
 //
-// O DESENHO é o do painel da campanha: nav em pílula de vidro no topo,
-// duas colunas de altura igual (personagem à esquerda, sequência à
-// direita) e, abaixo, a ação. A grade de missões que o desenho traz NÃO
-// mora aqui: as lições vivem em campanhas.html, agrupadas por nível. O
-// lugar delas é ocupado pelo que o lobby sempre fez — o botão grande e os
-// dois atalhos —, com a lógica intacta e só o acabamento novo.
+// O DESENHO é o do frame "06 — B+C: Solo · Lobby": nav em pílula de vidro
+// no topo, duas colunas de altura igual e, abaixo, a faixa "continuar de
+// onde parou" e o rodapé com a linha-guia do teclado.
+//   · painel do personagem — o anel de XP em volta do número do nível, o
+//     nome com o XP ao lado e três métricas (melhor PPM, precisão média,
+//     lições concluídas);
+//   · painel da sequência  — os sete dias e, embaixo, o ritmo das últimas
+//     12 sessões em barrinhas;
+//   · faixa                — a próxima lição, com a mesma regra do botão
+//     "Continuar" de campanhas.html (utils/percurso.ts);
+//   · rodapé               — a linha-guia e o link para as lições.
+// A grade de missões que o desenho traz NÃO mora aqui: as lições vivem em
+// campanhas.html, agrupadas por nível.
+//
+// De onde vem cada dado (todas rotas que já existiam; nenhuma nova):
+//   · campanha      — GET /solo/campanha: nível e XP. É a única que manda:
+//                     se ela falhar, a tela é erro;
+//   · histórico     — GET /solo/historico: sequência, ritmo e onde parou;
+//   · estatísticas  — GET /solo/estatisticas (a da tela de estatísticas):
+//                     melhor PPM e lições concluídas;
+//   · indicadores   — GET /solo/indicadores: a precisão MÉDIA. Ela não está
+//                     em /solo/estatisticas (lá só há a melhor precisão), e
+//                     o front não calcula média — quem faz a conta é o back;
+//   · lições        — GET /solo/missoes: nome, nível, repetições e tempo da
+//                     próxima lição, e a contagem do rodapé.
+// As quatro últimas são enfeite útil: cada uma que falhar vira null e só a
+// parte dela some (ou vira "—"), e o resto da tela abre.
 //
 // Uma coisa do desenho não sobrevive ao banco: o "Campanha iniciada em 2
 // de setembro". A tabela CampanhasSolo não tem data de criação, e inventar
@@ -37,19 +58,41 @@ import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { Campanha, ErroDaApi, SessaoSolo } from '../nucleo/tipos.js';
+import type {
+  Campanha,
+  ErroDaApi,
+  EstatisticasSolo,
+  IndicadoresSolo,
+  Missao,
+  SessaoSolo,
+} from '../nucleo/tipos.js';
 import { PainelErro } from '../componentes/PainelErro.js';
-import { BarraXp, progressoDe } from '../componentes/BarraXp.js';
+import { progressoDe, type ProgressoXp } from '../componentes/BarraXp.js';
 import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { semanaDeDias, sequenciaDeDias, type DiaDaSemana } from '../utils/desempenho.js';
+import {
+  maisRecentesPrimeiro,
+  semanaDeDias,
+  sequenciaDeDias,
+  type DiaDaSemana,
+} from '../utils/desempenho.js';
+import {
+  ordemDoPercurso,
+  progressoDoPercurso,
+  textoDoBotao,
+  type ProgressoDoPercurso,
+} from '../utils/percurso.js';
+import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // A tela de missões, vizinha desta em pages/solo/. Caminho relativo: as
 // duas moram na mesma pasta.
 const ROTA_MISSOES = 'campanhas.html';
-// A tela de estatísticas (js/solo/Estatisticas.tsx), vizinha desta.
-const ROTA_ESTATISTICAS = 'estatisticas.html';
+
+// Quantas sessões o gráfico de ritmo mostra, e a partir de quantas ele
+// aparece: com duas barrinhas não há ritmo nenhum para ler.
+const SESSOES_NO_RITMO = 12;
+const MINIMO_PARA_O_RITMO = 3;
 
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
@@ -60,42 +103,114 @@ const MENSAGENS = {
 // ============================================================================
 // XP — a regra é a do config, não uma segunda conta feita aqui
 // ============================================================================
-// progressoDe() e a <BarraXp> moram em componentes/BarraXp.tsx desde que a
-// tela de estatísticas passou a mostrar a mesma barra. O NÍVEL continua
-// vindo pronto na campanha (campanha.nivelAtual), como o back o gravou —
-// ver a nota lá. O painel do personagem usa a MESMA barra: o que muda é
-// só onde a legenda dela aparece, e isso é css/solo.css, não outro
-// componente.
+// progressoDe() mora em componentes/BarraXp.tsx e é a mesma conta que a
+// barra das outras telas usa. Aqui o progresso vira ANEL em vez de barra;
+// a <BarraXp> continua existindo para campanhas.html e estatisticas.html.
+// O NÍVEL continua vindo pronto na campanha (campanha.nivelAtual), como o
+// back o gravou — ver a nota em BarraXp.tsx.
 
-// A inicial do retrato. Uma letra, como no desenho — a Nav usa duas no
-// avatar dela, e as duas coisas continuam sendo o que já eram.
-function inicial(nome: string): string {
-  return nome.trim().slice(0, 1).toUpperCase();
+// Medidas do anel, no sistema de coordenadas do SVG (viewBox 0 0 100 100).
+const ANEL_CENTRO = 50;
+const ANEL_RAIO = 44;
+const ANEL_CIRCUNFERENCIA = 2 * Math.PI * ANEL_RAIO;
+
+// Onde fica a ponta acesa do arco. O arco começa no topo (12 horas) e anda
+// no sentido do relógio; o ângulo sai da fração percorrida do nível.
+function pontaDoAnel(percentual: number): { x: number; y: number } {
+  const angulo = (percentual / 100) * 2 * Math.PI;
+  return {
+    x: ANEL_CENTRO + ANEL_RAIO * Math.sin(angulo),
+    y: ANEL_CENTRO - ANEL_RAIO * Math.cos(angulo),
+  };
+}
+
+function AnelXp({ progresso }: { progresso: ProgressoXp }) {
+  // stroke-dasharray = a volta inteira; o dashoffset esconde a parte que
+  // falta. Com 0%, o offset é a volta inteira e nada é pintado.
+  const falta = ANEL_CIRCUNFERENCIA * (1 - progresso.percentual / 100);
+  const ponta = pontaDoAnel(progresso.percentual);
+
+  return (
+    // Os mesmos atributos de progressbar da <BarraXp>: quem ouve a tela
+    // recebe "69 de 200 XP", o número que está escrito ao lado do nome.
+    <div
+      className="lobby-anel"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={progresso.porNivel}
+      aria-valuenow={progresso.noNivel}
+      aria-valuetext={`${progresso.noNivel} de ${progresso.porNivel} XP`}
+      aria-label={`Progresso para o nível ${progresso.nivel + 1}`}
+    >
+      <svg className="lobby-anel-svg" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          {/* Do canto inferior esquerdo (fraco) para o superior direito
+              (forte): é de lá que vem a luz da tela (css/base/luz.css).
+              userSpaceOnUse: com o padrão (objectBoundingBox) a direção
+              seguiria a caixa do arco, que gira junto com o rotate. */}
+          <linearGradient
+            id="lobby-anel-gradiente"
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="100"
+            x2="100"
+            y2="0"
+          >
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#fff" stopOpacity="1" />
+          </linearGradient>
+        </defs>
+        <circle className="lobby-anel-trilho" cx={ANEL_CENTRO} cy={ANEL_CENTRO} r={ANEL_RAIO} />
+        {/* O círculo do SVG começa às 3 horas; o anel começa às 12, como
+            um relógio. Por isso o arco é um <path> que já nasce no topo, e
+            não um <circle> girado — girar levaria o degradê junto. */}
+        <path
+          className="lobby-anel-arco"
+          d={`M ${ANEL_CENTRO} ${ANEL_CENTRO - ANEL_RAIO} a ${ANEL_RAIO} ${ANEL_RAIO} 0 1 1 0 ${2 * ANEL_RAIO} a ${ANEL_RAIO} ${ANEL_RAIO} 0 1 1 0 ${-2 * ANEL_RAIO}`}
+          stroke="url(#lobby-anel-gradiente)"
+          strokeDasharray={ANEL_CIRCUNFERENCIA}
+          strokeDashoffset={falta}
+        />
+        {/* O brilho na ponta acesa. Com 0% não há arco, e portanto não há
+            ponta para acender. */}
+        {progresso.percentual > 0 && (
+          <circle className="lobby-anel-ponta" cx={ponta.x} cy={ponta.y} r="3.5" />
+        )}
+      </svg>
+      <span className="lobby-anel-nivel">
+        <b>{progresso.nivel}</b>
+        <span>Nível</span>
+      </span>
+    </div>
+  );
 }
 
 // ============================================================================
 // Esqueleto — a altura dos painéis finais
 // ============================================================================
 
-// Os dois painéis já ocupam o lugar que terão, na mesma grade: quando a
+// Os dois painéis e a faixa já ocupam o lugar que terão: quando a
 // campanha chega, nada pula. A medida é a do estado COM campanha, que é o
 // caso de quem volta — o convite da primeira vez acontece uma única vez
 // por conta.
 function EsbocoLobby() {
   return (
-    <div className="lobby-topo" aria-hidden="true">
-      <article className="painel vidro lobby-esboco">
-        <div className="lobby-esboco-retrato" />
-        <div className="lobby-esboco-linhas">
-          <div className="lobby-esboco-nome" />
-          <div className="lobby-esboco-barra" />
-        </div>
-      </article>
-      <article className="painel vidro lobby-esboco">
-        <div className="lobby-esboco-rotulo" />
-        <div className="lobby-esboco-dias" />
-        <div className="lobby-esboco-frase" />
-      </article>
+    <div aria-hidden="true">
+      <div className="lobby-topo">
+        <article className="painel vidro lobby-esboco">
+          <div className="lobby-esboco-retrato" />
+          <div className="lobby-esboco-linhas">
+            <div className="lobby-esboco-nome" />
+            <div className="lobby-esboco-barra" />
+          </div>
+        </article>
+        <article className="painel vidro lobby-esboco">
+          <div className="lobby-esboco-rotulo" />
+          <div className="lobby-esboco-dias" />
+          <div className="lobby-esboco-frase" />
+        </article>
+      </div>
+      <div className="painel vidro lobby-esboco-faixa" />
     </div>
   );
 }
@@ -104,30 +219,50 @@ function EsbocoLobby() {
 // Painel do personagem
 // ============================================================================
 
-function PainelPersonagem({ nome, campanha }: { nome: string; campanha: Campanha }) {
+interface PropsMetrica {
+  rotulo: string;
+  valor: string;
+}
+
+// Uma das três métricas: número grande em mono, rótulo mono miúdo embaixo.
+function Metrica({ rotulo, valor }: PropsMetrica) {
+  return (
+    <div className="lobby-metrica">
+      <span className="lobby-metrica-valor">{valor}</span>
+      <span className="lobby-metrica-rotulo">{rotulo}</span>
+    </div>
+  );
+}
+
+interface PropsPersonagem {
+  nome: string;
+  campanha: Campanha;
+  // null = a rota falhou; a métrica dela mostra "—".
+  estatisticas: EstatisticasSolo | null;
+  indicadores: IndicadoresSolo | null;
+}
+
+function PainelPersonagem({ nome, campanha, estatisticas, indicadores }: PropsPersonagem) {
   const progresso = progressoDe(campanha);
 
   return (
     <article className="painel vidro lobby-personagem">
-      <div className="lobby-quem">
-        <div className="lobby-retrato" aria-hidden="true">
-          {inicial(nome)}
-        </div>
-        <div className="lobby-identidade">
-          <div className="lobby-linha-nome">
-            <h1 className="lobby-nome">{nome}</h1>
-            <span className="lobby-selo">Nível {progresso.nivel}</span>
-          </div>
-        </div>
+      <AnelXp progresso={progresso} />
+
+      <div className="lobby-identidade">
+        <h1 className="lobby-nome">{nome}</h1>
+        {/* aria-hidden: o anel já diz isto a quem ouve a tela. */}
+        <p className="lobby-xp-texto" aria-hidden="true">
+          <strong>{progresso.noNivel}</strong> / {progresso.porNivel} XP · faltam {progresso.falta}
+        </p>
       </div>
 
-      {/* O rótulo e a barra dividem a mesma grade: a legenda que a
-          <BarraXp> já escreve sobe para a direita do rótulo (ver
-          .lobby-experiencia em css/solo.css). Nenhuma segunda barra, e
-          nenhum segundo texto de XP. */}
-      <div className="lobby-experiencia">
-        <span className="lobby-rotulo">Experiência</span>
-        <BarraXp progresso={progresso} />
+      {/* numero(), porcentagem() e contagem() já escrevem "—" quando o
+          valor é null — inclusive quando a rota inteira falhou. */}
+      <div className="lobby-metricas">
+        <Metrica rotulo="Melhor PPM" valor={numero(estatisticas?.melhorWpm)} />
+        <Metrica rotulo="Precisão média" valor={porcentagem(indicadores?.precisaoMedia)} />
+        <Metrica rotulo="Lições concluídas" valor={contagem(estatisticas?.licoesConcluidas)} />
       </div>
     </article>
   );
@@ -162,7 +297,49 @@ function classeDoQuadrado(dia: DiaDaSemana): string {
   return classe;
 }
 
-function PainelSequencia({ dias, sequencia }: { dias: DiaDaSemana[]; sequencia: number }) {
+// As últimas sessões, da mais antiga para a mais recente: no gráfico o
+// tempo anda da esquerda para a direita, e a última fica na ponta.
+function sessoesDoRitmo(sessoes: SessaoSolo[]): SessaoSolo[] {
+  return maisRecentesPrimeiro(sessoes).slice(0, SESSOES_NO_RITMO).reverse();
+}
+
+// O ritmo: uma barrinha por sessão, altura proporcional ao PPM. A mais alta
+// do trecho vale 100%; as outras, a fração dela.
+function GraficoRitmo({ sessoes }: { sessoes: SessaoSolo[] }) {
+  const recentes = sessoesDoRitmo(sessoes);
+  if (recentes.length < MINIMO_PARA_O_RITMO) return null;
+
+  // Math.max(1, ...) para um trecho todo em 0 PPM não dividir por zero.
+  const maior = Math.max(1, ...recentes.map((s) => s.wpm));
+  const ultima = recentes.length - 1;
+  const numeros = recentes.map((s) => numero(s.wpm)).join(', ');
+  const descricao = `PPM das últimas ${recentes.length} sessões, da mais antiga para a mais recente: ${numeros}`;
+
+  return (
+    <div className="lobby-ritmo">
+      <span className="lobby-rotulo">Ritmo</span>
+      {/* role="img" com a lista de números: as barrinhas são desenho, e o
+          que elas dizem vai inteiro no rótulo. */}
+      <div className="lobby-ritmo-barras" role="img" aria-label={descricao}>
+        {recentes.map((sessao, i) => (
+          <span
+            key={sessao.id}
+            className={'lobby-ritmo-barra' + (i === ultima ? ' lobby-ritmo-barra-acesa' : '')}
+            style={{ height: `${(sessao.wpm / maior) * 100}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface PropsSequencia {
+  dias: DiaDaSemana[];
+  sequencia: number;
+  sessoes: SessaoSolo[];
+}
+
+function PainelSequencia({ dias, sequencia, sessoes }: PropsSequencia) {
   return (
     <article className="painel vidro lobby-sequencia">
       <span className="lobby-rotulo">Sequência</span>
@@ -187,7 +364,102 @@ function PainelSequencia({ dias, sequencia }: { dias: DiaDaSemana[]; sequencia: 
       </ul>
 
       <p className="lobby-frase">{fraseDaSequencia(sequencia)}</p>
+
+      <GraficoRitmo sessoes={sessoes} />
     </article>
+  );
+}
+
+// ============================================================================
+// Faixa "continuar de onde parou"
+// ============================================================================
+// Qual lição e qual verbo (Continuar / Começar / Repetir a última) vêm de
+// utils/percurso.ts — a mesma regra do botão de campanhas.html, então as
+// duas telas sempre apontam para a mesma lição com o mesmo texto.
+
+// O mesmo endereço que o cartão da lição usa em campanhas.html.
+function hrefDoTreino(licao: Missao): string {
+  return `../treino/treino.html?${new URLSearchParams({ exercicio: licao.exerciseId })}`;
+}
+
+// 186 -> '3:06', como o tempo do cartão em campanhas.html.
+function tempoEmMinutos(segundos: number): string {
+  const total = Math.max(0, Math.round(segundos ?? 0));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function FaixaContinuar({ progresso }: { progresso: ProgressoDoPercurso | null }) {
+  // Sem lições ou sem histórico não dá para saber a próxima. A faixa fica,
+  // com o botão levando às lições — que é o que o lobby sempre fez.
+  if (progresso == null) {
+    return (
+      <section className="painel vidro lobby-faixa" aria-label="Continuar">
+        <div className="lobby-faixa-texto">
+          <span className="lobby-rotulo">Continuar de onde parou</span>
+          <p className="lobby-faixa-titulo">Suas lições</p>
+        </div>
+        <a className="btn btn-solido tecla tecla-clara lobby-faixa-acao" href={ROTA_MISSOES}>
+          Continuar
+        </a>
+      </section>
+    );
+  }
+
+  const { licao } = progresso.proxima;
+  const nuncaTreinou = progresso.ultimaFeita == null;
+  const tempo = tempoEmMinutos(licao.tempoLimiteSegundos);
+  return (
+    <section className="painel vidro lobby-faixa" aria-label="Continuar de onde parou">
+      <div className="lobby-faixa-texto">
+        <span className="lobby-rotulo">
+          {nuncaTreinou ? 'Sua primeira lição' : 'Continuar de onde parou'}
+        </span>
+        <p className="lobby-faixa-titulo">{licao.titulo}</p>
+        <ul className="lobby-pilulas">
+          <li className="lobby-pilula">Nível {licao.nivel}</li>
+          {/* O aria-label existe porque "10×" lido em voz alta vira "dez ex". */}
+          <li className="lobby-pilula" aria-label={`${licao.repeticoes} repetições`}>
+            {licao.repeticoes}×
+          </li>
+          <li className="lobby-pilula" aria-label={`Tempo: ${tempo}`}>
+            {tempo}
+          </li>
+        </ul>
+      </div>
+      <a className="btn btn-solido tecla tecla-clara lobby-faixa-acao" href={hrefDoTreino(licao)}>
+        {textoDoBotao(progresso)}
+      </a>
+    </section>
+  );
+}
+
+// ============================================================================
+// Rodapé — a linha-guia do teclado
+// ============================================================================
+// A linha acende no meio e tem a marca central, como o relevo das teclas F
+// e J. Embaixo, a fileira de casa à esquerda e a contagem de lições à
+// direita, que leva a elas.
+
+function RodapeLinhaGuia({ licoes }: { licoes: Missao[] | null }) {
+  let textoDoLink = 'Lições';
+  if (licoes != null) {
+    textoDoLink = `${licoes.length} ${licoes.length === 1 ? 'lição' : 'lições'}`;
+  }
+
+  return (
+    <footer className="lobby-guia">
+      <div className="lobby-guia-linha" aria-hidden="true">
+        <span className="lobby-guia-marca" />
+      </div>
+      <div className="lobby-guia-legenda">
+        <span className="lobby-guia-casa" aria-hidden="true">
+          asdf jklç
+        </span>
+        <a className="lobby-guia-link" href={ROTA_MISSOES}>
+          {textoDoLink}
+        </a>
+      </div>
+    </footer>
   );
 }
 
@@ -199,9 +471,26 @@ type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
   // null é o estado 1 (ainda não começou), não um erro disfarçado.
-  // `sessoes` é null quando o histórico falhou: o painel de sequência some
-  // e o resto da tela continua de pé.
-  | { estado: 'pronto'; campanha: Campanha | null; sessoes: SessaoSolo[] | null };
+  // Os outros quatro são null quando a rota deles falhou: só a parte que
+  // eles alimentam some (ou vira "—"), e o resto da tela continua de pé.
+  | {
+      estado: 'pronto';
+      campanha: Campanha | null;
+      sessoes: SessaoSolo[] | null;
+      estatisticas: EstatisticasSolo | null;
+      indicadores: IndicadoresSolo | null;
+      licoes: Missao[] | null;
+    };
+
+// A rede de segurança das rotas que não mandam na tela: se a chamada
+// falhar, o erro vai para o console e o valor vira null, em vez de
+// derrubar o Promise.all inteiro.
+function nullSeFalhar<T>(promessa: Promise<T>): Promise<T | null> {
+  return promessa.catch((excecao) => {
+    console.error(excecao);
+    return null;
+  });
+}
 
 function Lobby() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -221,20 +510,18 @@ function Lobby() {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        // As duas juntas, e a campanha manda: sem ela não há o que mostrar.
-        // O histórico vem no mesmo ida-e-volta, mas com a própria rede de
-        // segurança — ele alimenta só o painel de sequência, e uma falha
-        // ali não pode derrubar a tela inteira. Por isso o catch local em
-        // vez de deixar o Promise.all rejeitar por ele.
-        const [campanha, sessoes] = await Promise.all([
+        // Todas juntas, e a campanha manda: sem ela não há o que mostrar.
+        // As outras vêm no mesmo ida-e-volta, cada uma com a própria rede de
+        // segurança (nullSeFalhar) — elas alimentam partes da tela, e uma
+        // falha numa delas não pode derrubar a tela inteira. Sem campanha,
+        // as quatro respondem 404 (a campanha é a do token) e viram null,
+        // que o estado 1 nem olha.
+        const [campanha, sessoes, estatisticas, indicadores, licoes] = await Promise.all([
           api.solo.campanhaAtual(),
-          api.solo
-            .historico()
-            .then((historico) => desembrulhar(historico))
-            .catch((excecao) => {
-              console.error(excecao);
-              return null;
-            }),
+          nullSeFalhar(api.solo.historico().then((historico) => desembrulhar<SessaoSolo>(historico))),
+          nullSeFalhar(api.solo.estatisticas()),
+          nullSeFalhar(api.solo.indicadores()),
+          nullSeFalhar(api.solo.missoes().then((missoes) => desembrulhar<Missao>(missoes))),
         ]);
         if (cancelado) return;
 
@@ -244,7 +531,14 @@ function Lobby() {
         // tela de missões pedir uma campanha que não existe mais.
         sessao.atualizarUsuario({ campanhaAtiva: campanha?.campanhaId ?? null });
 
-        setCarga({ estado: 'pronto', campanha: campanha ?? null, sessoes });
+        setCarga({
+          estado: 'pronto',
+          campanha: campanha ?? null,
+          sessoes,
+          estatisticas,
+          indicadores,
+          licoes,
+        });
       } catch (excecao) {
         if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
       }
@@ -259,6 +553,13 @@ function Lobby() {
   const sessoes = carga.estado === 'pronto' ? carga.sessoes : null;
   const dias = useMemo(() => (sessoes == null ? null : semanaDeDias(sessoes)), [sessoes]);
   const sequencia = useMemo(() => (sessoes == null ? 0 : sequenciaDeDias(sessoes)), [sessoes]);
+  const licoes = carga.estado === 'pronto' ? carga.licoes : null;
+  // Sem lições ou sem histórico não há como saber a próxima: null, e a
+  // faixa mostra só o caminho para as lições.
+  const progresso = useMemo(
+    () => (licoes == null || sessoes == null ? null : progressoDoPercurso(ordemDoPercurso(licoes), sessoes)),
+    [licoes, sessoes]
+  );
 
   // --- começar a campanha ---------------------------------------------------
 
@@ -340,27 +641,21 @@ function Lobby() {
     return (
       <>
         <div className={'lobby-topo' + (dias == null ? ' lobby-topo-unico' : '')}>
-          <PainelPersonagem nome={nome} campanha={carga.campanha} />
-          {/* Histórico falhou: o painel some e o do personagem ocupa a
-              largura toda. Nenhum aviso — a tela não deve nada aqui. */}
-          {dias && <PainelSequencia dias={dias} sequencia={sequencia} />}
+          <PainelPersonagem
+            nome={nome}
+            campanha={carga.campanha}
+            estatisticas={carga.estatisticas}
+            indicadores={carga.indicadores}
+          />
+          {/* Histórico falhou: o painel some (e o ritmo com ele) e o do
+              personagem ocupa a largura toda. Nenhum aviso — a tela não
+              deve nada aqui. */}
+          {dias && sessoes && <PainelSequencia dias={dias} sequencia={sequencia} sessoes={sessoes} />}
         </div>
 
-        {/* A ação e os dois atalhos: mesma lógica de sempre. */}
-        <div className="lobby-rodape">
-          <a className="btn btn-solido tecla tecla-clara lobby-acao" href={ROTA_MISSOES}>
-            Continuar
-          </a>
+        <FaixaContinuar progresso={progresso} />
 
-          <nav className="lobby-atalhos" aria-label="Mais do Solo">
-            <a className="lobby-atalho" href={ROTA_ESTATISTICAS}>
-              Estatísticas
-            </a>
-            <a className="lobby-atalho" href={ROTA_MISSOES}>
-              Missões
-            </a>
-          </nav>
-        </div>
+        <RodapeLinhaGuia licoes={licoes} />
       </>
     );
   }
@@ -373,7 +668,7 @@ function Lobby() {
       <Nav secoes={SECOES_SOLO} ativo="campanha" />
 
       {/* Sem aria-live neste invólucro: o PainelErro já é role="status" e
-          se anuncia sozinho, e a barra de XP tem o próprio rótulo. Uma
+          se anuncia sozinho, e o anel de XP tem o próprio rótulo. Uma
           região viva por fora faria o leitor de tela ler a mesma coisa
           duas vezes. */}
       <main className="lobby-conteudo">{renderizarCorpo()}</main>
