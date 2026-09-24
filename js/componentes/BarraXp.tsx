@@ -5,9 +5,10 @@
 // mesma barra — uma receita, dois lugares. As classes continuam as
 // .lobby-xp* de css/solo.css, sem alteração.
 //
-// A regra do XP é a do config, não uma segunda conta feita aqui: quanto
-// custa um nível está em CONFIG.SOLO.XP_POR_NIVEL, que espelha a tabela
-// Configuracoes. O NÍVEL em si a barra não calcula: ele vem pronto na
+// Quanto custa um nível vem da tabela Configuracoes (GET /parametros,
+// campo xpPorNivel), passado por quem chama progressoDe(); o
+// CONFIG.SOLO.XP_POR_NIVEL é só o espelho para quem ainda não o carrega.
+// O NÍVEL em si a barra não calcula: ele vem pronto na
 // campanha (campanha.nivelAtual), como o back o gravou. Se o front
 // recalculasse o nível a partir do XP, passaria a existir uma segunda
 // verdade sobre a mesma coisa — e as duas divergiriam no dia em que a
@@ -30,8 +31,14 @@ export interface ProgressoXp {
   percentual: number;
 }
 
-export function progressoDe(campanha: Campanha): ProgressoXp {
-  const porNivel = CONFIG.SOLO.XP_POR_NIVEL;
+// `xpPorNivel` vem de GET /parametros (a tabela Configuracoes) nas telas
+// que já o carregam — o dashboard e a moldura do Solo. Quem não passa usa
+// o espelho do config, o mesmo número enquanto o banco não mudar.
+export function progressoDe(
+  campanha: Campanha,
+  xpPorNivel: number = CONFIG.SOLO.XP_POR_NIVEL
+): ProgressoXp {
+  const porNivel = xpPorNivel;
   // Math.max(0, ...) para um xpTotal torto não virar barra negativa.
   const xpTotal = Math.max(0, campanha.xpTotal ?? 0);
   const noNivel = xpTotal % porNivel;

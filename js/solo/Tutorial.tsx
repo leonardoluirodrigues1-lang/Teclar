@@ -2,8 +2,8 @@
 // A apresentação do Solo, na primeira vez que a conta abre o caminho. Três
 // passos: o que é o TECLAR, como o caminho funciona e onde ficam o painel
 // e o menu. À esquerda o texto e três itens com ícone; à direita, uma
-// frase e o teclado montado com as teclas do projeto, com a linha-guia
-// acesa. Embaixo, os pontinhos e os botões "Pular" e "Continuar".
+// frase e o teclado ABNT2 montado com as teclas do projeto, com a
+// linha-guia acesa. Embaixo, os pontinhos e os botões "Pular" e "Continuar".
 //
 // Quem usa: js/solo/Caminho.tsx, que mostra esta tela no lugar da trilha
 // enquanto sessao.tutorialVisto() for false. "Pular" e o "Continuar" do
@@ -162,23 +162,90 @@ const PASSOS: Passo[] = [
 // O teclado da direita
 // ============================================================================
 
-// Três fileiras de dez, como o preview. A linha-guia (a fileira de casa,
-// onde os dedos descansam) fica acesa: tecla clara.
-const TECLAS = 'QWERTYUIOPASDFGHJKLÇZXCVBNM,.;'.split('');
-const LINHA_GUIA = new Set('ASDFJKLÇ'.split(''));
+// O teclado ABNT2, o teclado do projeto, desenhado como um teclado de
+// verdade: as fileiras desalinhadas (cada uma começa um pouco mais à
+// direita que a de cima, porque as teclas de borda crescem) e teclas de
+// larguras diferentes. A largura é medida em "unidades": 1 é uma tecla de
+// letra, quadrada. Toda fileira soma 15 unidades, para as bordas da
+// direita baterem.
 
-// Só desenho: nenhuma destas teclas se aperta, e o leitor de tela não
-// precisa delas (a frase já diz o que importa).
+interface TeclaDoDesenho {
+  rotulo: string;
+  /** Em unidades: 1 = tecla de letra. */
+  largura: number;
+  /** Fileira de casa (A S D F J K L Ç): a única acesa. */
+  guia?: boolean;
+  /** F e J: o risquinho que o dedo sente no teclado real. */
+  marcaDeRelevo?: boolean;
+  /** Espaço vazio ao lado da barra de espaço: ocupa lugar, não é tecla. */
+  vazia?: boolean;
+}
+
+const LINHA_GUIA = new Set(['A', 'S', 'D', 'F', 'J', 'K', 'L', 'Ç']);
+const MARCA_DE_RELEVO = new Set(['F', 'J']);
+
+// As teclas de uma unidade, a partir das letras de uma fileira.
+function teclasDeLetra(letras: string[]): TeclaDoDesenho[] {
+  return letras.map((letra) => ({
+    rotulo: letra,
+    largura: 1,
+    guia: LINHA_GUIA.has(letra),
+    marcaDeRelevo: MARCA_DE_RELEVO.has(letra),
+  }));
+}
+
+const FILEIRAS: TeclaDoDesenho[][] = [
+  // 1,5 + 12 + 1,5 = 15
+  [
+    { rotulo: 'tab', largura: 1.5 },
+    ...teclasDeLetra(['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '´', '[']),
+    { rotulo: 'enter', largura: 1.5 },
+  ],
+  // 1,75 + 12 + 1,25 = 15. A última é a parte de baixo do Enter, que no
+  // ABNT2 desce por duas fileiras.
+  [
+    { rotulo: 'caps', largura: 1.75 },
+    ...teclasDeLetra(['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'Ç', '~', ']']),
+    { rotulo: '', largura: 1.25 },
+  ],
+  // 2,25 + 10 + 2,75 = 15
+  [
+    { rotulo: 'shift', largura: 2.25 },
+    ...teclasDeLetra(['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', ';']),
+    { rotulo: 'shift', largura: 2.75 },
+  ],
+  // 4 + 7 + 4 = 15: a barra de espaço, larga, no meio.
+  [
+    { rotulo: '', largura: 4, vazia: true },
+    { rotulo: '', largura: 7 },
+    { rotulo: '', largura: 4, vazia: true },
+  ],
+];
+
+function classeDaTecla(tecla: TeclaDoDesenho): string {
+  if (tecla.vazia) return 'tutorial-tecla-vazia';
+  let classe = 'tutorial-tecla tecla';
+  if (tecla.largura === 1) classe += ' tutorial-tecla-letra';
+  if (tecla.guia) classe += ' tutorial-tecla-guia tecla-clara';
+  if (tecla.marcaDeRelevo) classe += ' tutorial-tecla-relevo';
+  return classe;
+}
+
+// Só desenho: nenhuma destas teclas se aperta nem recebe foco, e o leitor
+// de tela não precisa delas (a frase já diz o que importa).
 function TecladoDecorativo() {
   return (
     <div className="tutorial-teclado" aria-hidden="true">
-      {TECLAS.map((letra) => (
-        <span
-          key={letra}
-          className={'tutorial-tecla tecla' + (LINHA_GUIA.has(letra) ? ' tutorial-tecla-guia tecla-clara' : '')}
-        >
-          {letra}
-        </span>
+      {FILEIRAS.map((fileira, i) => (
+        <div className="tutorial-fileira" key={i}>
+          {fileira.map((tecla, j) => (
+            // A largura vai no flex-grow: a tecla cresce na proporção das
+            // unidades dela.
+            <span key={j} className={classeDaTecla(tecla)} style={{ flexGrow: tecla.largura }}>
+              {tecla.rotulo}
+            </span>
+          ))}
+        </div>
       ))}
     </div>
   );

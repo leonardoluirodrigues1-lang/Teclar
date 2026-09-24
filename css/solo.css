@@ -1845,6 +1845,26 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .lobby-caminhos-link:hover { color: var(--cor-texto, #fff); }
 
+/* "← Voltar ao caminho": a única saída do dashboard, então é botão de
+   verdade — o .btn de sempre (tamanho, fonte, pílula) com a face escura e
+   o relevo de tecla (.tecla, css/base/luz.css). */
+.lobby-voltar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  color: var(--cor-texto, #fff);
+}
+
+.lobby-caminhos { align-items: center; }
+
+/* No dashboard o topo à esquerda é o nome da pessoa, como título da tela,
+   no lugar da marca (ver telaDaPessoa em MolduraSolo.tsx). */
+.moldura-titulo-pessoa {
+  font-size: 22px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  color: var(--cor-texto, #fff);
+}
+
 /* ---------------------------------------------------------------------------
    Configurações: uma opção com botão ao lado (rever o tutorial). Não é
    <label>: o que se clica é o botão, não a linha.
@@ -1984,24 +2004,64 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* O teclado ABNT2 (ver TecladoDecorativo em Tutorial.tsx). Cada fileira é
+   uma linha flex; a largura de cada tecla vem do flex-grow que o
+   componente põe (1 = letra). flex-basis 0 e min-width 0: a fileira
+   divide só a largura que tem, e o teclado nunca estoura o painel. */
 .tutorial-teclado {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
   margin-top: 60px;
-  padding: 0 34px;
+  padding: 0 var(--e-5, 24px);
+}
+
+.tutorial-fileira {
+  display: flex;
+  gap: 6px;
+}
+
+.tutorial-tecla,
+.tutorial-tecla-vazia {
+  flex-basis: 0;
+  min-width: 0;
 }
 
 .tutorial-tecla {
+  position: relative;
   display: grid;
   place-items: center;
-  height: 38px;
-  border-radius: 11px;
+  overflow: hidden;
+  border-radius: var(--raio-n, 8px);
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
+  font-size: 9px;
   color: rgba(255, 255, 255, 0.55);
 }
+
+/* A tecla de letra é quadrada: a altura acompanha a largura. As de borda
+   (tab, caps, shift, enter, espaço) só esticam na altura da fileira. */
+.tutorial-tecla-letra {
+  aspect-ratio: 1;
+  font-size: 11px;
+}
+
+/* F e J: o risco curto na base da tecla, a marca que o dedo sente. Claro
+   como a face, com uma sombra fina embaixo, para ler como relevo e não
+   como desenho chapado. */
+.tutorial-tecla-relevo::after {
+  content: "";
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  width: 30%;
+  height: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  background: var(--cor-texto, #fff);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
 /* Decorativas: não se apertam, então não afundam no clique. */
 .tutorial-teclado .tecla { pointer-events: none; }
 

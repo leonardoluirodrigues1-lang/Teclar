@@ -13,6 +13,13 @@
 //
 //   <MolduraSolo ativo="caminho">...conteúdo da tela...</MolduraSolo>
 //
+// No dashboard, que é a tela para onde o botão da pessoa leva, o botão não
+// aparece (levaria para onde ela já está) e o nome dela vira o título da
+// tela, no topo à esquerda, no lugar da marca — que continua na barra
+// lateral:
+//
+//   <MolduraSolo ativo={null} telaDaPessoa>...</MolduraSolo>
+//
 // A barra lateral NÃO escurece a tela nem cobre o conteúdo: ela ocupa a
 // faixa da esquerda e o conteúdo anda para a direita, continuando visível.
 // Quem faz isso é o CSS (.moldura-lateral-aberta em css/solo.css); aqui só
@@ -38,6 +45,8 @@ interface PropsMoldura {
   /** true enquanto o tutorial está na tela: o botão redondo cairia em cima
    *  dos pontinhos e dos botões do rodapé dele. */
   esconderMenu?: boolean;
+  /** true só no dashboard: a tela da pessoa. Ver o comentário do topo. */
+  telaDaPessoa?: boolean;
   children: ReactNode;
 }
 
@@ -119,9 +128,18 @@ function inicialDoNome(nome: string): string {
 // A campanha só serve para o nível e a barra. Enquanto ela não chega, ou
 // quando a pessoa ainda não tem campanha, o botão mostra só a inicial e o
 // nome — ele leva ao dashboard do mesmo jeito.
-function BotaoPessoa({ campanha }: { campanha: Campanha | null }) {
+//
+// Nível e XP saem das MESMAS rotas e da MESMA conta que o dashboard usa
+// (GET /solo/campanha, GET /parametros e progressoDe()), para o botão e o
+// dashboard nunca mostrarem dois níveis diferentes.
+interface PropsBotaoPessoa {
+  campanha: Campanha | null;
+  xpPorNivel: number;
+}
+
+function BotaoPessoa({ campanha, xpPorNivel }: PropsBotaoPessoa) {
   const nome = sessao.nomeExibicao();
-  const progresso = campanha ? progressoDe(campanha) : null;
+  const progresso = campanha ? progressoDe(campanha, xpPorNivel) : null;
   const rotulo = progresso
     ? `Abrir seu painel: ${nome}, nível ${progresso.nivel}, ${progresso.noNivel} de ${progresso.porNivel} XP`
     : `Abrir seu painel: ${nome}`;
@@ -269,17 +287,21 @@ function BarraLateral({ aberta, ativo, aoFechar }: PropsBarraLateral) {
 // A moldura
 // ============================================================================
 
-export function MolduraSolo({ ativo, esconderMenu = false, children }: PropsMoldura) {
+export function MolduraSolo({ ativo, esconderMenu = false, telaDaPessoa = false, children }: PropsMoldura) {
   const [aberta, setAberta] = useState(false);
   const [campanha, setCampanha] = useState<Campanha | null>(null);
+  const [xpPorNivel, setXpPorNivel] = useState(CONFIG.SOLO.XP_POR_NIVEL);
   const botaoAbrir = useRef<HTMLButtonElement>(null);
   // Para não roubar o foco no primeiro desenho da tela: só devolve o foco
   // ao botão redondo quando a barra acabou de FECHAR.
   const jaAbriu = useRef(false);
 
-  // A campanha só alimenta o botão da pessoa. Se falhar (ou não existir),
-  // o botão fica só com o nome; a tela não deve nada por isso.
+  // A campanha e o custo do nível só alimentam o botão da pessoa, que não
+  // existe na tela da pessoa: lá nada é pedido. Se uma das duas falhar, o
+  // botão fica só com o nome (campanha) ou usa o espelho do config
+  // (parâmetros); a tela não deve nada por isso.
   useEffect(() => {
+    if (telaDaPessoa) return;
     let cancelado = false;
     api.solo
       .campanhaAtual()
@@ -287,10 +309,16 @@ export function MolduraSolo({ ativo, esconderMenu = false, children }: PropsMold
         if (!cancelado) setCampanha(resposta ?? null);
       })
       .catch((falha) => console.error(falha));
+    api.admin
+      .parametros()
+      .then((parametros) => {
+        if (!cancelado && parametros?.xpPorNivel) setXpPorNivel(parametros.xpPorNivel);
+      })
+      .catch((falha) => console.error(falha));
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [telaDaPessoa]);
 
   useEffect(() => {
     if (aberta) {
@@ -306,10 +334,16 @@ export function MolduraSolo({ ativo, esconderMenu = false, children }: PropsMold
 
   return (
     <div className={'moldura' + (aberta ? ' moldura-lateral-aberta' : '')}>
-      <header className="moldura-topo">
-        <span className="moldura-marca">TECLAR</span>
-        <BotaoPessoa campanha={campanha} />
-      </header>
+      {telaDaPessoa ? (
+        <header className="moldura-topo">
+          <h1 className="moldura-titulo-pessoa">{sessao.nomeExibicao()}</h1>
+        </header>
+      ) : (
+        <header className="moldura-topo">
+          <span className="moldura-marca">TECLAR</span>
+          <BotaoPessoa campanha={campanha} xpPorNivel={xpPorNivel} />
+        </header>
+      )}
 
       <BarraLateral aberta={aberta} ativo={ativo} aoFechar={fechar} />
 

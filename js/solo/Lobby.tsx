@@ -58,6 +58,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
+import { CONFIG } from '../config.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
@@ -244,17 +245,20 @@ interface PropsPersonagem {
   // null = a rota falhou; a métrica dela mostra "—".
   estatisticas: EstatisticasSolo | null;
   indicadores: IndicadoresSolo | null;
+  // Quanto custa um nível, de GET /parametros.
+  xpPorNivel: number;
 }
 
-function PainelPersonagem({ nome, campanha, estatisticas, indicadores }: PropsPersonagem) {
-  const progresso = progressoDe(campanha);
+function PainelPersonagem({ nome, campanha, estatisticas, indicadores, xpPorNivel }: PropsPersonagem) {
+  const progresso = progressoDe(campanha, xpPorNivel);
 
   return (
     <article className="painel vidro lobby-personagem">
       <AnelXp progresso={progresso} />
 
       <div className="lobby-identidade">
-        <h1 className="lobby-nome">{nome}</h1>
+        {/* <p>, e não <h1>: o título da tela é o nome no topo da moldura. */}
+        <p className="lobby-nome">{nome}</p>
         {/* aria-hidden: o anel já diz isto a quem ouve a tela. */}
         <p className="lobby-xp-texto" aria-hidden="true">
           <strong>{progresso.noNivel}</strong> / {progresso.porNivel} XP · faltam {progresso.falta}
@@ -484,6 +488,7 @@ type Carga =
       estatisticas: EstatisticasSolo | null;
       indicadores: IndicadoresSolo | null;
       licoes: Missao[] | null;
+      xpPorNivel: number;
     };
 
 // A rede de segurança das rotas que não mandam na tela: se a chamada
@@ -520,12 +525,15 @@ function Lobby() {
         // falha numa delas não pode derrubar a tela inteira. Sem campanha,
         // as quatro respondem 404 (a campanha é a do token) e viram null,
         // que o estado 1 nem olha.
-        const [campanha, sessoes, estatisticas, indicadores, licoes] = await Promise.all([
+        const [campanha, sessoes, estatisticas, indicadores, licoes, parametros] = await Promise.all([
           api.solo.campanhaAtual(),
           nullSeFalhar(api.solo.historico().then((historico) => desembrulhar<SessaoSolo>(historico))),
           nullSeFalhar(api.solo.estatisticas()),
           nullSeFalhar(api.solo.indicadores()),
           nullSeFalhar(api.solo.missoes().then((missoes) => desembrulhar<Missao>(missoes))),
+          // Quanto custa um nível (tabela Configuracoes). Se falhar, vale o
+          // espelho do config — o mesmo número enquanto o banco não mudar.
+          nullSeFalhar(api.admin.parametros()),
         ]);
         if (cancelado) return;
 
@@ -542,6 +550,7 @@ function Lobby() {
           estatisticas,
           indicadores,
           licoes,
+          xpPorNivel: parametros?.xpPorNivel ?? CONFIG.SOLO.XP_POR_NIVEL,
         });
       } catch (excecao) {
         if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
@@ -650,6 +659,7 @@ function Lobby() {
             campanha={carga.campanha}
             estatisticas={carga.estatisticas}
             indicadores={carga.indicadores}
+            xpPorNivel={carga.xpPorNivel}
           />
           {/* Histórico falhou: o painel some (e o ritmo com ele) e o do
               personagem ocupa a largura toda. Nenhum aviso — a tela não
@@ -667,11 +677,14 @@ function Lobby() {
   return (
     // A moldura do Solo no lugar da nav em pílula. Nenhum item da barra
     // lateral fica marcado: o dashboard não está nela, chega-se aqui pelo
-    // botão da pessoa, no topo.
-    <MolduraSolo ativo={null}>
+    // botão da pessoa, no topo. telaDaPessoa: esta É a tela daquele
+    // botão, então ele sai e o nome vira o título, no topo à esquerda.
+    <MolduraSolo ativo={null} telaDaPessoa>
       <div className="lobby-pagina">
         <nav className="lobby-caminhos" aria-label="Voltar ou ver mais">
-          <a className="lobby-caminhos-link" href={ROTA_CAMINHO}>
+          {/* A única saída do dashboard: botão de verdade, com relevo, e
+              não um texto apagado. */}
+          <a className="btn tecla lobby-voltar" href={ROTA_CAMINHO}>
             <span aria-hidden="true">←</span> Voltar ao caminho
           </a>
           <a className="lobby-caminhos-link" href={ROTA_ESTATISTICAS}>
