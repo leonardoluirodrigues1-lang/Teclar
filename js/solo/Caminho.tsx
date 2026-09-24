@@ -212,23 +212,34 @@ function hrefDoTreino(licao: Missao): string {
   return `../treino/treino.html?${new URLSearchParams({ exercicio: licao.exerciseId })}`;
 }
 
-// 7 -> "07": a pedra sempre com dois dígitos, como no preview.
-function numeroDaLicao(licao: Missao): string {
-  return String(licao.ordem).padStart(2, '0');
+// O número que a pedra mostra é a POSIÇÃO da lição dentro do nível (1 a
+// 10 no nível 1), não a `ordem` do banco. O material do professor faz uma
+// segunda passada pelos níveis — as lições 49 a 64 voltam aos níveis 1 a
+// 8 —, e com a ordem a trilha do nível 1 mostraria 01…08, 49, 50. A ordem
+// e o id continuam no dado e são o que abre o treino.
+// 7 -> "07": sempre com dois dígitos, como no preview.
+function numeroDaPosicao(posicao: number): string {
+  return String(posicao).padStart(2, '0');
 }
 
 interface PropsPedra {
   licao: Missao;
+  /** 1, 2, 3… dentro do nível. */
+  posicao: number;
+  /** Quantas lições o nível tem, para o rótulo dizer "3 de 8". */
+  totalNoNivel: number;
   estado: EstadoDaPedra;
   ponto: Ponto;
 }
 
-function Pedra({ licao, estado, ponto }: PropsPedra) {
+function Pedra({ licao, posicao, totalNoNivel, estado, ponto }: PropsPedra) {
   const repete = licao.repeticoes > 1;
-  // Tudo o que a pedra mostra vai no rótulo: o número, o título, o estado e
-  // as repetições ("10×" lido em voz alta vira "dez ex").
+  // Tudo o que a pedra mostra vai no rótulo: a posição, o nível, o estado e
+  // as repetições ("10×" lido em voz alta vira "dez ex"). O título da lição
+  // fica de fora: ele traz a ordem do banco ("Lição 49 — …"), justamente o
+  // número que a pedra deixou de mostrar.
   const rotulo =
-    `Lição ${licao.ordem}: ${licao.titulo}, ${TEXTO_DO_ESTADO[estado]}` +
+    `Lição ${posicao} de ${totalNoNivel} do nível ${licao.nivel}, ${TEXTO_DO_ESTADO[estado]}` +
     (repete ? `, ${licao.repeticoes} repetições` : '');
   // Face clara: o relevo claro de css/base/luz.css.
   const classeTecla = estado === 'nova' ? 'tecla' : 'tecla tecla-clara';
@@ -244,7 +255,7 @@ function Pedra({ licao, estado, ponto }: PropsPedra) {
         </>
       )}
       <a className={`pedra pedra-${estado} ${classeTecla}`} href={hrefDoTreino(licao)} aria-label={rotulo}>
-        {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaLicao(licao)}</span>}
+        {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
       </a>
       {repete && (
         <span className="caminho-repeticoes" aria-hidden="true">
@@ -348,7 +359,13 @@ function Trilha({ grupo, progresso }: PropsTrilha) {
           <ol className="caminho-pedras" aria-label={`Lições do nível ${grupo.nivel}`}>
             {grupo.licoes.map((licao, i) => (
               <li key={licao.exerciseId}>
-                <Pedra licao={licao} estado={estadoDaPedra(licao, progresso)} ponto={pontos[i]} />
+                <Pedra
+                  licao={licao}
+                  posicao={i + 1}
+                  totalNoNivel={grupo.licoes.length}
+                  estado={estadoDaPedra(licao, progresso)}
+                  ponto={pontos[i]}
+                />
               </li>
             ))}
           </ol>

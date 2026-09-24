@@ -35,6 +35,20 @@
 // `repeticoes` (Escola) ou com 1 passa por tudo isso com uma volta só e
 // se comporta exatamente como antes.
 //
+// Teclado guia (componentes/TecladoAbnt2.tsx): abaixo do texto, acende a
+// tecla do PRÓXIMO caractere — o da posição do cursor, que a tela já recebe
+// do motor em estado.posicao. Nada de keydown: a tecla sai do texto que
+// vem, não do que foi apertado. A única coisa que a tela precisa saber
+// além disso é se a tecla morta de um acento já foi digitada (para passar
+// a acender a vogal), e isso vem dos eventos de composição do próprio
+// <input> de captura (compositionstart / compositionend), não de keydown.
+// Embaixo do teclado, as mãos (componentes/MaosGuia.tsx): o dedo da tecla
+// acesa acende e dá um toque na direção dela. Recebem o mesmo caractere
+// que o teclado.
+// O motor não muda. A pessoa pode esconder o teclado (e as mãos junto) ou
+// só as mãos em Configurações do Solo (sessao.tecladoGuiaEscondido,
+// sessao.maosEscondidas); vale igual para Solo, aluno e prévia.
+//
 // Pintura do texto: o motor emite a lista inteira de caracteres a cada tecla
 // e a cada tick do relógio (100 ms). A lista de <span> não é recriada: os
 // caracteres são guardados uma vez (nunca mudam — nem entre voltas, é o
@@ -67,6 +81,8 @@ import type {
 import { MotorDigitacao, type EstadoMotor, type StatusCaractere } from './typingEngine.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { Modal, type AcaoModal } from '../componentes/ModalReact.js';
+import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
+import { MaosGuia } from '../componentes/MaosGuia.js';
 
 // Onde o resultado da sessão espera a tela de resultado (sessionStorage).
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
@@ -225,23 +241,67 @@ function Treino({ usuario }: PropsTreino) {
   const [repeticao, setRepeticao] = useState<{ numero: number; total: number } | null>(null);
   const [passagem, setPassagem] = useState<Passagem | null>(null);
 
+  // --- teclado guia ---
+  const [mostrarTeclado] = useState(() => !sessao.tecladoGuiaEscondido());
+  // Escondido o teclado, as mãos vão junto: elas apontam para ele.
+  const [mostrarMaos] = useState(() => !sessao.tecladoGuiaEscondido() && !sessao.maosEscondidas());
+  // A posição do cursor no texto: o índice do próximo caractere a digitar.
+  const [posicao, setPosicao] = useState(0);
+  // A mesma posição, lida pelo evento de composição (que não passa pelo
+  // render).
+  const posicaoAtual = useRef(0);
+  // Enquanto um acento está sendo composto (a tecla morta já foi, falta a
+  // vogal): o índice do caractere acentuado. null fora disso.
+  const [indiceDoAcento, setIndiceDoAcento] = useState<number | null>(null);
+
   // --- navegação -------------------------------------------------------------
 
   function sair() {
     location.href = guarda.casa();
   }
 
-  // Esc SAI da tela (não pausa). Enquanto um modal está aberto, o Esc é dele.
-  // Vale também no meio de uma lição com repetições: nada parcial é gravado.
+  // Sair pelo Esc ou pelo botão "← Sair" do HUD: os dois chamam esta, e
+  // nenhum dos dois grava nada — lição incompleta não conta. Enquanto um
+  // modal está aberto, a saída é dele (os botões do modal chamam sair()
+  // direto), e esta não faz nada.
+  function sairSeNenhumModalAberto() {
+    if (modalAberto.current) return;
+    sair();
+  }
+
+  // Esc SAI da tela (não pausa). Vale também no meio de uma lição com
+  // repetições: nada parcial é gravado.
   useEffect(() => {
     function aoTeclar(evento: KeyboardEvent) {
       if (evento.key === 'Escape' && !modalAberto.current) {
         evento.preventDefault();
-        sair();
+        sairSeNenhumModalAberto();
       }
     }
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
+  }, []);
+
+  // --- teclado guia: acento em composição -----------------------------------
+  // A tecla morta (´ ~) começa uma composição no <input>; a vogal a
+  // termina. É o que o teclado guia usa para trocar da tecla morta para a
+  // vogal. Só estes dois eventos: a digitação continua chegando ao motor
+  // pelo 'input', como sempre.
+  useEffect(() => {
+    const campo = captura.current;
+    if (!campo) return;
+    function aoComecarAcento() {
+      setIndiceDoAcento(posicaoAtual.current);
+    }
+    function aoTerminarAcento() {
+      setIndiceDoAcento(null);
+    }
+    campo.addEventListener('compositionstart', aoComecarAcento);
+    campo.addEventListener('compositionend', aoTerminarAcento);
+    return () => {
+      campo.removeEventListener('compositionstart', aoComecarAcento);
+      campo.removeEventListener('compositionend', aoTerminarAcento);
+    };
   }, []);
 
   // --- foco ------------------------------------------------------------------
@@ -329,6 +389,7 @@ function Treino({ usuario }: PropsTreino) {
     avisos.current = { ...AVISOS_INICIAIS };
     statusAtual.current = [];
     setDica(DICA_INICIAL);
+    setIndiceDoAcento(null);
 
     motor.current = new MotorDigitacao({
       texto: carregado.texto,
@@ -391,6 +452,11 @@ function Treino({ usuario }: PropsTreino) {
       statusAtual.current = novoStatus;
       setStatus(novoStatus);
     }
+
+    // Para o teclado guia. Num tick do relógio a posição é a mesma, e o
+    // React não re-renderiza por um valor igual.
+    posicaoAtual.current = estado.posicao;
+    setPosicao(estado.posicao);
 
     // Com limite mostra o restante; sem limite, o decorrido.
     const comLimite = estado.tempoRestanteSegundos != null;
@@ -649,6 +715,16 @@ function Treino({ usuario }: PropsTreino) {
     <>
       {/* HUD: contexto + título à esquerda, métricas à direita */}
       <header className="hud vidro">
+        {/* A saída visível: o Esc sozinho ninguém descobre. É o primeiro
+            item da tela no Tab. Faz o mesmo que o Esc. */}
+        <button
+          type="button"
+          className="hud-sair tecla"
+          onClick={sairSeNenhumModalAberto}
+          aria-label="Sair do treino (Esc)"
+        >
+          <span aria-hidden="true">←</span> Sair
+        </button>
         <div className="hud-esq">
           <p className="hud-contexto" id="hud-contexto">
             {contexto}
@@ -705,6 +781,28 @@ function Treino({ usuario }: PropsTreino) {
             {dica}
           </p>
         </section>
+
+        {/* O teclado guia. memo: num tick do relógio as props são as mesmas
+            e ele nem renderiza. Com o acento em composição, o caractere é
+            o acentuado e ele acende a vogal. */}
+        {mostrarTeclado && fase === 'pronto' && chars && (
+          // .guia: a faixa de baixo da tela, onde mora o teclado. O CSS
+          // (css/treino.css) empurra ela para baixo e a dimensiona pela
+          // altura da janela.
+          <div className={mostrarMaos ? 'guia' : 'guia guia-sem-maos'}>
+            <TecladoAbnt2
+              tamanho="treino"
+              caractere={chars[indiceDoAcento ?? posicao] ?? null}
+              esperandoVogal={indiceDoAcento != null}
+            />
+            {mostrarMaos && (
+              <MaosGuia
+                caractere={chars[indiceDoAcento ?? posicao] ?? null}
+                esperandoVogal={indiceDoAcento != null}
+              />
+            )}
+          </div>
+        )}
 
         {/* Erro de carga: exercício inexistente, rede etc. */}
         <section className="erro-carga vidro" id="erro-carga" hidden={fase !== 'erro'}>

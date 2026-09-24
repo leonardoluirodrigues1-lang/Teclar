@@ -1885,15 +1885,13 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    rola se a janela for baixa.
    ------------------------------------------------------------------------- */
 
-/* A face das teclas do tutorial: a escura das outras peças do Solo, e a
-   clara para a linha-guia e o botão "Continuar". */
-.tutorial-tecla,
+/* A face dos botões do tutorial: a escura das outras peças do Solo, e a
+   clara para o "Continuar". */
 .tutorial-botao {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
   border: 1px solid rgba(255, 255, 255, 0.17);
   color: var(--cor-texto, #fff);
 }
-.tutorial-tecla-guia,
 .tutorial-botao-claro {
   background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.82));
   border-color: transparent;
@@ -2004,66 +2002,12 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* O teclado ABNT2 (ver TecladoDecorativo em Tutorial.tsx). Cada fileira é
-   uma linha flex; a largura de cada tecla vem do flex-grow que o
-   componente põe (1 = letra). flex-basis 0 e min-width 0: a fileira
-   divide só a largura que tem, e o teclado nunca estoura o painel. */
-.tutorial-teclado {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
+/* O teclado é o componente compartilhado (js/componentes/TecladoAbnt2.tsx,
+   estilo em css/componentes/teclado.css). Aqui só o lugar dele no painel. */
+.tutorial-visual .teclado {
   margin-top: 60px;
   padding: 0 var(--e-5, 24px);
 }
-
-.tutorial-fileira {
-  display: flex;
-  gap: 6px;
-}
-
-.tutorial-tecla,
-.tutorial-tecla-vazia {
-  flex-basis: 0;
-  min-width: 0;
-}
-
-.tutorial-tecla {
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: var(--raio-n, 8px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* A tecla de letra é quadrada: a altura acompanha a largura. As de borda
-   (tab, caps, shift, enter, espaço) só esticam na altura da fileira. */
-.tutorial-tecla-letra {
-  aspect-ratio: 1;
-  font-size: 11px;
-}
-
-/* F e J: o risco curto na base da tecla, a marca que o dedo sente. Claro
-   como a face, com uma sombra fina embaixo, para ler como relevo e não
-   como desenho chapado. */
-.tutorial-tecla-relevo::after {
-  content: "";
-  position: absolute;
-  bottom: 16%;
-  left: 50%;
-  width: 30%;
-  height: 2px;
-  border-radius: 1px;
-  transform: translateX(-50%);
-  background: var(--cor-texto, #fff);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-}
-
-/* Decorativas: não se apertam, então não afundam no clique. */
-.tutorial-teclado .tecla { pointer-events: none; }
 
 /* --- rodapé: pontinhos e botões ------------------------------------------ */
 .tutorial-rodape {

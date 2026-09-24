@@ -1,7 +1,8 @@
 /* ============================================================================
    TECLAR — treino.css
-   Tela de treino: HUD fixo em vidro, texto do exercício centralizado, barra
-   de progresso, pausa e captura invisível. Carregar depois de tokens.css,
+   Tela de treino: HUD fixo em vidro, texto do exercício no terço de cima,
+   barra de progresso, teclado guia embaixo (css/componentes/teclado.css),
+   pausa e captura invisível. Carregar depois de tokens.css,
    componentes/vidro.css, componentes/toasts.css e componentes/modais.css.
    ========================================================================== */
 
@@ -118,24 +119,31 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* O texto fica no terço de cima, logo abaixo do HUD, e não no meio da
+     tela: embaixo dele mora o teclado guia. */
+  justify-content: flex-start;
   min-height: 100vh;
-  /* Em cima: espaço do HUD. Embaixo: faixa reservada aos toasts, para nunca
-     caírem sobre o texto. */
-  padding: 132px 24px 150px;
+  /* Em cima: espaço do HUD. Embaixo pouco respiro: a parte de baixo da
+     tela é do teclado guia. Os toasts (canto de baixo à direita) podem
+     passar por cima da ponta dele, mas nunca do texto. */
+  padding: 132px 24px var(--e-5, 24px);
 }
 
 .area-texto {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   cursor: text;
 }
 
 .texto {
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: clamp(1.05rem, 1.6vw, 1.45rem);
+  /* Grande o bastante para ler sem esforço a dois palmos da tela: ~30px
+     numa tela de 1440px. O cursor é o próprio <span> do caractere (a
+     classe .atual, abaixo), então acompanha qualquer tamanho e quebra de
+     linha sem conta nenhuma. */
+  font-size: clamp(1.3rem, 2.1vw, 1.85rem);
   font-weight: var(--peso-normal, 400);
-  line-height: 1.9;
+  line-height: 1.75;
   letter-spacing: 0.02em;
   color: var(--cor-char-pendente, #5c5c5c);
   white-space: pre-wrap;
@@ -193,6 +201,67 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: opacity var(--dur-normal, 240ms) var(--ease-padrao, ease);
 }
 .dica.oculta { opacity: 0; }
+
+/* ---------------------------------------------------------------------------
+   Teclado guia + legenda do dedo + mãos (.guia)
+
+   O bloco fica CENTRALIZADO na vertical do espaço que sobra entre o texto
+   e o fim da tela: margin-top e margin-bottom auto dividem esse espaço em
+   dois. O padding-top garante uma folga mínima do texto mesmo quando não
+   sobra nada.
+
+   A largura manda no tamanho de tudo: as teclas de letra são quadradas e
+   as mãos têm a largura do teclado (e por isso continuam alinhadas com as
+   teclas em qualquer tamanho).
+
+   A CONTA DA LARGURA — os quatro números ficam nas variáveis abaixo:
+
+     largura = min( 100% ,
+                    max( MÍNIMA ,
+                         min( NORMAL , (altura da janela − RESERVA) × PROPORÇÃO ) ) )
+
+     NORMAL    900px — o tamanho do teclado numa tela comum (1280px de
+               largura ou mais);
+     RESERVA   440px — a altura que o resto da tela usa acima do bloco: o
+               espaço do HUD (132), umas quatro linhas de texto (~210), a
+               barra de progresso e a dica (~60) e o respiro de baixo;
+     PROPORÇÃO 1.43  — largura ÷ altura do bloco inteiro. Com 900px de
+               largura: teclado ~238 + legenda ~27 + mãos ~332 (o SVG tem
+               54/150 da largura) + folga 32 = ~629px de altura, e
+               900 / 629 ≈ 1.43. Sem as mãos o bloco tem ~297px: 3.0;
+     MÍNIMA    620px — o piso. Em janela baixa a conta de altura encolhe o
+               bloco, mas nunca abaixo disto: se nem assim couber, a
+               página rola, porque rolagem é melhor que teclado ilegível.
+
+   O min(100%, ...) de fora só vale em tela estreita (celular): lá a
+   largura da tela manda, para o bloco não estourar para o lado.
+
+   Exemplos: janela de 1440 × 1100 → (1100 − 440) × 1.43 = 944 → 900px.
+             Janela de 1440 × 780  → (780 − 440) × 1.43 = 486 → sobe para
+             o piso, 620px, e a página rola um pouco.
+   ------------------------------------------------------------------------- */
+.guia {
+  --guia-largura-normal: 900px;
+  --guia-largura-minima: 620px;
+  --guia-reserva-de-altura: 440px;
+  --guia-proporcao: 1.43;
+
+  width: min(
+    100%,
+    max(
+      var(--guia-largura-minima),
+      min(
+        var(--guia-largura-normal),
+        calc((100vh - var(--guia-reserva-de-altura)) * var(--guia-proporcao))
+      )
+    )
+  );
+  margin-top: auto;
+  margin-bottom: auto;
+  padding-top: var(--e-6, 32px);
+}
+/* Sem as mãos o bloco é mais baixo: cabe mais largo na mesma altura. */
+.guia.guia-sem-maos { --guia-proporcao: 3; }
 
 /* Erro de carga: reaproveita a tipografia do modal, sem overlay. */
 .erro-carga {
@@ -268,7 +337,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .hud-titulo { font-size: var(--fs-base, 1rem); }
   .hud-dir { gap: 16px; }
   .hud-metrica dd { font-size: var(--fs-lg, 1.25rem); }
-  .palco { padding: 110px 16px 80px; }
+  .palco { padding: 110px 16px var(--e-4, 16px); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -355,4 +424,44 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .passagem-metricas { gap: 20px; }
   .passagem-metricas > div + div { padding-left: 20px; }
   .passagem-metricas dd { font-size: 26px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Botão "← Sair" (acréscimo)
+
+   O primeiro item do HUD, no canto de cima à esquerda. Faz o mesmo que o
+   Esc (sairSeNenhumModalAberto em Treino.tsx). Discreto: rótulo mono
+   miúdo e apagado, face quase transparente, com o relevo de tecla de
+   css/base/luz.css — não pode disputar o olho com o texto.
+   ------------------------------------------------------------------------- */
+.hud-sair {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  /* As do relevo (luz.css) mais a cor do hover: a regra de lá seria
+     sobrescrita por esta, então as quatro vão juntas. */
+  transition:
+    color var(--t-rapido, 160ms) var(--curva, ease-out),
+    background var(--t-rapido, 160ms) var(--curva, ease-out),
+    transform var(--t-rapido, 160ms) var(--curva, ease-out),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.hud-sair:hover {
+  color: var(--cor-texto, #fff);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Com o botão na frente, o bloco do contexto e do título ocupa o meio e as
+   métricas continuam encostadas à direita. */
+.hud-sair + .hud-esq { flex: 1; }
+
+@media (max-width: 720px) {
+  .hud-sair { padding: 7px 10px; letter-spacing: 0.12em; }
 }

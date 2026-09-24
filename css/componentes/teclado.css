@@ -1,0 +1,218 @@
+/* ============================================================================
+   TECLAR — teclado.css
+   O desenho do teclado ABNT2 (js/componentes/TecladoAbnt2.tsx), nos dois
+   tamanhos: .teclado-tutorial (tutorial do Solo, em pages/solo/caminho.html)
+   e .teclado-treino (teclado guia de pages/treino/treino.html).
+   Carregar depois de tokens.css, luz.css e movimento.css: o relevo das
+   teclas é o .tecla / .tecla-clara de luz.css, e a troca do destaque usa
+   o --t-rapido de movimento.css.
+   ========================================================================== */
+
+/* Cada fileira é uma linha flex; a largura de cada tecla vem do flex-grow
+   que o componente põe (1 = letra). flex-basis 0 e min-width 0: a fileira
+   divide só a largura que tem, e o teclado nunca estoura quem o contém. */
+.teclado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Isola o teclado: o que muda nele (a tecla acesa) não obriga o
+     navegador a recalcular o resto da tela. */
+  contain: layout paint;
+}
+
+.teclado-fileiras {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.teclado-fileira {
+  display: flex;
+  gap: 6px;
+}
+
+.teclado-tecla,
+.teclado-vazio {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.teclado-tecla {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--raio-n, 8px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.55);
+  /* Ilustração: não se aperta, então não afunda no clique. */
+  pointer-events: none;
+  /* A troca do destaque no treino: curta, e zero com movimento reduzido
+     (o --t-rapido zera). Inclui o box-shadow porque o relevo da tecla
+     clara é outro. */
+  transition:
+    background var(--t-rapido, 160ms) var(--curva, ease-out),
+    color var(--t-rapido, 160ms) var(--curva, ease-out),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+
+/* A tecla de letra é quadrada: a altura acompanha a largura. As de borda
+   (tab, caps, shift, enter, espaço) só esticam na altura da fileira. */
+.teclado-tecla-letra {
+  aspect-ratio: 1;
+  font-size: 11px;
+}
+
+/* Acesa: a linha-guia no tutorial, a próxima tecla no treino. */
+.teclado-tecla-acesa {
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.82));
+  border-color: transparent;
+  color: var(--cor-texto-inverso, #000);
+}
+
+/* F e J: o risco curto na base da tecla, a marca que o dedo sente. Claro,
+   com uma sombra fina embaixo, para ler como relevo e não como desenho
+   chapado — também sobre a face clara. */
+.teclado-tecla-relevo::after {
+  content: "";
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  width: 30%;
+  height: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  background: var(--cor-texto, #fff);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ---------------------------------------------------------------------------
+   Marca do dedo (só na tecla acesa do treino)
+
+   Sem cor nova: a cor é a do texto da tecla. O dedo se lê pela forma e
+   pela posição — pontinhos (1 indicador, 2 médio, 3 anelar, 4 mínimo)
+   encostados no lado da mão, e um traço comprido no meio para o polegar.
+   ------------------------------------------------------------------------- */
+.teclado-marca-dedo {
+  position: absolute;
+  bottom: 6%;
+  display: flex;
+  gap: 2px;
+}
+.teclado-marca-dedo i {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--raio-total, 9999px);
+  background: currentColor;
+}
+.teclado-marca-esquerda { left: 12%; }
+.teclado-marca-direita { right: 12%; }
+.teclado-marca-polegar {
+  left: 50%;
+  width: 40%;
+  height: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  background: currentColor;
+}
+
+/* ---------------------------------------------------------------------------
+   Tamanhos
+   ------------------------------------------------------------------------- */
+.teclado-tutorial { width: 100%; }
+
+/* No treino, o teclado é referência periférica: quem digita olha o texto.
+   Mais apagado que o texto, e só a tecla acesa tem luz. A largura vem de
+   quem o contém (.guia, em css/treino.css); as letras crescem junto com
+   ela (cqw = 1% da largura do teclado), para serem lidas de relance. */
+.teclado-treino {
+  width: 100%;
+  container-type: inline-size;
+}
+.teclado-treino .teclado-fileiras,
+.teclado-treino .teclado-fileira { gap: 5px; }
+.teclado-treino .teclado-tecla {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  font-size: clamp(8px, 1.5cqw, 13px);
+  color: rgba(255, 255, 255, 0.34);
+}
+.teclado-treino .teclado-tecla-letra { font-size: clamp(9px, 2.1cqw, 19px); }
+.teclado-treino .teclado-tecla-relevo::after { opacity: 0.5; }
+.teclado-treino .teclado-tecla-acesa {
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.82));
+  border-color: transparent;
+  color: var(--cor-texto-inverso, #000);
+}
+.teclado-treino .teclado-tecla-acesa.teclado-tecla-relevo::after { opacity: 1; }
+
+/* "indicador esquerdo", embaixo do teclado, num lugar fixo. */
+.teclado-legenda {
+  margin-top: var(--e-3, 12px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* ---------------------------------------------------------------------------
+   Mãos (js/componentes/MaosGuia.tsx), embaixo do teclado do treino
+
+   Traço fino e claro, sem preenchimento, em opacidade baixa. O dedo da
+   tecla acesa acende (opacity) e dá um toque na direção dela e volta
+   (transform). Só essas duas propriedades se mexem: nenhuma recalcula o
+   layout. O SVG tem a largura do teclado, então cada dedo fica embaixo da
+   região das teclas dele.
+   ------------------------------------------------------------------------- */
+.maos {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--e-2, 8px);
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.maos path {
+  fill: none;
+  stroke: var(--cor-texto, #fff);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* O traço fica fino em qualquer tamanho de tela: não escala com o SVG. */
+  vector-effect: non-scaling-stroke;
+}
+
+.maos-palma,
+.maos-dedo {
+  opacity: 0.22;
+}
+
+.maos-dedo {
+  transition: opacity var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+
+.maos-dedo-aceso {
+  opacity: 0.85;
+  /* --dx e --dy vêm do componente: a direção da tecla. */
+  animation: maos-toque var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+
+@keyframes maos-toque {
+  50% { transform: translate(var(--dx, 0), var(--dy, 0)); }
+}
+
+/* Movimento reduzido: o dedo só acende, sem se mover. As duas formas de
+   pedir — o sistema e a opção do Solo (a classe no <html>). */
+.movimento-reduzido .maos-dedo-aceso { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .teclado-tecla { transition: none; }
+  .maos-dedo-aceso { animation: none; }
+  .maos-dedo { transition: none; }
+}
