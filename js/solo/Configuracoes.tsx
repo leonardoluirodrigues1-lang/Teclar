@@ -2,14 +2,12 @@
 // O que dá para configurar no Solo HOJE, sem coluna nova no banco. Aberta
 // pela barra lateral (componentes/MolduraSolo.tsx).
 //
-// Quatro coisas, as quatro guardadas no navegador pela sessao.ts:
+// Três coisas, as três guardadas no navegador pela sessao.ts:
 //   · reduzir movimento — aplicado pelo guarda.aplicarMundo(), que põe a
 //     classe .movimento-reduzido no <html>; os tokens de duração de
 //     css/base/movimento.css e tokens.css zeram com ela;
 //   · esconder o teclado guia — o teclado embaixo do texto na tela de
-//     treino (js/treino/Treino.tsx), que a tela lê ao abrir. Esconde as
-//     mãos junto;
-//   · esconder as mãos — só as mãos embaixo do teclado;
+//     treino (js/treino/Treino.tsx), que a tela lê ao abrir;
 //   · rever o tutorial — apaga a marca de "já visto" da conta
 //     (sessao.esquecerTutorial) e leva ao caminho, onde ele aparece.
 
@@ -26,7 +24,6 @@ const ROTA_CAMINHO = 'caminho.html';
 function Configuracoes() {
   const [reduzir, setReduzir] = useState(sessao.movimentoReduzido());
   const [esconderTeclado, setEsconderTeclado] = useState(sessao.tecladoGuiaEscondido());
-  const [esconderMaos, setEsconderMaos] = useState(sessao.maosEscondidas());
 
   function alternarMovimento(ligado: boolean) {
     sessao.definirMovimentoReduzido(ligado);
@@ -38,11 +35,6 @@ function Configuracoes() {
   function alternarTeclado(escondido: boolean) {
     sessao.definirTecladoGuiaEscondido(escondido);
     setEsconderTeclado(escondido);
-  }
-
-  function alternarMaos(escondidas: boolean) {
-    sessao.definirMaosEscondidas(escondidas);
-    setEsconderMaos(escondidas);
   }
 
   function reverTutorial() {
@@ -89,29 +81,7 @@ function Configuracoes() {
               <span className="solo-opcao-nome">Esconder o teclado guia</span>
               <span className="solo-opcao-texto">
                 Tira da tela de treino o teclado desenhado embaixo do texto, que acende a próxima
-                tecla e mostra com qual dedo apertá-la. As mãos saem junto. Vale a partir do
-                próximo treino.
-              </span>
-            </span>
-          </label>
-        </section>
-
-        {/* Com o teclado escondido, as mãos já saem junto: a opção fica
-            desligada, para não parecer que ela ainda faz algo. */}
-        <section className="vidro solo-texto-cartao">
-          <label className="solo-opcao">
-            <input
-              type="checkbox"
-              className="solo-opcao-caixa"
-              checked={esconderMaos || esconderTeclado}
-              disabled={esconderTeclado}
-              onChange={(evento) => alternarMaos(evento.target.checked)}
-            />
-            <span>
-              <span className="solo-opcao-nome">Esconder as mãos</span>
-              <span className="solo-opcao-texto">
-                Deixa o teclado guia e tira só as mãos desenhadas embaixo dele, que mostram qual dedo
-                se move para a próxima tecla.
+                tecla e mostra com qual dedo apertá-la. Vale a partir do próximo treino.
               </span>
             </span>
           </label>

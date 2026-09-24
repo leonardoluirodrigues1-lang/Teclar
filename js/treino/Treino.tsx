@@ -42,12 +42,8 @@
 // além disso é se a tecla morta de um acento já foi digitada (para passar
 // a acender a vogal), e isso vem dos eventos de composição do próprio
 // <input> de captura (compositionstart / compositionend), não de keydown.
-// Embaixo do teclado, as mãos (componentes/MaosGuia.tsx): o dedo da tecla
-// acesa acende e dá um toque na direção dela. Recebem o mesmo caractere
-// que o teclado.
-// O motor não muda. A pessoa pode esconder o teclado (e as mãos junto) ou
-// só as mãos em Configurações do Solo (sessao.tecladoGuiaEscondido,
-// sessao.maosEscondidas); vale igual para Solo, aluno e prévia.
+// O motor não muda. A pessoa pode esconder o teclado em Configurações do
+// Solo (sessao.tecladoGuiaEscondido); vale igual para Solo, aluno e prévia.
 //
 // Pintura do texto: o motor emite a lista inteira de caracteres a cada tecla
 // e a cada tick do relógio (100 ms). A lista de <span> não é recriada: os
@@ -82,7 +78,6 @@ import { MotorDigitacao, type EstadoMotor, type StatusCaractere } from './typing
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { Modal, type AcaoModal } from '../componentes/ModalReact.js';
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
-import { MaosGuia } from '../componentes/MaosGuia.js';
 
 // Onde o resultado da sessão espera a tela de resultado (sessionStorage).
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
@@ -243,8 +238,6 @@ function Treino({ usuario }: PropsTreino) {
 
   // --- teclado guia ---
   const [mostrarTeclado] = useState(() => !sessao.tecladoGuiaEscondido());
-  // Escondido o teclado, as mãos vão junto: elas apontam para ele.
-  const [mostrarMaos] = useState(() => !sessao.tecladoGuiaEscondido() && !sessao.maosEscondidas());
   // A posição do cursor no texto: o índice do próximo caractere a digitar.
   const [posicao, setPosicao] = useState(0);
   // A mesma posição, lida pelo evento de composição (que não passa pelo
@@ -786,21 +779,15 @@ function Treino({ usuario }: PropsTreino) {
             e ele nem renderiza. Com o acento em composição, o caractere é
             o acentuado e ele acende a vogal. */}
         {mostrarTeclado && fase === 'pronto' && chars && (
-          // .guia: a faixa de baixo da tela, onde mora o teclado. O CSS
-          // (css/treino.css) empurra ela para baixo e a dimensiona pela
-          // altura da janela.
-          <div className={mostrarMaos ? 'guia' : 'guia guia-sem-maos'}>
+          // .guia: o bloco do teclado, centralizado no espaço entre o texto
+          // e o fim da tela e dimensionado pela altura da janela (ver
+          // css/treino.css).
+          <div className="guia">
             <TecladoAbnt2
               tamanho="treino"
               caractere={chars[indiceDoAcento ?? posicao] ?? null}
               esperandoVogal={indiceDoAcento != null}
             />
-            {mostrarMaos && (
-              <MaosGuia
-                caractere={chars[indiceDoAcento ?? posicao] ?? null}
-                esperandoVogal={indiceDoAcento != null}
-              />
-            )}
           </div>
         )}
 

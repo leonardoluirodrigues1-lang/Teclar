@@ -160,59 +160,6 @@
   color: var(--cor-texto-fraco, #8a8a8a);
 }
 
-/* ---------------------------------------------------------------------------
-   Mãos (js/componentes/MaosGuia.tsx), embaixo do teclado do treino
-
-   Traço fino e claro, sem preenchimento, em opacidade baixa. O dedo da
-   tecla acesa acende (opacity) e dá um toque na direção dela e volta
-   (transform). Só essas duas propriedades se mexem: nenhuma recalcula o
-   layout. O SVG tem a largura do teclado, então cada dedo fica embaixo da
-   região das teclas dele.
-   ------------------------------------------------------------------------- */
-.maos {
-  display: block;
-  width: 100%;
-  height: auto;
-  margin-top: var(--e-2, 8px);
-  pointer-events: none;
-  contain: layout paint;
-}
-
-.maos path {
-  fill: none;
-  stroke: var(--cor-texto, #fff);
-  stroke-width: 1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  /* O traço fica fino em qualquer tamanho de tela: não escala com o SVG. */
-  vector-effect: non-scaling-stroke;
-}
-
-.maos-palma,
-.maos-dedo {
-  opacity: 0.22;
-}
-
-.maos-dedo {
-  transition: opacity var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-
-.maos-dedo-aceso {
-  opacity: 0.85;
-  /* --dx e --dy vêm do componente: a direção da tecla. */
-  animation: maos-toque var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-
-@keyframes maos-toque {
-  50% { transform: translate(var(--dx, 0), var(--dy, 0)); }
-}
-
-/* Movimento reduzido: o dedo só acende, sem se mover. As duas formas de
-   pedir — o sistema e a opção do Solo (a classe no <html>). */
-.movimento-reduzido .maos-dedo-aceso { animation: none; }
-
 @media (prefers-reduced-motion: reduce) {
   .teclado-tecla { transition: none; }
-  .maos-dedo-aceso { animation: none; }
-  .maos-dedo { transition: none; }
 }

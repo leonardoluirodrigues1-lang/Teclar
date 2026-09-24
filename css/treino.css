@@ -203,16 +203,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .dica.oculta { opacity: 0; }
 
 /* ---------------------------------------------------------------------------
-   Teclado guia + legenda do dedo + mãos (.guia)
+   Teclado guia + legenda do dedo (.guia)
 
    O bloco fica CENTRALIZADO na vertical do espaço que sobra entre o texto
    e o fim da tela: margin-top e margin-bottom auto dividem esse espaço em
    dois. O padding-top garante uma folga mínima do texto mesmo quando não
    sobra nada.
 
-   A largura manda no tamanho de tudo: as teclas de letra são quadradas e
-   as mãos têm a largura do teclado (e por isso continuam alinhadas com as
-   teclas em qualquer tamanho).
+   A largura manda no tamanho: as teclas de letra são quadradas, então a
+   altura do teclado acompanha a largura.
 
    A CONTA DA LARGURA — os quatro números ficam nas variáveis abaixo:
 
@@ -225,10 +224,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
      RESERVA   440px — a altura que o resto da tela usa acima do bloco: o
                espaço do HUD (132), umas quatro linhas de texto (~210), a
                barra de progresso e a dica (~60) e o respiro de baixo;
-     PROPORÇÃO 1.43  — largura ÷ altura do bloco inteiro. Com 900px de
-               largura: teclado ~238 + legenda ~27 + mãos ~332 (o SVG tem
-               54/150 da largura) + folga 32 = ~629px de altura, e
-               900 / 629 ≈ 1.43. Sem as mãos o bloco tem ~297px: 3.0;
+     PROPORÇÃO 3     — largura ÷ altura do bloco. Com 900px de largura:
+               teclado ~238 + legenda ~27 + folga 32 = ~297px de altura,
+               e 900 / 297 ≈ 3;
      MÍNIMA    620px — o piso. Em janela baixa a conta de altura encolhe o
                bloco, mas nunca abaixo disto: se nem assim couber, a
                página rola, porque rolagem é melhor que teclado ilegível.
@@ -236,15 +234,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    O min(100%, ...) de fora só vale em tela estreita (celular): lá a
    largura da tela manda, para o bloco não estourar para o lado.
 
-   Exemplos: janela de 1440 × 1100 → (1100 − 440) × 1.43 = 944 → 900px.
-             Janela de 1440 × 780  → (780 − 440) × 1.43 = 486 → sobe para
-             o piso, 620px, e a página rola um pouco.
+   Exemplos: janela de 1440 × 780 → (780 − 440) × 3 = 1020 → 900px.
+             Janela de 1440 × 600 → (600 − 440) × 3 = 480 → sobe para o
+             piso, 620px, e a página rola um pouco.
    ------------------------------------------------------------------------- */
 .guia {
   --guia-largura-normal: 900px;
   --guia-largura-minima: 620px;
   --guia-reserva-de-altura: 440px;
-  --guia-proporcao: 1.43;
+  --guia-proporcao: 3;
 
   width: min(
     100%,
@@ -260,8 +258,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   margin-bottom: auto;
   padding-top: var(--e-6, 32px);
 }
-/* Sem as mãos o bloco é mais baixo: cabe mais largo na mesma altura. */
-.guia.guia-sem-maos { --guia-proporcao: 3; }
 
 /* Erro de carga: reaproveita a tipografia do modal, sem overlay. */
 .erro-carga {

@@ -184,18 +184,6 @@ function definirTecladoGuiaEscondido(escondido: boolean): void {
   else localStorage.removeItem(CHAVES.TECLADO_GUIA_ESCONDIDO);
 }
 
-// As mãos embaixo do teclado guia. Esconder o teclado já esconde as mãos
-// junto (quem decide isso é a tela de treino); esta é para quem quer o
-// teclado sem as mãos.
-function maosEscondidas(): boolean {
-  return localStorage.getItem(CHAVES.MAOS_ESCONDIDAS) === 'sim';
-}
-
-function definirMaosEscondidas(escondidas: boolean): void {
-  if (escondidas) localStorage.setItem(CHAVES.MAOS_ESCONDIDAS, 'sim');
-  else localStorage.removeItem(CHAVES.MAOS_ESCONDIDAS);
-}
-
 // --- Tutorial do Solo: já visto? ---------------------------------------------
 // PROVISÓRIO: enquanto a tabela Users não tiver uma coluna para isso, a
 // marca fica no navegador, uma chave por conta (o id vai no nome da
@@ -293,8 +281,6 @@ export const sessao = {
   definirMovimentoReduzido,
   tecladoGuiaEscondido,
   definirTecladoGuiaEscondido,
-  maosEscondidas,
-  definirMaosEscondidas,
   tutorialVisto,
   marcarTutorialVisto,
   esquecerTutorial,

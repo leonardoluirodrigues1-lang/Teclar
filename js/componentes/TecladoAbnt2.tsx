@@ -80,42 +80,6 @@ const FILEIRAS: TeclaDoDesenho[][] = [
 ];
 
 // ============================================================================
-// Onde fica cada tecla
-// ============================================================================
-// O centro de cada tecla, em unidades: x a partir da borda esquerda do
-// teclado, y é a fileira (0 = a de cima). Sai de FILEIRAS, o mesmo desenho
-// acima — é o que as mãos (componentes/MaosGuia.tsx) usam para saber para
-// onde cada dedo aponta. Os espaços entre as teclas ficam de fora: para a
-// mão, "a região da tecla" basta.
-
-export interface CentroDaTecla {
-  x: number;
-  y: number;
-}
-
-function calcularCentros(): Map<string, CentroDaTecla> {
-  const centros = new Map<string, CentroDaTecla>();
-  FILEIRAS.forEach((fileira, y) => {
-    let inicio = 0;
-    for (const tecla of fileira) {
-      centros.set(tecla.id, { x: inicio + tecla.largura / 2, y });
-      inicio += tecla.largura;
-    }
-  });
-  return centros;
-}
-
-const CENTROS = calcularCentros();
-
-/** Centro da tecla em unidades, ou null se a tecla não está no desenho. */
-export function centroDaTecla(id: string): CentroDaTecla | null {
-  return CENTROS.get(id) ?? null;
-}
-
-/** A largura do teclado, em unidades: toda fileira soma isto. */
-export const LARGURA_DO_TECLADO = 15;
-
-// ============================================================================
 // A marca do dedo
 // ============================================================================
 // Sem cor nova: o dedo se lê pela FORMA e pela POSIÇÃO da marca na base da

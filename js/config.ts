@@ -43,7 +43,6 @@ export const CONFIG = {
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back
     MOVIMENTO_REDUZIDO: 'teclar:movimento_reduzido', // escolha feita em pages/solo/configuracoes.html
     TECLADO_GUIA_ESCONDIDO: 'teclar:teclado_guia_escondido', // escolha feita em pages/solo/configuracoes.html
-    MAOS_ESCONDIDAS: 'teclar:maos_escondidas', // idem: esconde só as mãos embaixo do teclado guia
     // PREFIXO, não chave inteira: o id da conta vai no fim (ver
     // sessao.tutorialVisto). Provisório até existir coluna no banco.
     TUTORIAL_SOLO: 'teclar:tutorial_solo:',
