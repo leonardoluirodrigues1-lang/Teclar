@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
 
 <!-- Esta tela usa as duas folhas, e a ordem importa.
-     De dashboard.css vem a casca do mundo Solo que campanhas.html j&aacute; usa:
+     De dashboard.css vem a casca do mundo Solo:
      a base m&iacute;nima, o fundo, .tela, .painel e o cabe&ccedil;alho
      (.rotulo/.titulo/.subtitulo/.btn-sair). Nada dela muda por causa desta
      tela &mdash; o lobby s&oacute; entra nos nomes que ela n&atilde;o define.
@@ -48,11 +48,12 @@
   <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta a p&aacute;gina inteira aqui dentro: a nav em p&iacute;lula, a grade
-     de dois pain&eacute;is e o rodap&eacute; com a a&ccedil;&atilde;o. N&Atilde;O &eacute; o <main class="tela"> de
-     campanhas.html &mdash; aquele centraliza UM painel de 640px, e esta tela &eacute;
-     larga. O <main> de verdade vem do Lobby.tsx, abaixo da nav. -->
-<div id="raiz" class="lobby-pagina entrada-da-pagina"></div>
+<!-- O React monta aqui a moldura do Solo (js/componentes/MolduraSolo.tsx)
+     e, dentro dela, a grade de dois pain&eacute;is e o rodap&eacute; com a a&ccedil;&atilde;o. Sem
+     .entrada-da-pagina aqui: as pe&ccedil;as da moldura s&atilde;o fixas, e o transform
+     da anima&ccedil;&atilde;o as prenderia a esta div vazia. A entrada vai no conte&uacute;do,
+     dentro da moldura. -->
+<div id="raiz"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
      Caixa importa: o arquivo &eacute; Lobby.js (de Lobby.tsx), e ele se chama

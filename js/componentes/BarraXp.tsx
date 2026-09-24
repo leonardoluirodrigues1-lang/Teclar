@@ -44,7 +44,10 @@ export function progressoDe(campanha: Campanha): ProgressoXp {
   };
 }
 
+// Pedido pelo sistema OU pela tela de Configurações do Solo (a classe que
+// guarda.aplicarMundo põe no <html>).
 export function movimentoReduzido(): boolean {
+  if (document.documentElement.classList.contains('movimento-reduzido')) return true;
   return (
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches

@@ -3,12 +3,13 @@
    O que é só do mundo Solo:
      - o lobby (pages/solo/dashboard.html), a porta de entrada da conta
        individual;
-     - as lições (pages/solo/campanhas.html), no acréscimo do fim da folha.
+     - o caminho das lições e a moldura do Solo (pages/solo/caminho.html e
+       as telas da barra lateral), no acréscimo do fim da folha.
 
    Carregar DEPOIS de tokens.css, componentes/vidro.css e dashboard.css.
    Esta folha não redefine nada de dashboard.css: a casca do painel (.tela,
    .painel, .cabecalho, .rotulo, .titulo, .subtitulo, .btn-sair e
-   .fundo) continua vindo de lá, igual em campanhas.html. Aqui entram
+   .fundo) continua vindo de lá. Aqui entram
    só nomes novos — e uma exceção anotada no .estado.vidro, que é regra
    nova, mais específica, e não edição da classe existente.
 
@@ -234,111 +235,6 @@
    ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .lobby-xp-preenchimento { transition: none; }
-}
-
-/* ============================================================================
-   ACRÉSCIMO — Lições do Solo (pages/solo/campanhas.html)
-
-   As 76 lições agrupadas por nível. O cartão de cada lição continua sendo
-   o .item de dashboard.css, sem alteração nenhuma: aqui entram só o grupo
-   que o envolve, a pílula de repetições e o esqueleto dos grupos.
-   ========================================================================== */
-
-.grupos {
-  display: flex;
-  flex-direction: column;
-  gap: var(--e-2, 8px);
-  margin-top: var(--e-4, 16px);
-}
-
-/* ---------------------------------------------------------------------------
-   Cabeçalho do grupo
-
-   É um <button> de verdade (ver Campanhas.tsx), então precisa perder a
-   cara de botão e ganhar a de linha clicável: largura toda, texto à
-   esquerda, sem fundo até o hover.
-   ------------------------------------------------------------------------- */
-.grupo-cabecalho {
-  display: flex;
-  align-items: center;
-  gap: var(--e-3, 12px);
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--raio-n, 8px);
-  text-align: left;
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.grupo-cabecalho:hover { background: rgba(255, 255, 255, 0.07); }
-
-/* A seta gira em vez de trocar de caractere: um caractere só, e o estado
-   aberto/fechado fica legível mesmo em fonte sem os dois glifos. */
-.grupo-seta {
-  flex: none;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--cor-texto-fraco, #8a8a8a);
-  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
-}
-.grupo-cabecalho[aria-expanded="true"] .grupo-seta {
-  transform: rotate(90deg);
-  color: var(--cor-texto, #fff);
-}
-
-/* "NÍVEL 3 · VOCABULÁRIO REAL · 7 LIÇÕES" — mono e em caixa alta, como os
-   outros rótulos estruturais do projeto (.rotulo, .secao-rotulo). */
-.grupo-titulo {
-  min-width: 0;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--cor-texto-suave, #c4c4c4);
-}
-.grupo-cabecalho[aria-expanded="true"] .grupo-titulo { color: var(--cor-texto, #fff); }
-
-/* A lista de um grupo aberto encosta um pouco no cabeçalho e recua à
-   direita da seta, para a hierarquia aparecer sem linha de guia. */
-.grupo .lista {
-  margin-top: var(--e-2, 8px);
-  margin-left: var(--e-6, 32px);
-  margin-bottom: var(--e-4, 16px);
-}
-
-/* ---------------------------------------------------------------------------
-   Pílula de repetições ("10×")
-   Só aparece quando a lição repete mais de uma vez. Mesmo desenho do
-   .item-requisito de dashboard.css, mas classe própria: aquela diz
-   "requisito para entrar", e esta diz "quantas vezes repetir" — mesma
-   forma, sentidos diferentes, e um dia um dos dois muda.
-   ------------------------------------------------------------------------- */
-.licao-repeticoes {
-  flex: none;
-  padding: 5px 10px;
-  border-radius: var(--raio-total, 9999px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.10em;
-  color: var(--cor-texto-suave, #c4c4c4);
-}
-
-/* ---------------------------------------------------------------------------
-   Esqueleto: um bloco por nível, na altura de um cabeçalho de grupo
-   fechado. São dez, porque os níveis são dez e o percurso não muda.
-   ------------------------------------------------------------------------- */
-.grupo-esqueleto {
-  height: 44px;
-  border-radius: var(--raio-n, 8px);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-@media (max-width: 700px) {
-  /* O recuo da lista cai quase todo: em tela estreita ele custa largura
-     que o título da lição precisa mais do que a hierarquia. */
-  .grupo .lista { margin-left: var(--e-3, 12px); }
-  .grupo-cabecalho { padding: 12px 8px; }
-  .grupo-titulo { letter-spacing: 0.14em; }
 }
 
 /* ============================================================================
@@ -617,121 +513,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .estatisticas-esqueleto > *,
   .estatisticas-esqueleto-metrica,
   .tabela-esqueleto-barra { animation: none; }
-}
-
-/* ============================================================================
-   ACRÉSCIMO — Acabamento das Lições (pages/solo/campanhas.html)
-
-   A tela de lições ganhou o cabeçalho das irmãs (o .voltar e o .cabecalho
-   já existem acima e em dashboard.css), o bloco da campanha (nível, a barra
-   .lobby-xp* do lobby, sem alteração, e o botão "Continuar") e o acabamento
-   dos cartões: foco visível, tempo em tabular-nums e o sinal discreto de
-   lição concluída. Grupos, ordem e pílula de repetições não mudam — as
-   regras do acréscimo "Lições do Solo", acima, continuam valendo.
-   ========================================================================== */
-
-/* --- bloco da campanha: nível, barra de XP e "Continuar" ------------------ */
-/* Uma coluna centrada entre o cabeçalho e o percurso, com o respiro do
-   Solo. É a mesma leitura do lobby, mais compacta: aqui ele é contexto para
-   escolher a próxima lição, não a peça principal. */
-.campanha-progresso {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e-4, 16px);
-  margin-top: var(--e-6, 32px);
-  text-align: center;
-}
-.campanha-nivel {
-  display: flex;
-  align-items: baseline;
-  gap: var(--e-2, 8px);
-}
-.campanha-nivel-rotulo {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-.campanha-nivel-valor {
-  /* Mono porque é dado, não texto: a regra dos dois papéis de tokens.css. */
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-2xl, 31px);
-  font-weight: var(--peso-leve, 300);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  text-shadow: var(--brilho-suave, 0 0 24px rgba(255, 255, 255, 0.05));
-}
-
-/* O botão leva à próxima lição e diz qual é: duas linhas dentro do mesmo
-   .btn — a ação em cima, o título da lição embaixo, menor e sem caixa alta
-   (título de lição não é rótulo). */
-.campanha-acao {
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  max-width: 420px;
-  padding-top: 13px;
-  padding-bottom: 12px;
-}
-.campanha-acao-licao {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  font-weight: var(--peso-normal, 400);
-  opacity: 0.7;
-}
-
-/* Esqueleto do bloco: nível, barra e botão, nas alturas das peças finais. */
-.campanha-esqueleto > * {
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.07);
-}
-.campanha-esqueleto-nivel { width: 110px; height: 31px; border-radius: var(--raio-n, 8px); }
-.campanha-esqueleto-barra { width: 100%; max-width: 420px; height: 8px; margin-top: var(--e-1, 4px); }
-.campanha-esqueleto-acao  { width: 100%; max-width: 420px; height: 54px; margin-top: 14px; }
-
-/* --- cabeçalho do grupo: quantas já foram ---------------------------------- */
-/* Um tom abaixo do resto do título: é informação de apoio, não o nome. */
-.grupo-feitas { color: var(--cor-texto-fraco, #8a8a8a); }
-.grupo-cabecalho[aria-expanded="true"] .grupo-feitas { color: var(--cor-texto-suave, #c4c4c4); }
-
-/* --- cartão da lição -------------------------------------------------------- */
-/* O foco pelo teclado ganha o anel do projeto com a borda do cartão
-   acompanhando, em vez do anel colado numa caixa apagada. */
-a.item.licao:focus-visible {
-  outline: 2px solid var(--cor-anel-foco, #fff);
-  outline-offset: 2px;
-  border-color: rgba(255, 255, 255, 0.35);
-}
-/* O hover já vem de dashboard.css (a.item:hover); aqui só o título
-   acompanha, para o cartão inteiro responder e não só o fundo. */
-a.item.licao .item-titulo {
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-
-/* "3:06" com dígitos de mesma largura: a coluna de tempos não treme. */
-.licao-tempo { font-variant-numeric: tabular-nums; }
-
-/* Lição concluída: o título recua um tom e o meta ganha "· ✓ concluída".
-   Sinal, não prêmio — sem cor, sem ícone além do ✓, sem borda diferente.
-   O hover devolve o título ao branco, como em qualquer cartão. */
-.licao-feita .item-titulo { color: var(--cor-texto-suave, #c4c4c4); }
-a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
-.licao-marca { color: var(--cor-texto-suave, #c4c4c4); }
-
-@media (max-width: 700px) {
-  .campanha-progresso { margin-top: var(--e-5, 24px); }
-  .campanha-progresso > * { min-width: 0; max-width: 100%; }
-  .campanha-acao,
-  .campanha-esqueleto-barra,
-  .campanha-esqueleto-acao { max-width: 100%; }
-  .campanha-nivel-valor { font-size: var(--fs-xl, 25px); }
 }
 
 /* ============================================================================
@@ -1097,7 +878,7 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
    Rodapé: a ação e os dois atalhos
 
    O lugar que a grade de missões ocupa no desenho. Aqui as lições moram em
-   campanhas.html, então fica o que o lobby sempre teve — e a .lobby-acao,
+   caminho.html, então fica o que o lobby sempre teve — e a .lobby-acao,
    a .lobby-atalhos e o .lobby-atalho continuam sendo as regras de cima.
    ------------------------------------------------------------------------- */
 .lobby-rodape {
@@ -1190,162 +971,11 @@ a.item.licao-feita:hover .item-titulo { color: var(--cor-texto, #fff); }
 }
 
 /* ============================================================================
-   ACRÉSCIMO — Design das Lições (pages/solo/campanhas.html)
-
-   A tela ganhou a nav em pílula do lobby (as .nav*, .barra, .conta e
-   .avatar já estão nesta folha — o componente é a mesma <Nav>) e o
-   acabamento dos cartões e dos cabeçalhos de nível na linguagem do
-   desenho: vidro, rótulo mono 9px com letter-spacing .30em, número em
-   tabular-nums e a pílula de repetições no formato do desenho.
-
-   Não se repete aqui: a receita do vidro (.vidro), a barra de XP
-   (.lobby-xp*, escrita pela <BarraXp>), a página e o fundo (.pagina e
-   .fundo-largo, acima). Agrupamento, ordem, pílulas, marcas de concluída,
-   grupo aberto por padrão e o botão Continuar não mudaram — isto é só
-   acabamento.
-   ========================================================================== */
-
-/* O painel deixa de ser o cartão de 640px centrado na janela e passa a ser
-   a coluna da página, abaixo da nav. Raio 24 e respiro largo: é mundo
-   Solo, a mesma densidade do lobby. */
-.pagina-media .painel.campanhas {
-  max-width: none;
-  margin-top: 34px;
-  padding: 30px 34px;
-  border-radius: 24px;
-}
-
-/* O "← Solo" é o caminho de volta ao lobby. Com a nav em cima ele é o
-   segundo caminho para o mesmo lugar, e por isso fica discreto: rótulo
-   mono miúdo, acima do cabeçalho, sem peso de botão. */
-.campanhas .voltar { margin-bottom: var(--e-5, 24px); }
-
-/* --- cabeçalho do painel -------------------------------------------------- */
-/* O rótulo "MODO · SOLO" na escala do desenho: mono 9px, .30em. É o mesmo
-   tamanho do EXPERIÊNCIA e do SEQUÊNCIA do lobby — um rótulo só, uma
-   medida só. */
-.campanhas .rotulo {
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  color: rgba(255, 255, 255, 0.62);
-}
-.campanhas .titulo { font-size: 30px; }
-.campanhas .subtitulo { color: rgba(255, 255, 255, 0.38); }
-
-/* Sem o botão "Sair" ao lado, o cabeçalho deixa de ser duas colunas. */
-.campanhas .cabecalho { display: block; }
-
-/* --- o bloco da campanha ------------------------------------------------- */
-/* O rótulo "NÍVEL" na mesma escala dos outros; o número continua grande e
-   em tabular-nums, como já estava. */
-.campanhas .campanha-nivel-rotulo {
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-/* A barra do desenho: trilho de 6px, preenchimento em degradê com brilho.
-   Mesmas .lobby-xp* do lobby — aqui só a pele muda, e a transição de
-   largura e o comportamento sob movimento reduzido continuam vindo de lá. */
-.campanha-progresso .lobby-xp-trilho {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 0;
-}
-.campanha-progresso .lobby-xp-preenchimento {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), #fff);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
-}
-.campanha-progresso .lobby-xp-legenda {
-  font-size: 10px;
-  letter-spacing: normal;
-  color: rgba(255, 255, 255, 0.62);
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- rótulo de seção ------------------------------------------------------ */
-/* "PERCURSO": mesma escala de rótulo do resto da tela. A linha embaixo
-   fica, porque aqui ela separa o cabeçalho da lista. */
-.campanhas .secao-rotulo {
-  margin-top: 40px;
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-/* --- cabeçalho de nível --------------------------------------------------- */
-/* Mesma escala de rótulo, e o cabeçalho ganha corpo de linha de vidro
-   quando o grupo está aberto: é o que separa o grupo em que a pessoa está
-   dos nove recolhidos, sem precisar de cor. */
-.grupo-titulo {
-  font-size: 9px;
-  letter-spacing: 0.30em;
-}
-.grupo-cabecalho {
-  padding: 14px 16px;
-  border: 1px solid transparent;
-  border-radius: var(--raio-g, 16px);
-}
-.grupo-cabecalho[aria-expanded="true"] {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-.grupo-cabecalho[aria-expanded="true"]:hover { background: rgba(255, 255, 255, 0.09); }
-
-/* --- cartão da lição ------------------------------------------------------ */
-/* O cartão do desenho: raio 18, respiro maior e a borda acendendo no
-   hover. O fundo continua o véu leve de dashboard.css — vidro de verdade
-   (backdrop-filter) em 76 cartões empilhados custa caro e não acrescenta
-   nada: eles já estão sobre o painel de vidro. */
-.item.licao {
-  padding: 16px 20px;
-  border-radius: 18px;
-}
-a.item.licao:hover { border-color: rgba(255, 255, 255, 0.30); }
-
-.licao .item-titulo {
-  font-size: 16px;
-  font-weight: var(--peso-normal, 400);
-}
-
-/* O meta do cartão na escala do desenho, e os números sem tremer. */
-.licao .item-meta {
-  margin-top: 6px;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* A pílula "10×" no formato do desenho: mono 9px, .14em, fundo sem borda. */
-.licao-repeticoes {
-  padding: 5px 10px;
-  border: 0;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-/* O esqueleto do grupo acompanha o cabeçalho, que cresceu. */
-.grupo-esqueleto {
-  height: 48px;
-  border-radius: var(--raio-g, 16px);
-}
-
-@media (max-width: 700px) {
-  .pagina-media .painel.campanhas { margin-top: 24px; padding: 24px 22px; }
-  .campanhas .titulo { font-size: 24px; }
-  .campanhas .secao-rotulo { margin-top: 28px; }
-  .grupo-cabecalho { padding: 12px 12px; }
-  .item.licao { padding: 14px 16px; }
-}
-
-/* ============================================================================
    ACRÉSCIMO — o lobby completo (frame "06 — B+C: Solo · Lobby")
 
    O que faltava do desenho, escrito por js/solo/Lobby.tsx:
      - o anel de XP no lugar do retrato e da barra (a <BarraXp> continua
-       existindo para campanhas.html e estatisticas.html; aqui ela só não
+       existindo para estatisticas.html; aqui ela só não
        é mais usada);
      - as três métricas ao lado do nome;
      - o gráfico de ritmo embaixo dos sete dias;
@@ -1541,7 +1171,7 @@ a.item.licao:hover { border-color: rgba(255, 255, 255, 0.30); }
   gap: 8px;
 }
 
-/* A mesma pílula das repetições em campanhas.html (.licao-repeticoes). */
+/* A pílula de nível, repetições e tempo da faixa "continuar". */
 .lobby-pilula {
   padding: 5px 10px;
   border-radius: var(--raio-total, 9999px);
@@ -1651,4 +1281,783 @@ a.item.licao:hover { border-color: rgba(255, 255, 255, 0.30); }
 
   .lobby-guia { margin-top: 32px; }
   .lobby-guia-legenda { letter-spacing: 0.18em; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — a moldura do Solo e o caminho
+   (js/componentes/MolduraSolo.tsx; pages/solo/caminho.html, configuracoes,
+   ajuda e sobre)
+
+   Não se repete aqui: a receita do vidro (.vidro, em
+   css/componentes/vidro.css), o relevo da tecla e o afundar no clique
+   (.tecla e .tecla-clara, em css/base/luz.css), o disco de luz e o grão
+   (luz.css, postos no HTML de cada tela). Aqui entram só a face de cada
+   peça — a cor do tampo da tecla — e o lugar de cada uma.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Face escura das teclas desta parte: o tampo levemente aceso em cima,
+   sobre o relevo de luz.css. Uma regra só para as cinco peças.
+   ------------------------------------------------------------------------- */
+.moldura-pessoa,
+.moldura-abrir,
+.barra-lateral-fechar,
+.caminho-seta,
+.pedra {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  color: var(--cor-texto, #fff);
+}
+
+/* ---------------------------------------------------------------------------
+   A moldura: topo, conteúdo e o botão redondo
+
+   A barra lateral EMPURRA: com ela aberta, o topo e o conteúdo começam
+   depois dela, e o conteúdo se reorganiza na largura que sobra. Nada
+   escurece e nada fica por baixo.
+   ------------------------------------------------------------------------- */
+.moldura-topo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--e-5, 24px) 56px;
+  /* A faixa do topo não pode roubar o clique do que está embaixo dela;
+     só a marca e o botão da pessoa recebem clique. */
+  pointer-events: none;
+  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
+}
+.moldura-topo > * { pointer-events: auto; }
+
+.moldura-conteudo {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  overflow-y: auto;
+  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
+}
+
+.moldura-lateral-aberta .moldura-topo,
+.moldura-lateral-aberta .moldura-conteudo {
+  left: var(--largura-sidebar, 248px);
+}
+
+.moldura-marca {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 15px;
+  letter-spacing: 0.34em;
+  color: var(--cor-texto, #fff);
+}
+
+/* --- a pessoa, no topo à direita ----------------------------------------- */
+.moldura-pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  padding: 9px var(--e-4, 16px) 9px 9px;
+  border-radius: 14px;
+}
+
+.moldura-pessoa-inicial {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--raio-total, 9999px);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 14px;
+}
+
+.moldura-pessoa-texto {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.moldura-pessoa-nome { font-size: 14px; font-weight: var(--peso-normal, 400); }
+.moldura-pessoa-nivel {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.moldura-pessoa-trilho {
+  width: 126px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.moldura-pessoa-trilho > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--cor-texto, #fff);
+}
+
+/* --- o botão redondo, no canto de baixo ---------------------------------- */
+/* Some enquanto a barra está aberta. O visibility vai junto do opacity
+   para ele sair também do Tab; ao reaparecer, o visibility volta na hora
+   (0s), para o foco poder voltar a ele no mesmo instante. */
+.moldura-abrir {
+  position: fixed;
+  left: 44px;
+  bottom: 44px;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 58px;
+  height: 58px;
+  border-radius: var(--raio-total, 9999px);
+  transition:
+    opacity var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s,
+    transform var(--t-rapido, 160ms) var(--curva, ease-out),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.moldura-abrir > span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.moldura-lateral-aberta .moldura-abrir {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s linear var(--t-medio, 240ms);
+}
+
+/* ---------------------------------------------------------------------------
+   Barra lateral
+
+   Fechada, ela fica fora da tela e com visibility: hidden, para o Tab e o
+   leitor de tela não a acharem. O visibility só muda DEPOIS de ela
+   terminar de sair (o atraso de --t-medio), e na hora quando ela entra.
+   ------------------------------------------------------------------------- */
+.barra-lateral {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  flex-direction: column;
+  width: var(--largura-sidebar, 248px);
+  padding: 26px 22px;
+  overflow-y: auto;
+  border-radius: 0 26px 26px 0;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s linear var(--t-medio, 240ms);
+}
+.barra-lateral-aberta {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s;
+}
+
+.barra-lateral-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 34px;
+  padding: 0 6px;
+}
+
+.barra-lateral-fechar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--e-3, 12px);
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.barra-lateral-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px var(--e-4, 16px);
+  border-radius: 13px;
+  text-align: left;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  transition:
+    background var(--t-rapido, 160ms) var(--curva, ease-out),
+    color var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.barra-lateral-item svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.barra-lateral-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--cor-texto, #fff); }
+.barra-lateral-item-ativo {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cor-texto, #fff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.barra-lateral-divisoria {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: var(--e-4, 16px) 6px;
+}
+
+.barra-lateral-versao {
+  margin-top: auto;
+  padding: 0 var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---------------------------------------------------------------------------
+   O caminho
+
+   A tela inteira é a área da trilha. A faixa do nível flutua no topo, e as
+   pedras e o tracejado são posicionados pelo Caminho.tsx, em px, a partir
+   do tamanho desta área.
+   ------------------------------------------------------------------------- */
+.caminho {
+  position: relative;
+  height: 100%;
+  min-height: 560px;
+}
+
+.caminho-trilha {
+  position: absolute;
+  inset: 0;
+}
+
+/* --- faixa do nível ------------------------------------------------------ */
+.caminho-faixa {
+  position: absolute;
+  top: 104px;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(620px, 70vw);
+  padding: var(--e-4, 16px) var(--e-5, 24px);
+  border-radius: 18px;
+  transform: translateX(-50%);
+}
+.caminho-faixa-esqueleto { height: 74px; }
+
+.caminho-faixa-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.caminho-faixa-nome {
+  margin-top: 5px;
+  font-size: 18px;
+  font-weight: var(--peso-normal, 400);
+}
+
+.caminho-setas { display: flex; flex: none; gap: var(--e-2, 8px); }
+.caminho-seta {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 31px;
+  border-radius: 11px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+}
+/* No primeiro e no último nível a seta daquele lado não tem para onde ir. */
+.caminho-seta:disabled { opacity: 0.35; cursor: default; }
+
+/* Erro e "nenhuma lição" ocupam o lugar da faixa. */
+.caminho-aviso {
+  position: absolute;
+  top: 104px;
+  left: 50%;
+  width: min(620px, calc(100% - 32px));
+  transform: translateX(-50%);
+}
+
+/* --- tracejado e pedras -------------------------------------------------- */
+.caminho-ligacao {
+  position: absolute;
+  height: 0;
+  border-top: 2px dashed rgba(255, 255, 255, 0.18);
+  transform-origin: 0 50%;
+}
+
+/* O ponto calculado é o centro da pedra. */
+.caminho-passo {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  transform: translate(-50%, -50%);
+}
+
+.pedra {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--raio-total, 9999px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 22px;
+  font-weight: var(--peso-medio, 500);
+  color: rgba(255, 255, 255, 0.4);
+}
+.pedra svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pedra-nova:hover { color: rgba(255, 255, 255, 0.75); }
+
+/* Concluída: face clara, número escuro. */
+.pedra-feita {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.76));
+  border-color: transparent;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+/* A próxima a fazer: a face mais clara da tela, com o teclado no meio. */
+.pedra-proxima {
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.86));
+  border-color: transparent;
+  color: var(--cor-texto-inverso, #000);
+}
+
+/* O troféu do fim do nível não é um botão: marca o fim, não se aperta. */
+.pedra-trofeu { pointer-events: none; }
+
+/* O anel de luz em volta da próxima: 15px de folga para cada lado. */
+.caminho-halo {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 118px;
+  height: 118px;
+  margin-left: -59px;
+  border-radius: var(--raio-total, 9999px);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 36px 3px rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.caminho-balao {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: var(--e-4, 16px);
+  padding: 11px 22px;
+  border-radius: 14px;
+  white-space: nowrap;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cor-texto-inverso, #000);
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.86));
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.7);
+}
+/* A ponta do balão, apontando para a pedra. */
+.caminho-balao::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.86);
+}
+
+.caminho-repeticoes {
+  padding: 4px 10px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+/* ---------------------------------------------------------------------------
+   Telas de texto: Configurações, Ajuda e Sobre
+
+   Uma coluna de leitura abaixo do topo, com os cartões de vidro no mesmo
+   raio e respiro dos cartões do dashboard.
+   ------------------------------------------------------------------------- */
+.solo-texto {
+  max-width: calc(var(--medida-leitura, 66ch) + 56px);
+  margin: 0 auto;
+  padding: 118px var(--e-5, 24px) var(--e-8, 64px);
+}
+
+.solo-texto-titulo {
+  font-size: 30px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+
+.solo-texto-cartao {
+  margin-top: 22px;
+  padding: 26px 28px;
+  border-radius: 22px;
+}
+.solo-texto-cartao p,
+.solo-texto-lista {
+  font-size: 15px;
+  line-height: var(--lh-solta, 1.75);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.solo-texto-cartao p + p { margin-top: var(--e-3, 12px); }
+.solo-texto-cartao strong { font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
+
+.solo-texto-secao {
+  margin-bottom: var(--e-3, 12px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: var(--peso-normal, 400);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.solo-texto-lista { padding-left: 1.2em; list-style: disc; }
+.solo-texto-lista li + li { margin-top: var(--e-2, 8px); }
+
+.solo-texto-versao {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+}
+
+/* Uma opção de Configurações: a caixa de marcar e, ao lado, o nome e a
+   explicação. O rótulo inteiro é clicável. */
+.solo-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-4, 16px);
+  cursor: pointer;
+}
+.solo-opcao-caixa {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  /* A caixa marcada fica branca: nenhuma cor nova. */
+  accent-color: var(--cor-texto, #fff);
+  cursor: pointer;
+}
+.solo-opcao-nome {
+  display: block;
+  font-size: 16px;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto, #fff);
+}
+.solo-opcao-texto {
+  display: block;
+  margin-top: var(--e-1, 4px);
+  font-size: 14px;
+  line-height: var(--lh-normal, 1.5);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* ---------------------------------------------------------------------------
+   Tela estreita: o topo e o botão redondo encostam mais nas bordas.
+   ------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  .moldura-topo { padding: var(--e-4, 16px); }
+  .moldura-abrir { left: var(--e-5, 24px); bottom: var(--e-5, 24px); }
+  .caminho-faixa { width: calc(100% - 32px); }
+  .solo-texto { padding-top: 104px; }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — dashboard dentro da moldura, e o tutorial do Solo
+   (pages/solo/dashboard.html; js/solo/Tutorial.tsx, mostrado pelo
+   caminho na primeira vez da conta)
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Dashboard na moldura
+
+   O conteúdo e o layout são os de sempre. Só desce para o topo fixo da
+   moldura caber em cima, e ganha a linha com "Voltar ao caminho" e
+   "Estatísticas".
+   ------------------------------------------------------------------------- */
+.moldura .lobby-pagina { padding-top: 104px; }
+
+.lobby-caminhos {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+}
+.lobby-caminhos-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.lobby-caminhos-link:hover { color: var(--cor-texto, #fff); }
+
+/* ---------------------------------------------------------------------------
+   Configurações: uma opção com botão ao lado (rever o tutorial). Não é
+   <label>: o que se clica é o botão, não a linha.
+   ------------------------------------------------------------------------- */
+.solo-opcao-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+}
+.solo-opcao-linha .tutorial-botao { flex: none; }
+
+/* ---------------------------------------------------------------------------
+   Tutorial
+
+   Duas colunas — o texto e o painel com o teclado — e o rodapé com os
+   pontinhos e os botões. Tudo dentro da área de conteúdo da moldura, que
+   rola se a janela for baixa.
+   ------------------------------------------------------------------------- */
+
+/* A face das teclas do tutorial: a escura das outras peças do Solo, e a
+   clara para a linha-guia e o botão "Continuar". */
+.tutorial-tecla,
+.tutorial-botao {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  color: var(--cor-texto, #fff);
+}
+.tutorial-tecla-guia,
+.tutorial-botao-claro {
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.82));
+  border-color: transparent;
+  color: var(--cor-texto-inverso, #000);
+}
+
+.tutorial {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.tutorial-miolo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-8, 64px);
+  align-items: center;
+  width: 100%;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 120px 84px var(--e-6, 32px);
+}
+
+.tutorial-antes {
+  margin-bottom: 10px;
+  font-size: 19px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tutorial-titulo {
+  margin-bottom: 26px;
+  font-size: 64px;
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-apertada, 1.1);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+/* O título recebe o foco pelo código a cada passo (tabIndex -1), para o
+   leitor de tela anunciar o passo novo. Não é um controle: sem anel. */
+.tutorial-titulo:focus { outline: none; }
+.tutorial-titulo-marca {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  letter-spacing: 0.12em;
+}
+
+.tutorial-texto {
+  max-width: 440px;
+  margin-bottom: 38px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tutorial-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.tutorial-itens li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-4, 16px);
+}
+.tutorial-itens p {
+  max-width: 330px;
+  font-size: 15px;
+  line-height: var(--lh-normal, 1.5);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.tutorial-icone {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--e-3, 12px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.tutorial-icone svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- o painel da direita ------------------------------------------------- */
+.tutorial-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 420px;
+  overflow: hidden;
+  border-radius: 26px;
+}
+
+.tutorial-frase {
+  position: absolute;
+  top: 34px;
+  left: 34px;
+  font-size: 22px;
+  font-weight: var(--peso-leve, 300);
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tutorial-teclado {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 9px;
+  width: 100%;
+  margin-top: 60px;
+  padding: 0 34px;
+}
+
+.tutorial-tecla {
+  display: grid;
+  place-items: center;
+  height: 38px;
+  border-radius: 11px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+/* Decorativas: não se apertam, então não afundam no clique. */
+.tutorial-teclado .tecla { pointer-events: none; }
+
+/* --- rodapé: pontinhos e botões ------------------------------------------ */
+.tutorial-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5, 24px);
+  width: 100%;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 0 84px 46px;
+}
+
+.tutorial-pontos {
+  display: flex;
+  gap: 9px;
+}
+.tutorial-pontos i {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.2);
+  transition:
+    width var(--t-medio, 240ms) var(--curva, ease-out),
+    background var(--t-medio, 240ms) var(--curva, ease-out);
+}
+.tutorial-pontos i.tutorial-ponto-atual {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--cor-texto, #fff);
+}
+
+.tutorial-acoes {
+  display: flex;
+  gap: 14px;
+}
+
+.tutorial-botao {
+  padding: var(--e-4, 16px) 30px;
+  border-radius: 14px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Janela estreita: uma coluna só, e o painel do teclado sai — ele é
+   desenho, e o texto é o que ensina. */
+@media (max-width: 900px) {
+  .tutorial-miolo {
+    grid-template-columns: 1fr;
+    padding: 104px var(--e-5, 24px) var(--e-6, 32px);
+  }
+  .tutorial-visual { display: none; }
+  .tutorial-titulo { font-size: 44px; }
+  .tutorial-rodape { padding: 0 var(--e-5, 24px) var(--e-5, 24px); }
 }

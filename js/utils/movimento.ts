@@ -125,7 +125,10 @@ function levaParaOutraPaginaDoProjeto(link: HTMLAnchorElement): boolean {
   return true;
 }
 
+// O sistema pediu, ou a pessoa pediu em Configurações do Solo (a classe
+// que guarda.aplicarMundo põe no <html>).
 function querMenosMovimento(): boolean {
+  if (document.documentElement.classList.contains('movimento-reduzido')) return true;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 

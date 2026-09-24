@@ -52,7 +52,6 @@ export const SECOES_PROFESSOR: SecoesNav = {
   ],
 };
 
-export type SecaoSolo = 'campanha' | 'missoes' | 'estatisticas';
 export type SecaoAluno = 'exercicios' | 'historico';
 
 /** As seções do aluno. Os hrefs valem para pages/aluno/. Sem outroModo:
@@ -63,18 +62,6 @@ export const SECOES_ALUNO: SecoesNav = {
   itens: [
     { chave: 'exercicios', rotulo: 'Exercícios', href: 'dashboard.html' },
     { chave: 'historico', rotulo: 'Histórico', href: 'historico.html' },
-  ],
-};
-
-/** As seções do mundo Solo. Os hrefs valem para pages/solo/. */
-export const SECOES_SOLO: SecoesNav = {
-  rotulo: 'Seções do Solo',
-  modo: 'Solo',
-  outroModo: { rotulo: 'Ir para o Professor', modo: 'professor' },
-  itens: [
-    { chave: 'campanha', rotulo: 'Campanha', href: 'dashboard.html' },
-    { chave: 'missoes', rotulo: 'Missões', href: 'campanhas.html' },
-    { chave: 'estatisticas', rotulo: 'Estatísticas', href: 'estatisticas.html' },
   ],
 };
 

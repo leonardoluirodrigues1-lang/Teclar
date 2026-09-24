@@ -41,7 +41,15 @@ export const CONFIG = {
     USUARIO: 'teclar:usuario',
     MODO: 'teclar:modo', // último modo (solo | professor) da conta, ver sessao.modo()
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back
+    MOVIMENTO_REDUZIDO: 'teclar:movimento_reduzido', // escolha feita em pages/solo/configuracoes.html
+    // PREFIXO, não chave inteira: o id da conta vai no fim (ver
+    // sessao.tutorialVisto). Provisório até existir coluna no banco.
+    TUTORIAL_SOLO: 'teclar:tutorial_solo:',
   },
+
+  // A versão que o rodapé da barra lateral do Solo mostra. A mesma do
+  // package.json: ao subir uma, sobe a outra.
+  VERSAO: '1.0.0',
 
   TREINO: {
     // 'livre'      — o erro não trava; o usuário continua digitando e o erro
@@ -106,10 +114,10 @@ export const ROTA_LANDING = '/index.html';
 
 /** A casa de cada modo da conta e a do aluno. */
 export const ROTA_INICIAL = {
-  // O LOBBY, não a lista de missões: é ele que sabe se a pessoa já tem
-  // campanha. Quem cai direto em campanhas.html sem campanha é devolvido
-  // para cá (ver o fim de js/solo/Campanhas.tsx).
-  solo: '/pages/solo/dashboard.html',
+  // O CAMINHO das lições. Quem ainda não tem campanha é mandado de lá para
+  // o dashboard (pages/solo/dashboard.html), que é onde mora o convite de
+  // começar — ver o fim de js/solo/Caminho.tsx.
+  solo: '/pages/solo/caminho.html',
   // As TURMAS, com a Nav e o menu do avatar (onde mora o "Ir para o Solo").
   // O antigo professor/dashboard.html (lista mínima) foi apagado.
   professor: '/pages/professor/turmas.html',

@@ -1,6 +1,8 @@
 // Lobby.tsx — pages/solo/dashboard.html
-// A porta de entrada do mundo Solo, e a casa da conta em modo solo (ver
-// ROTA_INICIAL em js/config.ts).
+// O dashboard do Solo. Deixou de ser a casa do modo (ROTA_INICIAL em
+// js/config.ts agora é o caminho): chega-se aqui pelo botão da pessoa, no
+// topo do caminho, e é para cá que o caminho manda quem ainda não tem
+// campanha.
 //
 // O lobby NÃO é uma lista de campanhas, e isso vem do banco, não de gosto:
 // a tabela CampanhasSolo tem quatro colunas — CampanhaID, JogadorID,
@@ -18,7 +20,7 @@
 //
 // Nada de personagem é inventado nesta tela: nem campo no formulário (não
 // há formulário), nem chave no localStorage. O que fica guardado é o id da
-// campanha, pelo sessao.definirCampanha(), porque campanhas.html e a tela
+// campanha, pelo sessao.definirCampanha(), porque caminho.html e a tela
 // de treino precisam dele — e id é coluna, existe no banco.
 //
 // O DESENHO é o do frame "06 — B+C: Solo · Lobby": nav em pílula de vidro
@@ -30,10 +32,10 @@
 //   · painel da sequência  — os sete dias e, embaixo, o ritmo das últimas
 //     12 sessões em barrinhas;
 //   · faixa                — a próxima lição, com a mesma regra do botão
-//     "Continuar" de campanhas.html (utils/percurso.ts);
+//     pedra acesa de caminho.html (utils/percurso.ts);
 //   · rodapé               — a linha-guia e o link para as lições.
 // A grade de missões que o desenho traz NÃO mora aqui: as lições vivem em
-// campanhas.html, agrupadas por nível.
+// caminho.html, um nível por vez.
 //
 // De onde vem cada dado (todas rotas que já existiam; nenhuma nova):
 //   · campanha      — GET /solo/campanha: nível e XP. É a única que manda:
@@ -68,7 +70,7 @@ import type {
 } from '../nucleo/tipos.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { progressoDe, type ProgressoXp } from '../componentes/BarraXp.js';
-import { Nav, SECOES_SOLO } from '../componentes/Nav.js';
+import { MolduraSolo } from '../componentes/MolduraSolo.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import {
   maisRecentesPrimeiro,
@@ -85,9 +87,11 @@ import {
 import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-// A tela de missões, vizinha desta em pages/solo/. Caminho relativo: as
+// O caminho das lições, vizinho desta em pages/solo/. Caminho relativo: as
 // duas moram na mesma pasta.
-const ROTA_MISSOES = 'campanhas.html';
+const ROTA_CAMINHO = 'caminho.html';
+// A tela de estatísticas, também vizinha. Chega-se a ela só por aqui.
+const ROTA_ESTATISTICAS = 'estatisticas.html';
 
 // Quantas sessões o gráfico de ritmo mostra, e a partir de quantas ele
 // aparece: com duas barrinhas não há ritmo nenhum para ler.
@@ -105,7 +109,7 @@ const MENSAGENS = {
 // ============================================================================
 // progressoDe() mora em componentes/BarraXp.tsx e é a mesma conta que a
 // barra das outras telas usa. Aqui o progresso vira ANEL em vez de barra;
-// a <BarraXp> continua existindo para campanhas.html e estatisticas.html.
+// a <BarraXp> continua existindo para estatisticas.html.
 // O NÍVEL continua vindo pronto na campanha (campanha.nivelAtual), como o
 // back o gravou — ver a nota em BarraXp.tsx.
 
@@ -374,15 +378,15 @@ function PainelSequencia({ dias, sequencia, sessoes }: PropsSequencia) {
 // Faixa "continuar de onde parou"
 // ============================================================================
 // Qual lição e qual verbo (Continuar / Começar / Repetir a última) vêm de
-// utils/percurso.ts — a mesma regra do botão de campanhas.html, então as
+// utils/percurso.ts — a mesma regra da pedra acesa de caminho.html, então as
 // duas telas sempre apontam para a mesma lição com o mesmo texto.
 
-// O mesmo endereço que o cartão da lição usa em campanhas.html.
+// O mesmo endereço que a pedra da lição usa em caminho.html.
 function hrefDoTreino(licao: Missao): string {
   return `../treino/treino.html?${new URLSearchParams({ exercicio: licao.exerciseId })}`;
 }
 
-// 186 -> '3:06', como o tempo do cartão em campanhas.html.
+// 186 -> '3:06'. Segundos sempre com dois dígitos.
 function tempoEmMinutos(segundos: number): string {
   const total = Math.max(0, Math.round(segundos ?? 0));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
@@ -398,7 +402,7 @@ function FaixaContinuar({ progresso }: { progresso: ProgressoDoPercurso | null }
           <span className="lobby-rotulo">Continuar de onde parou</span>
           <p className="lobby-faixa-titulo">Suas lições</p>
         </div>
-        <a className="btn btn-solido tecla tecla-clara lobby-faixa-acao" href={ROTA_MISSOES}>
+        <a className="btn btn-solido tecla tecla-clara lobby-faixa-acao" href={ROTA_CAMINHO}>
           Continuar
         </a>
       </section>
@@ -455,7 +459,7 @@ function RodapeLinhaGuia({ licoes }: { licoes: Missao[] | null }) {
         <span className="lobby-guia-casa" aria-hidden="true">
           asdf jklç
         </span>
-        <a className="lobby-guia-link" href={ROTA_MISSOES}>
+        <a className="lobby-guia-link" href={ROTA_CAMINHO}>
           {textoDoLink}
         </a>
       </div>
@@ -525,7 +529,7 @@ function Lobby() {
         ]);
         if (cancelado) return;
 
-        // O id da campanha vai para a sessão porque campanhas.html e a tela
+        // O id da campanha vai para a sessão porque caminho.html e a tela
         // de treino leem dela. Sem campanha, a chave é limpa: um id velho
         // (campanha apagada, outra conta no mesmo navegador) mandaria a
         // tela de missões pedir uma campanha que não existe mais.
@@ -575,10 +579,10 @@ function Lobby() {
     try {
       const campanha = await api.solo.criarCampanha();
       sessao.definirCampanha(campanha.campanhaId);
-      // Sai do lobby direto para as missões. O botão fica em "criando…"
+      // Sai do lobby direto para o caminho. O botão fica em "criando…"
       // até a navegação acontecer: soltá-lo aqui piscaria "Começar
       // campanha" de novo numa tela que já está indo embora.
-      window.location.href = ROTA_MISSOES;
+      window.location.href = ROTA_CAMINHO;
     } catch (excecao) {
       // A falha não apaga o convite: o painel continua de pé, com o aviso
       // ao lado do botão e o botão clicável de novo. Trocar a tela inteira
@@ -661,18 +665,27 @@ function Lobby() {
   }
 
   return (
-    <>
-      {/* A mesma Nav do mundo Escola, com as seções do Solo. Ela já traz o
-          menu da conta — "Ir para o Professor" e "Sair" moram lá dentro,
-          que é onde o desenho os coloca. */}
-      <Nav secoes={SECOES_SOLO} ativo="campanha" />
+    // A moldura do Solo no lugar da nav em pílula. Nenhum item da barra
+    // lateral fica marcado: o dashboard não está nela, chega-se aqui pelo
+    // botão da pessoa, no topo.
+    <MolduraSolo ativo={null}>
+      <div className="lobby-pagina">
+        <nav className="lobby-caminhos" aria-label="Voltar ou ver mais">
+          <a className="lobby-caminhos-link" href={ROTA_CAMINHO}>
+            <span aria-hidden="true">←</span> Voltar ao caminho
+          </a>
+          <a className="lobby-caminhos-link" href={ROTA_ESTATISTICAS}>
+            Estatísticas <span aria-hidden="true">→</span>
+          </a>
+        </nav>
 
-      {/* Sem aria-live neste invólucro: o PainelErro já é role="status" e
-          se anuncia sozinho, e o anel de XP tem o próprio rótulo. Uma
-          região viva por fora faria o leitor de tela ler a mesma coisa
-          duas vezes. */}
-      <main className="lobby-conteudo">{renderizarCorpo()}</main>
-    </>
+        {/* Sem aria-live neste invólucro: o PainelErro já é role="status" e
+            se anuncia sozinho, e o anel de XP tem o próprio rótulo. Uma
+            região viva por fora faria o leitor de tela ler a mesma coisa
+            duas vezes. */}
+        <main className="lobby-conteudo">{renderizarCorpo()}</main>
+      </div>
+    </MolduraSolo>
   );
 }
 
@@ -701,7 +714,7 @@ function mensagemDaFalha(excecao: unknown): string {
 
 // Guarda de conta antes de montar (e grava o modo solo). Devolveu null, redirecionou:
 // a tela para aqui e nada mais roda. Esta tela não tem guarda de campanha,
-// ao contrário de campanhas.html: ela é o destino de quem não tem.
+// ao contrário de caminho.html: ela é o destino de quem não tem.
 const usuario = guarda.soConta('solo');
 
 if (usuario) {

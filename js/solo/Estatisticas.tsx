@@ -17,7 +17,7 @@
 //                            (api.solo.historico), como no histórico do
 //                            aluno, com as MESMAS funções (utils/desempenho.ts).
 //
-// Esta tela ASSUME que a campanha existe, como campanhas.html: sem
+// Esta tela ASSUME que a campanha existe, como caminho.html: sem
 // campanha, redireciona para o lobby antes de montar. Quem nunca treinou
 // (campanha sem sessão) vê um painel único convidando a começar — sem
 // tabela e sem seis zeros.
@@ -56,7 +56,7 @@ import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinhas desta em pages/solo/: caminho relativo.
 const ROTA_LOBBY = 'dashboard.html';
-const ROTA_MISSOES = 'campanhas.html';
+const ROTA_CAMINHO = 'caminho.html';
 
 // Linhas de esqueleto: a altura que a tabela terá com um punhado de
 // lições, para nada pular de lugar quando os dados chegarem.
@@ -228,7 +228,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
           titulo="Sua campanha começa na primeira lição"
           texto="Cada lição concluída rende XP, o XP sobe de nível, e tudo o que você fizer aparece aqui: suas melhores marcas, sua sequência de dias e sua evolução."
         >
-          <a className="btn btn-solido tecla tecla-clara" href={ROTA_MISSOES}>
+          <a className="btn btn-solido tecla tecla-clara" href={ROTA_CAMINHO}>
             Começar a primeira lição
           </a>
         </PainelEstado>

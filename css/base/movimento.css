@@ -160,3 +160,24 @@
     animation: none;
   }
 }
+
+/* O mesmo bloco, para quem pediu menos movimento em Configurações do Solo
+   (a classe vem de guarda.aplicarMundo, no <html>). Repetido porque uma
+   @media não aceita "ou esta classe". */
+:root.movimento-reduzido {
+  --t-rapido: 0ms;
+  --t-medio: 0ms;
+  --t-tela: 0ms;
+  --t-xp: 0ms;
+  --deslocamento-entrada: 0px;
+  --deslocamento-cartao: 0px;
+  --escala-toque: 1;
+  --escala-modal: 1;
+  --opacidade-inicial: 1;
+}
+
+.movimento-reduzido .entrada-da-pagina,
+.movimento-reduzido .entrada-escalonada > :nth-child(-n + 12),
+.movimento-reduzido :focus-visible {
+  animation: none;
+}

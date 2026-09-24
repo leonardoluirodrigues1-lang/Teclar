@@ -233,6 +233,14 @@
   }
 }
 
+/* O mesmo pedido feito dentro do app, em Configurações do Solo: a classe
+   vem de guarda.aplicarMundo(), no <html>. */
+:root.movimento-reduzido {
+  --dur-rapida: 0ms;
+  --dur-normal: 0ms;
+  --dur-lenta: 0ms;
+}
+
 /* ============================================================================
    ACESSIBILIDADE — MAIS CONTRASTE
    Clareia os tons que ficam perto do fundo. O cinza do caractere "não

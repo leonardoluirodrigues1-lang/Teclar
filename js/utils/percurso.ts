@@ -1,7 +1,7 @@
 // percurso.ts
 // A regra que decide a próxima lição do Solo: a ordem do percurso
 // (agrupada por nível) e para onde o botão "Continuar" leva e como ele se
-// chama. Existia duplicada em js/solo/Campanhas.tsx e js/solo/Lobby.tsx;
+// chama. Existia duplicada na antiga tela de lições e em js/solo/Lobby.tsx;
 // agora as duas telas usam esta, e mostram sempre a mesma lição com o
 // mesmo texto.
 //

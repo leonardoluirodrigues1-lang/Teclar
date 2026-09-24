@@ -156,6 +156,53 @@ function mundo(): Mundo | null {
   return m === 'solo' ? 'solo' : 'escola';
 }
 
+// --- Reduzir movimento (pages/solo/configuracoes.html) ------------------------
+// Preferência do APARELHO, não da conta: quem pediu menos movimento neste
+// computador continua pedindo depois de sair, e por isso o sair() não a
+// apaga. Soma-se ao prefers-reduced-motion do sistema, não o substitui.
+
+function movimentoReduzido(): boolean {
+  return localStorage.getItem(CHAVES.MOVIMENTO_REDUZIDO) === 'sim';
+}
+
+function definirMovimentoReduzido(ligado: boolean): void {
+  if (ligado) localStorage.setItem(CHAVES.MOVIMENTO_REDUZIDO, 'sim');
+  else localStorage.removeItem(CHAVES.MOVIMENTO_REDUZIDO);
+}
+
+// --- Tutorial do Solo: já visto? ---------------------------------------------
+// PROVISÓRIO: enquanto a tabela Users não tiver uma coluna para isso, a
+// marca fica no navegador, uma chave por conta (o id vai no nome da
+// chave). Outra conta no mesmo navegador vê o tutorial dela; a mesma conta
+// em outro navegador vê de novo. Quando a coluna existir, estas três
+// funções passam a ler e gravar pela API, e quem as chama não muda.
+// O sair() não apaga a marca: quem já viu não precisa ver de novo só por
+// ter saído.
+
+function chaveDoTutorial(): string | null {
+  const atual = usuario();
+  if (atual == null || atual.tipo !== 'conta') return null;
+  return CHAVES.TUTORIAL_SOLO + atual.id;
+}
+
+function tutorialVisto(): boolean {
+  const chave = chaveDoTutorial();
+  // Sem conta não há de quem ser a marca: trata como visto, para não
+  // mostrar o tutorial a quem nem é do Solo.
+  return chave == null || localStorage.getItem(chave) === 'visto';
+}
+
+function marcarTutorialVisto(): void {
+  const chave = chaveDoTutorial();
+  if (chave) localStorage.setItem(chave, 'visto');
+}
+
+// O "Rever o tutorial" de Configurações.
+function esquecerTutorial(): void {
+  const chave = chaveDoTutorial();
+  if (chave) localStorage.removeItem(chave);
+}
+
 // --- Modo Solo: campanha escolhida no lobby ---------------------------------
 // Fica gravada dentro do próprio usuário, então persiste entre as telas
 // (lobby -> treino -> resultado) e é apagada junto no sair().
@@ -216,6 +263,11 @@ export const sessao = {
   modo,
   definirModo,
   mundo,
+  movimentoReduzido,
+  definirMovimentoReduzido,
+  tutorialVisto,
+  marcarTutorialVisto,
+  esquecerTutorial,
   campanhaAtiva,
   definirCampanha,
   turmaAtiva,
