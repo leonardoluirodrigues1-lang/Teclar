@@ -1877,6 +1877,14 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .solo-opcao-linha .tutorial-botao { flex: none; }
 
+/* Copiar o RP e gerar a senha nova, um embaixo do outro, na mesma largura. */
+.solo-rp-acoes {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--e-2, 8px);
+}
+
 /* O RP em Configurações: é dado, então mono e maior que o texto ao redor. */
 .solo-rp {
   display: block;

@@ -53,8 +53,9 @@ export interface TurmaDoUsuario {
  * Espelha a tabela Users (ID, Nome, Email) mais campos de conveniência que
  * o back manda junto para a tela não pedir de novo logo após o login.
  *
- * nome e email são opcionais: a tabela Alunos não tem nenhum dos dois, e
- * o aluno chega só com id (o RP). Ver sessao.nomeExibicao().
+ * nome e email são opcionais: o aluno não tem e-mail, e o nome dele é o
+ * da conta dona (Alunos.UserID -> Users.Nome), que pode faltar. O id do
+ * aluno é o RP. Ver sessao.nomeExibicao().
  *
  * Não há campo de perfil: a tabela Users não tem essa coluna. O que existe
  * é `tipo` (de qual tabela o login veio) e, só no front, o modo (ver
@@ -115,6 +116,12 @@ export type Credenciais = CredenciaisEmail | CredenciaisAluno;
  *  mostra "—". */
 export interface RpDaConta {
   rp: string | null;
+}
+
+/** Resposta de POST /conta/rp/nova-senha: a senha de aluno nova, em texto
+ *  puro, só nesta resposta. A antiga deixa de valer na mesma hora. */
+export interface NovaSenhaAluno {
+  senhaAluno: string;
 }
 
 /** Corpo de POST /auth/cadastro. */
@@ -344,17 +351,19 @@ export interface DadosTurma {
 }
 
 /**
- * Linha de aluno numa turma (GET /turmas/:id/alunos). O `id` É a matrícula
- * e é o que identifica o aluno. Agregados vêm prontos do back; quem nunca
+ * Linha de aluno numa turma (GET /turmas/:id/alunos). O `id` É o RP e é o
+ * que identifica o aluno. Agregados vêm prontos do back; quem nunca
  * treinou tem os três últimos em null, e não em zero.
  *
- * `nome` é opcional: a coluna existe mas aceita nulo, e as telas caem para
- * a matrícula quando está vazia.
+ * `nome` é o da conta dona (Alunos.UserID -> Users.Nome): é a mesma
+ * pessoa. Só aluno antigo, sem conta ligada, cai na coluna Nome de Alunos.
+ * Sem nenhum dos dois vem null, e as telas mostram o RP.
  */
 export interface Aluno {
   id: string;
   nome?: string | null;
-  matriculadoEm: string;
+  /** Data em que ele entrou na turma (a linha de ClassMembers). */
+  entrouEm: string;
   totalSessoes: number;
   wpmMedio: number | null;
   precisaoMedia: number | null;
@@ -426,12 +435,6 @@ export interface DadosExercicio {
   texto: string;
   dificuldade: Dificuldade;
   tempoLimiteSegundos: number;
-}
-
-/** Item de GET /turmas/:id/exercicios — a visão do ALUNO: o exercício mais
- *  o prazo, sem o texto (só sai no detalhe) e sem número de colega. */
-export interface ExercicioDaTurma extends Omit<Exercicio, 'texto' | 'atribuidoA'> {
-  prazo: string | null;
 }
 
 /**
@@ -704,10 +707,10 @@ export interface SessaoDoHistorico extends SessaoDoAluno {
  * estou indo?" — e por isso foi apagado; o tipo ficou como base, e é ele
  * que mantém os quatro campos com um nome e uma forma só.
  *
- * O que NÃO está aqui, e não por esquecimento: sequência de dias e
- * evolução. As duas saem das datas e dos PPM da lista que a tela já
- * carregou — pedir rota para isso seria pedir ao back uma conta que o
- * front tem como fazer sobre dado que já está na mão.
+ * A sequência de dias vem pronta porque a tela das salas mostra esse
+ * número e não carrega a lista de sessões. O histórico continua contando
+ * a dele sobre a lista, porque lá ela muda com o filtro por exercício. A
+ * evolução não vem: só o histórico a mostra, e ele já tem a lista na mão.
  */
 export interface ResumoDoAluno extends IndicadoresEscola {
   /** Quantas sessões ele terminou (concluida = true). É o "exercícios
@@ -716,4 +719,68 @@ export interface ResumoDoAluno extends IndicadoresEscola {
   sessoesConcluidas: number;
   /** A maior precisão que ele já alcançou. null sem nenhuma sessão. */
   melhorPrecisao: number | null;
+  /** Dias seguidos com treino, terminando hoje ou ontem. 0 é 0: a
+   *  sequência quebrou ou nunca começou. */
+  diasSeguidos: number;
+}
+
+// ============================================================================
+// 12. As salas do aluno (pages/aluno/dashboard.html e sala.html)
+// ============================================================================
+// "Sala" é a turma vista pelo aluno. As duas rotas saem do TOKEN, como as
+// da seção 11: nenhuma recebe RP ou id de aluno.
+
+/** Quantos exercícios da sala ele já fez, de quantos a sala tem. */
+export interface ProgressoDaSala {
+  feitos: number;
+  total: number;
+}
+
+/** Item de GET /aluno/salas. `professor` é o nome da conta dona da turma;
+ *  null se não veio (a tela mostra "—"). */
+export interface SalaDoAluno {
+  id: string;
+  nome: string;
+  professor: string | null;
+  /** Data em que ele entrou na sala. */
+  entrouEm: string | null;
+  exercicios: ProgressoDaSala;
+}
+
+/**
+ * O estado de um exercício da sala para este aluno:
+ *   nao_feito       — nenhuma sessão ainda;
+ *   feito           — terminou o texto pelo menos uma vez;
+ *   tempo_esgotado  — tentou, mas o tempo acabou em todas as vezes.
+ * "Tempo esgotado" conta como feito no progresso: ele fez a atividade, e
+ * o texto não diz que falhou. Pode treinar de novo quando quiser.
+ */
+export type EstadoExercicioDaSala = 'nao_feito' | 'feito' | 'tempo_esgotado';
+
+/** Um exercício dentro de GET /aluno/salas/:id. Sem o texto (só sai no
+ *  treino) e sem número de colega. */
+export interface ExercicioDaSala {
+  id: string;
+  titulo: string;
+  dificuldade: Dificuldade;
+  /** Tamanho do texto, contado pelo back, que é quem tem o texto. */
+  caracteres: number;
+  /** Em segundos; 0 = sem limite. */
+  tempoLimiteSegundos: number;
+  atribuidoEm: string | null;
+  prazo: string | null;
+  estado: EstadoExercicioDaSala;
+  /** A melhor sessão dele neste exercício, nesta sala. Tudo null quando o
+   *  estado é nao_feito. */
+  melhorWpm: number | null;
+  melhorPrecisao: number | null;
+  /** Data da sessão mais recente. */
+  ultimaSessao: string | null;
+}
+
+/** GET /aluno/salas/:id — a sala e os exercícios dela, na ordem em que o
+ *  professor atribuiu. Quem ordena para a tela (não feitos primeiro) é o
+ *  front. */
+export interface SalaDetalhe extends SalaDoAluno {
+  lista: ExercicioDaSala[];
 }

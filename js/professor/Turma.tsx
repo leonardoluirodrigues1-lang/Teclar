@@ -289,7 +289,7 @@ function Turma() {
           <span className="celula-aluno-matricula celula-aluno-so-matricula">{a.id}</span>
         ),
     },
-    { rotulo: 'Matriculado em', celula: (a) => formatarData(a.matriculadoEm) },
+    { rotulo: 'Matriculado em', celula: (a) => formatarData(a.entrouEm) },
     { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
     { rotulo: 'PPM médio', campo: 'ppm', classe: 'col-numero', celula: (a) => contagem(a.wpmMedio) },
     {

@@ -39,8 +39,9 @@
 // ENTRADAS DE ALUNO — "Sou aluno" no login, com RP e senha de aluno. Toda
 // conta tem uma; a senha de aluno de todas as de teste é a mesma:
 //
-//   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está na turma-1 e
-//                            na turma-2, tem sessões e histórico.
+//   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está na turma-1
+//                            (falta 1 exercício) e na turma-2 (tudo em
+//                            dia), tem sessões e histórico.
 //   RP2025001   Aluno#2025   de leo. Em sala nenhuma (estado vazio).
 //   RP2025002   Aluno#2025   de prof. Em sala nenhuma.
 //
@@ -61,8 +62,15 @@
 //                 aluno aceitar ele está na sala.
 //
 // O front e este mock já se comportam como se as duas existissem. Quem gera
-// o RP e a senha de aluno é o BACK, no POST /auth/cadastro; o gerarRp() e o
-// gerarSenhaAluno() daqui são só um jeito simples de imitar isso.
+// o RP e a senha de aluno é o BACK, no POST /auth/cadastro (e a senha nova,
+// no POST /conta/rp/nova-senha); o gerarRp() e o gerarSenhaAluno() daqui
+// são só um jeito simples de imitar isso.
+//
+// NOME DO ALUNO. Como Alunos aponta para Users, o aluno e a conta são a
+// mesma pessoa: o nome do aluno é o Nome da conta dona. A coluna Nome de
+// Alunos continua, só para aluno antigo sem conta ligada. O back devolve o
+// primeiro que existir (Users.Nome, depois Alunos.Nome); sem nenhum, vem
+// null e a tela mostra o RP. Aqui no mock o nome já vem escrito nas linhas.
 //
 // DONO. ClassesProf e ExerciciosProf têm ProfessorID, e com conta única é
 // isso — e só isso — que faz uma conta ser professora. Toda turma e todo
@@ -89,6 +97,7 @@
 // para false na conta desejada, em CONTAS (seção 5 deste arquivo).
 
 import { CONFIG } from '../config.js';
+import { sequenciaDeDias } from '../utils/desempenho.js';
 import type {
   Aluno,
   Atribuicao,
@@ -106,6 +115,10 @@ import type {
   RelatorioExercicio,
   RelatorioTurma,
   RespostaCadastro,
+  SalaDetalhe,
+  SalaDoAluno,
+  ExercicioDaSala,
+  EstadoExercicioDaSala,
   RespostaLogin,
   ResumoDoAluno,
   Sessao,
@@ -203,10 +216,10 @@ export const USUARIOS: {
   },
   // Aluno vem da tabela Alunos: ID (o RP), SenhaHash e UserID (a conta
   // dona, aqui ana — ver CONTAS). SEM e-mail, porque a coluna não existe.
-  // Onde a tela mostraria o nome, o sessao.nomeExibicao() cai no RP.
+  // O nome é o da conta dona (ver NOME DO ALUNO no cabeçalho).
   aluno: {
     id: 'RP2025043',
-    nome: null,
+    nome: 'Ana Pires',
     tipo: 'aluno',
     // Conveniência, como acima: um aluno pode estar em várias turmas.
     turmas: [
@@ -463,7 +476,7 @@ export const dados: BancoMock = {
       nome: '9º Ano A — Manhã',
       status: 'Ativa',
       totalAlunos: 4,
-      totalExercicios: 2,
+      totalExercicios: 3,
       dataCriacao: '2026-02-01',
     },
     {
@@ -519,14 +532,13 @@ export const dados: BancoMock = {
   //
   // O `id` É o RP, e é o que identifica um aluno: a tabela Alunos tem ID
   // (o RP), SenhaHash, UserID e um Nome OPCIONAL (a coluna existe e aceita
-  // nulo). Até a passada do professor estas linhas ainda usam os nomes de
-  // campo da época da matrícula (matriculadoEm etc.).
-  // A maioria das linhas aqui não tem nome de propósito — é o caso comum,
-  // e a tela cai no RP. Só o RP2025049 tem, para o caminho "veio nome"
-  // também ser testável sem editar este arquivo. Onde não veio, a tela
-  // mostra o RP e NUNCA inventa um nome de exibição.
+  // nulo). O `nome` daqui é o que o back devolve: o da conta dona, ou o de
+  // Alunos para aluno antigo (ver NOME DO ALUNO no cabeçalho).
+  // RP2025043 é de ana e vem com o nome dela; RP2025049 também tem nome.
+  // Os outros não têm conta semeada aqui nem nome em Alunos — é o caminho
+  // "sem nome", em que a tela mostra o RP e NUNCA inventa um nome.
   //
-  // `matriculadoEm` é a data do vínculo (a linha de matrícula), e
+  // `entrouEm` é a data em que ele entrou na turma (ClassMembers), e
   // `ultimaAtividade` é a data da última sessão — agregados prontos, como
   // wpmMedio e precisaoMedia já eram: o front não varre sessão para chegar
   // neles. Quem nunca treinou tem os quatro em null, e não em zero: zero
@@ -541,7 +553,8 @@ export const dados: BancoMock = {
       // das sessões DA TURMA-1, e por isso marca outros números.
       {
         id: 'RP2025043',
-        matriculadoEm: '2026-02-01',
+        nome: 'Ana Pires',
+        entrouEm: '2026-02-01',
         totalSessoes: 12,
         wpmMedio: 39,
         precisaoMedia: 91,
@@ -549,7 +562,7 @@ export const dados: BancoMock = {
       },
       {
         id: 'RP2025044',
-        matriculadoEm: '2026-02-01',
+        entrouEm: '2026-02-01',
         totalSessoes: 5,
         wpmMedio: 29,
         precisaoMedia: 88,
@@ -558,7 +571,7 @@ export const dados: BancoMock = {
       // Nunca treinou: é a linha apagada, com travessão em todo número.
       {
         id: 'RP2025045',
-        matriculadoEm: '2026-02-24',
+        entrouEm: '2026-02-24',
         totalSessoes: 0,
         wpmMedio: null,
         precisaoMedia: null,
@@ -572,7 +585,7 @@ export const dados: BancoMock = {
       {
         id: 'RP2025049',
         nome: 'Marina Duarte Alves',
-        matriculadoEm: '2026-02-05',
+        entrouEm: '2026-02-05',
         totalSessoes: 6,
         wpmMedio: 32,
         precisaoMedia: 78,
@@ -582,17 +595,18 @@ export const dados: BancoMock = {
     'turma-2': [
       {
         id: 'RP2025046',
-        matriculadoEm: '2026-02-10',
+        entrouEm: '2026-02-10',
         totalSessoes: 3,
         wpmMedio: 41,
         precisaoMedia: 91,
         ultimaAtividade: '2026-02-20T16:45:00.000Z',
       },
       // A MESMA linha da turma-1: o aluno é um só, e estes agregados são
-      // os dele no sistema. Só o `matriculadoEm` é da matrícula nesta turma.
+      // os dele no sistema. Só o `entrouEm` é desta turma.
       {
         id: 'RP2025043',
-        matriculadoEm: '2026-02-12',
+        nome: 'Ana Pires',
+        entrouEm: '2026-02-12',
         totalSessoes: 12,
         wpmMedio: 39,
         precisaoMedia: 91,
@@ -604,7 +618,7 @@ export const dados: BancoMock = {
     'turma-4': [
       {
         id: 'RP2025047',
-        matriculadoEm: '2026-03-02',
+        entrouEm: '2026-03-02',
         totalSessoes: 7,
         wpmMedio: 33,
         precisaoMedia: 90,
@@ -612,7 +626,7 @@ export const dados: BancoMock = {
       },
       {
         id: 'RP2025048',
-        matriculadoEm: '2026-03-02',
+        entrouEm: '2026-03-02',
         totalSessoes: 0,
         wpmMedio: null,
         precisaoMedia: null,
@@ -677,6 +691,16 @@ export const dados: BancoMock = {
       dificuldade: 'facil',
       tempoLimiteSegundos: 45,
     },
+    // O que o aluno de teste ainda NÃO fez: só na turma-1 e sem sessão
+    // nenhuma, para a sala dele ter pendência e um "próximo" em destaque.
+    {
+      id: 'ex-prof-7',
+      professorId: 'u-2',
+      titulo: 'Linha-guia',
+      texto: 'Asdf jklç, a linha do meio guia os dedos: sem olhar, eles voltam sempre para casa.',
+      dificuldade: 'facil',
+      tempoLimiteSegundos: 180,
+    },
     // O único exercício de leo (u-1). Não aparece na biblioteca de prof.
     {
       id: 'ex-prof-6',
@@ -700,6 +724,7 @@ export const dados: BancoMock = {
     'turma-1': [
       { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: '2026-03-15' },
       { exerciseId: 'ex-prof-2', atribuidoEm: '2026-02-17', prazo: null },
+      { exerciseId: 'ex-prof-7', atribuidoEm: '2026-03-20', prazo: null },
     ],
     'turma-2': [
       { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: '2026-03-01' },
@@ -1131,15 +1156,6 @@ function acharCampanha(id: string): Campanha {
   return campanha;
 }
 
-// A turma pelo id, sem olhar dono. Só para quem NÃO é o professor da
-// turma: o aluno matriculado nela (ver turmaVisivel). O professor usa
-// turmaDaConta.
-function acharTurma(id: string): Turma {
-  const turma = dados.turmas.find((t) => t.id === id);
-  if (!turma) throw erro(404, 'Turma não encontrada.', 'NAO_ENCONTRADO');
-  return turma;
-}
-
 // ----------------------------------------------------------------------------
 // Dono — o WHERE ProfessorID = :conta que o back faz em toda rota do professor
 // ----------------------------------------------------------------------------
@@ -1160,22 +1176,6 @@ function exercicioDaConta(id: string, token: string | null | undefined): Exercic
   const ex = dados.exercicios.find((e) => e.id === id && e.professorId === dono);
   if (!ex) throw erro(404, 'Exercício não encontrado.', 'NAO_ENCONTRADO');
   return ex;
-}
-
-// As rotas que o ALUNO também lê (a lista de exercícios da turma dele e o
-// detalhe de um exercício, no treino). Conta: só o que é dela. Aluno: só a
-// turma em que está matriculado, e só o exercício atribuído a uma turma
-// dele — fora disso, o mesmo 404 de id inexistente.
-function turmaVisivel(id: string, token: string | null | undefined): Turma {
-  const usuario = usuarioDoToken(token);
-  if (usuario?.tipo === 'aluno') {
-    const turma = acharTurma(id);
-    if (!(dados.alunos[id] ?? []).some((a) => a.id === usuario.id)) {
-      throw erro(404, 'Turma não encontrada.', 'NAO_ENCONTRADO');
-    }
-    return turma;
-  }
-  return turmaDaConta(id, token);
 }
 
 // O JOIN Alunos_Turmas × AtribuicoesProf: o aluno está matriculado em
@@ -1215,7 +1215,7 @@ function exercicioVisivel(
 function novoAluno(id: string): Aluno {
   return {
     id,
-    matriculadoEm: hoje(),
+    entrouEm: hoje(),
     totalSessoes: 0,
     wpmMedio: null,
     precisaoMedia: null,
@@ -1418,6 +1418,79 @@ function historicoDoAluno(alunoId: string): SessaoDoHistorico[] {
     .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
 }
 
+// ----------------------------------------------------------------------------
+// As salas do aluno (/aluno/salas)
+// ----------------------------------------------------------------------------
+// "Sala" é a turma vista pelo aluno. Turma encerrada não aparece: não há
+// mais o que fazer nela, e o histórico continua mostrando as sessões.
+
+function salasDoAluno(alunoId: string): Turma[] {
+  return dados.turmas.filter(
+    (t) => t.status === 'Ativa' && (dados.alunos[t.id] ?? []).some((a) => a.id === alunoId)
+  );
+}
+
+// O nome da conta dona da turma. Vale também para conta criada no cadastro.
+function nomeDoProfessor(professorId: string): string | null {
+  const conta = CONTAS.find((c) => c.usuario.tipo === 'conta' && c.usuario.id === professorId);
+  return conta?.usuario.nome ?? null;
+}
+
+// As sessões dele que contam para ESTA sala: exercício atribuído a ela e,
+// quando a sessão diz a turma, que seja esta — o mesmo exercício pode
+// estar em duas salas dele, e o treino de uma não conta na outra.
+function sessoesNaSala(turmaId: string, alunoId: string): Sessao[] {
+  return sessoesDoAlunoNaTurma(turmaId, alunoId).filter((s) => !s.turmaId || s.turmaId === turmaId);
+}
+
+function estadoDoExercicio(sessoes: Sessao[]): EstadoExercicioDaSala {
+  if (sessoes.length === 0) return 'nao_feito';
+  return sessoes.some((s) => s.concluida) ? 'feito' : 'tempo_esgotado';
+}
+
+function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
+  const sessoes = sessoesNaSala(turmaId, alunoId);
+  const lista: ExercicioDaSala[] = [];
+  for (const atribuicao of dados.atribuicoes[turmaId] ?? []) {
+    const ex = dados.exercicios.find((e) => e.id === atribuicao.exerciseId);
+    if (!ex) continue;
+    const doExercicio = sessoes.filter((s) => s.exerciseId === ex.id);
+    // A marca que aparece é a melhor das concluídas; sem nenhuma
+    // concluída, a melhor das vezes em que o tempo acabou.
+    const concluidas = doExercicio.filter((s) => s.concluida);
+    const contam = concluidas.length ? concluidas : doExercicio;
+    lista.push({
+      id: ex.id,
+      titulo: ex.titulo,
+      dificuldade: ex.dificuldade,
+      caracteres: ex.texto.length,
+      tempoLimiteSegundos: ex.tempoLimiteSegundos,
+      atribuidoEm: atribuicao.atribuidoEm ?? null,
+      prazo: atribuicao.prazo,
+      estado: estadoDoExercicio(doExercicio),
+      melhorWpm: contam.length ? Math.max(...contam.map((s) => s.wpm)) : null,
+      melhorPrecisao: contam.length ? Math.max(...contam.map((s) => s.precisao)) : null,
+      ultimaSessao: ultimaData(doExercicio),
+    });
+  }
+  return lista;
+}
+
+function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
+  const lista = exerciciosDaSala(turma.id, alunoId);
+  const linha = (dados.alunos[turma.id] ?? []).find((a) => a.id === alunoId);
+  return {
+    id: turma.id,
+    nome: turma.nome,
+    professor: nomeDoProfessor(turma.professorId),
+    entrouEm: linha?.entrouEm ?? null,
+    exercicios: {
+      feitos: lista.filter((ex) => ex.estado !== 'nao_feito').length,
+      total: lista.length,
+    },
+  };
+}
+
 // concluintes(): um número guardado é o primeiro a discordar do resto.
 function comAtribuidoA(ex: Exercicio): Exercicio {
   const atribuidoA = Object.values(dados.atribuicoes).filter((lista) =>
@@ -1477,9 +1550,10 @@ interface Conta {
 // minúscula, número e símbolo — para ser uma senha que o back geraria.
 const SENHA_ALUNO_DE_TESTE = 'Aluno#2025';
 
-// Entrada de aluno de uma conta que ainda não está em sala nenhuma.
-function alunoSemSala(rp: string): Usuario {
-  return { id: rp, nome: null, tipo: 'aluno', turmas: [] };
+// Entrada de aluno de uma conta que ainda não está em sala nenhuma. O nome
+// é o da conta dona (ver NOME DO ALUNO no cabeçalho).
+function alunoSemSala(rp: string, nome: string | null): Usuario {
+  return { id: rp, nome, tipo: 'aluno', turmas: [] };
 }
 
 const CONTAS: Conta[] = [
@@ -1492,8 +1566,8 @@ const CONTAS: Conta[] = [
   // Toda conta tem a sua entrada de aluno. Aluno entra pelo RP (o ID da
   // tabela Alunos), nunca por e-mail. A de ana é o aluno de teste.
   { rp: 'RP2025043', userId: USUARIOS.ana.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: USUARIOS.aluno },
-  { rp: 'RP2025001', userId: USUARIOS.leo.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025001') },
-  { rp: 'RP2025002', userId: USUARIOS.prof.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025002') },
+  { rp: 'RP2025001', userId: USUARIOS.leo.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025001', USUARIOS.leo.nome) },
+  { rp: 'RP2025002', userId: USUARIOS.prof.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025002', USUARIOS.prof.nome) },
 ];
 
 // O RP da conta: a linha de Alunos cujo UserID aponta para ela.
@@ -1647,7 +1721,7 @@ const rotas: [string, RegExp, Handler][] = [
       // Entra no "banco" em memória: dá para sair e entrar de novo com a
       // conta recém-criada — como conta e como aluno —, até o próximo F5.
       CONTAS.push({ email: usuario.email, senha: corpo?.senha, ativo: true, usuario });
-      CONTAS.push({ rp, userId: usuario.id, senha: senhaAluno, ativo: true, usuario: alunoSemSala(rp) });
+      CONTAS.push({ rp, userId: usuario.id, senha: senhaAluno, ativo: true, usuario: alunoSemSala(rp, usuario.nome) });
 
       const resposta: RespostaCadastro = { ...sessaoDe(usuario), rp, senhaAluno };
       return resposta;
@@ -1658,8 +1732,30 @@ const rotas: [string, RegExp, Handler][] = [
   // O RP da conta do token. Nunca recebe id: é sempre o da própria conta.
   ['GET', montarRegex('/conta/rp'), (params, corpo, token) => ({ rp: rpDaConta(contaDoToken(token).id) })],
 
-  // Telas de teste podem trocar por USUARIOS.prof / .aluno conforme o cenário.
-  ['GET', montarRegex('/auth/eu'), () => USUARIOS.leo],
+  // Senha de aluno nova para a conta do token. A antiga deixa de valer na
+  // hora, e a nova só aparece nesta resposta.
+  [
+    'POST',
+    montarRegex('/conta/rp/nova-senha'),
+    (params, corpo, token) => {
+      const conta = contaDoToken(token);
+      const entrada = CONTAS.find((c) => c.userId === conta.id);
+      if (!entrada) throw erro(404, 'Esta conta ainda não tem RP.', 'NAO_ENCONTRADO');
+      entrada.senha = gerarSenhaAluno();
+      return { senhaAluno: entrada.senha };
+    },
+  ],
+
+  // Quem é o dono do token: conta ou aluno, como o login devolveu.
+  [
+    'GET',
+    montarRegex('/auth/eu'),
+    (params, corpo, token) => {
+      const usuario = usuarioDoToken(token);
+      if (!usuario) throw erro(401, 'Token inválido ou expirado.', 'TOKEN_INVALIDO');
+      return usuario;
+    },
+  ],
   ['POST', montarRegex('/auth/logout'), () => null],
 
   // --- solo: a campanha do jogador logado (singular) ---------------------
@@ -2199,23 +2295,6 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   [
-    'GET',
-    montarRegex('/turmas/:turmaId/exercicios'),
-    (params, corpo, token) => {
-      turmaVisivel(params[0], token);
-      const lista = dados.atribuicoes[params[0]] ?? [];
-      return lista
-        .map((a) => {
-          const ex = dados.exercicios.find((e) => e.id === a.exerciseId);
-          if (!ex) return null;
-          // Visão do aluno: sem o texto (só no detalhe) e sem contagem.
-          const { texto: _texto, ...semTexto } = ex;
-          return { ...semTexto, prazo: a.prazo };
-        })
-        .filter(Boolean);
-    },
-  ],
-  [
     'POST',
     montarRegex('/turmas/:turmaId/exercicios'),
     (params, corpo, token) => {
@@ -2247,7 +2326,7 @@ const rotas: [string, RegExp, Handler][] = [
   ],
 
   // --- atribuições (visão do professor) ----------------------------
-  // Mesma tabela que /turmas/:id/exercicios lê, outro leitor: aqui vai a
+  // Mesma tabela que /aluno/salas/:id lê, outro leitor: aqui vai a
   // contagem de quem já concluiu, que é informação da turma inteira e não
   // pode aparecer na lista que o ALUNO recebe.
   [
@@ -2451,7 +2530,29 @@ const rotas: [string, RegExp, Handler][] = [
         // estourou o tempo: o PPM que ele fez naquele minuto foi dele.
         melhorWpm: minhas.length ? Math.max(...minhas.map((s) => s.wpm)) : null,
         melhorPrecisao: minhas.length ? Math.max(...minhas.map((s) => s.precisao)) : null,
+        diasSeguidos: sequenciaDeDias(minhas),
       };
+    },
+  ],
+
+  // As salas do aluno. Como as de cima, saem do token: o :id é da sala,
+  // e sala em que ele não está é 404.
+  [
+    'GET',
+    montarRegex('/aluno/salas'),
+    (params, corpo, token): SalaDoAluno[] => {
+      const aluno = alunoDoToken(token);
+      return salasDoAluno(aluno.id).map((turma) => resumoDaSala(turma, aluno.id));
+    },
+  ],
+  [
+    'GET',
+    montarRegex('/aluno/salas/:id'),
+    (params, corpo, token): SalaDetalhe => {
+      const aluno = alunoDoToken(token);
+      const turma = salasDoAluno(aluno.id).find((t) => t.id === params[0]);
+      if (!turma) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
+      return { ...resumoDaSala(turma, aluno.id), lista: exerciciosDaSala(turma.id, aluno.id) };
     },
   ],
 

@@ -10,10 +10,9 @@
 // tempo acabou é "Tempo esgotado", nunca uma falha. O que a tela destaca
 // é o que ele conquistou: melhor marca, sequência, evolução.
 //
-// A moldura é a mesma do dashboard do aluno (a <Nav> em pílula com
-// SECOES_ALUNO no topo, e o header.cabecalho dentro de .painel.vidro com
-// "Aluno", título e subtítulo), como em Dashboard.tsx. "Sair" mora no menu
-// do avatar da nav, e não solto no cabeçalho: um lugar só para a ação.
+// O topo é o das outras telas do aluno (<TopoAluno>, com o menu do nome,
+// que é por onde se chega aqui). Abaixo dele, o header.cabecalho dentro de
+// .painel.vidro com "Aluno", título e subtítulo.
 //
 // Do relatório do professor vêm reaproveitados, sem cópia: o tipo da
 // sessão (SessaoDoHistorico estende SessaoDoAluno), a Tabela ordenável, o
@@ -35,7 +34,7 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
-import { Nav, SECOES_ALUNO } from '../componentes/Nav.js';
+import { TopoAluno } from '../componentes/TopoAluno.js';
 import {
   evolucaoDe,
   maisRecentesPrimeiro,
@@ -95,8 +94,8 @@ function Historico({ usuario }: PropsHistorico) {
   const mostrarTurma = turmas.length > 1;
 
   const subtitulo = [
-    // Aluno não tem nome no banco (a tabela Alunos é RP e senha de aluno):
-    // nomeExibicao() cai no RP em vez de escrever "undefined".
+    // O nome do aluno é o da conta dona; sem ele, nomeExibicao() cai no
+    // RP em vez de escrever "undefined".
     sessao.nomeExibicao(),
     turmas.length > 1 ? `${turmas.length} turmas` : turmas[0]?.nome,
   ]
@@ -368,7 +367,7 @@ function Historico({ usuario }: PropsHistorico) {
 
   return (
     <>
-      <Nav secoes={SECOES_ALUNO} ativo="historico" />
+      <TopoAluno usuario={usuario} />
 
       <main className="conteudo">
         <section className="painel vidro historico" aria-labelledby="titulo">
@@ -376,7 +375,7 @@ function Historico({ usuario }: PropsHistorico) {
             <span className="voltar-seta" aria-hidden="true">
               ←
             </span>
-            Meus exercícios
+            Suas salas
           </a>
 
           <header className="cabecalho">

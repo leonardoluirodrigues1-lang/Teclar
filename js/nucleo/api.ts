@@ -23,7 +23,6 @@ import type {
   DesempenhoTurma,
   ErroDaApi,
   Exercicio,
-  ExercicioDaTurma,
   ExercicioDetalhe,
   Filtros,
   EstatisticasSolo,
@@ -42,6 +41,9 @@ import type {
   RespostaCadastro,
   RespostaLogin,
   RpDaConta,
+  NovaSenhaAluno,
+  SalaDetalhe,
+  SalaDoAluno,
   RespostaSessaoEscola,
   RespostaSessaoSolo,
   ResultadoEnvio,
@@ -258,6 +260,9 @@ export const api = {
     // O RP da conta do token (Configurações do Solo). A senha de aluno não
     // tem rota de leitura: ela só existe na resposta do cadastro.
     rp: () => get<RpDaConta>('/conta/rp'),
+    // Troca a senha de aluno da conta do token e devolve a nova, uma vez.
+    // A antiga deixa de valer na hora. Sem parâmetro: é sempre a própria.
+    novaSenhaAluno: () => post<NovaSenhaAluno>('/conta/rp/nova-senha'),
   },
 
   // Mundo SOLO — rotas sob /solo/.
@@ -338,11 +343,9 @@ export const api = {
     // A visão do PROFESSOR sobre o que a turma recebeu: cada linha traz o
     // exercício MAIS quantos alunos da turma já concluíram.
     //
-    // Não é a mesma coisa que api.exercicios.daTurma(), abaixo: aquela é a
-    // visão do ALUNO em /turmas/:id/exercicios (já consumida por
-    // js/aluno/dashboard.js) e não pode carregar contagem da turma inteira —
-    // seria entregar o desempenho dos colegas a quem só devia ver a própria
-    // lição. São dois endpoints porque são dois leitores diferentes.
+    // A visão do ALUNO sobre a mesma tabela é api.aluno.sala(), e não
+    // carrega contagem da turma inteira — seria entregar o desempenho dos
+    // colegas a quem só devia ver a própria lição.
     atribuicoes: (turmaId: string) =>
       get<AtribuicaoProfessor[]>(`/turmas/${turmaId}/atribuicoes`),
 
@@ -430,9 +433,6 @@ export const api = {
     // DELETE de verdade, não exclusão lógica: SessionsProf e AtribuicoesProf
     // têm ON DELETE CASCADE — a tela avisa antes.
     excluir: (id: string) => del(`/exercicios/${id}`),
-    // Visão do ALUNO: o que ele tem para fazer nesta turma, sem número de
-    // colega nenhum. Quem monta a tela do professor usa api.turmas.atribuicoes.
-    daTurma: (turmaId: string) => get<ExercicioDaTurma[]>(`/turmas/${turmaId}/exercicios`),
     atribuir: (turmaId: string, ids: string[], prazo?: string | null) =>
       post<Atribuicao[]>(`/turmas/${turmaId}/exercicios`, { exercicio_ids: ids, prazo }),
     desatribuir: (turmaId: string, exId: string) =>
@@ -481,6 +481,12 @@ export const api = {
     // quantas ele concluiu. Sequência de dias e evolução NÃO vêm daqui —
     // saem das datas e dos PPM da lista, no front.
     resumo: () => get<ResumoDoAluno>('/aluno/resumo'),
+    // As salas em que ele está (a tela inicial do aluno), cada uma com o
+    // progresso dele: feitos de total.
+    salas: () => get<SalaDoAluno[]>('/aluno/salas'),
+    // Uma sala e os exercícios dela, com o estado de cada um PARA ELE. O id
+    // é da sala, nunca de aluno: sala em que ele não está é 404.
+    sala: (id: string) => get<SalaDetalhe>(`/aluno/salas/${encodeURIComponent(id)}`),
   },
 
   admin: {

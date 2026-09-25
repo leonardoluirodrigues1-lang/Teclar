@@ -1,115 +1,190 @@
 // Dashboard.tsx — pages/aluno/dashboard.html
-// A casa do Aluno: a <Nav> com as seções do aluno e um painel que lista os
-// exercícios atribuídos à turma ativa, com um atalho para o histórico.
-// Cada item leva ao treino com ?exercicio= e &turma=.
+// A tela inicial do Aluno: AS SALAS em que ele está. Em cima, a faixa com
+// os quatro números dele (GET /aluno/resumo); embaixo, cada sala como uma
+// tecla grande, com o professor e um anel de progresso (GET /aluno/salas).
+// Clicar numa sala abre o detalhe dela (sala.html), que é onde moram os
+// exercícios: esta tela não lista exercício nenhum.
 //
-// Estilo: as classes de css/dashboard.css, com os ajustes do mundo Escola
-// em css/escola.css (bloco .pagina-aluno). A lista é desenhada por
-// ../componentes/listaExercicios.ts (módulo ES puro): o React só entrega a
-// <div id="lista"> e não põe filho nenhum nela.
+// Sem sala nenhuma, um painel só, com o RP em destaque: é com ele que o
+// professor convida.
+//
+// Estilo: css/aluno.css. O topo com o menu do nome é o <TopoAluno>.
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
-import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { Usuario } from '../nucleo/tipos.js';
-import { criarListaExercicios, desembrulhar } from '../componentes/listaExercicios.js';
-import { Nav, SECOES_ALUNO } from '../componentes/Nav.js';
+import type { ResumoDoAluno, SalaDoAluno, Usuario } from '../nucleo/tipos.js';
+import { TopoAluno } from '../componentes/TopoAluno.js';
+import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
+import { contagem, formatarRp, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-// Vizinha desta em pages/aluno/: caminho relativo.
-const ROTA_HISTORICO = 'historico.html';
+type Carga =
+  | { estado: 'carregando' }
+  | { estado: 'erro' }
+  | { estado: 'pronto'; salas: SalaDoAluno[]; resumo: ResumoDoAluno };
 
 interface PropsDashboard {
   usuario: Usuario;
 }
 
 function Dashboard({ usuario }: PropsDashboard) {
-  const hostLista = useRef<HTMLDivElement>(null);
-
-  const turmaId = sessao.turmaAtiva();
-  const turma = usuario.turmas?.find((t) => t.id === turmaId);
-  // Aluno não tem nome no banco (a tabela Alunos é RP e senha de aluno):
-  // nomeExibicao() cai no RP em vez de escrever "undefined".
-  const subtitulo = [sessao.nomeExibicao(), turma?.nome].filter(Boolean).join(' · ');
+  const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
+  // Muda para pedir de novo depois de um erro.
+  const [tentativa, setTentativa] = useState(0);
 
   useEffect(() => {
     let cancelado = false;
-    const lista = criarListaExercicios(hostLista.current);
-    lista.carregando();
-
-    if (!turmaId) {
-      lista.vazio('Você ainda não está em nenhuma turma.');
-      return;
-    }
-
-    async function carregar() {
-      let exercicios;
-      try {
-        exercicios = desembrulhar(await api.exercicios.daTurma(turmaId));
-      } catch (erro) {
-        if (!cancelado) lista.erro(erro?.message ?? 'Não foi possível carregar os exercícios.');
-        return;
-      }
-      if (cancelado) return;
-
-      lista.render(
-        exercicios.map((e) => ({
-          titulo: e.titulo,
-          meta: [e.categoria, e.dificuldade, e.prazo ? `prazo ${formatarData(e.prazo)}` : null],
-          href: `../treino/treino.html?${new URLSearchParams({ exercicio: e.id, turma: turmaId })}`,
-        }))
-      );
-    }
-
-    carregar();
+    setCarga({ estado: 'carregando' });
+    Promise.all([api.aluno.salas(), api.aluno.resumo()])
+      .then(([salas, resumo]) => {
+        if (!cancelado) setCarga({ estado: 'pronto', salas, resumo });
+      })
+      .catch(() => {
+        if (!cancelado) setCarga({ estado: 'erro' });
+      });
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [tentativa]);
 
   return (
     <>
-      {/* A mesma <Nav> das outras telas, com as seções do aluno. O "Sair"
-          que ficava solto no cabeçalho mora agora no menu do avatar dela,
-          e é de lá que sai também o link para o histórico. SECOES_ALUNO
-          não tem outroModo: aluno não troca de mundo. */}
-      <Nav secoes={SECOES_ALUNO} ativo="exercicios" />
+      <TopoAluno usuario={usuario} />
 
-      <main className="conteudo">
-        <section className="painel vidro" aria-labelledby="titulo">
-          <header className="cabecalho">
-            <div>
-              <p className="rotulo">Aluno</p>
-              <h1 className="titulo" id="titulo">
-                Aluno
-              </h1>
-              <p className="subtitulo" id="subtitulo">
-                {subtitulo}
-              </p>
-            </div>
-            {/* O histórico também à mão aqui, além da nav: é para onde a
-                pessoa vai depois de treinar, e é o único outro lugar que
-                esta tela leva. */}
-            <a className="btn-sair vidro tecla" href={ROTA_HISTORICO}>
-              Histórico
-            </a>
-          </header>
+      <main>
+        <span className="aluno-rotulo">Modo · Aluno</span>
+        <h1 className="aluno-titulo">Suas salas</h1>
+        <p className="aluno-sub">Você treina dentro das salas em que entrou.</p>
 
-          <h2 className="secao-rotulo">Exercícios da turma</h2>
-          {/* Só o listaExercicios.ts escreve aqui dentro. */}
-          <div id="lista" aria-live="polite" ref={hostLista} />
-        </section>
+        <FaixaDeNumeros resumo={carga.estado === 'pronto' ? carga.resumo : null} />
+
+        {carga.estado === 'carregando' && (
+          <p className="aluno-sub aluno-secao" role="status">
+            Carregando suas salas…
+          </p>
+        )}
+
+        {carga.estado === 'erro' && (
+          <section className="aluno-painel vidro" role="alert">
+            <h2>Não foi possível carregar suas salas</h2>
+            <p>Confira a conexão e tente de novo.</p>
+            <button type="button" className="aluno-botao vidro tecla" onClick={() => setTentativa((n) => n + 1)}>
+              Tentar de novo
+            </button>
+          </section>
+        )}
+
+        {carga.estado === 'pronto' && carga.salas.length === 0 && <SemSala rp={usuario.id} />}
+
+        {carga.estado === 'pronto' && carga.salas.length > 0 && (
+          <div className="aluno-salas">
+            {carga.salas.map((sala) => (
+              <TeclaDaSala key={sala.id} sala={sala} />
+            ))}
+          </div>
+        )}
       </main>
     </>
   );
 }
 
-// 'AAAA-MM-DD' -> 'DD/MM/AAAA'; qualquer outro formato passa como veio.
-function formatarData(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
+// Os quatro números do aluno. Enquanto carrega, "—" em todos: nunca 0 no
+// lugar de um dado que ainda não veio.
+function FaixaDeNumeros({ resumo }: { resumo: ResumoDoAluno | null }) {
+  const numeros = [
+    { rotulo: 'Seu melhor PPM', valor: numero(resumo?.melhorWpm) },
+    { rotulo: 'Precisão média', valor: porcentagem(resumo?.precisaoMedia) },
+    { rotulo: 'Exercícios feitos', valor: contagem(resumo?.sessoesConcluidas) },
+    { rotulo: 'Dias seguidos', valor: contagem(resumo?.diasSeguidos) },
+  ];
+  return (
+    <div className="aluno-faixa">
+      {numeros.map((item) => (
+        <div key={item.rotulo}>
+          <span className="aluno-faixa-numero">{item.valor}</span>
+          <span className="aluno-faixa-rotulo">{item.rotulo}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TeclaDaSala({ sala }: { sala: SalaDoAluno }) {
+  const { feitos, total } = sala.exercicios;
+  const restantes = total - feitos;
+  const pendente = restantes > 0;
+
+  return (
+    <a
+      className={`sala vidro tecla${pendente ? ' sala-pendente' : ''}`}
+      href={`sala.html?${new URLSearchParams({ id: sala.id })}`}
+    >
+      <h2 className="sala-nome">{sala.nome}</h2>
+      <span className="sala-professor">
+        <span className="sala-professor-inicial" aria-hidden="true">
+          {sala.professor ? sala.professor[0].toUpperCase() : '—'}
+        </span>
+        {sala.professor ?? '—'}
+      </span>
+
+      <span className="sala-progresso">
+        <AnelDeProgresso feitos={feitos} total={total} />
+        {pendente ? (
+          <span>
+            <span className="sala-restantes">{restantes}</span>
+            <span className="sala-restantes-rotulo">
+              {restantes === 1 ? 'Exercício restante' : 'Exercícios restantes'}
+            </span>
+          </span>
+        ) : (
+          <span className="sala-em-dia">{total === 0 ? 'Sem exercícios ainda' : 'Tudo em dia'}</span>
+        )}
+      </span>
+    </a>
+  );
+}
+
+// Raio 31 num quadro de 74: sobra espaço para a espessura do traço (6) e
+// para o brilho. O arco começa no alto (o rotate de -90°).
+const RAIO_ANEL = 31;
+const VOLTA_DO_ANEL = 2 * Math.PI * RAIO_ANEL;
+
+function AnelDeProgresso({ feitos, total }: { feitos: number; total: number }) {
+  // Sala sem exercício: anel vazio, e não uma divisão por zero.
+  const fracao = total > 0 ? feitos / total : 0;
+  return (
+    <svg className="anel" width="74" height="74" viewBox="0 0 74 74" role="img" aria-label={`${feitos} de ${total} exercícios feitos`}>
+      <circle className="anel-trilho" cx="37" cy="37" r={RAIO_ANEL} />
+      {fracao > 0 && (
+        <circle
+          className="anel-arco"
+          cx="37"
+          cy="37"
+          r={RAIO_ANEL}
+          strokeDasharray={VOLTA_DO_ANEL}
+          strokeDashoffset={VOLTA_DO_ANEL * (1 - fracao)}
+          transform="rotate(-90 37 37)"
+        />
+      )}
+      <text className="anel-texto" x="37" y="42" textAnchor="middle">
+        {feitos}/{total}
+      </text>
+    </svg>
+  );
+}
+
+// Sem sala nenhuma: o RP em destaque, porque é ele que o professor pede.
+function SemSala({ rp }: { rp: string }) {
+  return (
+    <section className="aluno-painel vidro">
+      <h2>Você ainda não está em nenhuma sala</h2>
+      <p>Passe o seu RP para o professor. É com ele que o convite chega aqui.</p>
+      <div className="aluno-rp-destaque">{formatarRp(rp)}</div>
+      <BotaoCopiar texto={rp} rotulo="Copiar meu RP" className="aluno-botao vidro tecla" />
+    </section>
+  );
 }
 
 // ============================================================================

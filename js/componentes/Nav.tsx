@@ -30,11 +30,9 @@ export interface SecoesNav {
   rotulo: string;
   /** Texto abaixo do nome no menu da conta, ex.: 'Professor'. */
   modo: string;
-  /** O item "Ir para ..." do menu: o outro modo da conta. Ausente para o
-   *  ALUNO, que não tem outro modo — a sessão dele é de aluno, não de
-   *  conta, e sessao.definirModo() nem grava. Mostrar o item levaria a
-   *  pessoa a turmas.html, de onde o guarda.soConta a expulsaria. */
-  outroModo?: { rotulo: string; modo: Modo };
+  /** O item "Ir para ..." do menu: o outro modo da conta. (O aluno não
+   *  usa esta barra: o topo dele é o componentes/TopoAluno.tsx.) */
+  outroModo: { rotulo: string; modo: Modo };
   itens: ItemNav[];
 }
 
@@ -49,19 +47,6 @@ export const SECOES_PROFESSOR: SecoesNav = {
     { chave: 'turmas', rotulo: 'Turmas', href: 'turmas.html' },
     { chave: 'biblioteca', rotulo: 'Biblioteca', href: 'biblioteca.html' },
     { chave: 'relatorios', rotulo: 'Relatórios', href: 'relatorios.html' },
-  ],
-};
-
-export type SecaoAluno = 'exercicios' | 'historico';
-
-/** As seções do aluno. Os hrefs valem para pages/aluno/. Sem outroModo:
- *  ver a nota em SecoesNav. */
-export const SECOES_ALUNO: SecoesNav = {
-  rotulo: 'Seções do aluno',
-  modo: 'Aluno',
-  itens: [
-    { chave: 'exercicios', rotulo: 'Exercícios', href: 'dashboard.html' },
-    { chave: 'historico', rotulo: 'Histórico', href: 'historico.html' },
   ],
 };
 
@@ -84,8 +69,7 @@ function iniciais(nome: string | null | undefined): string {
 }
 
 export function Nav({ secoes, ativo }: PropsNav) {
-  // O professor sempre tem nome (vem da tabela Users); nomeExibicao()
-  // existe para o aluno, que não tem, e aqui é só o caminho comum.
+  // A conta sempre tem nome (vem da tabela Users).
   const nome = sessao.nomeExibicao();
 
   const [aberto, setAberto] = useState(false);
@@ -185,33 +169,27 @@ export function Nav({ secoes, ativo }: PropsNav) {
             <p className="menu-modo">{secoes.modo}</p>
           </div>
           {/* Troca de modo: sem logout, sem tela intermediária. A mesma
-              conta abre os dois mundos. O aluno não tem outro mundo, e
-              para ele este item simplesmente não existe. */}
-          {secoes.outroModo && (
-            <button
-              type="button"
-              className="menu-item"
-              id="btn-trocar-modo"
-              role="menuitem"
-              onClick={() => {
-                guarda.trocarModo(secoes.outroModo!.modo);
-                fechar();
-              }}
-            >
-              {secoes.outroModo.rotulo}
-            </button>
-          )}
+              conta abre os dois mundos. */}
+          <button
+            type="button"
+            className="menu-item"
+            id="btn-trocar-modo"
+            role="menuitem"
+            onClick={() => {
+              guarda.trocarModo(secoes.outroModo.modo);
+              fechar();
+            }}
+          >
+            {secoes.outroModo.rotulo}
+          </button>
           {/* A tela dos três cartões (Professor, Solo, Aluno). O item acima é
               o atalho direto para o outro modo; este é a escolha completa —
               é por aqui que a conta chega à entrada de aluno sem sair.
-              Mesmo critério do item acima: o aluno não tem sessão de conta,
-              e o guarda o expulsaria de modo.html. O href é relativo às
-              páginas que montam a Nav, todas em pages/<mundo>/. */}
-          {secoes.outroModo && (
-            <a className="menu-item" href="../modo.html" role="menuitem" onClick={() => fechar()}>
-              Trocar de modo
-            </a>
-          )}
+              O href é relativo às páginas que montam a Nav, todas em
+              pages/<mundo>/. */}
+          <a className="menu-item" href="../modo.html" role="menuitem" onClick={() => fechar()}>
+            Trocar de modo
+          </a>
           {/* Sair fecha o menu antes de navegar, para o menu não ficar
               aberto se a navegação demorar. */}
           <button

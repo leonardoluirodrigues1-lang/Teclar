@@ -31,7 +31,7 @@ import { montarEstrelas, mensagemDoErro, ehConflito } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { formatarRp } from '../utils/formato.js';
-import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
+import { DadosDeEntrada } from '../componentes/DadosDeEntrada.js';
 import type { RespostaCadastro } from '../nucleo/tipos.js';
 
 // O host dos toasts fica fora da raiz do React (ver cadastro.html), e o
@@ -309,26 +309,22 @@ function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
         para uma sala.
       </p>
 
-      <dl className="entrada-aluno">
-        <div className="entrada-item">
-          <dt className="rotulo">RP</dt>
-          <dd className="entrada-valor">{formatarRp(resposta.rp)}</dd>
-          <BotaoCopiar texto={resposta.rp} rotulo="Copiar RP" className="btn btn-vidro vidro tecla entrada-copiar" />
-        </div>
-        <div className="entrada-item">
-          <dt className="rotulo">Senha de aluno</dt>
-          <dd className="entrada-valor">{resposta.senhaAluno}</dd>
-          <BotaoCopiar
-            texto={resposta.senhaAluno}
-            rotulo="Copiar senha"
-            className="btn btn-vidro vidro tecla entrada-copiar"
-          />
-        </div>
-      </dl>
+      <DadosDeEntrada
+        classeBotao="btn btn-vidro vidro tecla"
+        dados={[
+          { rotulo: 'RP', exibido: formatarRp(resposta.rp), copiar: resposta.rp, rotuloCopiar: 'Copiar RP' },
+          {
+            rotulo: 'Senha de aluno',
+            exibido: resposta.senhaAluno,
+            copiar: resposta.senhaAluno,
+            rotuloCopiar: 'Copiar senha',
+          },
+        ]}
+      />
 
       <p className="entrada-aviso" role="note">
-        Anote a senha agora. <strong>Ela não aparece de novo</strong>: nem aqui, nem em Configurações. O RP
-        você encontra depois em Configurações do Solo.
+        Anote a senha agora. <strong>Ela não aparece de novo</strong>. O RP você encontra depois em
+        Configurações do Solo; se perder a senha, é lá que se gera uma nova.
       </p>
 
       <button type="button" className="btn btn-solido tecla tecla-clara entrada-continuar" onClick={continuar}>

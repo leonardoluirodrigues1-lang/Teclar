@@ -1368,26 +1368,23 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .tabela-acoes { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 
 /* ============================================================================
-   ACRÉSCIMO — Design das telas do Aluno
-   (pages/aluno/dashboard.html e pages/aluno/historico.html)
+   ACRÉSCIMO — Design do histórico do Aluno (pages/aluno/historico.html)
 
-   As duas telas do aluno ganharam a nav em pílula que as do professor já
-   tinham (a mesma <Nav> de componentes/Nav.tsx, com SECOES_ALUNO) e o
-   acabamento do desenho: vidro, rótulo mono 9px com letter-spacing .30em,
-   número em tabular-nums e a luz de fundo que o backdrop-filter precisa.
+   O acabamento do desenho no painel do histórico: vidro, rótulo mono 9px
+   com letter-spacing .30em, número em tabular-nums e a luz de fundo que o
+   backdrop-filter precisa. O topo com o menu do nome, e as outras telas
+   do aluno (as salas e o detalhe da sala), estão em css/aluno.css.
 
    A DENSIDADE é a do professor, não a do Solo: raio 16 e respiro menor.
    São ferramenta, não jogo — a classe .mundo-escola no <body> já abre os
    tokens certos, e o que está aqui só completa o que ela não cobre.
 
-   TUDO É ESCOPADO EM .pagina-aluno (a classe da raiz nos dois HTML). As
+   TUDO É ESCOPADO EM .pagina-aluno (a classe da raiz do HTML). As
    telas do professor carregam esta mesma folha e não podem mudar por
    causa daqui.
 
-   Não se repete aqui: a receita do vidro (.vidro), a nav e o menu da conta
-   (acima nesta folha), a página e o fundo (.pagina/.fundo-largo, em
-   dashboard.css), a tabela (.tabela*, acima) e a lista de exercícios (o
-   .item de dashboard.css, escrito por componentes/listaExercicios.ts).
+   Não se repete aqui: a receita do vidro (.vidro), a página e o fundo
+   (.pagina/.fundo-largo, em dashboard.css) e a tabela (.tabela*, acima).
    ========================================================================== */
 
 /* --- o painel ------------------------------------------------------------- */
@@ -1404,35 +1401,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    que aqui empurraria o título para longe da borda do painel. */
 .pagina-aluno .painel > .cabecalho { margin-top: 0; }
 
-/* --- a nav ---------------------------------------------------------------- */
-/* Mesma pílula do resto do projeto, na escala do desenho: item em sans
-   13px e caixa normal, em vez do mono maiúsculo que as telas do professor
-   usam. A marca continua em mono — é a regra dos dois papéis de
-   tokens.css, e ela vale nos dois mundos. */
-.pagina-aluno .nav {
-  gap: 26px;
-  padding: 9px 10px 9px 22px;
-}
-.pagina-aluno .nav-marca { font-size: 13px; letter-spacing: 0.34em; }
-.pagina-aluno .nav-marca span { margin-right: -0.34em; }
-.pagina-aluno .nav-item {
-  padding: 7px 16px;
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-size: 13px;
-  letter-spacing: normal;
-  text-transform: none;
-  color: rgba(255, 255, 255, 0.38);
-}
-.pagina-aluno .nav-item:hover { color: var(--cor-texto, #fff); }
-.pagina-aluno .avatar {
-  width: 34px;
-  height: 34px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.30);
-  font-size: 12px;
-}
-.pagina-aluno .avatar:hover { background: rgba(255, 255, 255, 0.22); }
-
 /* --- rótulos -------------------------------------------------------------- */
 /* A escala de rótulo do desenho: mono 9px, .30em. É a mesma medida do
    EXPERIÊNCIA e do SEQUÊNCIA do lobby — um rótulo só, uma medida só. */
@@ -1446,33 +1414,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .pagina-aluno .titulo { font-size: 26px; }
 .pagina-aluno .subtitulo { color: rgba(255, 255, 255, 0.38); }
 
-/* O "Histórico" do cabeçalho é um <a>, e o .btn-sair de dashboard.css é
-   receita de <button>: precisa do display para a pílula ficar do tamanho
-   do texto em vez de esticar na coluna do flex. */
-.pagina-aluno .cabecalho .btn-sair {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* --- cartão de exercício -------------------------------------------------- */
-/* O cartão do desenho, na densidade Escola: raio 12 (não os 18 do Solo),
-   respiro menor e a borda acendendo no hover. O fundo continua o véu leve
-   de dashboard.css — vidro de verdade num cartão que já está sobre o
-   painel de vidro custa caro e não acrescenta nada. */
-.pagina-aluno .item {
-  padding: 14px 18px;
-  border-radius: 12px;
-}
-.pagina-aluno a.item:hover { border-color: rgba(255, 255, 255, 0.30); }
-.pagina-aluno .item-titulo { font-size: 15px; }
-.pagina-aluno .item-meta {
-  margin-top: 5px;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  /* Prazos e datas na coluna do meta: dígitos de mesma largura não tremem. */
-  font-variant-numeric: tabular-nums;
-}
-
 /* --- números -------------------------------------------------------------- */
 /* Toda célula de número e todo valor de métrica em tabular-nums, como o
    desenho pede. A tabela continua sólida (.tabela-painel, acima): é a
@@ -1485,10 +1426,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 @media (max-width: 700px) {
   .pagina-aluno .painel { padding: var(--e-4, 16px) var(--e-4, 16px); }
-  .pagina-aluno .nav { gap: 14px; padding-left: 16px; }
-  .pagina-aluno .nav-item { padding: 7px 10px; }
   .pagina-aluno .titulo { font-size: 22px; }
-  .pagina-aluno .item { padding: 12px 14px; }
 }
 
 /* ============================================================================

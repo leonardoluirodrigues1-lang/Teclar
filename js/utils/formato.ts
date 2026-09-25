@@ -38,6 +38,13 @@ export function formatarDataHora(iso: string): string {
   return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
 }
 
+// 'AAAA-MM-DD...' -> 'DD/MM/AAAA'. Sem data, "—".
+export function formatarData(iso: string | null | undefined): string {
+  if (iso == null || iso === '') return '—';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
+}
+
 // 'RP2025043' -> 'RP 2025043'. O espaço é só para ler: o valor que se copia
 // e que vai para o back é sempre o sem espaço. Fora do formato, mostra como
 // veio — esconder um RP estranho atrapalharia quem precisa reclamar dele.

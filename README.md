@@ -53,10 +53,16 @@ Estão no cabeçalho de `js/nucleo/mocks.ts`:
 
 | Tipo  | Login             | Senha      | O que tem                                              |
 |-------|-------------------|------------|--------------------------------------------------------|
-| Conta | `prof@teclar.dev` | `senha123` | Professor com 4 turmas e 5 exercícios. Solo recém-começado (nível 1). |
+| Conta | `prof@teclar.dev` | `senha123` | Professor com 4 turmas e 6 exercícios. Solo recém-começado (nível 1). |
 | Conta | `leo@teclar.dev`  | `senha123` | Professor com 1 turma e 1 exercício. Solo no nível 4.  |
 | Conta | `ana@teclar.dev`  | `senha123` | Nenhuma turma, nenhum exercício, sem campanha (telas vazias). |
-| Aluno | `20251043`        | `aluno123` | Entra pela matrícula, não por e-mail.                  |
+| Aluno | `RP2025043`       | `Aluno#2025` | Entrada de aluno da ana: duas salas, uma com exercício pendente e outra em dia. |
+| Aluno | `RP2025001`       | `Aluno#2025` | Entrada de aluno do leo: em sala nenhuma (tela vazia). |
+| Aluno | `RP2025002`       | `Aluno#2025` | Entrada de aluno do prof: em sala nenhuma.             |
+
+Toda conta tem uma entrada de aluno: um RP e uma senha de aluno, gerados no
+cadastro. O RP aparece em Configurações do Solo, onde também se gera uma
+senha de aluno nova.
 
 Qualquer outra credencial é recusada. Os dados ficam só na memória e voltam
 ao estado inicial a cada F5.
@@ -75,7 +81,7 @@ Tudo abaixo está dentro de `teclar/`.
 
 | Pasta | O que mora lá | Quando mexer |
 |-------|---------------|--------------|
-| `css/` | Um arquivo por área: `landing`, `auth`, `dashboard`, `solo`, `escola`, `treino`, `resultado`. | Para mudar o visual de uma tela específica. |
+| `css/` | Um arquivo por área: `landing`, `auth`, `dashboard`, `solo`, `escola`, `aluno`, `treino`, `resultado`. | Para mudar o visual de uma tela específica. |
 | `css/base/` | O que vale para o site todo: `tokens.css` (cores, espaçamentos, fontes em variáveis), `reset.css`, `layout.css`, `fontes.css`. | Para mudar uma cor, fonte ou medida em todo lugar de uma vez. |
 | `css/componentes/` | Estilo das peças reutilizadas: botões, cards, abas, tabelas, modais, toasts, sidebar, vidro. | Para mudar uma peça que aparece em várias telas. |
 | `js/nucleo/` | O coração: `api` (conversa com o back), `sessao` (quem está logado), `guarda` (quem pode abrir cada tela), `mocks` (back falso), `tipos` (formato dos dados). | Ao mudar o contrato com o back ou a regra de login. Todo o resto depende daqui. |
@@ -84,7 +90,7 @@ Tudo abaixo está dentro de `teclar/`.
 | `js/landing/` | A página inicial (`index.html`) e seus efeitos visuais. | Para mudar a página de apresentação. |
 | `js/auth/` | Login, cadastro e a escolha de modo (Solo ou Professor). | Para mudar a entrada no sistema. |
 | `js/professor/` | Telas do professor: turmas, turma, alunos, biblioteca de exercícios, relatórios. | Para mudar o mundo Escola do lado do professor. |
-| `js/aluno/` | Telas do aluno: painel com os exercícios e histórico. | Para mudar o mundo Escola do lado do aluno. |
+| `js/aluno/` | Telas do aluno: as salas, o detalhe de uma sala e o histórico. | Para mudar o mundo Escola do lado do aluno. |
 | `js/solo/` | Telas do Solo: lobby, campanhas (missões) e estatísticas. | Para mudar o mundo Solo. |
 | `js/treino/` | O motor de digitação (`typingEngine.ts`) e as telas de treino e de resultado, comuns aos dois mundos. | Para mudar como a digitação é medida ou exibida. |
 | `pages/` | Os HTML de cada tela, separados por área (`aluno/`, `professor/`, `solo/`, `treino/`) mais login, cadastro e modo. Cada um só carrega o CSS e o `.js` da sua tela. | Para criar uma tela nova ou mudar o que uma página carrega. |
@@ -115,9 +121,9 @@ Há um mapa mais detalhado de `js/` em [`js/README.md`](js/README.md).
   escolhido depois do login. Motivo: a tabela `Users` não tem coluna de
   perfil; qualquer conta abre os dois, e o que faz alguém ser professor é
   ser dono de turmas.
-- **Aluno mora na tabela `Alunos`, com login separado** (matrícula e senha),
-  sem ser uma conta de `Users`. Motivo: é assim que o banco foi desenhado;
-  por isso o aluno não tem e-mail e pode não ter nome.
+- **Aluno mora na tabela `Alunos`, com login separado** (RP e senha de
+  aluno), ligada à conta dona pelo `UserID`. Toda conta ganha a sua no
+  cadastro. O aluno não tem e-mail, e o nome dele é o da conta dona.
 - **Quem está logado sai sempre do token, nunca de um id na URL.** Motivo:
   um id na URL pode ser trocado por qualquer um; o token é o que o back
   confere.

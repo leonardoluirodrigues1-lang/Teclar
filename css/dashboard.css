@@ -214,7 +214,9 @@ ul { list-style: none; }
 .btn-sair:hover { background: rgba(255, 255, 255, 0.14); color: var(--cor-texto, #fff); }
 
 /* ---------------------------------------------------------------------------
-   Lista de exercícios
+   Rótulo de seção e estados
+   (A lista de exercícios .item saiu: a tela do aluno, a última que a usava,
+   passou a mostrar salas — ver css/aluno.css.)
    ------------------------------------------------------------------------- */
 .secao-rotulo {
   margin-top: 36px;
@@ -223,70 +225,6 @@ ul { list-style: none; }
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 10px;
   letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-
-.lista { display: grid; gap: 8px; margin-top: 12px; }
-
-/* Cada item é um <a> (disponível) ou um <div> (bloqueado). Mesmo desenho. */
-.item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: var(--raio-n, 8px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              border-color var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-a.item:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.20);
-  transform: translateY(var(--deslocamento-cartao, -2px));
-}
-a.item:hover .item-seta { transform: translateX(4px); }
-
-.item-texto { min-width: 0; }
-.item-titulo {
-  font-size: 15px;
-  font-weight: var(--peso-normal, 400);
-  color: var(--cor-texto, #fff);
-}
-.item-meta {
-  margin-top: 4px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-
-.item-seta {
-  flex: none;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  color: var(--cor-texto-suave, #c4c4c4);
-  transition: transform var(--dur-normal, 240ms) var(--ease-padrao, ease);
-}
-
-/* Bloqueado: sem link, mais apagado, com o requisito à direita */
-.item.bloqueado {
-  cursor: default;
-  border-style: dashed;
-  background: transparent;
-}
-.item.bloqueado .item-titulo { color: var(--cor-texto-fraco, #8a8a8a); }
-.item-requisito {
-  flex: none;
-  padding: 5px 10px;
-  border-radius: var(--raio-total, 9999px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--cor-texto-fraco, #8a8a8a);
 }

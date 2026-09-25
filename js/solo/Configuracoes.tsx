@@ -12,8 +12,9 @@
 //     (sessao.esquecerTutorial) e leva ao caminho, onde ele aparece.
 //
 // E um bloco que não é configuração, mas mora aqui por ser da conta: "Sua
-// entrada como aluno", com o RP (GET /conta/rp). A senha de aluno NÃO
-// aparece: ela só existe na tela do fim do cadastro.
+// entrada como aluno", com o RP (GET /conta/rp) e o botão que gera uma
+// senha de aluno nova (POST /conta/rp/nova-senha). A senha atual nunca
+// aparece aqui; a nova aparece uma vez, no modal, e some quando ele fecha.
 
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -22,6 +23,8 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
 import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
+import { DadosDeEntrada } from '../componentes/DadosDeEntrada.js';
+import { Modal } from '../componentes/ModalReact.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { formatarRp } from '../utils/formato.js';
 
@@ -112,11 +115,15 @@ function Configuracoes() {
   );
 }
 
-// O RP da conta, com botão de copiar. undefined enquanto carrega; null
-// quando a conta não tem RP (mostra "—", nunca "null").
+// O RP da conta, com botão de copiar, e a troca da senha de aluno.
+// rp: undefined enquanto carrega; null quando a conta não tem RP (mostra
+// "—", nunca "null").
 function EntradaComoAluno() {
   const [rp, setRp] = useState<string | null | undefined>(undefined);
   const [falhou, setFalhou] = useState(false);
+  // Chave do modal aberto (null = fechado). Muda a cada abertura, como o
+  // ModalReact pede.
+  const [modal, setModal] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -144,11 +151,100 @@ function EntradaComoAluno() {
         </span>
         <span className="solo-opcao-texto">
           Passe o RP para o professor: é com ele que o convite para uma sala chega a você. A senha de aluno
-          apareceu só uma vez, quando a conta foi criada.
+          apareceu só uma vez, quando a conta foi criada. Perdeu? Gere uma nova.
         </span>
       </span>
-      {rp && <BotaoCopiar texto={rp} rotulo="Copiar RP" className="tutorial-botao tecla" />}
+      {rp && (
+        <span className="solo-rp-acoes">
+          <BotaoCopiar texto={rp} rotulo="Copiar RP" className="tutorial-botao tecla" />
+          <button type="button" className="tutorial-botao tecla" onClick={() => setModal(Date.now())}>
+            Gerar nova senha de aluno
+          </button>
+        </span>
+      )}
+      {modal !== null && <ModalNovaSenha key={modal} aoFechar={() => setModal(null)} />}
     </section>
+  );
+}
+
+// Duas etapas no mesmo modal: primeiro a confirmação, avisando que a senha
+// antiga deixa de valer; depois a senha nova, uma vez só. Ela vive só no
+// estado deste modal: fechou, sumiu.
+function ModalNovaSenha({ aoFechar }: { aoFechar: () => void }) {
+  const [senhaNova, setSenhaNova] = useState<string | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  // Com a senha na tela, fechar a aba ou recarregar a perde para sempre:
+  // o navegador pergunta antes, como na tela do fim do cadastro.
+  useEffect(() => {
+    if (!senhaNova) return;
+    function avisarAntesDeSair(evento: BeforeUnloadEvent) {
+      evento.preventDefault();
+      evento.returnValue = '';
+    }
+    window.addEventListener('beforeunload', avisarAntesDeSair);
+    return () => window.removeEventListener('beforeunload', avisarAntesDeSair);
+  }, [senhaNova]);
+
+  async function gerar() {
+    if (gerando) return;
+    setGerando(true);
+    setErro('');
+    try {
+      const resposta = await api.conta.novaSenhaAluno();
+      setSenhaNova(resposta.senhaAluno);
+    } catch {
+      setErro('Não foi possível gerar a senha nova. A antiga continua valendo; tente de novo.');
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  // As duas etapas usam o MESMO modal: trocar de <Modal> desmontaria um e
+  // montaria outro, com a animação de entrada e o foco inicial de novo.
+  // O botão principal é o primeiro nas duas, e por isso o foco continua
+  // nele quando a etapa muda.
+  if (senhaNova) {
+    return (
+      <Modal
+        eyebrow="Senha de aluno"
+        titulo="Sua senha de aluno nova"
+        // Esc aqui apagaria a senha sem querer: só o botão fecha.
+        fecharComEsc={false}
+        acoes={[{ rotulo: 'Anotei, fechar', principal: true }]}
+        aoFechar={aoFechar}
+      >
+        <DadosDeEntrada
+          classeBotao="modal-botao modal-botao-vidro tecla"
+          dados={[{ rotulo: 'Senha de aluno', exibido: senhaNova, copiar: senhaNova, rotuloCopiar: 'Copiar senha' }]}
+        />
+        <p className="entrada-aviso">
+          Anote agora. <strong>Ela não aparece de novo.</strong>
+        </p>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      eyebrow="Senha de aluno"
+      titulo="Gerar nova senha?"
+      acoes={[
+        {
+          rotulo: gerando ? 'Gerando…' : 'Gerar nova senha',
+          principal: true,
+          fecha: false,
+          disabled: gerando,
+          aoClicar: gerar,
+        },
+        { rotulo: 'Cancelar', disabled: gerando },
+      ]}
+      aoFechar={aoFechar}
+    >
+      <p>A senha de aluno de agora deixa de valer assim que a nova for gerada. O RP continua o mesmo.</p>
+      {erro && <p role="alert">{erro}</p>}
+    </Modal>
   );
 }
 

@@ -1,0 +1,40 @@
+/* ============================================================================
+   TECLAR — entrada-aluno.css
+   A lista "rótulo, valor e botão de copiar" da entrada de aluno, desenhada
+   por js/componentes/DadosDeEntrada.tsx. Carregada por pages/cadastro.html
+   (o RP e a senha no fim do cadastro) e por pages/solo/configuracoes.html
+   (a senha de aluno nova). Os valores são dado: mono e grandes.
+   ========================================================================== */
+
+.entrada-aluno { margin-top: var(--e-6, 32px); }
+
+.entrada-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--e-4, 16px);
+  padding: var(--e-4, 16px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+.entrada-item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.10); }
+
+.entrada-item .rotulo { grid-column: 1 / -1; font-size: 11px; }
+
+.entrada-valor {
+  margin-top: var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-lg, 1.25rem);
+  letter-spacing: 0.12em;
+  color: var(--cor-texto, #fff);
+  /* A senha tem símbolo; seleção por duplo clique não pode parar nele. */
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+/* O .btn ocupa a largura toda; aqui ele é o botão pequeno ao lado do valor. */
+.entrada-copiar {
+  width: auto;
+  margin-top: var(--e-2, 8px);
+  padding: 10px 16px;
+  font-size: 11px;
+}

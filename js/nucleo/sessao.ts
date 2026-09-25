@@ -21,9 +21,9 @@ let cacheUsuario: Usuario | null | undefined;
 // também a senha de aluno, que não pode parar no localStorage.
 // `tipo` diz de qual tabela o login veio ('conta' = Users, 'aluno' =
 // Alunos); não é coluna do banco, o back sabe porque autenticou num lugar
-// ou no outro. nome e email são opcionais de propósito: a tabela Alunos não
-// tem nenhum dos dois (um aluno é RP e senha de aluno), então o objeto do
-// aluno chega só com id e tipo. Ver nomeExibicao().
+// ou no outro. nome e email são opcionais de propósito: o aluno não tem
+// e-mail, e o nome dele é o da conta dona — que pode faltar (aluno antigo
+// sem conta ligada e sem nome em Alunos). Ver nomeExibicao().
 function entrar(resposta: RespostaLogin): Usuario {
   const token = resposta?.token;
   const usuario = resposta?.usuario;
@@ -107,8 +107,8 @@ function tipo(): TipoSessao | null {
   return usuario()?.tipo ?? null;
 }
 
-// O que a tela escreve quando precisa chamar a pessoa por algo. Aluno não
-// tem nome no banco: cai no RP (o próprio id). Nunca devolve
+// O que a tela escreve quando precisa chamar a pessoa por algo. Aluno sem
+// nome cai no RP (o próprio id). Nunca devolve
 // undefined — string vazia é o pior caso, e string vazia não aparece.
 function nomeExibicao(): string {
   const atual = usuario();

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teclar &mdash; Suas salas</title>
+<title>Teclar &mdash; Sala</title>
 <link rel="stylesheet" href="../../css/base/fontes.css">
 <link rel="stylesheet" href="../../css/base/tokens.css">
 <link rel="stylesheet" href="../../css/base/luz.css">
 <link rel="stylesheet" href="../../css/base/movimento.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
 <!-- De dashboard.css vem a base m&iacute;nima e o fundo com estrelas; de
-     aluno.css, o topo, a faixa dos n&uacute;meros e as salas. -->
+     aluno.css, o topo e a lista de exerc&iacute;cios da sala. -->
 <link rel="stylesheet" href="../../css/dashboard.css">
 <link rel="stylesheet" href="../../css/aluno.css">
 
@@ -32,17 +32,17 @@
 <!-- A luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto
      da Escola, ver css/base/luz.css), o campo de estrelas e o gr&atilde;o. S&oacute;
      pintura. Sem essa luz o backdrop-filter do vidro n&atilde;o tem o que
-     desfocar e a tecla da sala vira ret&acirc;ngulo cinza. -->
+     desfocar e o cart&atilde;o vira ret&acirc;ngulo cinza. -->
 <div class="fundo fundo-largo grao" aria-hidden="true">
   <div class="disco disco-canto-inferior-direito"></div>
   <div class="fundo-estrelas"></div>
 </div>
 
 <!-- O React monta a p&aacute;gina inteira aqui dentro: o topo com o menu do
-     nome e, abaixo, as salas. -->
+     nome e, abaixo, a sala e os exerc&iacute;cios dela. -->
 <div id="raiz" class="aluno-pagina entrada-da-pagina"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
-<script type="module" src="../../js/aluno/Dashboard.js"></script>
+<script type="module" src="../../js/aluno/Sala.js"></script>
 </body>
 </html>
