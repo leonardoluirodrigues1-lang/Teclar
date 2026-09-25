@@ -483,3 +483,54 @@ ul { list-style: none; }
 @media (max-width: 699px) {
   .cartoes { grid-template-columns: minmax(0, 398px); }
 }
+
+/* ---------------------------------------------------------------------------
+   cadastro.html — entrada de aluno (depois de criar a conta)
+   O RP e a senha de aluno, uma vez só. Os valores são dado, então vão em
+   mono e grandes; cada um com o seu botão de copiar ao lado.
+   ------------------------------------------------------------------------- */
+.painel h1:focus { outline: none; }
+
+.entrada-aluno { margin-top: var(--e-6, 32px); }
+
+.entrada-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--e-4, 16px);
+  padding: var(--e-4, 16px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+.entrada-item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.10); }
+
+.entrada-item .rotulo { grid-column: 1 / -1; font-size: 11px; }
+
+.entrada-valor {
+  margin-top: var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-lg, 1.25rem);
+  letter-spacing: 0.12em;
+  color: var(--cor-texto, #fff);
+  /* A senha tem símbolo; seleção por duplo clique não pode parar nele. */
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+/* O .btn ocupa a largura toda; aqui ele é o botão pequeno ao lado do valor. */
+.entrada-copiar {
+  width: auto;
+  margin-top: var(--e-2, 8px);
+  padding: 10px 16px;
+  font-size: 11px;
+}
+
+/* Aviso sem cor de alerta: o peso vem da frase em destaque, não do vermelho. */
+.entrada-aviso {
+  margin-top: var(--e-5, 24px);
+  font-size: 13px;
+  line-height: var(--lh-normal, 1.5);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.entrada-aviso strong { font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
+
+.entrada-continuar { margin-top: var(--e-5, 24px); }

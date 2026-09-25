@@ -39,7 +39,9 @@ import type {
   RelatorioExercicio,
   RelatorioTurma,
   ResumoDoAluno,
+  RespostaCadastro,
   RespostaLogin,
+  RpDaConta,
   RespostaSessaoEscola,
   RespostaSessaoSolo,
   ResultadoEnvio,
@@ -227,19 +229,21 @@ function montarQuery(filtros?: Filtros | null): string {
 export const api = {
   auth: {
     // Login, um endpoint só. O corpo é que diz de onde a pessoa vem, porque
-    // o banco é assim: Users entra por e-mail, Alunos entra por matrícula
-    // (o ID da tabela) e não tem e-mail nenhum. Nada de perfil no corpo.
+    // o banco é assim: Users entra por e-mail, Alunos entra pelo RP e pela
+    // senha de aluno, que o back gerou no cadastro da conta.
     //   Conta: { email, senha }
-    //   Aluno: { matricula, senha }
-    // Resposta (igual à do cadastro): { token, usuario: { ..., tipo } } —
-    // `tipo` é 'conta' ou 'aluno', conforme a tabela em que o back autenticou.
+    //   Aluno: { perfil: 'Aluno', rp, senha }
+    // Resposta: { token, usuario: { ..., tipo } } — `tipo` é 'conta' ou
+    // 'aluno', conforme a tabela em que o back autenticou.
     entrar: (credenciais: Credenciais) =>
       postPublico<RespostaLogin>('/auth/login', credenciais),
 
     // Cria a conta e já devolve token + usuario: quem acabou de se cadastrar
     // não passa pelo login de novo. 409 = e-mail já tem conta.
+    // Devolve também { rp, senhaAluno }, a entrada de aluno que o back gera
+    // junto com a conta. senhaAluno só vem AQUI, nunca em outra resposta.
     cadastrar: ({ nome, email, senha }: DadosCadastro) =>
-      postPublico<RespostaLogin>('/auth/cadastro', { nome, email, senha }),
+      postPublico<RespostaCadastro>('/auth/cadastro', { nome, email, senha }),
 
     // Dados do usuário do token atual.
     eu: () => get<Usuario>('/auth/eu'),
@@ -247,6 +251,13 @@ export const api = {
     // Invalida a sessão no back. Pode falhar em silêncio: quem apaga a
     // sessão local é o sessao.sair(), e ele não depende desta resposta.
     sair: () => post<null>('/auth/logout', undefined, { publico: true }),
+  },
+
+  // A conta logada, fora de qualquer mundo.
+  conta: {
+    // O RP da conta do token (Configurações do Solo). A senha de aluno não
+    // tem rota de leitura: ela só existe na resposta do cadastro.
+    rp: () => get<RpDaConta>('/conta/rp'),
   },
 
   // Mundo SOLO — rotas sob /solo/.

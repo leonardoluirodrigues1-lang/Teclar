@@ -144,15 +144,30 @@ export function validarSenhaLogin(valor: unknown): Validacao {
   return String(valor ?? '').length === 0 ? 'Informe a senha.' : null;
 }
 
-/** Matrícula do aluno: é o ID da tabela Alunos, entregue pelo professor. */
-export function validarMatricula(valor: unknown): Validacao {
-  return String(valor ?? '').trim().length === 0 ? 'Informe a matrícula.' : null;
+// --- RP (a identificação de aluno de cada conta) ---------------------------
+// O back gera o RP no cadastro: "RP" seguido de 7 dígitos, ex.: RP2025043.
+// As telas mostram com um espaço ("RP 2025043") para ler melhor, então quem
+// copia da tela pode colar com o espaço, e há quem digite "rp" minúsculo.
+// Os dois viram a forma do banco antes de validar e antes de enviar.
+
+const FORMATO_RP = /^RP\d{7}$/;
+
+/** "rp 2025043" -> "RP2025043". Tira todo espaço e põe em maiúscula. */
+export function normalizarRp(valor: unknown): string {
+  return String(valor ?? '').replace(/\s+/g, '').toUpperCase();
+}
+
+/** RP: obrigatório, "RP" seguido de exatamente 7 dígitos. */
+export function validarRp(valor: unknown): Validacao {
+  const rp = normalizarRp(valor);
+  if (rp.length === 0) return 'Informe o RP.';
+  if (!FORMATO_RP.test(rp)) return 'O RP é "RP" seguido de 7 números, ex.: RP 2025043.';
+  return null;
 }
 
 // --- Matrícula (cadastro pelo professor) -----------------------------------
-// No LOGIN a matrícula só precisa não estar vazia (validarMatricula acima):
-// o aluno digita o que recebeu, e quem confere é o back. Aqui é o professor
-// CRIANDO a matrícula, então vale a regra do formato: só dígitos, 6 a 15.
+// O professor CRIANDO a matrícula, então vale a regra do formato: só
+// dígitos, 6 a 15.
 
 const SO_DIGITOS = /^\d+$/;
 

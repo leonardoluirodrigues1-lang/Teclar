@@ -35,7 +35,34 @@
 //   Conta   ana@teclar.dev    senha123   Professor: NENHUMA turma, NENHUM
 //                                        exercício (estado vazio). Solo:
 //                                        SEM campanha
-//   Aluno   20251043          aluno123   matrícula, não e-mail; tabela Alunos
+//
+// ENTRADAS DE ALUNO — "Sou aluno" no login, com RP e senha de aluno. Toda
+// conta tem uma; a senha de aluno de todas as de teste é a mesma:
+//
+//   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está na turma-1 e
+//                            na turma-2, tem sessões e histórico.
+//   RP2025001   Aluno#2025   de leo. Em sala nenhuma (estado vazio).
+//   RP2025002   Aluno#2025   de prof. Em sala nenhuma.
+//
+// Pode digitar com espaço ("RP 2025043") ou minúsculo: a tela normaliza.
+// Os outros alunos das turmas (RP2025044 a RP2025049) também são contas de
+// alguém no banco de verdade, mas não têm login semeado aqui: nenhuma tela
+// precisa entrar como eles.
+//
+// ============================================================================
+// MUDANÇAS DE BANCO QUE ESTE MOCK JÁ SUPÕE (ainda sendo combinadas)
+// ============================================================================
+//
+//   Alunos        ganha UserID -> Users.ID. Toda conta tem exatamente uma
+//                 linha em Alunos, criada no cadastro, com o RP no ID e o
+//                 hash da senha de aluno. O professor não cria mais aluno.
+//   ClassMembers  ganha Status ('convidado' | 'ativo' | 'recusado') e
+//                 Data_Convite. O professor convida pelo RP; só depois de o
+//                 aluno aceitar ele está na sala.
+//
+// O front e este mock já se comportam como se as duas existissem. Quem gera
+// o RP e a senha de aluno é o BACK, no POST /auth/cadastro; o gerarRp() e o
+// gerarSenhaAluno() daqui são só um jeito simples de imitar isso.
 //
 // DONO. ClassesProf e ExerciciosProf têm ProfessorID, e com conta única é
 // isso — e só isso — que faz uma conta ser professora. Toda turma e todo
@@ -78,6 +105,7 @@ import type {
   RelatorioAluno,
   RelatorioExercicio,
   RelatorioTurma,
+  RespostaCadastro,
   RespostaLogin,
   ResumoDoAluno,
   Sessao,
@@ -173,11 +201,11 @@ export const USUARIOS: {
     tipo: 'conta',
     campanhaAtiva: 'camp-2',
   },
-  // Aluno vem da tabela Alunos, que tem só ID (a matrícula) e SenhaHash:
-  // SEM nome e SEM e-mail, porque essas colunas não existem. Onde a tela
-  // mostraria o nome, o sessao.nomeExibicao() cai na matrícula.
+  // Aluno vem da tabela Alunos: ID (o RP), SenhaHash e UserID (a conta
+  // dona, aqui ana — ver CONTAS). SEM e-mail, porque a coluna não existe.
+  // Onde a tela mostraria o nome, o sessao.nomeExibicao() cai no RP.
   aluno: {
-    id: '20251043',
+    id: 'RP2025043',
     nome: null,
     tipo: 'aluno',
     // Conveniência, como acima: um aluno pode estar em várias turmas.
@@ -426,8 +454,8 @@ export const dados: BancoMock = {
     // É a primeira da lista, logo a que a tela de relatórios abre sem
     // ?turma= nenhum. Por isso é ela que carrega os três casos que o
     // relatório precisa mostrar, sem ninguém editar este arquivo: um aluno
-    // que nunca treinou (20251045), um com precisão média abaixo de 85%
-    // (20251049) e um que estourou o tempo num exercício (20251044, na
+    // que nunca treinou (RP2025045), um com precisão média abaixo de 85%
+    // (RP2025049) e um que estourou o tempo num exercício (RP2025044, na
     // ses-5). Ver a lista em `alunos` e as sessões mais abaixo.
     {
       id: 'turma-1',
@@ -487,14 +515,16 @@ export const dados: BancoMock = {
     },
   ],
 
-  // Mapa turmaId -> lista de alunos. 20251045 nunca treinou (estado vazio).
+  // Mapa turmaId -> lista de alunos. RP2025045 nunca treinou (estado vazio).
   //
-  // O `id` É a matrícula, e é o que identifica um aluno: a tabela Alunos
-  // tem ID, SenhaHash e um Nome OPCIONAL (a coluna existe e aceita nulo).
+  // O `id` É o RP, e é o que identifica um aluno: a tabela Alunos tem ID
+  // (o RP), SenhaHash, UserID e um Nome OPCIONAL (a coluna existe e aceita
+  // nulo). Até a passada do professor estas linhas ainda usam os nomes de
+  // campo da época da matrícula (matriculadoEm etc.).
   // A maioria das linhas aqui não tem nome de propósito — é o caso comum,
-  // e a tela cai na matrícula. Só o 20251049 tem, para o caminho "veio
-  // nome" também ser testável sem editar este arquivo. Onde não veio, a
-  // tela mostra a matrícula e NUNCA inventa um nome de exibição.
+  // e a tela cai no RP. Só o RP2025049 tem, para o caminho "veio nome"
+  // também ser testável sem editar este arquivo. Onde não veio, a tela
+  // mostra o RP e NUNCA inventa um nome de exibição.
   //
   // `matriculadoEm` é a data do vínculo (a linha de matrícula), e
   // `ultimaAtividade` é a data da última sessão — agregados prontos, como
@@ -510,7 +540,7 @@ export const dados: BancoMock = {
       // o relatório do professor mostra para ele na turma-1: aquela é só
       // das sessões DA TURMA-1, e por isso marca outros números.
       {
-        id: '20251043',
+        id: 'RP2025043',
         matriculadoEm: '2026-02-01',
         totalSessoes: 12,
         wpmMedio: 39,
@@ -518,7 +548,7 @@ export const dados: BancoMock = {
         ultimaAtividade: diasAtras(0),
       },
       {
-        id: '20251044',
+        id: 'RP2025044',
         matriculadoEm: '2026-02-01',
         totalSessoes: 5,
         wpmMedio: 29,
@@ -527,7 +557,7 @@ export const dados: BancoMock = {
       },
       // Nunca treinou: é a linha apagada, com travessão em todo número.
       {
-        id: '20251045',
+        id: 'RP2025045',
         matriculadoEm: '2026-02-24',
         totalSessoes: 0,
         wpmMedio: null,
@@ -540,7 +570,7 @@ export const dados: BancoMock = {
       // relatório. Treinou há 2 dias (ses-6), então entra em "alunos
       // ativos" em qualquer dia que a tela for aberta.
       {
-        id: '20251049',
+        id: 'RP2025049',
         nome: 'Marina Duarte Alves',
         matriculadoEm: '2026-02-05',
         totalSessoes: 6,
@@ -551,7 +581,7 @@ export const dados: BancoMock = {
     ],
     'turma-2': [
       {
-        id: '20251046',
+        id: 'RP2025046',
         matriculadoEm: '2026-02-10',
         totalSessoes: 3,
         wpmMedio: 41,
@@ -561,7 +591,7 @@ export const dados: BancoMock = {
       // A MESMA linha da turma-1: o aluno é um só, e estes agregados são
       // os dele no sistema. Só o `matriculadoEm` é da matrícula nesta turma.
       {
-        id: '20251043',
+        id: 'RP2025043',
         matriculadoEm: '2026-02-12',
         totalSessoes: 12,
         wpmMedio: 39,
@@ -573,7 +603,7 @@ export const dados: BancoMock = {
     'turma-3': [],
     'turma-4': [
       {
-        id: '20251047',
+        id: 'RP2025047',
         matriculadoEm: '2026-03-02',
         totalSessoes: 7,
         wpmMedio: 33,
@@ -581,7 +611,7 @@ export const dados: BancoMock = {
         ultimaAtividade: '2026-03-09T11:20:00.000Z',
       },
       {
-        id: '20251048',
+        id: 'RP2025048',
         matriculadoEm: '2026-03-02',
         totalSessoes: 0,
         wpmMedio: null,
@@ -691,7 +721,7 @@ export const dados: BancoMock = {
   // de /relatorio (ver os helpers de relatório na seção de Helpers).
   //
   // "Sessão da turma-1" é o JOIN: aluno matriculado nela E exercício
-  // atribuído a ela (ex-prof-1 e ex-prof-2). Uma sessão do 20251043 em
+  // atribuído a ela (ex-prof-1 e ex-prof-2). Uma sessão do RP2025043 em
   // ex-prof-3 não apareceria no relatório da turma-1, e é isso que o back
   // real também faria.
   //
@@ -702,7 +732,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-1',
       exerciseId: 'ex-prof-1',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       wpm: 40,
       precisao: 95,
       tempoSegundos: 58,
@@ -713,7 +743,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-2',
       exerciseId: 'ex-prof-2',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       wpm: 36,
       precisao: 92,
       tempoSegundos: 61,
@@ -724,7 +754,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-3',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251046',
+      alunoId: 'RP2025046',
       wpm: 22,
       precisao: 80,
       tempoSegundos: 120,
@@ -732,11 +762,11 @@ export const dados: BancoMock = {
       concluida: false,
       data: '2026-02-20T16:45:00.000Z',
     },
-    // 20251044, turma-1: concluiu ex-prof-2 (que não tem tempo limite).
+    // RP2025044, turma-1: concluiu ex-prof-2 (que não tem tempo limite).
     {
       id: 'ses-4',
       exerciseId: 'ex-prof-2',
-      alunoId: '20251044',
+      alunoId: 'RP2025044',
       wpm: 29,
       precisao: 88,
       tempoSegundos: 96,
@@ -751,7 +781,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-5',
       exerciseId: 'ex-prof-1',
-      alunoId: '20251044',
+      alunoId: 'RP2025044',
       wpm: 24,
       precisao: 81,
       tempoSegundos: 120,
@@ -759,12 +789,12 @@ export const dados: BancoMock = {
       concluida: false,
       data: diasAtras(3),
     },
-    // 20251049: duas sessões concluídas, as duas com precisão baixa — é o
+    // RP2025049: duas sessões concluídas, as duas com precisão baixa — é o
     // que põe a média dela em 78% e aciona o destaque de abaixo de 85%.
     {
       id: 'ses-6',
       exerciseId: 'ex-prof-1',
-      alunoId: '20251049',
+      alunoId: 'RP2025049',
       wpm: 33,
       precisao: 79,
       tempoSegundos: 104,
@@ -775,7 +805,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-7',
       exerciseId: 'ex-prof-2',
-      alunoId: '20251049',
+      alunoId: 'RP2025049',
       wpm: 30,
       precisao: 76,
       tempoSegundos: 131,
@@ -785,7 +815,7 @@ export const dados: BancoMock = {
     },
 
     // ------------------------------------------------------------------
-    // O histórico do 20251043 (pages/aluno/historico.html)
+    // O histórico do RP2025043 (pages/aluno/historico.html)
     // ------------------------------------------------------------------
     // Dez sessões na TURMA-2 (ex-prof-3 e ex-prof-5), somadas às duas de
     // fevereiro na turma-1 (ses-1 e ses-2): doze no total, que é o que a
@@ -807,7 +837,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-8',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 28,
       precisao: 84,
@@ -819,7 +849,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-9',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 31,
       precisao: 86,
@@ -834,7 +864,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-10',
       exerciseId: 'ex-prof-5',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 30,
       precisao: 82,
@@ -846,7 +876,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-11',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 35,
       precisao: 88,
@@ -858,7 +888,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-12',
       exerciseId: 'ex-prof-5',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 38,
       precisao: 89,
@@ -870,7 +900,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-13',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 41,
       precisao: 91,
@@ -882,7 +912,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-14',
       exerciseId: 'ex-prof-5',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 44,
       precisao: 90,
@@ -895,7 +925,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-15',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 45,
       precisao: 93,
@@ -907,7 +937,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-16',
       exerciseId: 'ex-prof-5',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 47,
       precisao: 94,
@@ -920,7 +950,7 @@ export const dados: BancoMock = {
     {
       id: 'ses-17',
       exerciseId: 'ex-prof-3',
-      alunoId: '20251043',
+      alunoId: 'RP2025043',
       turmaId: 'turma-2',
       wpm: 49,
       precisao: 96,
@@ -1051,6 +1081,39 @@ function gerarSenha(): string {
     senha += alfabeto[Math.floor(Math.random() * alfabeto.length)];
   }
   return senha;
+}
+
+// RP da conta nova: "RP" + 7 dígitos, sem repetir um que já existe.
+// De verdade quem gera é o BACK, no POST /auth/cadastro; isto só imita.
+function gerarRp(): string {
+  const usados = new Set(CONTAS.map((c) => c.rp).filter(Boolean));
+  let rp: string;
+  do {
+    rp = `RP${Math.floor(1000000 + Math.random() * 9000000)}`;
+  } while (usados.has(rp));
+  return rp;
+}
+
+// Senha de aluno da conta nova: 10 caracteres com pelo menos uma
+// maiúscula, uma minúscula, um número e um símbolo. De verdade quem gera é
+// o BACK; isto só imita. Os alfabetos deixam de fora o que se confunde ao
+// copiar à mão (I, l, O, 0, 1).
+const MAIUSCULAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const MINUSCULAS = 'abcdefghijkmnpqrstuvwxyz';
+const DIGITOS = '23456789';
+const SIMBOLOS = '#$%&*+?@!';
+
+function sortearDe(alfabeto: string): string {
+  return alfabeto[Math.floor(Math.random() * alfabeto.length)];
+}
+
+function gerarSenhaAluno(): string {
+  const todos = MAIUSCULAS + MINUSCULAS + DIGITOS + SIMBOLOS;
+  const letras = [sortearDe(MAIUSCULAS), sortearDe(MINUSCULAS), sortearDe(DIGITOS), sortearDe(SIMBOLOS)];
+  while (letras.length < 10) letras.push(sortearDe(todos));
+  // Embaralha, senão toda senha começaria com maiúscula, minúscula, número
+  // e símbolo, nessa ordem.
+  return letras.sort(() => Math.random() - 0.5).join('');
 }
 
 function recalcularNivel(xpTotal: number): number {
@@ -1396,12 +1459,27 @@ export function erro(status: number, mensagem: string, codigo: string | null = n
 // conta passa a responder 403 ("Esta conta está desativada") em vez de
 // entrar — é assim que se testa esse caminho na tela.
 
+// Duas formas de linha, uma por tabela:
+//   conta (Users)  -> email e senha;
+//   aluno (Alunos) -> rp e a senha de ALUNO, mais o userId da conta dona
+//                     (a coluna UserID que Alunos vai ganhar).
 interface Conta {
   email?: string;
-  matricula?: string;
+  rp?: string;
+  userId?: string;
   senha: string;
   ativo: boolean;
   usuario: Usuario;
+}
+
+// A senha de aluno das entradas de teste. As de verdade são geradas pelo
+// back (ver gerarSenhaAluno); esta segue a mesma regra — maiúscula,
+// minúscula, número e símbolo — para ser uma senha que o back geraria.
+const SENHA_ALUNO_DE_TESTE = 'Aluno#2025';
+
+// Entrada de aluno de uma conta que ainda não está em sala nenhuma.
+function alunoSemSala(rp: string): Usuario {
+  return { id: rp, nome: null, tipo: 'aluno', turmas: [] };
 }
 
 const CONTAS: Conta[] = [
@@ -1410,9 +1488,18 @@ const CONTAS: Conta[] = [
   // convite do lobby do Solo. Ver o cabeçalho deste arquivo.
   { email: 'ana@teclar.dev', senha: 'senha123', ativo: true, usuario: USUARIOS.ana },
   { email: 'prof@teclar.dev', senha: 'senha123', ativo: true, usuario: USUARIOS.prof },
-  // Aluno entra por matrícula (o ID da tabela Alunos), nunca por e-mail.
-  { matricula: '20251043', senha: 'aluno123', ativo: true, usuario: USUARIOS.aluno },
+
+  // Toda conta tem a sua entrada de aluno. Aluno entra pelo RP (o ID da
+  // tabela Alunos), nunca por e-mail. A de ana é o aluno de teste.
+  { rp: 'RP2025043', userId: USUARIOS.ana.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: USUARIOS.aluno },
+  { rp: 'RP2025001', userId: USUARIOS.leo.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025001') },
+  { rp: 'RP2025002', userId: USUARIOS.prof.id, senha: SENHA_ALUNO_DE_TESTE, ativo: true, usuario: alunoSemSala('RP2025002') },
 ];
+
+// O RP da conta: a linha de Alunos cujo UserID aponta para ela.
+function rpDaConta(contaId: string): string | null {
+  return CONTAS.find((c) => c.userId === contaId)?.rp ?? null;
+}
 
 const normalizarEmail = (valor: unknown): string => String(valor ?? '').trim().toLowerCase();
 
@@ -1511,21 +1598,17 @@ function campanhaDoToken(token: string | null | undefined): Campanha {
 
 const rotas: [string, RegExp, Handler][] = [
   // --- auth --------------------------------------------------------------
-  // Um endpoint só. O corpo é que diz a tabela: { matricula, senha } vai
-  // em Alunos; { email, senha } vai em Users. Nada de perfil no corpo, e
-  // o `tipo` da resposta é de onde a conta foi achada — não do que a tela
-  // mandou.
+  // Um endpoint só. O corpo é que diz a tabela: { perfil: 'Aluno', rp,
+  // senha } vai em Alunos; { email, senha } vai em Users. O `tipo` da
+  // resposta é de onde a conta foi achada — não do que a tela mandou.
   [
     'POST',
     montarRegex('/auth/login'),
     (params, corpo) => {
-      if (corpo?.matricula != null) {
-        const matricula = String(corpo.matricula).trim();
-        return exigirConta(
-          CONTAS.find(
-            (c) => c.matricula === matricula && c.senha === corpo?.senha
-          )
-        );
+      if (corpo?.perfil === 'Aluno') {
+        // O back aceita o RP com espaço ou minúsculo, como a tela.
+        const rp = String(corpo?.rp ?? '').replace(/\s+/g, '').toUpperCase();
+        return exigirConta(CONTAS.find((c) => c.rp === rp && c.senha === corpo?.senha));
       }
 
       const email = normalizarEmail(corpo?.email);
@@ -1535,9 +1618,9 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
 
-  // Cadastro: cria a conta e já devolve a sessão pronta, como o login.
-  // Aluno não passa por aqui — quem cria aluno é o professor, na tela de
-  // matrícula (POST /turmas/:id/alunos).
+  // Cadastro: cria a conta e já devolve a sessão pronta, como o login, mais
+  // a entrada de aluno da conta: { rp, senhaAluno }. Esta é a ÚNICA
+  // resposta em que senhaAluno aparece.
   [
     'POST',
     montarRegex('/auth/cadastro'),
@@ -1557,12 +1640,23 @@ const rotas: [string, RegExp, Handler][] = [
         tipo: 'conta',
       };
 
+      // A linha de Alunos da conta nova nasce junto, na mesma hora.
+      const rp = gerarRp();
+      const senhaAluno = gerarSenhaAluno();
+
       // Entra no "banco" em memória: dá para sair e entrar de novo com a
-      // conta recém-criada, até o próximo F5.
+      // conta recém-criada — como conta e como aluno —, até o próximo F5.
       CONTAS.push({ email: usuario.email, senha: corpo?.senha, ativo: true, usuario });
-      return sessaoDe(usuario);
+      CONTAS.push({ rp, userId: usuario.id, senha: senhaAluno, ativo: true, usuario: alunoSemSala(rp) });
+
+      const resposta: RespostaCadastro = { ...sessaoDe(usuario), rp, senhaAluno };
+      return resposta;
     },
   ],
+
+  // --- conta ---------------------------------------------------------------
+  // O RP da conta do token. Nunca recebe id: é sempre o da própria conta.
+  ['GET', montarRegex('/conta/rp'), (params, corpo, token) => ({ rp: rpDaConta(contaDoToken(token).id) })],
 
   // Telas de teste podem trocar por USUARIOS.prof / .aluno conforme o cenário.
   ['GET', montarRegex('/auth/eu'), () => USUARIOS.leo],

@@ -10,13 +10,20 @@
 //     treino (js/treino/Treino.tsx), que a tela lê ao abrir;
 //   · rever o tutorial — apaga a marca de "já visto" da conta
 //     (sessao.esquecerTutorial) e leva ao caminho, onde ele aparece.
+//
+// E um bloco que não é configuração, mas mora aqui por ser da conta: "Sua
+// entrada como aluno", com o RP (GET /conta/rp). A senha de aluno NÃO
+// aparece: ela só existe na tela do fim do cadastro.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { formatarRp } from '../utils/formato.js';
 
 // Vizinho desta em pages/solo/: é lá que o tutorial aparece.
 const ROTA_CAMINHO = 'caminho.html';
@@ -98,8 +105,50 @@ function Configuracoes() {
             Rever
           </button>
         </section>
+
+        <EntradaComoAluno />
       </main>
     </MolduraSolo>
+  );
+}
+
+// O RP da conta, com botão de copiar. undefined enquanto carrega; null
+// quando a conta não tem RP (mostra "—", nunca "null").
+function EntradaComoAluno() {
+  const [rp, setRp] = useState<string | null | undefined>(undefined);
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    api.conta
+      .rp()
+      .then((resposta) => {
+        if (!cancelado) setRp(resposta?.rp ?? null);
+      })
+      .catch(() => {
+        if (!cancelado) setFalhou(true);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  return (
+    <section className="vidro solo-texto-cartao solo-opcao-linha" aria-labelledby="titulo-entrada-aluno">
+      <span>
+        <span className="solo-opcao-nome" id="titulo-entrada-aluno">
+          Sua entrada como aluno
+        </span>
+        <span className="solo-rp" aria-live="polite">
+          {falhou ? 'Não foi possível carregar o RP.' : rp === undefined ? 'Carregando…' : formatarRp(rp)}
+        </span>
+        <span className="solo-opcao-texto">
+          Passe o RP para o professor: é com ele que o convite para uma sala chega a você. A senha de aluno
+          apareceu só uma vez, quando a conta foi criada.
+        </span>
+      </span>
+      {rp && <BotaoCopiar texto={rp} rotulo="Copiar RP" className="tutorial-botao tecla" />}
+    </section>
   );
 }
 

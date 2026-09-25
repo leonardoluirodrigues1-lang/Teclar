@@ -3,9 +3,9 @@
 // login. Um HTML só, dois formulários:
 //   Conta (padrão) -> e-mail e senha; depois cai na tela de modo (Solo ou
 //                     Professor), ou direto no último modo salvo
-//   Aluno          -> matrícula e senha, sem cadastro; vai para o
-//                     dashboard do aluno
-// O de aluno é alcançado pelo "Sou aluno, tenho matrícula e senha", ou
+//   Aluno          -> RP e senha de aluno, os dois gerados pelo back no
+//                     cadastro da conta; vai para o dashboard do aluno
+// O de aluno é alcançado pelo "Sou aluno, tenho RP e senha de aluno", ou
 // abre direto com ?aluno=1 (o cartão "Aluno" da tela de modo).
 //
 // A tela não decide quem a pessoa é: o `tipo` da resposta do back (de
@@ -26,7 +26,7 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
 import type { RespostaLogin } from '../nucleo/tipos.js';
-import { validarEmail, validarSenhaLogin, validarMatricula } from '../utils/validacao.js';
+import { validarEmail, validarSenhaLogin, validarRp, normalizarRp } from '../utils/validacao.js';
 import { montarEstrelas, mensagemDoErro, MENSAGENS } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
@@ -35,7 +35,7 @@ type Modo = 'conta' | 'aluno';
 
 interface OpcoesEnvio {
   requisicao: () => Promise<RespostaLogin>;
-  /** A frase do 401 desta tela (muda entre e-mail e matrícula). */
+  /** A frase do 401 desta tela (muda entre e-mail e RP). */
   credenciais: string;
   /** Onde a mensagem de erro do formulário aparece. */
   mostrarErro: (mensagem: string) => void;
@@ -61,7 +61,7 @@ function Login() {
 
   const email = useRef<HTMLInputElement>(null);
   const senha = useRef<HTMLInputElement>(null);
-  const matricula = useRef<HTMLInputElement>(null);
+  const rp = useRef<HTMLInputElement>(null);
   const senhaAluno = useRef<HTMLInputElement>(null);
 
   // --- validação de campo ----------------------------------------------------
@@ -70,12 +70,12 @@ function Login() {
   const campos = useErrosDeCampo({
     email: { ref: email, checar: () => validarEmail(email.current.value) },
     senha: { ref: senha, checar: () => validarSenhaLogin(senha.current.value) },
-    matricula: { ref: matricula, checar: () => validarMatricula(matricula.current.value) },
+    rp: { ref: rp, checar: () => validarRp(rp.current.value) },
     senhaAluno: { ref: senhaAluno, checar: () => validarSenhaLogin(senhaAluno.current.value) },
   });
-  const refs = { email, senha, matricula, senhaAluno };
+  const refs = { email, senha, rp, senhaAluno };
 
-  // O cadastro é só de conta (aluno é criado pelo professor).
+  // O cadastro é só de conta: o RP e a senha de aluno nascem junto com ela.
   const hrefCadastro = ROTA_CADASTRO;
 
   // --- troca de modo ---------------------------------------------------------
@@ -83,7 +83,7 @@ function Login() {
   // Foco no primeiro campo do formulário que está à vista — ao abrir e a
   // cada troca de modo (o que mostrarModo() fazia no fim).
   useEffect(() => {
-    (modo === 'aluno' ? matricula : email).current?.focus();
+    (modo === 'aluno' ? rp : email).current?.focus();
   }, [modo]);
 
   function mostrarModo(novo: Modo) {
@@ -142,7 +142,7 @@ function Login() {
   async function entrarComoAluno() {
     if (enviando.current) return;
 
-    const comErro = campos.validar(['matricula', 'senhaAluno']);
+    const comErro = campos.validar(['rp', 'senhaAluno']);
     if (comErro) {
       refs[comErro].current.focus();
       return;
@@ -151,7 +151,9 @@ function Login() {
     await enviar({
       requisicao: () =>
         api.auth.entrar({
-          matricula: matricula.current.value.trim(),
+          perfil: 'Aluno',
+          // Vai sem espaço e em maiúscula, a forma em que o back guarda.
+          rp: normalizarRp(rp.current.value),
           senha: senhaAluno.current.value,
         }),
       credenciais: MENSAGENS.CREDENCIAIS_ALUNO,
@@ -257,7 +259,7 @@ function Login() {
         </form>
 
         <button type="button" className="btn-texto" id="btn-ir-aluno" onClick={irParaAluno}>
-          Sou aluno, tenho matrícula e senha
+          Sou aluno, tenho RP e senha de aluno
         </button>
 
         <p className="linha-rodape">
@@ -268,38 +270,42 @@ function Login() {
         </p>
       </section>
 
-      {/* ===== Aluno: matrícula e senha ===== */}
+      {/* ===== Aluno: RP e senha de aluno ===== */}
       <section id="modo-aluno" aria-labelledby="titulo-aluno" hidden={modo !== 'aluno'}>
         <p className="rotulo">Aluno</p>
         <h1 id="titulo-aluno">Entrar</h1>
-        <p className="descricao">Seu professor entrega a matrícula e a senha no primeiro acesso.</p>
+        <p className="descricao">Use o RP e a senha de aluno que apareceram quando você criou a conta.</p>
 
         <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
           <div className="campo">
-            <label className="rotulo" htmlFor="campo-matricula">
-              Matrícula
+            <label className="rotulo" htmlFor="campo-rp">
+              RP
             </label>
+            {/* Sem inputMode numérico: o RP começa com as letras "RP". */}
             <input
               type="text"
-              name="matricula"
-              id="campo-matricula"
+              name="rp"
+              id="campo-rp"
               autoComplete="username"
-              autoCapitalize="off"
+              autoCapitalize="characters"
               autoCorrect="off"
               spellCheck={false}
-              inputMode="numeric"
-              aria-describedby="erro-matricula"
+              maxLength={12}
+              aria-describedby="dica-rp erro-rp"
               required
-              ref={matricula}
-              onBlur={() => campos.aoSair('matricula')}
-              {...atributosDeErro(campos.erros.matricula)}
+              ref={rp}
+              onBlur={() => campos.aoSair('rp')}
+              {...atributosDeErro(campos.erros.rp)}
             />
-            <ErroCampo id="erro-matricula" erro={campos.erros.matricula} />
+            <p className="ajuda-campo" id="dica-rp">
+              "RP" seguido de 7 números, ex.: RP 2025043. Quem tem conta vê o seu em Configurações do Solo.
+            </p>
+            <ErroCampo id="erro-rp" erro={campos.erros.rp} />
           </div>
 
           <div className="campo">
             <label className="rotulo" htmlFor="campo-senha-aluno">
-              Senha
+              Senha de aluno
             </label>
             <CampoSenha
               id="campo-senha-aluno"
@@ -313,8 +319,6 @@ function Login() {
             />
             <ErroCampo id="erro-senha-aluno" erro={campos.erros.senhaAluno} />
           </div>
-
-          <p className="ajuda-campo">Esqueceu a senha? Peça ao professor para gerar uma nova.</p>
 
           <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-entrar-aluno" disabled={ocupado}>
             {ocupado ? 'Entrando…' : 'Entrar'}

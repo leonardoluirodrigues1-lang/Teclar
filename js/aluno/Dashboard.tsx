@@ -30,8 +30,8 @@ function Dashboard({ usuario }: PropsDashboard) {
 
   const turmaId = sessao.turmaAtiva();
   const turma = usuario.turmas?.find((t) => t.id === turmaId);
-  // Aluno não tem nome no banco (a tabela Alunos é matrícula e senha):
-  // nomeExibicao() cai na matrícula em vez de escrever "undefined".
+  // Aluno não tem nome no banco (a tabela Alunos é RP e senha de aluno):
+  // nomeExibicao() cai no RP em vez de escrever "undefined".
   const subtitulo = [sessao.nomeExibicao(), turma?.nome].filter(Boolean).join(' · ');
 
   useEffect(() => {

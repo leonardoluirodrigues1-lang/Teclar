@@ -57,7 +57,7 @@ export function montarEstrelas(host: HTMLElement | null, quantidade = QUANTIDADE
 
 export const MENSAGENS = {
   CREDENCIAIS: 'E-mail ou senha incorretos.',
-  CREDENCIAIS_ALUNO: 'Matrícula ou senha incorretos.',
+  CREDENCIAIS_ALUNO: 'RP ou senha de aluno incorretos.',
   INATIVA: 'Esta conta está desativada.',
   CONEXAO: 'Não foi possível conectar. Tente de novo.',
 };
@@ -70,7 +70,7 @@ interface ErroComStatus {
 
 /**
  * Traduz a falha de uma chamada de autenticação.
- * `credenciais` é a frase do 401 desta tela (muda entre e-mail e matrícula).
+ * `credenciais` é a frase do 401 desta tela (muda entre e-mail e RP).
  * O 409 NÃO passa por aqui: ele é erro de campo, e quem chama trata.
  */
 export function mensagemDoErro(

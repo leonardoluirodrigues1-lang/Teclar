@@ -15,12 +15,14 @@ const CHAVES = CONFIG.CHAVES_STORAGE;
 //   objeto    -> usuário atual
 let cacheUsuario: Usuario | null | undefined;
 
-// Grava a resposta de login OU de cadastro — as duas têm o mesmo formato:
+// Grava a sessão do login OU do cadastro:
 //   { token, usuario: { id, nome?, email?, tipo } }
+// Do cadastro, a tela passa só esses dois campos: a resposta dele traz
+// também a senha de aluno, que não pode parar no localStorage.
 // `tipo` diz de qual tabela o login veio ('conta' = Users, 'aluno' =
 // Alunos); não é coluna do banco, o back sabe porque autenticou num lugar
 // ou no outro. nome e email são opcionais de propósito: a tabela Alunos não
-// tem nenhum dos dois (um aluno é matrícula e senha), então o objeto do
+// tem nenhum dos dois (um aluno é RP e senha de aluno), então o objeto do
 // aluno chega só com id e tipo. Ver nomeExibicao().
 function entrar(resposta: RespostaLogin): Usuario {
   const token = resposta?.token;
@@ -106,7 +108,7 @@ function tipo(): TipoSessao | null {
 }
 
 // O que a tela escreve quando precisa chamar a pessoa por algo. Aluno não
-// tem nome no banco: cai na matrícula (o próprio id). Nunca devolve
+// tem nome no banco: cai no RP (o próprio id). Nunca devolve
 // undefined — string vazia é o pior caso, e string vazia não aparece.
 function nomeExibicao(): string {
   const atual = usuario();

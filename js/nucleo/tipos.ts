@@ -25,7 +25,7 @@ export type Mundo = 'solo' | 'escola';
 
 /**
  * De qual tabela o login veio. NÃO é coluna do banco: o back sabe porque
- * autenticou em Users (e-mail e senha) ou em Alunos (matrícula e senha).
+ * autenticou em Users (e-mail e senha) ou em Alunos (RP e senha de aluno).
  *   conta — Users. Acessa Solo E Professor.
  *   aluno — Alunos. Acessa só o mundo do aluno.
  */
@@ -54,7 +54,7 @@ export interface TurmaDoUsuario {
  * o back manda junto para a tela não pedir de novo logo após o login.
  *
  * nome e email são opcionais: a tabela Alunos não tem nenhum dos dois, e
- * o aluno chega só com id (a matrícula). Ver sessao.nomeExibicao().
+ * o aluno chega só com id (o RP). Ver sessao.nomeExibicao().
  *
  * Não há campo de perfil: a tabela Users não tem essa coluna. O que existe
  * é `tipo` (de qual tabela o login veio) e, só no front, o modo (ver
@@ -75,23 +75,47 @@ export interface Usuario {
   turmaAtiva?: string | null;
 }
 
-/** Resposta de POST /auth/login e de POST /auth/cadastro — o mesmo formato. */
+/** Resposta de POST /auth/login. O cadastro devolve isto e mais a entrada
+ *  de aluno (ver RespostaCadastro). */
 export interface RespostaLogin {
   token: string;
   usuario: Usuario;
 }
 
-/** Corpo de POST /auth/login. Conta entra por e-mail; aluno entra por
- *  matrícula e não tem e-mail. Nada de perfil no corpo. */
+/**
+ * Resposta de POST /auth/cadastro: a sessão, como no login, mais a entrada
+ * de aluno que o back gerou para a conta nova.
+ *
+ * senhaAluno vem em texto puro SÓ nesta resposta, nunca em outra: depois
+ * dela o back guarda só o hash. A tela de cadastro mostra uma vez e não
+ * grava em lugar nenhum — por isso o sessao.entrar() recebe só token e
+ * usuario, nunca esta resposta inteira.
+ */
+export interface RespostaCadastro extends RespostaLogin {
+  /** "RP" + 7 dígitos, ex.: RP2025043. */
+  rp: string;
+  senhaAluno: string;
+}
+
+/** Corpo de POST /auth/login. Conta entra por e-mail; aluno entra pelo RP
+ *  e pela senha de aluno, e o perfil 'Aluno' diz ao back em qual tabela
+ *  procurar. */
 export interface CredenciaisEmail {
   email: string;
   senha: string;
 }
-export interface CredenciaisMatricula {
-  matricula: string;
+export interface CredenciaisAluno {
+  perfil: 'Aluno';
+  rp: string;
   senha: string;
 }
-export type Credenciais = CredenciaisEmail | CredenciaisMatricula;
+export type Credenciais = CredenciaisEmail | CredenciaisAluno;
+
+/** Resposta de GET /conta/rp. null se a conta ainda não tem RP — a tela
+ *  mostra "—". */
+export interface RpDaConta {
+  rp: string | null;
+}
 
 /** Corpo de POST /auth/cadastro. */
 export interface DadosCadastro {

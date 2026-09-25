@@ -95,8 +95,8 @@ function Historico({ usuario }: PropsHistorico) {
   const mostrarTurma = turmas.length > 1;
 
   const subtitulo = [
-    // Aluno não tem nome no banco (a tabela Alunos é matrícula e senha):
-    // nomeExibicao() cai na matrícula em vez de escrever "undefined".
+    // Aluno não tem nome no banco (a tabela Alunos é RP e senha de aluno):
+    // nomeExibicao() cai no RP em vez de escrever "undefined".
     sessao.nomeExibicao(),
     turmas.length > 1 ? `${turmas.length} turmas` : turmas[0]?.nome,
   ]
