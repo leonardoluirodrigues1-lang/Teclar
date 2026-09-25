@@ -8,7 +8,6 @@ import { sessao } from './sessao.js';
 import { responderMock } from './mocks.js';
 import type {
   Aluno,
-  AlunoCriado,
   Atribuicao,
   AtribuicaoProfessor,
   Campanha,
@@ -16,7 +15,6 @@ import type {
   Credenciais,
   DadosCadastro,
   DadosExercicio,
-  DadosNovoAluno,
   DadosSessaoTreino,
   DadosTurma,
   DesempenhoAluno,
@@ -28,7 +26,6 @@ import type {
   EstatisticasSolo,
   IndicadoresSolo,
   ItemFila,
-  LinhaImportacao,
   Missao,
   MissaoDetalhe,
   Mundo,
@@ -43,14 +40,15 @@ import type {
   RpDaConta,
   NovaSenhaAluno,
   ConviteDoAluno,
+  ConvidadoDaTurma,
+  LinhaDaTurma,
+  ResultadoConvites,
   SalaDetalhe,
   SalaDoAluno,
   RespostaSessaoEscola,
   RespostaSessaoSolo,
   ResultadoEnvio,
-  ResultadoImportacao,
   ResultadoSincronizacao,
-  SenhaResetada,
   Sessao,
   SessaoDoAluno,
   SessaoDoHistorico,
@@ -363,26 +361,29 @@ export const api = {
   },
 
   alunos: {
-    daTurma: (turmaId: string) => get<Aluno[]>(`/turmas/${turmaId}/alunos`),
-    // dados: { id, nome? } — a matrícula e, opcional, o nome (a coluna Nome
-    // de Alunos aceita nulo; vazio vai como null). Sem id, o back gera a
-    // matrícula. A resposta traz senha_inicial em texto puro. É a ÚNICA vez
-    // que ela aparece — depois fica só o hash no back e não há como
-    // recuperá-la.
-    cadastrar: (turmaId: string, dados: DadosNovoAluno) =>
-      post<AlunoCriado>(`/turmas/${turmaId}/alunos`, dados),
-    // lista: array de linhas { id, nome? }. Matrícula que já existe é
-    // vinculada à turma — e o nome da linha NÃO sobrescreve um nome já
-    // gravado, só preenche quem estava sem (regra do back); matrícula nova
-    // é cadastrada, e só essa volta com senha inicial.
-    importar: (turmaId: string, lista: LinhaImportacao[]) =>
-      post<ResultadoImportacao>(`/turmas/${turmaId}/alunos/importar`, { lista }),
-    // Nome de quem já existe. null apaga (fica sem nome), nunca "".
-    renomear: (alunoId: string, nome: string | null) =>
-      patch<Aluno>(`/alunos/${alunoId}`, { nome }),
+    // Ativos e convidados da turma, cada linha com o seu `estado`.
+    daTurma: (turmaId: string) => get<LinhaDaTurma[]>(`/turmas/${turmaId}/alunos`),
+    // Tira da turma quem está ATIVO. O histórico de sessões dele nesta
+    // turma vai junto. Para quem só foi convidado, é cancelarConvite.
     remover: (turmaId: string, alunoId: string) =>
       del(`/turmas/${turmaId}/alunos/${alunoId}`),
-    resetarSenha: (alunoId: string) => post<SenhaResetada>(`/alunos/${alunoId}/resetar-senha`),
+
+    // --- convites pelo RP ------------------------------------------------
+    // O professor não cria aluno e não vê senha de ninguém: convida pelo
+    // RP de uma conta que já existe, e o aluno aceita ou recusa. Erros do
+    // convite um por um, pelo código:
+    //   404 RP_NAO_ENCONTRADO  nenhuma conta com esse RP
+    //   409 JA_NA_TURMA        o RP já está na turma
+    //   409 JA_CONVIDADO       já foi convidado e ainda não respondeu
+    convidar: (turmaId: string, rp: string) =>
+      post<ConvidadoDaTurma>(`/turmas/${turmaId}/convites`, { rp }),
+    // O lote inteiro numa requisição; cada RP cai numa das três listas.
+    convidarVarios: (turmaId: string, rps: string[]) =>
+      post<ResultadoConvites>(`/turmas/${turmaId}/convites/importar`, { rps }),
+    // Cancela um convite que ainda não foi respondido.
+    cancelarConvite: (turmaId: string, rp: string) =>
+      del(`/turmas/${turmaId}/convites/${rp}`),
+
     // Agregados de UM aluno na turma, com as sessões dele em anexo (array
     // completo, sem envelope). Quem quer só a lista de sessões — o modal de
     // histórico da tela de relatórios — usa api.relatorios.sessoesDoAluno,
@@ -403,7 +404,7 @@ export const api = {
     // As quatro métricas do topo: alunos ativos (últimos 7 dias, janela do
     // back), PPM médio, precisão média e exercícios concluídos.
     turma: (turmaId: string) => get<RelatorioTurma>(`/turmas/${turmaId}/relatorio`),
-    // Uma linha por aluno MATRICULADO — inclusive quem nunca treinou, que
+    // Uma linha por aluno ATIVO (convidado não entra) — inclusive quem nunca treinou, que
     // vem com totalSessoes 0 e os agregados em null. Lista curta (uma
     // turma), array puro, como /turmas/:id/alunos.
     porAluno: (turmaId: string) => get<RelatorioAluno[]>(`/turmas/${turmaId}/relatorio/alunos`),

@@ -333,7 +333,8 @@ export interface Turma {
   professorId: string;
   nome: string;
   status: StatusTurma;
-  /** COUNT feito no back — o front não soma nada. */
+  /** COUNT feito no back — o front não soma nada. Só alunos ATIVOS:
+   *  convidado que não respondeu não é aluno da turma ainda. */
   totalAlunos: number;
   totalExercicios: number;
   dataCriacao: string;
@@ -370,34 +371,40 @@ export interface Aluno {
   ultimaAtividade: string | null;
 }
 
-/** Aluno recém-cadastrado: a ÚNICA resposta que traz a senha em texto puro. */
-export interface AlunoCriado extends Aluno {
-  senhaInicial: string;
+/**
+ * Estado do aluno na turma: a coluna Status de ClassMembers. 'recusado'
+ * também existe no banco, mas não chega ao professor: para ele, convite
+ * recusado é convite que sumiu.
+ */
+export type EstadoNaTurma = 'ativo' | 'convidado';
+
+/** Linha de GET /turmas/:id/alunos de quem está na turma. */
+export interface AlunoAtivoDaTurma extends Aluno {
+  estado: 'ativo';
 }
 
-/** Corpo de POST /turmas/:id/alunos. Sem id, o back gera a matrícula.
- *  nome é opcional; vazio vai como null, nunca como "". */
-export interface DadosNovoAluno {
-  id?: string;
-  nome?: string | null;
-}
-
-/** Uma linha de POST /turmas/:id/alunos/importar. */
-export interface LinhaImportacao {
+/** Linha de GET /turmas/:id/alunos de quem foi convidado e ainda não
+ *  respondeu. Não traz número de desempenho nenhum: ainda não é aluno da
+ *  turma, e nada dele entra em contador, média ou relatório. */
+export interface ConvidadoDaTurma {
+  estado: 'convidado';
+  /** O RP. */
   id: string;
   nome?: string | null;
+  convidadoEm: string;
 }
 
-/** Resposta da importação em lote. Importação parcial é permitida. */
-export interface ResultadoImportacao {
-  criados: AlunoCriado[];
-  vinculados: Aluno[];
-  falhas: { linha: LinhaImportacao; motivo: string }[];
-}
+/** Item de GET /turmas/:id/alunos: ativos e convidados, na mesma lista,
+ *  sempre com o estado dizendo qual é qual. */
+export type LinhaDaTurma = AlunoAtivoDaTurma | ConvidadoDaTurma;
 
-/** POST /alunos/:id/resetar-senha. */
-export interface SenhaResetada {
-  senhaInicial: string;
+/** Resposta de POST /turmas/:id/convites/importar. Importação parcial é
+ *  permitida: cada RP cai numa das três listas. */
+export interface ResultadoConvites {
+  convidados: ConvidadoDaTurma[];
+  /** Já estavam na turma, ativos ou convidados: nada mudou para eles. */
+  jaEstavam: { rp: string; estado: EstadoNaTurma }[];
+  falhas: { rp: string; motivo: string }[];
 }
 
 /**
@@ -613,8 +620,8 @@ export interface RelatorioTurma extends DesempenhoTurma {
 /**
  * Uma linha da aba "Por aluno" (GET /turmas/:id/relatorio/alunos).
  *
- * Estende Aluno, então traz id (a matrícula, que É a identidade), o `nome`
- * OPCIONAL da tabela Alunos, totalSessoes, wpmMedio, precisaoMedia e
+ * Estende Aluno, então traz id (o RP, que É a identidade), o `nome`
+ * (da conta dona, e pode faltar), totalSessoes, wpmMedio, precisaoMedia e
  * ultimaAtividade. Atenção: os agregados aqui são DA TURMA — só as sessões
  * dela entram na conta —, enquanto os de /turmas/:id/alunos são os do
  * aluno no sistema todo. São grandezas diferentes de propósito: um aluno

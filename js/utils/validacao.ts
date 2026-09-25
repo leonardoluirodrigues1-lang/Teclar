@@ -19,8 +19,6 @@ export const LIMITES = {
   SENHA_MIN: 8,
   TURMA_MIN: 3,
   TURMA_MAX: 100,
-  MATRICULA_MIN: 6,
-  MATRICULA_MAX: 15,
   EXERCICIO_TITULO_MIN: 3,
   EXERCICIO_TITULO_MAX: 100,
   EXERCICIO_TEXTO_MIN: 20,
@@ -163,36 +161,4 @@ export function validarRp(valor: unknown): Validacao {
   if (rp.length === 0) return 'Informe o RP.';
   if (!FORMATO_RP.test(rp)) return 'O RP é "RP" seguido de 7 números, ex.: RP 2025043.';
   return null;
-}
-
-// --- Matrícula (cadastro pelo professor) -----------------------------------
-// O professor CRIANDO a matrícula, então vale a regra do formato: só
-// dígitos, 6 a 15.
-
-const SO_DIGITOS = /^\d+$/;
-
-/** Matrícula nova: obrigatória, só dígitos, 6 a 15 caracteres. */
-export function validarMatriculaNova(valor: unknown): Validacao {
-  const matricula = String(valor ?? '').trim();
-  if (matricula.length === 0) return 'Informe a matrícula.';
-  if (!SO_DIGITOS.test(matricula)) return 'A matrícula tem só números.';
-  if (matricula.length < LIMITES.MATRICULA_MIN || matricula.length > LIMITES.MATRICULA_MAX) {
-    return `A matrícula tem de ${LIMITES.MATRICULA_MIN} a ${LIMITES.MATRICULA_MAX} dígitos.`;
-  }
-  return null;
-}
-
-/** Nome do aluno: OPCIONAL (a coluna Nome de Alunos aceita nulo). Vazio é
- *  válido; preenchido, 2 a 150 caracteres, sem contar espaço nas pontas. */
-export function validarNomeAluno(valor: unknown): Validacao {
-  const nome = String(valor ?? '').trim();
-  if (nome.length === 0) return null;
-  if (nome.length < LIMITES.NOME_MIN) return 'O nome precisa de pelo menos 2 caracteres.';
-  if (nome.length > LIMITES.NOME_MAX) return 'O nome pode ter no máximo 150 caracteres.';
-  return null;
-}
-
-/** O nome como vai no corpo: aparado, e null quando vazio — nunca "". */
-export function nomeAlunoOuNull(valor: unknown): string | null {
-  return String(valor ?? '').trim() || null;
 }

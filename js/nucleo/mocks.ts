@@ -118,6 +118,10 @@ import type {
   RelatorioTurma,
   RespostaCadastro,
   ConviteDoAluno,
+  ConvidadoDaTurma,
+  EstadoNaTurma,
+  LinhaDaTurma,
+  ResultadoConvites,
   SalaDetalhe,
   SalaDoAluno,
   ExercicioDaSala,
@@ -412,9 +416,11 @@ interface BancoMock {
 }
 
 // Um convite pendente: a linha de ClassMembers com Status = 'convidado'.
-// Mora fora de `alunos` de propósito: as telas do professor ainda leem
-// `alunos` como a lista de quem está na turma (até a passada 4), e um
-// convidado ali apareceria como aluno ativo.
+// O mock guarda os dois estados em listas separadas — `alunos` é Status =
+// 'ativo', `convites` é Status = 'convidado' — porque é assim que cada
+// leitor precisa deles: contador, médias e relatórios leem só `alunos`
+// (o WHERE Status = 'ativo' do back), e a lista da turma do professor
+// junta as duas, com o estado em cada linha (ver GET /turmas/:id/alunos).
 interface ConviteMock {
   turmaId: string;
   alunoId: string;
@@ -1110,29 +1116,6 @@ function gerarId(prefixo: string): string {
   return `${prefixo}-${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
 }
 
-// Matrícula de aluno, para quando o professor cadastra sem informar uma.
-// É o ID da tabela Alunos — a única coisa que identifica o aluno —, então
-// tem a mesma cara das que já existem no mock, e não um slug interno.
-function gerarMatricula(): string {
-  const usadas = new Set(Object.values(dados.alunos).flat().map((a) => a.id));
-  const ano = new Date().getFullYear();
-  let matricula: string;
-  do {
-    matricula = `${ano}${Math.floor(1000 + Math.random() * 9000)}`;
-  } while (usadas.has(matricula));
-  return matricula;
-}
-
-// Senha de aluno: legível, sem caracteres ambíguos (l, o, 0, 1).
-function gerarSenha(): string {
-  const alfabeto = 'abcdefghijkmnpqrstuvwxyz23456789';
-  let senha = '';
-  for (let i = 0; i < 8; i++) {
-    senha += alfabeto[Math.floor(Math.random() * alfabeto.length)];
-  }
-  return senha;
-}
-
 // RP da conta nova: "RP" + 7 dígitos, sem repetir um que já existe.
 // De verdade quem gera é o BACK, no POST /auth/cadastro; isto só imita.
 function gerarRp(): string {
@@ -1233,10 +1216,8 @@ function exercicioVisivel(
   return exercicioDaConta(id, token);
 }
 
-// Linha de aluno recém-matriculado. Uma função só, para o cadastro avulso e
-// a importação em lote nunca divergirem nos campos — um aluno que entra por
-// um caminho sem `ultimaAtividade` viraria "undefined" na tela de turma.
-// Tudo que é agregado nasce vazio, porque ele ainda não treinou.
+// Linha de aluno recém-chegado à turma (convite aceito). Tudo que é
+// agregado nasce vazio, porque ele ainda não treinou nela.
 function novoAluno(id: string): Aluno {
   return {
     id,
@@ -1246,53 +1227,6 @@ function novoAluno(id: string): Aluno {
     precisaoMedia: null,
     ultimaAtividade: null,
   };
-}
-
-// O nome é da tabela Alunos — UMA coluna por matrícula —, mas `dados.alunos`
-// guarda uma linha por turma. Estes três mantêm a coluna única: ler é olhar
-// qualquer linha, gravar é gravar em todas. Sem isso, renomear na turma-1
-// deixaria o mesmo aluno com outro nome na turma-2.
-function linhasDoAluno(matricula: string): Aluno[] {
-  return Object.values(dados.alunos)
-    .flat()
-    .filter((a) => a.id === matricula);
-}
-
-function nomeGravado(matricula: string): string | null {
-  return linhasDoAluno(matricula).find((a) => a.nome)?.nome ?? null;
-}
-
-function gravarNome(matricula: string, nome: string | null): void {
-  for (const linha of linhasDoAluno(matricula)) linha.nome = nome;
-}
-
-// O nome como veio no corpo, aparado; vazio é null (a coluna aceita nulo).
-// Fora de 2..150 é 400, o VARCHAR(150) do banco e a mesma régua do front.
-function nomeDoCorpo(valor: unknown): string | null {
-  const nome = String(valor ?? '').trim();
-  if (!nome) return null;
-  if (nome.length < 2 || nome.length > 150) {
-    throw erro(400, 'O nome tem de 2 a 150 caracteres.', 'DADOS_INVALIDOS');
-  }
-  return nome;
-}
-
-// A regra de vínculo: nome já gravado no sistema vence o da linha; sem nome
-// gravado, o da linha preenche. Devolve o que ficou valendo.
-function nomeAoVincular(matricula: string, daLinha: string | null): string | null {
-  const nome = nomeGravado(matricula) ?? daLinha;
-  if (nome) gravarNome(matricula, nome);
-  return nome;
-}
-
-// Aluno de alguma turma DESTA conta: as rotas sem turma na URL
-// (/alunos/:matricula/...) entram pelo JOIN. Fora disso, 404.
-function exigirAlunoDaConta(matricula: string, token: string | null | undefined): void {
-  const dono = contaDoToken(token).id;
-  const minhas = dados.turmas.filter((t) => t.professorId === dono).map((t) => t.id);
-  if (!minhas.some((id) => (dados.alunos[id] ?? []).some((a) => a.id === matricula))) {
-    throw erro(404, 'Aluno não encontrado.', 'NAO_ENCONTRADO');
-  }
 }
 
 // Quantos alunos DA TURMA concluíram um exercício. Sai das sessões, não de
@@ -1514,6 +1448,53 @@ function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
       total: lista.length,
     },
   };
+}
+
+// ----------------------------------------------------------------------------
+// Convites pelo RP (o lado do professor)
+// ----------------------------------------------------------------------------
+
+const FORMATO_RP = /^RP\d{7}$/;
+
+// Como o login: aceita espaço e minúscula, e guarda na forma do banco.
+function normalizarRp(valor: unknown): string {
+  return String(valor ?? '').replace(/\s+/g, '').toUpperCase();
+}
+
+// Onde o RP está nesta turma: ativo, convidado, ou em lugar nenhum (null).
+function estadoNaTurma(turmaId: string, rp: string): EstadoNaTurma | null {
+  if ((dados.alunos[turmaId] ?? []).some((a) => a.id === rp)) return 'ativo';
+  if (dados.convites.some((c) => c.turmaId === turmaId && c.alunoId === rp)) return 'convidado';
+  return null;
+}
+
+// O nome de quem tem este RP: o da conta dona (ver NOME DO ALUNO).
+function nomeDoRp(rp: string): string | null {
+  return CONTAS.find((c) => c.rp === rp)?.usuario.nome ?? null;
+}
+
+function convidadoDaTurma(convite: ConviteMock): ConvidadoDaTurma {
+  return {
+    estado: 'convidado',
+    id: convite.alunoId,
+    nome: nomeDoRp(convite.alunoId),
+    convidadoEm: convite.convidadoEm,
+  };
+}
+
+// Cria o convite ou diz por que não dá. Um lugar só para o convite um por
+// um e para o lote: os dois têm de recusar pelos mesmos motivos.
+function convidarRp(turmaId: string, rp: string): ConvidadoDaTurma {
+  if (!FORMATO_RP.test(rp)) throw erro(400, 'RP fora do formato.', 'RP_INVALIDO');
+  const estado = estadoNaTurma(turmaId, rp);
+  if (estado === 'ativo') throw erro(409, 'Este RP já está na turma.', 'JA_NA_TURMA');
+  if (estado === 'convidado') throw erro(409, 'Este RP já foi convidado.', 'JA_CONVIDADO');
+  // O mesmo 404 para "não existe" e "existe mas é de outra pessoa" não se
+  // aplica aqui: o RP é público por natureza (o aluno o passa adiante).
+  if (!CONTAS.some((c) => c.rp === rp)) throw erro(404, 'Nenhuma conta com esse RP.', 'RP_NAO_ENCONTRADO');
+  const convite: ConviteMock = { turmaId, alunoId: rp, convidadoEm: agora() };
+  dados.convites.push(convite);
+  return convidadoDaTurma(convite);
 }
 
 // O convite pendente deste aluno para esta turma, ou 404: já respondido,
@@ -2129,88 +2110,67 @@ const rotas: [string, RegExp, Handler][] = [
   ],
 
   // --- alunos --------------------------------------------------------
+  // A lista da turma: ativos e convidados juntos, cada linha com o estado.
+  // Os ativos primeiro, na ordem em que entraram; depois os convidados.
   [
     'GET',
     montarRegex('/turmas/:turmaId/alunos'),
-    (params, corpo, token) => {
-      turmaDaConta(params[0], token);
-      return dados.alunos[params[0]] ?? [];
+    (params, corpo, token): LinhaDaTurma[] => {
+      const turma = turmaDaConta(params[0], token);
+      const ativos: LinhaDaTurma[] = (dados.alunos[turma.id] ?? []).map((a) => ({ ...a, estado: 'ativo' }));
+      const convidados = dados.convites.filter((c) => c.turmaId === turma.id).map(convidadoDaTurma);
+      return [...ativos, ...convidados];
     },
   ],
+
+  // --- convites pelo RP --------------------------------------------------
+  // O professor não cria conta de ninguém: convida o RP de uma conta que já
+  // existe. As antigas POST /turmas/:id/alunos (cadastrar), .../importar e
+  // /alunos/:id/resetar-senha saíram, e com elas o PATCH /alunos/:id: o
+  // nome do aluno é o da conta dele, que só ele muda.
   [
     'POST',
-    montarRegex('/turmas/:turmaId/alunos/importar'),
-    (params, corpo, token) => {
+    montarRegex('/turmas/:turmaId/convites/importar'),
+    (params, corpo, token): ResultadoConvites => {
       const turma = turmaDaConta(params[0], token);
-      const lista = (dados.alunos[params[0]] ??= []);
-      const criados = [];
-      const vinculados = [];
-      const falhas = [];
-
-      // Cada linha é uma matrícula e, opcional, um nome. Matrícula que já
-      // existe em alguma turma é VÍNCULO (o aluno já está no sistema) — e
-      // aí o nome da linha só preenche quem estava sem nome, nunca
-      // sobrescreve (nomeAoVincular); matrícula nova é CADASTRO, e só o
-      // cadastro devolve senha inicial.
-      const existentes = new Set(Object.values(dados.alunos).flat().map((a) => a.id));
-
-      for (const linha of corpo?.lista ?? []) {
-        const matricula = String(linha?.id ?? '').trim();
-        if (!matricula) {
-          falhas.push({ linha, motivo: 'Linha sem matrícula.' });
+      const resultado: ResultadoConvites = { convidados: [], jaEstavam: [], falhas: [] };
+      const vistos = new Set<string>();
+      for (const bruto of corpo?.rps ?? []) {
+        const rp = normalizarRp(bruto);
+        if (vistos.has(rp)) {
+          resultado.falhas.push({ rp, motivo: 'RP repetido na lista' });
           continue;
         }
-        if (lista.some((a) => a.id === matricula)) {
-          falhas.push({ linha, motivo: 'Aluno já está nesta turma.' });
+        vistos.add(rp);
+        const estado = estadoNaTurma(turma.id, rp);
+        if (estado) {
+          resultado.jaEstavam.push({ rp, estado });
           continue;
         }
-        let nomeDaLinha: string | null;
         try {
-          nomeDaLinha = nomeDoCorpo(linha?.nome);
-        } catch {
-          falhas.push({ linha, motivo: 'Nome fora de 2 a 150 caracteres.' });
-          continue;
-        }
-
-        const aluno = novoAluno(matricula);
-        lista.push(aluno);
-
-        if (existentes.has(matricula)) {
-          aluno.nome = nomeAoVincular(matricula, nomeDaLinha);
-          vinculados.push(aluno);
-        } else {
-          existentes.add(matricula);
-          aluno.nome = nomeDaLinha;
-          criados.push({ ...aluno, senhaInicial: gerarSenha() });
+          resultado.convidados.push(convidarRp(turma.id, rp));
+        } catch (e) {
+          resultado.falhas.push({ rp, motivo: (e as Error).message });
         }
       }
-
-      turma.totalAlunos = lista.length;
-      // Importação parcial é permitida: o resultado vem nas três listas.
-      return { criados, vinculados, falhas };
+      return resultado;
     },
   ],
   [
     'POST',
-    montarRegex('/turmas/:turmaId/alunos'),
+    montarRegex('/turmas/:turmaId/convites'),
+    (params, corpo, token): ConvidadoDaTurma => {
+      const turma = turmaDaConta(params[0], token);
+      return convidarRp(turma.id, normalizarRp(corpo?.rp));
+    },
+  ],
+  [
+    'DELETE',
+    montarRegex('/turmas/:turmaId/convites/:rp'),
     (params, corpo, token) => {
       const turma = turmaDaConta(params[0], token);
-      const lista = (dados.alunos[params[0]] ??= []);
-      // O professor informa a matrícula (ou deixa o sistema gerar uma) e,
-      // opcional, o nome. Matrícula que já existe noutra turma é vínculo:
-      // vale a mesma regra da importação para o nome.
-      const id = String(corpo?.id ?? '').trim() || gerarMatricula();
-      if (lista.some((a) => a.id === id)) {
-        throw erro(409, 'Já existe um aluno com essa matrícula nesta turma.', 'ALUNO_DUPLICADO');
-      }
-      const nome = nomeDoCorpo(corpo?.nome);
-      const aluno = novoAluno(id);
-      lista.push(aluno);
-      aluno.nome = nomeAoVincular(id, nome);
-      turma.totalAlunos = lista.length;
-      // senhaInicial vai em texto puro. É a ÚNICA vez que ela aparece:
-      // depois só existe o hash no back e não há como recuperá-la.
-      return { ...aluno, senhaInicial: gerarSenha() };
+      tirarConvite(exigirConvite(turma.id, normalizarRp(params[1])));
+      return null;
     },
   ],
   [
@@ -2222,7 +2182,7 @@ const rotas: [string, RegExp, Handler][] = [
       const aluno = (dados.alunos[turmaId] ?? []).find((a) => a.id === alunoId);
       if (!aluno) throw erro(404, 'Aluno não encontrado nesta turma.', 'NAO_ENCONTRADO');
       return {
-        // A tela identifica o aluno por alunoId, que é a matrícula.
+        // A tela identifica o aluno por alunoId, que é o RP.
         alunoId,
         totalSessoes: aluno.totalSessoes,
         wpmMedio: aluno.wpmMedio, // null quando nunca treinou
@@ -2245,26 +2205,6 @@ const rotas: [string, RegExp, Handler][] = [
       return null;
     },
   ],
-  [
-    'POST',
-    montarRegex('/alunos/:alunoId/resetar-senha'),
-    (params, corpo, token) => {
-      exigirAlunoDaConta(params[0], token);
-      return { senhaInicial: gerarSenha() };
-    },
-  ],
-  [
-    // Nome de quem já existe: { nome }, null apaga. É a coluna Nome de
-    // Alunos, então muda em TODAS as turmas em que ele está.
-    'PATCH',
-    montarRegex('/alunos/:alunoId'),
-    (params, corpo, token) => {
-      exigirAlunoDaConta(params[0], token);
-      gravarNome(params[0], nomeDoCorpo(corpo?.nome));
-      return linhasDoAluno(params[0])[0];
-    },
-  ],
-
   // --- exercícios --------------------------------------------------
   // Biblioteca do professor: cresce sem teto, então é paginada no contrato.
   // Cada item sai com o texto e com o atribuidoA contado na hora.
@@ -2477,7 +2417,7 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   [
-    // Uma linha por aluno MATRICULADO, inclusive quem nunca treinou (ele
+    // Uma linha por aluno ATIVO (só `alunos`: convidado não entra), inclusive quem nunca treinou (ele
     // vem com totalSessoes 0 e as médias em null). Lista curta, array puro.
     'GET',
     montarRegex('/turmas/:turmaId/relatorio/alunos'),

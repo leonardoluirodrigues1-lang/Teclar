@@ -1,21 +1,15 @@
 // Alunos.tsx — pages/professor/alunos.html
-// Matrícula de alunos numa turma: RF02 (um por um) e RF03 (importação em
-// lote por CSV). A turma vem por ?turma=<id>; sem ela, painel de erro.
+// Convidar alunos para uma turma, pelo RP: um por um ou importando um CSV
+// de RPs. A turma vem por ?turma=<id>; sem ela, painel de erro.
 //
-// Um aluno é uma matrícula, uma senha e, opcional, um nome — a tabela
-// Alunos tem ID, SenhaHash e Nome (nulo permitido). Por isso o formulário
-// tem a matrícula e o nome, e por isso a senha inicial vem do back na
-// resposta: o professor não a escolhe, só anota e entrega. Ela aparece uma
-// vez, aqui, e não é guardada em lugar nenhum.
+// O professor não cria conta de ninguém e não vê senha de aluno. Toda
+// conta já nasce com um RP e uma senha de aluno (o dono vê o RP dele em
+// Configurações do Solo). O professor convida o RP; o convite chega para
+// o aluno, que aceita ou recusa, e só depois de aceitar ele está na turma.
 //
-// Na importação o front lê o arquivo, parseia (js/utils/csv.js), confere
-// linha a linha e manda o lote inteiro NUMA requisição. Quem decide se cada
-// matrícula é aluno novo (cria, devolve senha) ou aluno que já existe
-// (só vincula à turma, sem sobrescrever o nome que ele já tem) é o back —
-// o front só entrega as linhas.
-//
-// Conversão de js/professor/alunos.js para React: mesmo markup, mesmas
-// classes de css/escola.css, mesmos textos, validações e passos.
+// Na importação o front lê o arquivo, parseia (js/utils/csv.ts, que não
+// mudou), confere linha a linha e manda o lote inteiro NUMA requisição.
+// Quem decide se cada RP existe e se já está na turma é o back.
 
 import {
   useEffect,
@@ -29,29 +23,26 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { AlunoCriado, ErroDaApi, ResultadoImportacao } from '../nucleo/tipos.js';
+import type { ErroDaApi, ResultadoConvites } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
-import { nomeAlunoOuNull, validarMatriculaNova, validarNomeAluno } from '../utils/validacao.js';
+import { normalizarRp, validarRp } from '../utils/validacao.js';
+import { formatarRp } from '../utils/formato.js';
 import { parsearCsv, separarCabecalho, gerarCsv } from '../utils/csv.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-// Limite do arquivo. 1 MB de matrículas de 15 dígitos dá mais de 60 mil
-// linhas — uma turma não tem isso; um arquivo maior é engano de arquivo.
+// Limite do arquivo. 1 MB de RPs dá mais de 90 mil linhas — uma turma não
+// tem isso; um arquivo maior é engano de arquivo.
 const TAMANHO_MAXIMO = 1024 * 1024;
 
 // Quantas linhas a prévia mostra. O resto é contado, não desenhado.
 const LINHAS_NA_PREVIA = 10;
 
-// Nomes que a PRIMEIRA coluna do CSV pode usar no cabeçalho (é por ela que
-// separarCabecalho decide; "matricula;nome" é cabeçalho). Tudo o mais na
-// primeira linha é tratado como dado.
-const COLUNAS_CONHECIDAS = ['matricula', 'id'];
-
-// matricula e, opcional, nome. Uma terceira coluna é engano de planilha.
-const COLUNAS_NO_CSV = 2;
+// O nome que a coluna pode ter no cabeçalho (é por ele que
+// separarCabecalho decide). Tudo o mais na primeira linha é dado.
+const COLUNAS_CONHECIDAS = ['rp'];
 
 // Como o CSV SAI daqui: ";", igual ao export do relatório — o Excel em
 // português abre vírgula tudo numa coluna só. BOM só no ARQUIVO baixado
@@ -64,8 +55,15 @@ const CSV_COPIA = { separador: ';', bom: false } as const;
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
   PERMISSAO: 'Você não tem permissão para isso.',
-  JA_NA_TURMA: 'Esta matrícula já está na turma',
   GENERICA: 'Algo deu errado. Tente de novo.',
+};
+
+// Os erros do convite um por um, pelo CÓDIGO que o back manda (ver
+// api.alunos.convidar), nunca pelo texto dele.
+const ERRO_DO_CONVITE: Record<string, string> = {
+  RP_NAO_ENCONTRADO: 'Nenhuma conta com esse RP',
+  JA_NA_TURMA: 'Este RP já está na sua turma',
+  JA_CONVIDADO: 'Este RP já foi convidado e ainda não respondeu',
 };
 
 // O &nbsp; que o HTML original deixava no subtítulo: ele já tem a altura
@@ -82,23 +80,22 @@ type Aba = 'um' | 'csv';
 interface LinhaConferida {
   numero: number;
   celulas: string[];
-  id: string;
-  nome: string | null;
+  /** O RP já normalizado (sem espaço, em maiúscula). */
+  rp: string;
   motivo: string | null;
 }
 
-// Matrícula feita nesta visita. `seq` é só para a key da lista.
+// Convite feito nesta visita. `seq` é só para a key da lista.
 interface Recente {
   seq: number;
-  id: string;
+  rp: string;
   nome: string | null;
-  senhaInicial: string;
 }
 
 type Passo = 'escolher' | 'conferir' | 'resultado';
 
 interface Resultado {
-  resposta: Partial<ResultadoImportacao>;
+  resposta: ResultadoConvites;
   // Linhas que a conferência já tinha marcado e não foram enviadas.
   puladas: LinhaConferida[];
 }
@@ -116,9 +113,9 @@ function abaDaUrl(): Aba {
 
 function Alunos() {
   // Turma — só o nome, para o subtítulo. Turma inexistente derruba a tela
-  // inteira: não dá para matricular em lugar nenhum.
+  // inteira: não dá para convidar para lugar nenhum.
   const [semTurma, setSemTurma] = useState<string | null>(
-    turmaId ? null : 'Esta página precisa de uma turma. Abra a matrícula a partir da turma.'
+    turmaId ? null : 'Esta página precisa de uma turma. Abra o convite a partir da turma.'
   );
   const [nomeTurma, setNomeTurma] = useState(NBSP);
   const [abaAtual, setAbaAtual] = useState<Aba>(abaDaUrl);
@@ -135,7 +132,7 @@ function Alunos() {
         const turma = await api.turmas.obter(turmaId);
         if (cancelado) return;
         setNomeTurma(turma?.nome ?? 'Turma sem nome');
-        document.title = `Teclar — Matricular em ${turma?.nome ?? 'turma'}`;
+        document.title = `Teclar — Convidar para ${turma?.nome ?? 'turma'}`;
       } catch (excecao) {
         if (cancelado) return;
         if (ehErroApi(excecao) && excecao.status === 404) {
@@ -176,7 +173,7 @@ function Alunos() {
   }
 
   // Substitui o corpo inteiro: sem turma, nem formulário nem importação
-  // têm para onde mandar o aluno.
+  // têm para onde mandar o convite.
   if (semTurma) {
     return (
       <>
@@ -206,14 +203,21 @@ function Alunos() {
 
         <div className="cabecalho">
           <div className="cabecalho-texto">
-            <h1 className="titulo">Matricular alunos</h1>
+            <h1 className="titulo">Convidar alunos</h1>
             <p className="subtitulo" id="nome-turma">
               {nomeTurma}
             </p>
           </div>
         </div>
 
-        <div className="abas" role="tablist" aria-label="Formas de matricular">
+        {/* Antes das abas, e não no rodapé: é a dúvida que o professor tem
+            antes de convidar — de onde vem o RP e quando o aluno entra. */}
+        <p className="aviso-convite">
+          Peça o RP a cada aluno: ele fica em Configurações do Solo, na conta dele. O aluno recebe o
+          convite e só entra na turma quando aceitar.
+        </p>
+
+        <div className="abas" role="tablist" aria-label="Formas de convidar">
           <button
             type="button"
             className="aba tecla"
@@ -265,66 +269,46 @@ function Alunos() {
 
 function UmPorUm() {
   const campo = useRef<HTMLInputElement>(null);
-  const campoNome = useRef<HTMLInputElement>(null);
-  const [matricula, setMatricula] = useState('');
-  const [nome, setNome] = useState('');
+  const [rp, setRp] = useState('');
   const [erro, setErro] = useState<string | null>(null);
-  const [erroNome, setErroNome] = useState<string | null>(null);
   // Uma requisição por vez: segura o clique repetido e o Enter repetido.
   // O ref é a trava síncrona; o estado é o que o botão mostra.
   const enviando = useRef(false);
   const [ocupado, setOcupado] = useState(false);
-  // Mais recente no topo. Só em memória: some ao sair da página, de
-  // propósito — a senha inicial não pode sobreviver em storage nenhum.
+  // Mais recente no topo. Só em memória: some ao sair da página. Quem
+  // quer a lista de verdade vê na turma, com o estado de cada um.
   const [recentes, setRecentes] = useState<Recente[]>([]);
   const proximoSeq = useRef(0);
 
-  async function matricular() {
+  async function convidar() {
     if (enviando.current) return;
 
-    const invalido = validarMatriculaNova(matricula);
+    const invalido = validarRp(rp);
     if (invalido) {
       setErro(invalido);
       campo.current?.focus();
-      return;
-    }
-    const nomeInvalido = validarNomeAluno(nome);
-    if (nomeInvalido) {
-      setErroNome(nomeInvalido);
-      campoNome.current?.focus();
       return;
     }
 
     enviando.current = true;
     setOcupado(true);
     setErro(null);
-    setErroNome(null);
 
     try {
-      const resposta = await api.alunos.cadastrar(turmaId, {
-        id: matricula.trim(),
-        nome: nomeAlunoOuNull(nome),
-      });
+      const convidado = await api.alunos.convidar(turmaId, normalizarRp(rp));
       setRecentes((lista) => [
-        {
-          seq: proximoSeq.current++,
-          id: resposta.id,
-          nome: resposta.nome ?? null,
-          senhaInicial: resposta.senhaInicial,
-        },
+        { seq: proximoSeq.current++, rp: convidado.id, nome: convidado.nome ?? null },
         ...lista,
       ]);
-      toasts.mostrar('Aluno matriculado');
-      // Campos limpos e foco na matrícula: o próximo entra sem tocar no mouse.
-      setMatricula('');
-      setNome('');
+      toasts.mostrar('Convite enviado');
+      // Campo limpo e foco nele: o próximo RP entra sem tocar no mouse.
+      setRp('');
       campo.current?.focus();
     } catch (excecao) {
-      // 409 é "já está na turma" — vai no campo, com o texto certo, e
-      // não num toast genérico.
-      const mensagem =
-        ehErroApi(excecao) && excecao.status === 409 ? MENSAGENS.JA_NA_TURMA : mensagemDaFalha(excecao);
-      setErro(mensagem);
+      // Os três erros esperados vão no campo, com o texto certo, e não
+      // num toast genérico.
+      const porCodigo = ehErroApi(excecao) ? ERRO_DO_CONVITE[excecao.codigo ?? ''] : undefined;
+      setErro(porCodigo ?? mensagemDaFalha(excecao));
       campo.current?.focus();
     } finally {
       enviando.current = false;
@@ -334,100 +318,78 @@ function UmPorUm() {
 
   return (
     <>
-      {/* Antes dos campos, e não no rodapé: é a dúvida que o professor tem
-          antes de matricular — como o aluno vai entrar. */}
-      <p className="aviso-senha">
-        Você não escolhe a senha: o sistema gera uma para cada aluno. Ela aparece uma única vez, na
-        lista abaixo — anote e entregue ao aluno.
-      </p>
       <form
         className="painel-form vidro campo-modal"
         id="form-um"
         noValidate
         onSubmit={(evento) => {
           evento.preventDefault();
-          matricular();
+          convidar();
         }}
       >
         <div className="campo-form">
-          <label htmlFor="campo-matricula">Matrícula</label>
-          <input
-            type="text"
-            id="campo-matricula"
-            name="matricula"
-            ref={campo}
-            inputMode="numeric"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            maxLength={15}
-            aria-describedby="erro-matricula ajuda-matricula"
-            aria-invalid={Boolean(erro)}
-            className={erro ? 'invalido' : undefined}
-            value={matricula}
-            onChange={(evento) => setMatricula(evento.target.value)}
-            // Validação no blur e no envio — nunca a cada tecla. Campo em branco
-            // no blur não é erro ainda: a pessoa pode só ter passado por ele com Tab.
-            onBlur={() => {
-              if (matricula === '') return;
-              setErro(validarMatriculaNova(matricula));
-            }}
-          />
-          <p className="erro-campo" id="erro-matricula" aria-live="polite">
+          <label htmlFor="campo-rp">RP do aluno</label>
+          <div className="linha-campo">
+            {/* Sem inputMode numérico: o RP começa com as letras "RP". */}
+            <input
+              type="text"
+              id="campo-rp"
+              name="rp"
+              ref={campo}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={12}
+              aria-describedby="erro-rp ajuda-rp"
+              aria-invalid={Boolean(erro)}
+              className={erro ? 'invalido' : undefined}
+              value={rp}
+              onChange={(evento) => setRp(evento.target.value)}
+              // Validação no blur e no envio — nunca a cada tecla. Campo em
+              // branco no blur não é erro ainda: a pessoa pode só ter
+              // passado por ele com Tab.
+              onBlur={() => {
+                if (rp === '') return;
+                setErro(validarRp(rp));
+              }}
+            />
+            <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-convidar" disabled={ocupado}>
+              {ocupado ? 'Convidando…' : 'Convidar'}
+            </button>
+          </div>
+          <p className="erro-campo" id="erro-rp" aria-live="polite">
             {erro}
           </p>
         </div>
-        {/* Opcional: a coluna Nome de Alunos aceita nulo. Vazio vai como null. */}
-        <div className="campo-form">
-          <label htmlFor="campo-nome">Nome (opcional)</label>
-          <div className="linha-campo">
-            <input
-              type="text"
-              id="campo-nome"
-              name="nome"
-              ref={campoNome}
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={150}
-              aria-describedby="erro-nome ajuda-matricula"
-              aria-invalid={Boolean(erroNome)}
-              className={erroNome ? 'invalido' : undefined}
-              value={nome}
-              onChange={(evento) => setNome(evento.target.value)}
-              onBlur={() => setErroNome(validarNomeAluno(nome))}
-            />
-            <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-matricular" disabled={ocupado}>
-              {ocupado ? 'Matriculando…' : 'Matricular'}
-            </button>
-          </div>
-          <p className="erro-campo" id="erro-nome" aria-live="polite">
-            {erroNome}
-          </p>
-        </div>
-        <p className="ajuda-campo" id="ajuda-matricula">
-          Matrícula só com números, de 6 a 15 dígitos; nome de 2 a 150 caracteres, se quiser.
+        <p className="ajuda-campo" id="ajuda-rp">
+          "RP" seguido de 7 números, ex.: RP 2025043. Espaço e letra minúscula não importam.
         </p>
       </form>
 
-      {/* Matrículas feitas nesta visita, mais recente no topo. */}
-      <section
-        className="recentes"
-        id="recentes"
-        hidden={recentes.length === 0}
-        aria-labelledby="recentes-titulo"
-      >
+      {/* Convites feitos nesta visita, mais recente no topo. */}
+      <section className="recentes" id="recentes" hidden={recentes.length === 0} aria-labelledby="recentes-titulo">
         <h2 className="secao-rotulo" id="recentes-titulo">
-          Matriculados agora
+          Convidados agora
         </h2>
-        <p className="ajuda-campo">Esta lista some ao sair da página — a senha não fica guardada.</p>
-        <ul className="lista-senhas" id="lista-recentes">
+        <p className="ajuda-campo">Esta lista some ao sair da página. A turma mostra todos, com o estado.</p>
+        <ul className="lista-convidados" id="lista-recentes">
           {recentes.map((recente) => (
-            <ItemSenha
-              key={recente.seq}
-              id={recente.id}
-              nome={recente.nome}
-              senhaInicial={recente.senhaInicial}
-            />
+            <li className="item-convidado" key={recente.seq}>
+              <div>
+                <span className="item-convidado-rotulo">RP</span>
+                <span className="item-convidado-valor">{formatarRp(recente.rp)}</span>
+              </div>
+              {recente.nome && (
+                <div>
+                  <span className="item-convidado-rotulo">Nome</span>
+                  <span className="item-convidado-valor item-convidado-nome">{recente.nome}</span>
+                </div>
+              )}
+              <div>
+                <span className="item-convidado-rotulo">Estado</span>
+                <span className="item-convidado-valor">Convidado, aguardando resposta</span>
+              </div>
+            </li>
           ))}
         </ul>
       </section>
@@ -474,49 +436,6 @@ function CampoCopia({ copia }: { copia: Copia }) {
       aria-label="Texto para copiar"
       value={copia.texto}
     />
-  );
-}
-
-// Um par matrícula + senha inicial (e o nome, quando houver), com o botão
-// de copiar matrícula e senha.
-function ItemSenha({
-  id,
-  nome = null,
-  senhaInicial,
-}: {
-  id: string;
-  nome?: string | null;
-  senhaInicial: string;
-}) {
-  const [copia, setCopia] = useState<Copia | null>(null);
-  const vez = useRef(0);
-
-  return (
-    <li className="item-senha">
-      {nome && (
-        <div>
-          <span className="item-senha-rotulo">Nome</span>
-          <span className="item-senha-valor item-senha-nome">{nome}</span>
-        </div>
-      )}
-      <div>
-        <span className="item-senha-rotulo">Matrícula</span>
-        <span className="item-senha-valor">{id ?? '—'}</span>
-      </div>
-      <div className="item-senha-destaque">
-        <span className="item-senha-rotulo">Senha inicial</span>
-        <span className="item-senha-valor">{senhaInicial ?? '—'}</span>
-      </div>
-      <button
-        type="button"
-        className="btn-mini tecla"
-        aria-label={`Copiar matrícula ${id} e senha inicial`}
-        onClick={() => copiarTexto(`${id}\t${senhaInicial}`, setCopia, ++vez.current)}
-      >
-        Copiar
-      </button>
-      {copia && <CampoCopia copia={copia} />}
-    </li>
   );
 }
 
@@ -569,7 +488,7 @@ function ImportarCsv() {
     leitor.addEventListener('load', () => {
       const conferidas = conferir(String(leitor.result ?? ''));
       if (conferidas.length === 0) {
-        setErroArquivo('O arquivo não tem nenhuma linha de matrícula.');
+        setErroArquivo('O arquivo não tem nenhuma linha de RP.');
         arquivo.current.value = '';
         return;
       }
@@ -636,11 +555,11 @@ function ImportarCsv() {
     try {
       // O lote inteiro numa requisição só. Uma por linha travaria a tela
       // e deixaria a turma pela metade se a rede caísse no meio.
-      const resposta = await api.alunos.importar(
+      const resposta = await api.alunos.convidarVarios(
         turmaId,
-        validas.map((l) => ({ id: l.id, nome: l.nome }))
+        validas.map((l) => l.rp)
       );
-      mostrarResultado(resposta ?? {}, linhas.filter((l) => l.motivo));
+      mostrarResultado(resposta, linhas.filter((l) => l.motivo));
       toasts.mostrar('Importação concluída');
     } catch (excecao) {
       // Falha do lote inteiro: fica no passo 2, com o erro embaixo do
@@ -659,7 +578,7 @@ function ImportarCsv() {
 
   // --- passo 3: resultado ---------------------------------------------------
 
-  function mostrarResultado(resposta: Partial<ResultadoImportacao>, puladas: LinhaConferida[]) {
+  function mostrarResultado(resposta: ResultadoConvites, puladas: LinhaConferida[]) {
     // flushSync: o passo 3 precisa estar à vista ANTES de o título ganhar foco.
     flushSync(() => {
       setResultado({ resposta, puladas });
@@ -677,10 +596,10 @@ function ImportarCsv() {
 
   // O botão diz o que vai acontecer. Sem linha boa não há o que mandar.
   const rotuloImportar = ocupado
-    ? 'Importando…'
+    ? 'Convidando…'
     : validas.length === 0
-      ? 'Nada para importar'
-      : `Importar ${validas.length} ${validas.length === 1 ? 'aluno' : 'alunos'}`;
+      ? 'Nada para convidar'
+      : `Convidar ${validas.length} ${validas.length === 1 ? 'aluno' : 'alunos'}`;
 
   return (
     <>
@@ -707,7 +626,7 @@ function ImportarCsv() {
               ref={arquivo}
               className="sr-only"
               accept=".csv,text/csv"
-              aria-label="Arquivo CSV de matrículas"
+              aria-label="Arquivo CSV de RPs"
               aria-describedby="soltar-ajuda"
               disabled={travado}
               onChange={() => {
@@ -727,7 +646,7 @@ function ImportarCsv() {
               Escolher arquivo
             </button>
             <p className="soltar-ajuda" id="soltar-ajuda">
-              Colunas <code>matricula</code> e <code>nome</code> (opcional). Até 1 MB.
+              Uma coluna só, <code>rp</code>. Até 1 MB.
             </p>
             <p className="erro-campo" id="erro-arquivo" aria-live="polite">
               {erroArquivo}
@@ -823,18 +742,18 @@ function ImportarCsv() {
 }
 
 // Texto do arquivo -> linhas conferidas. A regra de cada linha:
-//   · matrícula e, opcional, nome — até duas colunas (célula vazia sobrando
-//     no fim é tolerada — o Excel costuma deixar um ";" a mais);
-//   · matrícula com o mesmo formato do cadastro um por um;
-//   · nome, se veio, com o mesmo limite do cadastro um por um;
-//   · não repetida dentro do arquivo (a primeira vale, as outras não).
+//   · uma coluna só, o RP (célula vazia sobrando no fim é tolerada — o
+//     Excel costuma deixar um ";" a mais);
+//   · RP no formato, depois de tirar espaço e passar para maiúscula;
+//   · não repetido dentro do arquivo (o primeiro vale, os outros não).
+// Se o RP existe e se já está na turma, quem diz é o back.
 function conferir(texto: string): LinhaConferida[] {
   const { linhas: brutas } = parsearCsv(texto);
   // primeiraLinha: número da linha de dados[0] como a planilha numera —
   // já descontando cabeçalho e linhas em branco antes dele.
   const { dados, primeiraLinha } = separarCabecalho(brutas, COLUNAS_CONHECIDAS);
 
-  const vistas = new Map<string, number>();
+  const vistos = new Map<string, number>();
   const conferidas: LinhaConferida[] = [];
   dados.forEach((bruta, indice) => {
     const numero = primeiraLinha + indice;
@@ -843,23 +762,18 @@ function conferir(texto: string): LinhaConferida[] {
     // registro: some, mas conta na numeração, que é a da planilha.
     if (celulas.every((c) => c === '')) return;
 
-    const id = celulas[0] ?? '';
-    const nome = nomeAlunoOuNull(celulas[1]);
+    const rp = normalizarRp(celulas[0]);
     let motivo: string | null = null;
 
-    // "Vazia" é a linha que tem conteúdo, mas não na primeira coluna.
-    if (id === '') {
-      motivo = 'Matrícula vazia';
-    } else if (celulas.length > COLUNAS_NO_CSV) {
-      motivo = `Número de colunas errado: esperadas até ${COLUNAS_NO_CSV}, veio ${celulas.length}`;
-    } else {
-      const invalida = validarMatriculaNova(id) ?? validarNomeAluno(nome);
-      if (invalida) motivo = /números/.test(invalida) ? 'Matrícula com letra' : invalida;
-      else if (vistas.has(id)) motivo = `Repetida no arquivo (igual à linha ${vistas.get(id)})`;
-      else vistas.set(id, numero);
-    }
+    // "Vazio" é a linha que tem conteúdo, mas não na primeira coluna.
+    if (rp === '') motivo = 'RP vazio';
+    // Uma segunda coluna preenchida (o nome ao lado, por exemplo) também
+    // é formato errado: o arquivo é de uma coluna só.
+    else if (celulas.length > 1 || validarRp(rp)) motivo = 'RP fora do formato';
+    else if (vistos.has(rp)) motivo = `RP repetido no arquivo (igual à linha ${vistos.get(rp)})`;
+    else vistos.set(rp, numero);
 
-    conferidas.push({ numero, celulas, id, nome, motivo });
+    conferidas.push({ numero, celulas, rp, motivo });
   });
   return conferidas;
 }
@@ -873,13 +787,12 @@ function semVaziasNoFim(celulas: string[]): string[] {
 const colunasPrevia: ColunaTabela<LinhaConferida>[] = [
   { rotulo: 'Linha', classe: 'col-numero', celula: (linha) => String(linha.numero) },
   {
-    rotulo: 'Matrícula',
+    rotulo: 'RP',
     classe: 'col-mono',
     // Linha ruim mostra o que veio, não o que a tela entendeu: é isso
     // que a pessoa vai procurar na planilha.
-    celula: (linha) => (linha.motivo ? linha.celulas.join(' | ') || '(vazio)' : linha.id),
+    celula: (linha) => (linha.motivo ? linha.celulas.join(' | ') || '(vazio)' : formatarRp(linha.rp)),
   },
-  { rotulo: 'Nome', celula: (linha) => (linha.motivo ? '' : (linha.nome ?? '—')) },
   {
     rotulo: 'Situação',
     classe: (linha) => (linha.motivo ? 'col-motivo' : 'col-ok'),
@@ -901,53 +814,47 @@ function ResultadoImportado({
   resultado: Resultado;
   aoImportarOutro: () => void;
 }) {
-  const { criados = [], vinculados = [], falhas = [] } = resposta;
+  const { convidados = [], jaEstavam = [], falhas = [] } = resposta ?? {};
   const [copia, setCopia] = useState<Copia | null>(null);
   const vez = useRef(0);
 
-  // As falhas do back trazem a linha enviada de volta em `linha`.
-  const falhasDoBack = falhas.map((f) => ({
-    id: String(f?.linha?.id ?? (f as unknown as { id?: string })?.id ?? ''),
-    nome: f?.linha?.nome ?? '',
-    motivo: f?.motivo ?? 'Motivo não informado',
-  }));
-  const totalFalhas = falhasDoBack.length + puladas.length;
+  const totalFalhas = falhas.length + puladas.length;
 
   return (
     <div>
       {/* Três números no mesmo painel das métricas da turma. */}
       <div className="metricas-turma vidro">
-        <MetricaResultado rotulo="Criados" valor={criados.length} />
-        <MetricaResultado rotulo="Vinculados" valor={vinculados.length} />
+        <MetricaResultado rotulo="Convidados" valor={convidados.length} />
+        <MetricaResultado rotulo="Já estavam" valor={jaEstavam.length} />
         <MetricaResultado rotulo="Falharam" valor={totalFalhas} />
       </div>
 
-      {criados.length > 0 && (
-        <Grupo
-          titulo="Criados — anote a senha inicial"
-          texto="Aluno novo no sistema: recebe matrícula e senha. A senha só aparece aqui."
-        >
-          <ul className="lista-senhas">
-            {criados.map((c: AlunoCriado, i) => (
-              <ItemSenha key={`${c.id}-${i}`} id={c.id} nome={c.nome} senhaInicial={c.senhaInicial} />
-            ))}
-          </ul>
+      {convidados.length > 0 && (
+        <Grupo titulo="Convidados" texto="O convite chegou para eles. Cada um entra na turma quando aceitar.">
+          <p className="item-falha-id">{convidados.map((c) => formatarRp(c.id)).join(', ')}</p>
         </Grupo>
       )}
 
-      {vinculados.length > 0 && (
-        <Grupo titulo="Vinculados" texto="Já existiam no sistema e entraram nesta turma com a senha que já têm.">
-          <p className="item-falha-id">
-            {vinculados.map((v) => (typeof v === 'string' ? v : v?.id)).join(', ')}
-          </p>
+      {jaEstavam.length > 0 && (
+        <Grupo titulo="Já estavam" texto="Já estavam na turma, ou já tinham um convite esperando resposta. Nada mudou para eles.">
+          <ul className="lista-falhas">
+            {jaEstavam.map((j) => (
+              <li className="item-falha" key={j.rp}>
+                <span className="item-falha-id">{formatarRp(j.rp)}</span>
+                <span className="item-convidado-estado">
+                  {j.estado === 'ativo' ? 'Já está na turma' : 'Já convidado, sem resposta'}
+                </span>
+              </li>
+            ))}
+          </ul>
         </Grupo>
       )}
 
       {totalFalhas > 0 && (
         <Grupo titulo="Falharam" texto="Corrija na planilha e importe só estas de novo.">
           <ul className="lista-falhas">
-            {falhasDoBack.map((f, i) => (
-              <ItemFalha key={`back-${i}`} id={f.id} motivo={f.motivo} />
+            {falhas.map((f, i) => (
+              <ItemFalha key={`back-${i}`} id={formatarRp(f.rp)} motivo={f.motivo} />
             ))}
             {puladas.map((l) => (
               <ItemFalha
@@ -960,37 +867,17 @@ function ResultadoImportado({
         </Grupo>
       )}
 
-      {/* Ações: copiar criados, copiar as que falharam, voltar, outro arquivo. */}
+      {/* Ações: copiar as que falharam, voltar, outro arquivo. */}
       <div className="resultado-acoes">
-        {criados.length > 0 && (
-          <button
-            type="button"
-            className="btn btn-vidro vidro tecla"
-            onClick={() =>
-              copiarTexto(
-                criados.map((c) => `${c.id}\t${c.senhaInicial}`).join('\n'),
-                setCopia,
-                ++vez.current
-              )
-            }
-          >
-            Copiar criados
-          </button>
-        )}
-
         {totalFalhas > 0 && (
           <button
             type="button"
             className="btn btn-vidro vidro tecla"
             onClick={() => {
               // CSV pronto para reimportar: cabeçalho e as linhas como vieram
-              // (as do back, pela matrícula; as puladas, com as células brutas).
+              // (as do back, pelo RP; as puladas, com as células brutas).
               const csv = gerarCsv(
-                [
-                  ['matricula', 'nome'],
-                  ...falhasDoBack.map((f) => [f.id, f.nome]),
-                  ...puladas.map((l) => l.celulas),
-                ],
+                [['rp'], ...falhas.map((f) => [f.rp]), ...puladas.map((l) => l.celulas)],
                 CSV_COPIA
               );
               copiarTexto(csv, setCopia, ++vez.current);
@@ -1045,15 +932,14 @@ function MetricaResultado({ rotulo, valor }: { rotulo: string; valor: number }) 
 // --- modelo -----------------------------------------------------------------
 
 // Gerado aqui, com Blob: não há o que pedir ao back para um arquivo de
-// quatro linhas. Um exemplo com nome e um sem: o nome é opcional, e o
-// modelo mostra isso em vez de explicar.
+// três linhas. O cabeçalho e dois RPs de exemplo.
 function baixarModelo() {
-  const csv = gerarCsv([['matricula', 'nome'], ['20251001', 'Ana Souza'], ['20251002', '']], CSV_ARQUIVO);
+  const csv = gerarCsv([['rp'], ['RP2025001'], ['RP2025002']], CSV_ARQUIVO);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'modelo-matriculas.csv';
+  a.download = 'modelo-convites.csv';
   document.body.appendChild(a);
   a.click();
   a.remove();

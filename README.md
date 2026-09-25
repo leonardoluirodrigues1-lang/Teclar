@@ -9,8 +9,8 @@ caractere.
 
 O sistema tem dois mundos. No **Solo**, a pessoa treina sozinha num formato
 de jogo: uma campanha com níveis, missões e XP. Na **Escola**, o professor
-cria turmas, cadastra os alunos e atribui exercícios; o aluno entra, treina
-os exercícios da turma e o professor acompanha os relatórios. Os dois mundos
+cria turmas, convida os alunos pelo RP e atribui exercícios; o aluno aceita
+o convite, treina os exercícios da sala e o professor acompanha os relatórios. Os dois mundos
 usam a mesma tela de treino e o mesmo motor de digitação
 (`js/treino/typingEngine.ts`). O que muda é de onde vem o texto (uma missão
 do Solo ou um exercício da turma) e para onde vai o resultado (a campanha do

@@ -3,9 +3,13 @@
 // query string (?turma=<id>); sem ela, ou com um id que o back não conhece,
 // a tela mostra "Turma não encontrada" — nunca fica em branco.
 //
-// Duas abas, mesmo painel: Alunos (tabela, com quem já treinou e quem
-// nunca treinou) e Exercícios (o que foi atribuído e quanto da turma já
-// concluiu). A aba escolhida vive na URL (?aba=) para sobreviver a um F5.
+// Duas abas, mesmo painel: Alunos (tabela com os ATIVOS e os CONVIDADOS
+// que ainda não responderam, cada um com o seu estado) e Exercícios (o que
+// foi atribuído e quanto da turma já concluiu). A aba escolhida vive na
+// URL (?aba=) para sobreviver a um F5.
+//
+// Convidado não é aluno da turma ainda: aparece apagado, com a data do
+// convite e sem número nenhum, e fica de fora do contador e da média.
 //
 // Conversão de js/professor/turma.js para React: mesmo markup, mesmas
 // classes de css/escola.css, mesmos textos e estados. Barra do topo,
@@ -17,18 +21,18 @@ import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
-  Aluno,
+  AlunoAtivoDaTurma,
   AtribuicaoProfessor,
   ErroDaApi,
   Exercicio,
+  LinhaDaTurma,
   TurmaDetalhe,
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { nomeAlunoOuNull, validarNomeAluno } from '../utils/validacao.js';
-import { contagem, formatarDataHora } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, formatarRp } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
@@ -62,11 +66,10 @@ type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
   | { estado: 'nao-encontrada' }
-  | { estado: 'pronto'; turma: TurmaDetalhe; alunos: Aluno[]; atribuicoes: AtribuicaoProfessor[] };
+  | { estado: 'pronto'; turma: TurmaDetalhe; alunos: LinhaDaTurma[]; atribuicoes: AtribuicaoProfessor[] };
 
 type ConfigModal =
-  | { chave: number; tipo: 'remover-aluno'; aluno: Aluno }
-  | { chave: number; tipo: 'editar-nome'; aluno: Aluno }
+  | { chave: number; tipo: 'remover-aluno'; aluno: LinhaDaTurma }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
   | { chave: number; tipo: 'atribuir'; opener: HTMLElement };
 
@@ -139,13 +142,15 @@ function Turma() {
 
   const turma = carga.estado === 'pronto' ? carga.turma : null;
   const alunos = carga.estado === 'pronto' ? carga.alunos : [];
+  // Só os ativos contam: no número de alunos e na média de PPM.
+  const ativos = alunos.filter((a): a is AlunoAtivoDaTurma => a.estado === 'ativo');
   const atribuicoes = carga.estado === 'pronto' ? carga.atribuicoes : [];
 
   useEffect(() => {
     if (turma) document.title = `Teclar — ${turma.nome ?? 'Turma'}`;
   }, [turma]);
 
-  function atualizarAlunos(transformar: (lista: Aluno[]) => Aluno[]) {
+  function atualizarAlunos(transformar: (lista: LinhaDaTurma[]) => LinhaDaTurma[]) {
     setCarga((atual) =>
       atual.estado === 'pronto' ? { ...atual, alunos: transformar(atual.alunos) } : atual
     );
@@ -247,11 +252,11 @@ function Turma() {
     if (alunos.length === 0) {
       return (
         <PainelEstado
-          titulo="Nenhum aluno matriculado ainda"
-          texto="Matricule alunos para acompanhar sessões, PPM e precisão deles nesta turma."
+          titulo="Nenhum aluno ainda"
+          texto="Convide alunos pelo RP para acompanhar sessões, PPM e precisão deles nesta turma."
         >
           <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
-            Matricular alunos
+            Convidar alunos
           </a>
         </PainelEstado>
       );
@@ -262,67 +267,73 @@ function Turma() {
         colunas={colunasAlunos}
         linhas={ordenar(alunos, ordenacaoAlunos, valorOrdenavelAluno)}
         chave={(aluno) => aluno.id}
-        // Nunca treinou: a linha fica mais apagada, para o olho ir direto a
-        // quem já tem alguma coisa para mostrar.
-        classeLinha={(aluno) => (aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined)}
+        // Convidado, ou ativo que nunca treinou: a linha fica mais apagada,
+        // para o olho ir direto a quem já tem alguma coisa para mostrar.
+        classeLinha={(aluno) =>
+          aluno.estado === 'convidado' || aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined
+        }
         ordenacao={ordenacaoAlunos}
         aoOrdenar={setOrdenacaoAlunos}
       />
     );
   }
 
-  // Colunas das duas tabelas. A matrícula É a identidade do aluno; o nome
-  // é opcional na tabela Alunos. Veio nome: nome em cima, matrícula
-  // embaixo (mesma célula dos relatórios). Não veio: só a matrícula, nunca
-  // um nome inventado.
-  const colunasAlunos: ColunaTabela<Aluno>[] = [
+  // Colunas das duas tabelas. O RP É a identidade do aluno; o nome é o da
+  // conta dele, e pode faltar. Veio nome: nome em cima, RP embaixo (mesma
+  // célula dos relatórios). Não veio: só o RP, nunca um nome inventado.
+  // Convidado não tem número nenhum: as colunas de desempenho ficam "—".
+  const colunasAlunos: ColunaTabela<LinhaDaTurma>[] = [
     {
       rotulo: 'Aluno',
-      campo: 'matricula',
+      campo: 'rp',
       celula: (a) =>
         a.nome ? (
           <span className="celula-aluno">
             <span className="celula-aluno-nome">{a.nome}</span>
-            <span className="celula-aluno-matricula">{a.id}</span>
+            <span className="celula-aluno-matricula">{formatarRp(a.id)}</span>
           </span>
         ) : (
-          <span className="celula-aluno-matricula celula-aluno-so-matricula">{a.id}</span>
+          <span className="celula-aluno-matricula celula-aluno-so-matricula">{formatarRp(a.id)}</span>
         ),
     },
-    { rotulo: 'Matriculado em', celula: (a) => formatarData(a.entrouEm) },
-    { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
-    { rotulo: 'PPM médio', campo: 'ppm', classe: 'col-numero', celula: (a) => contagem(a.wpmMedio) },
+    {
+      rotulo: 'Estado',
+      celula: (a) =>
+        a.estado === 'ativo' ? 'Ativo' : `Convidado em ${formatarData(a.convidadoEm)}`,
+    },
+    { rotulo: 'Entrou em', celula: (a) => (a.estado === 'ativo' ? formatarData(a.entrouEm) : '—') },
+    {
+      rotulo: 'Sessões',
+      classe: 'col-numero',
+      celula: (a) => (a.estado === 'ativo' ? contagem(a.totalSessoes) : '—'),
+    },
+    {
+      rotulo: 'PPM médio',
+      campo: 'ppm',
+      classe: 'col-numero',
+      celula: (a) => (a.estado === 'ativo' ? contagem(a.wpmMedio) : '—'),
+    },
     {
       rotulo: 'Precisão média',
       classe: 'col-numero',
-      celula: (a) => (Number.isFinite(a.precisaoMedia) ? `${a.precisaoMedia}%` : '—'),
+      celula: (a) => (a.estado === 'ativo' && Number.isFinite(a.precisaoMedia) ? `${a.precisaoMedia}%` : '—'),
     },
     {
       rotulo: 'Última atividade',
       campo: 'ultimaAtividade',
-      celula: (a) => (a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : '—'),
+      celula: (a) => (a.estado === 'ativo' && a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : '—'),
     },
     {
       rotulo: 'Ação',
       celula: (aluno) => (
-        <span className="tabela-acoes">
-          <button
-            type="button"
-            className="tabela-acao"
-            aria-label={`Editar nome da matrícula ${aluno.id}`}
-            onClick={() => setModal({ chave: ++proximaChave, tipo: 'editar-nome', aluno })}
-          >
-            Editar nome
-          </button>
-          <button
-            type="button"
-            className="tabela-acao"
-            aria-label={`Remover matrícula ${aluno.id} da turma`}
-            onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno })}
-          >
-            Remover da turma
-          </button>
-        </span>
+        <button
+          type="button"
+          className="tabela-acao"
+          aria-label={`Remover ${formatarRp(aluno.id)} da turma`}
+          onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno })}
+        >
+          Remover da turma
+        </button>
       ),
     },
   ];
@@ -363,39 +374,30 @@ function Turma() {
 
     if (modal.tipo === 'remover-aluno') {
       const { aluno } = modal;
+      const convidado = aluno.estado === 'convidado';
       return (
         <ModalRemover
           key={modal.chave}
           eyebrow="Remover aluno"
           titulo="Remover da turma?"
           texto={
-            `Remover a matrícula ${aluno.id} desta turma apaga também o histórico de sessões ` +
-            'dele aqui. Essa ação não pode ser desfeita.'
+            convidado
+              ? `${formatarRp(aluno.id)} foi convidado e ainda não respondeu. O convite será cancelado e ` +
+                'some da lista dele.'
+              : `Remover ${formatarRp(aluno.id)} desta turma apaga também o histórico de sessões dele ` +
+                'aqui. Essa ação não pode ser desfeita.'
           }
-          rotuloAcao="Remover da turma"
-          enviar={() => api.alunos.remover(turmaId, aluno.id)}
+          rotuloAcao={convidado ? 'Cancelar convite' : 'Remover da turma'}
+          // Convidado não está na turma ainda: o que se desfaz é o convite.
+          enviar={() =>
+            convidado ? api.alunos.cancelarConvite(turmaId, aluno.id) : api.alunos.remover(turmaId, aluno.id)
+          }
           aoConcluir={() => {
             atualizarAlunos((lista) => lista.filter((a) => a.id !== aluno.id));
-            toasts.mostrar('Aluno removido da turma');
+            toasts.mostrar(convidado ? 'Convite cancelado' : 'Aluno removido da turma');
             // A linha (e o botão que a pessoa clicou) acabou de sumir do DOM;
             // a aba é o próximo lugar estável para o foco pousar.
             abaAlunos.current?.focus();
-          }}
-          aoFechar={fechar}
-        />
-      );
-    }
-
-    if (modal.tipo === 'editar-nome') {
-      const { aluno } = modal;
-      return (
-        <ModalNomeAluno
-          key={modal.chave}
-          aluno={aluno}
-          aoConcluir={(nome) => {
-            // A linha atualiza no lugar, sem recarregar a lista.
-            atualizarAlunos((lista) => lista.map((a) => (a.id === aluno.id ? { ...a, nome } : a)));
-            toasts.mostrar(nome ? 'Nome salvo' : 'Nome removido');
           }}
           aoFechar={fechar}
         />
@@ -457,10 +459,10 @@ function Turma() {
           <div className="cabecalho-acoes">
             <a
               className="btn btn-vidro vidro tecla"
-              id="btn-matricular"
+              id="btn-convidar"
               href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
             >
-              Matricular alunos
+              Convidar alunos
             </a>
             <button
               type="button"
@@ -480,7 +482,7 @@ function Turma() {
           <div className="metrica-item">
             <span className="metrica-rotulo">Alunos</span>
             <span className="metrica-valor" id="metrica-alunos">
-              {turma ? contagem(alunos.length) : '—'}
+              {turma ? contagem(ativos.length) : '—'}
             </span>
           </div>
           <div className="metrica-item">
@@ -492,7 +494,7 @@ function Turma() {
           <div className="metrica-item">
             <span className="metrica-rotulo">PPM médio da turma</span>
             <span className="metrica-valor" id="metrica-ppm">
-              {turma ? contagem(calcularPpmMedio(alunos)) : '—'}
+              {turma ? contagem(calcularPpmMedio(ativos)) : '—'}
             </span>
           </div>
         </div>
@@ -556,7 +558,7 @@ function Turma() {
 // (nem para cima, nem para baixo). Uma casa decimal, igual ao que o mock
 // devolve em /turmas/:id: um recálculo local que não bate com o formato
 // do servidor seria pior que não recalcular nada.
-function calcularPpmMedio(lista: Aluno[]): number | null {
+function calcularPpmMedio(lista: AlunoAtivoDaTurma[]): number | null {
   const validos = lista.filter((a) => a.totalSessoes > 0 && Number.isFinite(a.wpmMedio));
   if (validos.length === 0) return null;
   const soma = validos.reduce((total, a) => total + a.wpmMedio, 0);
@@ -565,8 +567,11 @@ function calcularPpmMedio(lista: Aluno[]): number | null {
 
 // contagem (zero é 0, travessão é "sem dado") e ordenar (nulo por último
 // nas duas direções) vêm de utils/. A tabela só diz o que cada campo vale.
-function valorOrdenavelAluno(aluno: Aluno, campo: string): string | number | null {
-  if (campo === 'matricula') return aluno.id;
+// Convidado não tem número: nas colunas de desempenho ele é nulo, e vai
+// para o fim nas duas direções.
+function valorOrdenavelAluno(aluno: LinhaDaTurma, campo: string): string | number | null {
+  if (campo === 'rp') return aluno.id;
+  if (aluno.estado === 'convidado') return null;
   if (campo === 'ppm') return aluno.wpmMedio;
   if (campo === 'ultimaAtividade') return aluno.ultimaAtividade;
   return null;
@@ -631,103 +636,6 @@ function ModalRemover({ eyebrow, titulo, texto, rotuloAcao, enviar, aoConcluir, 
           {erro}
         </p>
       </div>
-    </Modal>
-  );
-}
-
-// ============================================================================
-// Modal "Editar nome" — um campo só. Vazio salva como sem nome (null).
-// ============================================================================
-
-interface PropsModalNomeAluno {
-  aluno: Aluno;
-  aoConcluir: (nome: string | null) => void;
-  aoFechar: () => void;
-}
-
-function ModalNomeAluno({ aluno, aoConcluir, aoFechar }: PropsModalNomeAluno) {
-  const modal = useRef<ModalHandle>(null);
-  const input = useRef<HTMLInputElement>(null);
-  const [id] = useState(() => `campo-nome-aluno-${Date.now().toString(36)}`);
-
-  const [nome, setNome] = useState(aluno.nome ?? '');
-  const [erro, setErro] = useState<string | null>(null);
-  const enviando = useRef(false);
-  const [ocupado, setOcupado] = useState(false);
-
-  async function confirmar() {
-    if (enviando.current) return;
-
-    const invalido = validarNomeAluno(nome);
-    if (invalido) {
-      setErro(invalido);
-      input.current?.focus();
-      return;
-    }
-
-    enviando.current = true;
-    setOcupado(true);
-    setErro(null);
-
-    try {
-      const salvo = await api.alunos.renomear(aluno.id, nomeAlunoOuNull(nome));
-      modal.current?.fechar();
-      aoConcluir(salvo?.nome ?? null);
-    } catch (excecao) {
-      setErro(mensagemDaFalha(excecao));
-      input.current?.focus();
-      enviando.current = false;
-      setOcupado(false);
-    }
-  }
-
-  return (
-    <Modal
-      ref={modal}
-      eyebrow="Editar nome"
-      titulo={`Matrícula ${aluno.id}`}
-      acoes={[
-        {
-          rotulo: ocupado ? 'Salvando…' : 'Salvar',
-          principal: true,
-          fecha: false,
-          aoClicar: confirmar,
-          disabled: ocupado,
-        },
-        { rotulo: 'Cancelar', disabled: ocupado },
-      ]}
-      aoAbrir={() => {
-        input.current?.focus();
-        input.current?.select();
-      }}
-      aoFechar={aoFechar}
-    >
-      <form
-        className="campo-modal"
-        noValidate
-        onSubmit={(evento) => {
-          evento.preventDefault();
-          confirmar();
-        }}
-      >
-        <label htmlFor={id}>Nome (opcional)</label>
-        <input
-          type="text"
-          id={id}
-          ref={input}
-          value={nome}
-          maxLength={150}
-          autoComplete="off"
-          aria-describedby={`${id}-erro`}
-          aria-invalid={Boolean(erro)}
-          className={erro ? 'invalido' : undefined}
-          onChange={(evento) => setNome(evento.target.value)}
-          onBlur={() => setErro(validarNomeAluno(nome))}
-        />
-        <p className="erro-campo" id={`${id}-erro`} aria-live="polite">
-          {erro}
-        </p>
-      </form>
     </Modal>
   );
 }
@@ -927,17 +835,6 @@ function normalizar(texto: string | null | undefined): string {
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
-}
-
-// ============================================================================
-// Datas — mesma receita do formatarDataHora de utils/formato.ts: parse por
-// regex, sem Date()/fuso horário no meio. 'AAAA-MM-DD' -> 'DD/MM/AAAA'.
-// Só a data, sem hora — por isso não está em utils/ (ninguém mais usa).
-// ============================================================================
-
-function formatarData(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
 }
 
 // ============================================================================

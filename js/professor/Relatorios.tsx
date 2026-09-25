@@ -1,7 +1,7 @@
 // Relatorios.tsx — pages/professor/relatorios.html
 // Onde o professor vê como a turma e cada aluno estão indo. Escolhe a turma
 // no alto, lê as quatro métricas dela e desce para uma das duas abas: Por
-// aluno (uma linha por matrícula, clicável, que abre o histórico de sessões)
+// aluno (uma linha por aluno ativo, clicável, que abre o histórico de sessões)
 // e Por exercício (uma linha por exercício atribuído à turma).
 //
 // A turma e a aba vivem na URL (?turma=<id>&aba=alunos|exercicios), como na
@@ -35,7 +35,7 @@ import type {
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { gerarCsv } from '../utils/csv.js';
-import { contagem, formatarDataHora, formatarDecimal, numero, porcentagem } from '../utils/formato.js';
+import { contagem, formatarDataHora, formatarDecimal, formatarRp, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
@@ -308,9 +308,10 @@ function Relatorios() {
 
   const colunasAlunos: ColunaTabela<RelatorioAluno>[] = [
     {
-      // A identidade do aluno é a matrícula; o nome é opcional na tabela
-      // Alunos. Veio nome: nome em cima, matrícula embaixo em mono menor.
-      // Não veio: só a matrícula. Nunca um nome inventado.
+      // A identidade do aluno é o RP; o nome é o da conta dele, e pode
+      // faltar. Veio nome: nome em cima, RP embaixo em mono menor. Não
+      // veio: só o RP. Nunca um nome inventado. Só ATIVOS chegam aqui:
+      // quem foi convidado e não respondeu não é aluno da turma ainda.
       rotulo: 'Aluno',
       campo: 'aluno',
       celula: (a) => (
@@ -323,10 +324,10 @@ function Relatorios() {
           {a.nome ? (
             <span className="celula-aluno">
               <span className="celula-aluno-nome">{a.nome}</span>
-              <span className="celula-aluno-matricula">{a.id}</span>
+              <span className="celula-aluno-matricula">{formatarRp(a.id)}</span>
             </span>
           ) : (
-            <span className="celula-aluno-matricula celula-aluno-so-matricula">{a.id}</span>
+            <span className="celula-aluno-matricula celula-aluno-so-matricula">{formatarRp(a.id)}</span>
           )}
         </button>
       ),
@@ -440,11 +441,11 @@ function Relatorios() {
     if (alunosVisiveis.length === 0) {
       return (
         <PainelEstado
-          titulo="Nenhum aluno matriculado ainda"
-          texto="Matricule alunos nesta turma para acompanhar sessões, PPM e precisão de cada um."
+          titulo="Nenhum aluno na turma ainda"
+          texto="Convide alunos pelo RP. Quando aceitarem, as sessões, o PPM e a precisão de cada um aparecem aqui."
         >
           <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
-            Matricular alunos
+            Convidar alunos
           </a>
         </PainelEstado>
       );
@@ -477,7 +478,7 @@ function Relatorios() {
         <main id="corpo">
           <PainelEstado
             titulo="Nenhuma turma para relatar"
-            texto="Os relatórios nascem das sessões de uma turma. Crie a primeira, matricule os alunos e atribua exercícios: os números aparecem sozinhos."
+            texto="Os relatórios nascem das sessões de uma turma. Crie a primeira, convide os alunos e atribua exercícios: os números aparecem sozinhos."
           >
             <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
               Criar a primeira turma
@@ -757,17 +758,17 @@ function ModalHistorico({ turmaId, aluno, aoFechar }: PropsHistorico) {
 // null e undefined viram "—", zero é 0, e é por essas portas que todo
 // número do back chega à tela. O "0 de 4" depende disso: o zero é um dado.
 
-// "8 de 12" — quantos treinaram nos últimos 7 dias, de quantos
-// matriculados. O numerador pode faltar (o back ainda não contou) sem que o
+// "8 de 12" — quantos treinaram nos últimos 7 dias, de quantos alunos
+// ativos (convidado que não respondeu não entra). O numerador pode faltar (o back ainda não contou) sem que o
 // denominador falte, e vice-versa.
 function ativos(turma: RelatorioTurma): string {
   return `${contagem(turma.alunosAtivos)} de ${contagem(turma.totalAlunos)}`;
 }
 
 // A identificação do aluno em uma linha, para aria-label e título do modal.
-// Sem nome, é a matrícula — que é a identidade dele no banco.
+// Sem nome, é o RP — que é a identidade dele no banco.
 function identidade(aluno: RelatorioAluno): string {
-  return aluno.nome ? `${aluno.nome} (${aluno.id})` : aluno.id;
+  return aluno.nome ? `${aluno.nome} (${formatarRp(aluno.id)})` : formatarRp(aluno.id);
 }
 
 // Nenhuma sessão nesta turma: os números da linha viram "—" e a linha fica
@@ -787,8 +788,8 @@ function linkDaTurma(turmaId: string): string {
 // ============================================================================
 
 function valorOrdenavelAluno(aluno: RelatorioAluno, campo: string): string | number | null {
-  // Ordena pelo que a coluna MOSTRA: com nome, pelo nome; sem nome, pela
-  // matrícula. Ordenar sempre pela matrícula deixaria a coluna com o nome
+  // Ordena pelo que a coluna MOSTRA: com nome, pelo nome; sem nome, pelo
+  // RP. Ordenar sempre pelo RP deixaria a coluna com o nome
   // visível em ordem aparentemente aleatória.
   if (campo === 'aluno') return (aluno.nome || aluno.id).toLowerCase();
   // Sem sessão a célula mostra "—", então o valor de ordenação é null —
@@ -824,7 +825,7 @@ function valorOrdenavelExercicio(item: RelatorioExercicio, campo: string): strin
 
 const COLUNAS_CSV_ALUNOS = [
   'Nome',
-  'Matrícula',
+  'RP',
   'Sessões',
   'PPM médio',
   'Precisão média (%)',
@@ -833,7 +834,7 @@ const COLUNAS_CSV_ALUNOS = [
   'Última atividade',
 ];
 
-// Aqui o nome e a matrícula viram DUAS colunas, e "3 de 5" vira duas
+// Aqui o nome e o RP viram DUAS colunas, e "3 de 5" vira duas
 // também: na tela o par junto economiza espaço, mas numa planilha uma
 // célula "3 de 5" não soma nem filtra. É o mesmo dado, na forma que serve
 // a cada lugar.
