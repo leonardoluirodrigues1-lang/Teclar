@@ -42,6 +42,7 @@ import type {
   RespostaLogin,
   RpDaConta,
   NovaSenhaAluno,
+  ConviteDoAluno,
   SalaDetalhe,
   SalaDoAluno,
   RespostaSessaoEscola,
@@ -487,6 +488,14 @@ export const api = {
     // Uma sala e os exercícios dela, com o estado de cada um PARA ELE. O id
     // é da sala, nunca de aluno: sala em que ele não está é 404.
     sala: (id: string) => get<SalaDetalhe>(`/aluno/salas/${encodeURIComponent(id)}`),
+    // Os convites que esperam resposta dele.
+    convites: () => get<ConviteDoAluno[]>('/aluno/convites'),
+    // Aceitar põe ele na sala e devolve a sala, pronta para a tela inicial.
+    // Convite que não existe mais (cancelado, já respondido) é 404.
+    aceitarConvite: (turmaId: string) =>
+      post<SalaDoAluno>(`/aluno/convites/${encodeURIComponent(turmaId)}/aceitar`),
+    recusarConvite: (turmaId: string) =>
+      post<null>(`/aluno/convites/${encodeURIComponent(turmaId)}/recusar`),
   },
 
   admin: {

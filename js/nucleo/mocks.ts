@@ -41,8 +41,10 @@
 //
 //   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está na turma-1
 //                            (falta 1 exercício) e na turma-2 (tudo em
-//                            dia), tem sessões e histórico.
-//   RP2025001   Aluno#2025   de leo. Em sala nenhuma (estado vazio).
+//                            dia), tem sessões e histórico, e DOIS
+//                            convites pendentes (turma-4 e turma-5).
+//   RP2025001   Aluno#2025   de leo. Em sala nenhuma e sem convite
+//                            nenhum (os dois estados vazios).
 //   RP2025002   Aluno#2025   de prof. Em sala nenhuma.
 //
 // Pode digitar com espaço ("RP 2025043") ou minúsculo: a tela normaliza.
@@ -115,6 +117,7 @@ import type {
   RelatorioExercicio,
   RelatorioTurma,
   RespostaCadastro,
+  ConviteDoAluno,
   SalaDetalhe,
   SalaDoAluno,
   ExercicioDaSala,
@@ -401,10 +404,21 @@ interface BancoMock {
   missoes: MissaoDetalhe[];
   turmas: Turma[];
   alunos: Record<string, Aluno[]>;
+  convites: ConviteMock[];
   exercicios: Exercicio[];
   atribuicoes: Record<string, Atribuicao[]>;
   sessoes: Sessao[];
   historicoSolo: Record<string, SessaoSolo[]>;
+}
+
+// Um convite pendente: a linha de ClassMembers com Status = 'convidado'.
+// Mora fora de `alunos` de propósito: as telas do professor ainda leem
+// `alunos` como a lista de quem está na turma (até a passada 4), e um
+// convidado ali apareceria como aluno ativo.
+interface ConviteMock {
+  turmaId: string;
+  alunoId: string;
+  convidadoEm: string;
 }
 
 export const dados: BancoMock = {
@@ -636,6 +650,17 @@ export const dados: BancoMock = {
     // A turma de leo: ninguém matriculado ainda.
     'turma-5': [],
   },
+
+  // Convites pendentes (ClassMembers com Status = 'convidado'). Os dois são
+  // para o aluno de teste: aceitar a turma-5 traz uma sala com exercício
+  // por fazer; aceitar a turma-4, uma sala ainda sem exercício. Aceito,
+  // o convite sai daqui e a linha entra em `alunos`; recusado, só sai
+  // daqui (o back grava Status = 'recusado'). O estado sem convite nenhum
+  // é o de RP2025001, sem editar este arquivo.
+  convites: [
+    { turmaId: 'turma-5', alunoId: 'RP2025043', convidadoEm: diasAtras(1) },
+    { turmaId: 'turma-4', alunoId: 'RP2025043', convidadoEm: diasAtras(5) },
+  ],
 
   // 5 exercícios do professor (ExerciciosProf), no formato de GET
   // /exercicios — menos o atribuidoA, que é COUNT: sai de `atribuicoes` na
@@ -1489,6 +1514,18 @@ function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
       total: lista.length,
     },
   };
+}
+
+// O convite pendente deste aluno para esta turma, ou 404: já respondido,
+// cancelado pelo professor, ou nunca existiu — para o aluno é tudo igual.
+function exigirConvite(turmaId: string, alunoId: string): ConviteMock {
+  const convite = dados.convites.find((c) => c.turmaId === turmaId && c.alunoId === alunoId);
+  if (!convite) throw erro(404, 'Convite não encontrado.', 'NAO_ENCONTRADO');
+  return convite;
+}
+
+function tirarConvite(convite: ConviteMock): void {
+  dados.convites = dados.convites.filter((c) => c !== convite);
 }
 
 // concluintes(): um número guardado é o primeiro a discordar do resto.
@@ -2553,6 +2590,55 @@ const rotas: [string, RegExp, Handler][] = [
       const turma = salasDoAluno(aluno.id).find((t) => t.id === params[0]);
       if (!turma) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
       return { ...resumoDaSala(turma, aluno.id), lista: exerciciosDaSala(turma.id, aluno.id) };
+    },
+  ],
+
+  // Os convites do aluno. Também saem do token: o :turmaId é da sala, e
+  // só vale o convite que é DELE.
+  [
+    'GET',
+    montarRegex('/aluno/convites'),
+    (params, corpo, token): ConviteDoAluno[] => {
+      const aluno = alunoDoToken(token);
+      const lista: ConviteDoAluno[] = [];
+      for (const convite of dados.convites.filter((c) => c.alunoId === aluno.id)) {
+        const turma = dados.turmas.find((t) => t.id === convite.turmaId && t.status === 'Ativa');
+        if (!turma) continue;
+        lista.push({
+          turmaId: turma.id,
+          nome: turma.nome,
+          professor: nomeDoProfessor(turma.professorId),
+          totalAlunos: (dados.alunos[turma.id] ?? []).length,
+          totalExercicios: (dados.atribuicoes[turma.id] ?? []).length,
+          convidadoEm: convite.convidadoEm,
+        });
+      }
+      // O mais recente primeiro. ISO ordena como texto.
+      return lista.sort((a, b) => String(b.convidadoEm).localeCompare(String(a.convidadoEm)));
+    },
+  ],
+  [
+    'POST',
+    montarRegex('/aluno/convites/:turmaId/aceitar'),
+    (params, corpo, token): SalaDoAluno => {
+      const aluno = alunoDoToken(token);
+      const convite = exigirConvite(params[0], aluno.id);
+      const turma = dados.turmas.find((t) => t.id === convite.turmaId);
+      if (!turma) throw erro(404, 'Convite não encontrado.', 'NAO_ENCONTRADO');
+      tirarConvite(convite);
+      // Status 'convidado' -> 'ativo': agora ele está na sala.
+      (dados.alunos[turma.id] ??= []).push({ ...novoAluno(aluno.id), nome: aluno.nome ?? null });
+      turma.totalAlunos = dados.alunos[turma.id].length;
+      return resumoDaSala(turma, aluno.id);
+    },
+  ],
+  [
+    'POST',
+    montarRegex('/aluno/convites/:turmaId/recusar'),
+    (params, corpo, token) => {
+      const aluno = alunoDoToken(token);
+      tirarConvite(exigirConvite(params[0], aluno.id));
+      return null;
     },
   ],
 

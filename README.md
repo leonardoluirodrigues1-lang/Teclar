@@ -56,8 +56,8 @@ Estão no cabeçalho de `js/nucleo/mocks.ts`:
 | Conta | `prof@teclar.dev` | `senha123` | Professor com 4 turmas e 6 exercícios. Solo recém-começado (nível 1). |
 | Conta | `leo@teclar.dev`  | `senha123` | Professor com 1 turma e 1 exercício. Solo no nível 4.  |
 | Conta | `ana@teclar.dev`  | `senha123` | Nenhuma turma, nenhum exercício, sem campanha (telas vazias). |
-| Aluno | `RP2025043`       | `Aluno#2025` | Entrada de aluno da ana: duas salas, uma com exercício pendente e outra em dia. |
-| Aluno | `RP2025001`       | `Aluno#2025` | Entrada de aluno do leo: em sala nenhuma (tela vazia). |
+| Aluno | `RP2025043`       | `Aluno#2025` | Entrada de aluno da ana: duas salas (uma com exercício pendente, outra em dia) e dois convites. |
+| Aluno | `RP2025001`       | `Aluno#2025` | Entrada de aluno do leo: sem sala e sem convite (telas vazias). |
 | Aluno | `RP2025002`       | `Aluno#2025` | Entrada de aluno do prof: em sala nenhuma.             |
 
 Toda conta tem uma entrada de aluno: um RP e uma senha de aluno, gerados no

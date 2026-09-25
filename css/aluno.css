@@ -1,14 +1,16 @@
 /* ============================================================================
    TECLAR — aluno.css
    As telas do modo Aluno: o topo com o menu do nome (js/componentes/
-   TopoAluno.tsx), as salas como teclas grandes (js/aluno/Dashboard.tsx) e
-   o detalhe de uma sala (js/aluno/Sala.tsx). O histórico usa só o topo.
+   TopoAluno.tsx), as salas como teclas grandes (js/aluno/Dashboard.tsx),
+   o detalhe de uma sala (js/aluno/Sala.tsx) e os convites
+   (js/aluno/Convites.tsx). O histórico usa só o topo.
 
    Não se repete aqui: a receita do vidro (.vidro, componentes/vidro.css),
    o relevo e o afundar da tecla (.tecla, base/luz.css), o disco e o grão
    (base/luz.css) e o fundo com estrelas (dashboard.css).
 
-   Nada aqui é vermelho: nesta tela nada precisa de alerta.
+   O único vermelho daqui é o do convite pendente (.aluno-aviso e a faixa
+   do .convite): precisa ser notado. Nada mais, nem "tempo esgotado".
    ========================================================================== */
 
 /* --- a página ------------------------------------------------------------- */
@@ -135,6 +137,42 @@
 .aluno-menu-item:focus-visible {
   background: rgba(255, 255, 255, 0.07);
   color: var(--cor-texto, #fff);
+}
+
+/* O ponto vermelho do convite pendente, com o número. */
+.aluno-aviso {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--raio-total, 9999px);
+  background: var(--cor-erro, #ff5a5a);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1;
+}
+/* No retrato: pendurado na quina de cima, com um contorno escuro para se
+   separar do círculo. */
+.aluno-aviso-retrato {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  border: 2px solid var(--cor-fundo, #000);
+  box-shadow: 0 0 14px rgba(255, 90, 90, 0.65);
+}
+/* Na linha "Convites" do menu: encostado à direita. */
+.aluno-aviso-linha { margin-left: auto; min-width: 22px; height: 22px; }
+
+/* Texto só para leitor de tela. */
+.aluno-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .aluno-menu hr {
@@ -378,6 +416,52 @@
 /* Feito e tempo esgotado: apagados por igual, sem cor nenhuma. */
 .exercicio.exercicio-feito .exercicio-titulo { color: rgba(255, 255, 255, 0.52); }
 
+/* --- os convites -------------------------------------------------------- */
+.convite {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 18px;
+  padding: 28px 32px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+/* A faixa vermelha à esquerda: é convite esperando resposta. */
+.convite::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--cor-erro, #ff5a5a);
+}
+.convite-nome {
+  margin: 8px 0 6px;
+  font-size: 21px;
+  font-weight: var(--peso-normal, 400);
+}
+.convite-detalhes { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+
+.convite-acoes {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  margin-left: auto;
+}
+.convite-acoes .aluno-botao { margin-top: 0; padding: 15px 26px; font-size: 11px; }
+/* "Entrar na sala" é a tecla clara: a ação principal. */
+.convite-acoes .tecla-clara {
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+}
+.aluno-botao:disabled { opacity: 0.5; cursor: default; }
+
+/* A resposta de um convite (aceitou, recusou, falhou), acima da lista. */
+.aluno-resposta { margin-top: 18px; font-size: 14px; color: rgba(255, 255, 255, 0.75); }
+.aluno-resposta a { text-decoration: underline; }
+
 @media (max-width: 700px) {
   .aluno-pagina { max-width: calc(100% - 32px); }
   .aluno-titulo { font-size: 28px; }
@@ -385,4 +469,6 @@
   .exercicio { flex-direction: column; align-items: flex-start; padding: 18px 20px; }
   .exercicio-estado { margin-left: 0; text-align: left; }
   .aluno-chip-rp { display: none; }
+  .convite { flex-direction: column; align-items: flex-start; padding: 24px 22px; }
+  .convite-acoes { margin-left: 0; }
 }

@@ -784,3 +784,19 @@ export interface ExercicioDaSala {
 export interface SalaDetalhe extends SalaDoAluno {
   lista: ExercicioDaSala[];
 }
+
+/**
+ * Item de GET /aluno/convites: uma sala que convidou este aluno pelo RP e
+ * ainda espera resposta (ClassMembers com Status = 'convidado'). Traz o
+ * bastante para ele saber o que está aceitando.
+ */
+export interface ConviteDoAluno {
+  turmaId: string;
+  nome: string;
+  /** Nome da conta dona da turma; null se não veio. */
+  professor: string | null;
+  /** Alunos ATIVOS da sala: quem só foi convidado não conta. */
+  totalAlunos: number;
+  totalExercicios: number;
+  convidadoEm: string | null;
+}

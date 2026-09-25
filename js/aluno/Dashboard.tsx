@@ -16,8 +16,8 @@ import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { ResumoDoAluno, SalaDoAluno, Usuario } from '../nucleo/tipos.js';
 import { TopoAluno } from '../componentes/TopoAluno.js';
-import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
-import { contagem, formatarRp, numero, porcentagem } from '../utils/formato.js';
+import { PainelDoRp } from '../componentes/PainelDoRp.js';
+import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 type Carga =
@@ -76,7 +76,9 @@ function Dashboard({ usuario }: PropsDashboard) {
           </section>
         )}
 
-        {carga.estado === 'pronto' && carga.salas.length === 0 && <SemSala rp={usuario.id} />}
+        {carga.estado === 'pronto' && carga.salas.length === 0 && (
+          <PainelDoRp titulo="Você ainda não está em nenhuma sala" rp={usuario.id} />
+        )}
 
         {carga.estado === 'pronto' && carga.salas.length > 0 && (
           <div className="aluno-salas">
@@ -172,18 +174,6 @@ function AnelDeProgresso({ feitos, total }: { feitos: number; total: number }) {
         {feitos}/{total}
       </text>
     </svg>
-  );
-}
-
-// Sem sala nenhuma: o RP em destaque, porque é ele que o professor pede.
-function SemSala({ rp }: { rp: string }) {
-  return (
-    <section className="aluno-painel vidro">
-      <h2>Você ainda não está em nenhuma sala</h2>
-      <p>Passe o seu RP para o professor. É com ele que o convite chega aqui.</p>
-      <div className="aluno-rp-destaque">{formatarRp(rp)}</div>
-      <BotaoCopiar texto={rp} rotulo="Copiar meu RP" className="aluno-botao vidro tecla" />
-    </section>
   );
 }
 
