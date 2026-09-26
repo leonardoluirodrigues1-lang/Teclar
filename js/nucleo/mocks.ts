@@ -1484,8 +1484,10 @@ function convidadoDaTurma(convite: ConviteMock): ConvidadoDaTurma {
 
 // Cria o convite ou diz por que não dá. Um lugar só para o convite um por
 // um e para o lote: os dois têm de recusar pelos mesmos motivos.
-function convidarRp(turmaId: string, rp: string): ConvidadoDaTurma {
+// meuRp é o RP da conta dona do token: ninguém convida a si mesmo.
+function convidarRp(turmaId: string, rp: string, meuRp: string | null): ConvidadoDaTurma {
   if (!FORMATO_RP.test(rp)) throw erro(400, 'RP fora do formato.', 'RP_INVALIDO');
+  if (rp === meuRp) throw erro(400, 'Você não pode convidar a si mesmo', 'CONVITE_PROPRIO');
   const estado = estadoNaTurma(turmaId, rp);
   if (estado === 'ativo') throw erro(409, 'Este RP já está na turma.', 'JA_NA_TURMA');
   if (estado === 'convidado') throw erro(409, 'Este RP já foi convidado.', 'JA_CONVIDADO');
@@ -2133,6 +2135,7 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/turmas/:turmaId/convites/importar'),
     (params, corpo, token): ResultadoConvites => {
       const turma = turmaDaConta(params[0], token);
+      const meuRp = rpDaConta(contaDoToken(token).id);
       const resultado: ResultadoConvites = { convidados: [], jaEstavam: [], falhas: [] };
       const vistos = new Set<string>();
       for (const bruto of corpo?.rps ?? []) {
@@ -2148,7 +2151,7 @@ const rotas: [string, RegExp, Handler][] = [
           continue;
         }
         try {
-          resultado.convidados.push(convidarRp(turma.id, rp));
+          resultado.convidados.push(convidarRp(turma.id, rp, meuRp));
         } catch (e) {
           resultado.falhas.push({ rp, motivo: (e as Error).message });
         }
@@ -2161,7 +2164,8 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/turmas/:turmaId/convites'),
     (params, corpo, token): ConvidadoDaTurma => {
       const turma = turmaDaConta(params[0], token);
-      return convidarRp(turma.id, normalizarRp(corpo?.rp));
+      const meuRp = rpDaConta(contaDoToken(token).id);
+      return convidarRp(turma.id, normalizarRp(corpo?.rp), meuRp);
     },
   ],
   [

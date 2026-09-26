@@ -64,7 +64,29 @@ const ERRO_DO_CONVITE: Record<string, string> = {
   RP_NAO_ENCONTRADO: 'Nenhuma conta com esse RP',
   JA_NA_TURMA: 'Este RP já está na sua turma',
   JA_CONVIDADO: 'Este RP já foi convidado e ainda não respondeu',
+  CONVITE_PROPRIO: 'Você não pode convidar a si mesmo',
 };
+
+// O RP da própria conta, para barrar o autoconvite na hora, sem ida ao
+// servidor. Quem barra de verdade é o back (CONVITE_PROPRIO); aqui é só
+// para a mensagem aparecer antes. Fica só no estado da tela: some ao sair.
+// null enquanto carrega ou se a rota falhar — aí o back responde.
+function useMeuRp(): string | null {
+  const [meuRp, setMeuRp] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    api.conta
+      .rp()
+      .then((resposta) => {
+        if (!cancelado) setMeuRp(resposta?.rp ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+  return meuRp;
+}
 
 // O &nbsp; que o HTML original deixava no subtítulo: ele já tem a altura
 // certa antes de a turma chegar, e nada pula quando o nome aparece.
@@ -122,6 +144,7 @@ function Alunos() {
 
   const abaUm = useRef<HTMLButtonElement>(null);
   const abaCsv = useRef<HTMLButtonElement>(null);
+  const meuRp = useMeuRp();
 
   useEffect(() => {
     if (!turmaId) return;
@@ -252,10 +275,10 @@ function Alunos() {
             O que foi digitado ou importado numa aba sobrevive à troca. */}
         <div id="conteudo" role="tabpanel" aria-labelledby={abaAtual === 'um' ? 'aba-um' : 'aba-csv'}>
           <section id="painel-um" hidden={abaAtual !== 'um'}>
-            <UmPorUm />
+            <UmPorUm meuRp={meuRp} />
           </section>
           <section id="painel-csv" hidden={abaAtual !== 'csv'}>
-            <ImportarCsv />
+            <ImportarCsv meuRp={meuRp} />
           </section>
         </div>
       </main>
@@ -267,7 +290,7 @@ function Alunos() {
 // Aba 1 — um por um
 // ============================================================================
 
-function UmPorUm() {
+function UmPorUm({ meuRp }: { meuRp: string | null }) {
   const campo = useRef<HTMLInputElement>(null);
   const [rp, setRp] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -283,7 +306,8 @@ function UmPorUm() {
   async function convidar() {
     if (enviando.current) return;
 
-    const invalido = validarRp(rp);
+    let invalido = validarRp(rp);
+    if (!invalido && normalizarRp(rp) === meuRp) invalido = ERRO_DO_CONVITE.CONVITE_PROPRIO;
     if (invalido) {
       setErro(invalido);
       campo.current?.focus();
@@ -443,7 +467,7 @@ function CampoCopia({ copia }: { copia: Copia }) {
 // Aba 2 — importar CSV. Três passos na mesma página.
 // ============================================================================
 
-function ImportarCsv() {
+function ImportarCsv({ meuRp }: { meuRp: string | null }) {
   const arquivo = useRef<HTMLInputElement>(null);
   const btnImportar = useRef<HTMLButtonElement>(null);
   const tituloResultado = useRef<HTMLHeadingElement>(null);
@@ -486,7 +510,7 @@ function ImportarCsv() {
     // arquivo cru nunca vai para o back.
     const leitor = new FileReader();
     leitor.addEventListener('load', () => {
-      const conferidas = conferir(String(leitor.result ?? ''));
+      const conferidas = conferir(String(leitor.result ?? ''), meuRp);
       if (conferidas.length === 0) {
         setErroArquivo('O arquivo não tem nenhuma linha de RP.');
         arquivo.current.value = '';
@@ -747,7 +771,7 @@ function ImportarCsv() {
 //   · RP no formato, depois de tirar espaço e passar para maiúscula;
 //   · não repetido dentro do arquivo (o primeiro vale, os outros não).
 // Se o RP existe e se já está na turma, quem diz é o back.
-function conferir(texto: string): LinhaConferida[] {
+function conferir(texto: string, meuRp: string | null): LinhaConferida[] {
   const { linhas: brutas } = parsearCsv(texto);
   // primeiraLinha: número da linha de dados[0] como a planilha numera —
   // já descontando cabeçalho e linhas em branco antes dele.
@@ -770,6 +794,7 @@ function conferir(texto: string): LinhaConferida[] {
     // Uma segunda coluna preenchida (o nome ao lado, por exemplo) também
     // é formato errado: o arquivo é de uma coluna só.
     else if (celulas.length > 1 || validarRp(rp)) motivo = 'RP fora do formato';
+    else if (rp === meuRp) motivo = 'É o seu próprio RP';
     else if (vistos.has(rp)) motivo = `RP repetido no arquivo (igual à linha ${vistos.get(rp)})`;
     else vistos.set(rp, numero);
 

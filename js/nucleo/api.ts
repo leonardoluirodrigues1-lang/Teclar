@@ -375,6 +375,8 @@ export const api = {
     //   404 RP_NAO_ENCONTRADO  nenhuma conta com esse RP
     //   409 JA_NA_TURMA        o RP já está na turma
     //   409 JA_CONVIDADO       já foi convidado e ainda não respondeu
+    //   400 CONVITE_PROPRIO    o RP é o da própria conta do token
+    // No lote, o mesmo motivo vem como falha daquele RP.
     convidar: (turmaId: string, rp: string) =>
       post<ConvidadoDaTurma>(`/turmas/${turmaId}/convites`, { rp }),
     // O lote inteiro numa requisição; cada RP cai numa das três listas.
