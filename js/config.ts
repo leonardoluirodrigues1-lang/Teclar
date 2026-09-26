@@ -34,7 +34,8 @@ export const CONFIG = {
   // instantaneamente e os estados de carregamento nunca são testados de verdade.
   ATRASO_MOCK: 400,
 
-  // Chaves do localStorage. Prefixo 'teclar:' para isolar do resto do host
+  // Chaves do storage (token e usuário no sessionStorage, o resto no
+  // localStorage; ver sessao.ts). Prefixo 'teclar:' para isolar do resto do host
   // durante o desenvolvimento (Live Server na 5500).
   CHAVES_STORAGE: {
     TOKEN: 'teclar:token',

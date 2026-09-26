@@ -4,7 +4,7 @@
 //
 // O professor não cria conta de ninguém e não vê senha de aluno. Toda
 // conta já nasce com um RP e uma senha de aluno (o dono vê o RP dele em
-// Configurações do Solo). O professor convida o RP; o convite chega para
+// "Minha entrada como aluno", no menu). O professor convida o RP; o convite chega para
 // o aluno, que aceita ou recusa, e só depois de aceitar ele está na turma.
 //
 // Na importação o front lê o arquivo, parseia (js/utils/csv.ts, que não
@@ -213,7 +213,7 @@ function Alunos() {
         {/* Antes das abas, e não no rodapé: é a dúvida que o professor tem
             antes de convidar — de onde vem o RP e quando o aluno entra. */}
         <p className="aviso-convite">
-          Peça o RP a cada aluno: ele fica em Configurações do Solo, na conta dele. O aluno recebe o
+          Peça o RP a cada aluno: ele fica na conta dele, em "Minha entrada como aluno". O aluno recebe o
           convite e só entra na turma quando aceitar.
         </p>
 

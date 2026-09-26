@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclar &mdash; Configura&ccedil;&otilde;es</title>
+<meta name="description" content="Configura&ccedil;&otilde;es do modo Professor: o seu RP e a sua senha de aluno.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
+<link rel="stylesheet" href="../../css/base/movimento.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/escola.css">
+<!-- O bloco "Sua entrada como aluno" e a lista que mostra a senha nova. -->
+<link rel="stylesheet" href="../../css/componentes/entrada-aluno.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet). O import map traduz os nomes que o
+     .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+</head>
+<body>
+
+<!-- Luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto da
+     Escola) e o gr&atilde;o &mdash; ver css/base/luz.css. -->
+<div class="fundo grao" aria-hidden="true">
+  <div class="disco disco-canto-inferior-direito"></div>
+</div>
+
+<div id="raiz" class="pagina entrada-da-pagina"></div>
+
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
+<script type="module" src="../../js/professor/Configuracoes.js"></script>
+</body>
+</html>

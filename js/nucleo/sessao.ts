@@ -1,16 +1,28 @@
 // sessao.ts
 // Guarda quem está logado. É o ÚNICO arquivo do projeto que lê ou escreve
-// as chaves de autenticação no localStorage (token e usuário). Todo o resto
-// do front pergunta o estado da sessão através deste módulo.
+// as chaves de autenticação (token e usuário). Todo o resto do front
+// pergunta o estado da sessão através deste módulo.
+//
+// Token e usuário moram no sessionStorage, que morre quando a aba fecha:
+// quem abre o site de novo faz login de novo. Recarregar a página não
+// apaga o sessionStorage, então recarregar não desloga. O resto (modo,
+// preferências do aparelho, tutorial visto, fila de sessões) continua no
+// localStorage, porque não é segredo e deve durar entre sessões.
 
 import { CONFIG } from '../config.js';
 import type { Usuario, RespostaLogin, Mundo, Modo, TipoSessao } from './tipos.js';
 
 const CHAVES = CONFIG.CHAVES_STORAGE;
 
+// Até a sessão ir para o sessionStorage, token e usuário ficavam no
+// localStorage. O que sobrou de lá não vale mais (ninguém lê) e é segredo
+// esquecido no disco: apaga ao carregar.
+localStorage.removeItem(CHAVES.TOKEN);
+localStorage.removeItem(CHAVES.USUARIO);
+
 // Cache em memória do usuário logado. O api.js consulta a sessão em toda
-// requisição, então não vale reparsear o JSON do localStorage a cada chamada.
-//   undefined -> ainda não lido do localStorage nesta carga de página
+// requisição, então não vale reparsear o JSON do sessionStorage a cada chamada.
+//   undefined -> ainda não lido do sessionStorage nesta carga de página
 //   null      -> já lido, não há usuário
 //   objeto    -> usuário atual
 let cacheUsuario: Usuario | null | undefined;
@@ -18,7 +30,7 @@ let cacheUsuario: Usuario | null | undefined;
 // Grava a sessão do login OU do cadastro:
 //   { token, usuario: { id, nome?, email?, tipo } }
 // Do cadastro, a tela passa só esses dois campos: a resposta dele traz
-// também a senha de aluno, que não pode parar no localStorage.
+// também a senha de aluno, que não pode ser guardada em lugar nenhum.
 // `tipo` diz de qual tabela o login veio ('conta' = Users, 'aluno' =
 // Alunos); não é coluna do banco, o back sabe porque autenticou num lugar
 // ou no outro. nome e email são opcionais de propósito: o aluno não tem
@@ -32,31 +44,33 @@ function entrar(resposta: RespostaLogin): Usuario {
     // que nenhuma tela sabe tratar. Melhor falhar aqui, onde dá para ver.
     throw new Error('sessao.entrar: resposta sem token ou sem tipo.');
   }
-  localStorage.setItem(CHAVES.TOKEN, token);
-  localStorage.setItem(CHAVES.USUARIO, JSON.stringify(usuario));
+  sessionStorage.setItem(CHAVES.TOKEN, token);
+  sessionStorage.setItem(CHAVES.USUARIO, JSON.stringify(usuario));
   cacheUsuario = usuario;
   return usuario;
 }
 
 function token(): string | null {
-  return localStorage.getItem(CHAVES.TOKEN);
+  return sessionStorage.getItem(CHAVES.TOKEN);
 }
 
-// Apaga TODA chave 'teclar:' do localStorage, inclusive o modo, que o
-// sair() preserva de propósito. Usado só para descartar sessão inválida:
+// Apaga a sessão e TODA chave 'teclar:' do localStorage, inclusive o modo,
+// que o sair() preserva de propósito. Usado só para descartar sessão inválida:
 // se o formato do que está gravado não é mais reconhecido, o modo salvo
 // junto também não vale nada.
 function limparTudo(): void {
+  sessionStorage.removeItem(CHAVES.TOKEN);
+  sessionStorage.removeItem(CHAVES.USUARIO);
   for (const chave of Object.keys(localStorage)) {
     if (chave.startsWith('teclar:')) localStorage.removeItem(chave);
   }
   cacheUsuario = null;
 }
 
-// Lê do cache; se não tiver, lê do localStorage e faz parse.
+// Lê do cache; se não tiver, lê do sessionStorage e faz parse.
 //
-// Uma sessão gravada só vale se tiver tipo ('conta' | 'aluno') e token. O
-// localStorage pode ter sobrado de antes da conta única, quando o usuário
+// Uma sessão gravada só vale se tiver tipo ('conta' | 'aluno') e token. A
+// sessão pode ter sobrado de antes da conta única, quando o usuário
 // tinha `perfil` e não tinha `tipo`: esse formato o resto do front não sabe
 // ler — o guarda não resolve a casa da pessoa e a devolve para a landing,
 // então login.html entra e sai na hora e não há como chegar a lugar nenhum
@@ -68,7 +82,7 @@ function limparTudo(): void {
 function usuario(): Usuario | null {
   if (cacheUsuario !== undefined) return cacheUsuario;
 
-  const bruto = localStorage.getItem(CHAVES.USUARIO);
+  const bruto = sessionStorage.getItem(CHAVES.USUARIO);
   if (bruto == null) {
     cacheUsuario = null;
     return null;
@@ -121,8 +135,8 @@ function nomeExibicao(): string {
 // Não vai ao back nem ao token. Só existe para sessão de conta — para
 // aluno, modo() é sempre null.
 //
-// Fica no localStorage junto com o id da conta. Ele NÃO decide para onde a
-// conta vai depois do login — ali é sempre a tela de modo (ver
+// Fica no localStorage (sobrevive ao fechar a aba) junto com o id da
+// conta. Ele NÃO decide para onde a conta vai depois do login — ali é sempre a tela de modo (ver
 // destinoAoEntrar() em guarda.ts). Serve durante a sessão: a casa() do
 // guarda e o "Ir para ..." da Nav. Outra conta no mesmo navegador não
 // herda (o id não bate).
@@ -250,7 +264,7 @@ function atualizarUsuario(campos: Partial<Usuario>): Usuario | null {
   if (atual == null) return null;
 
   const novo = { ...atual, ...campos };
-  localStorage.setItem(CHAVES.USUARIO, JSON.stringify(novo));
+  sessionStorage.setItem(CHAVES.USUARIO, JSON.stringify(novo));
   cacheUsuario = novo;
   return novo;
 }
@@ -262,8 +276,8 @@ function atualizarUsuario(campos: Partial<Usuario>): Usuario | null {
 // gravaria sessão de uma pessoa na conta de outra.
 // O modo fica de propósito (ver modo()): é amarrado ao id da conta.
 function sair(): void {
-  localStorage.removeItem(CHAVES.TOKEN);
-  localStorage.removeItem(CHAVES.USUARIO);
+  sessionStorage.removeItem(CHAVES.TOKEN);
+  sessionStorage.removeItem(CHAVES.USUARIO);
   localStorage.removeItem(CHAVES.FILA_SESSOES);
   cacheUsuario = null;
 }

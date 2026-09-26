@@ -256,7 +256,7 @@ export const api = {
 
   // A conta logada, fora de qualquer mundo.
   conta: {
-    // O RP da conta do token (Configurações do Solo). A senha de aluno não
+    // O RP da conta do token (componentes/EntradaComoAluno.tsx). A senha de aluno não
     // tem rota de leitura: ela só existe na resposta do cadastro.
     rp: () => get<RpDaConta>('/conta/rp'),
     // Troca a senha de aluno da conta do token e devolve a nova, uma vez.

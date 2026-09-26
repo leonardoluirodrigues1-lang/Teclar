@@ -2,7 +2,7 @@
 // Botão que copia um texto para a área de transferência e responde no
 // próprio rótulo ("Copiado"), sem depender de toast. Usado onde o RP ou a
 // senha de aluno aparecem: a tela do fim do cadastro (js/auth/Cadastro.tsx)
-// e Configurações do Solo (js/solo/Configuracoes.tsx).
+// e o bloco da entrada de aluno (js/componentes/EntradaComoAluno.tsx).
 //
 // Quem usa este botão mostra o texto na tela ao lado dele. Por isso, se a
 // área de transferência falhar (página fora de HTTPS, permissão negada), o

@@ -2718,7 +2718,7 @@ const ROTAS_PUBLICAS = ['/auth/login', '/auth/cadastro', '/auth/logout'];
 
 // O mock não valida assinatura nenhuma — só confere se o token tem a cara
 // dos que ele mesmo emite. Serve para uma coisa: dá para testar a sessão
-// expirada à mão. Troque o valor de 'teclar:token' no localStorage por
+// expirada à mão. Troque o valor de 'teclar:token' no sessionStorage por
 // qualquer besteira, recarregue uma tela interna e o app deve devolver
 // você para o login com o aviso "Sua sessão expirou".
 function tokenValido(token: unknown): boolean {

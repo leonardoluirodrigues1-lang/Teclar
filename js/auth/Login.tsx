@@ -298,7 +298,8 @@ function Login() {
               {...atributosDeErro(campos.erros.rp)}
             />
             <p className="ajuda-campo" id="dica-rp">
-              "RP" seguido de 7 números, ex.: RP 2025043. Quem tem conta vê o seu em Configurações do Solo.
+              "RP" seguido de 7 números, ex.: RP 2025043. Não sabe o seu? Entre na sua conta e abra o menu com
+              o seu nome: está em "Minha entrada como aluno".
             </p>
             <ErroCampo id="erro-rp" erro={campos.erros.rp} />
           </div>

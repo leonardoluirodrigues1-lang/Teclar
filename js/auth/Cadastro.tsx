@@ -293,7 +293,7 @@ function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
   function continuar() {
     saindoPeloBotao.current = true;
     // Só token e usuario vão para a sessão. A senha de aluno fica de fora
-    // de propósito: o sessao.entrar() grava o que recebe no localStorage.
+    // de propósito: o sessao.entrar() grava o que recebe no navegador.
     sessao.entrar({ token: resposta.token, usuario: resposta.usuario });
     guarda.entrar();
   }
@@ -323,8 +323,8 @@ function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
       />
 
       <p className="entrada-aviso" role="note">
-        Anote a senha agora. <strong>Ela não aparece de novo</strong>. O RP você encontra depois em
-        Configurações do Solo; se perder a senha, é lá que se gera uma nova.
+        Anote a senha agora. <strong>Ela não aparece de novo</strong>. O RP você encontra depois no menu
+        com o seu nome, em "Minha entrada como aluno"; se perder a senha, é lá que se gera uma nova.
       </p>
 
       <button type="button" className="btn btn-solido tecla tecla-clara entrada-continuar" onClick={continuar}>

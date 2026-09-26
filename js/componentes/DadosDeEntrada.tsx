@@ -2,7 +2,7 @@
 // A lista "rótulo, valor em destaque e botão de copiar" da entrada de
 // aluno. Usada nos dois lugares em que a senha de aluno aparece, e só
 // neles: a tela do fim do cadastro (js/auth/Cadastro.tsx) e a senha nova
-// de Configurações do Solo (js/solo/Configuracoes.tsx). O desenho está em
+// do bloco da entrada de aluno (js/componentes/EntradaComoAluno.tsx). O desenho está em
 // css/componentes/entrada-aluno.css.
 //
 // Não guarda nada: mostra o que recebe. Quem chama decide quanto tempo o

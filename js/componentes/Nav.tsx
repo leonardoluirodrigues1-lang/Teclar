@@ -190,6 +190,11 @@ export function Nav({ secoes, ativo }: PropsNav) {
           <a className="menu-item" href="../modo.html" role="menuitem" onClick={() => fechar()}>
             Trocar de modo
           </a>
+          {/* O bloco do RP, em Configurações do modo. Relativo a
+              pages/professor/, como os itens de SECOES_PROFESSOR. */}
+          <a className="menu-item" href="configuracoes.html#entrada-aluno" role="menuitem" onClick={() => fechar()}>
+            Minha entrada como aluno
+          </a>
           {/* Sair fecha o menu antes de navegar, para o menu não ficar
               aberto se a navegação demorar. */}
           <button

@@ -1877,24 +1877,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .solo-opcao-linha .tutorial-botao { flex: none; }
 
-/* Copiar o RP e gerar a senha nova, um embaixo do outro, na mesma largura. */
-.solo-rp-acoes {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--e-2, 8px);
-}
-
-/* O RP em Configurações: é dado, então mono e maior que o texto ao redor. */
-.solo-rp {
-  display: block;
-  margin-top: var(--e-2, 8px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-lg, 1.25rem);
-  letter-spacing: 0.14em;
-  color: var(--cor-texto, #fff);
-}
-
 /* ---------------------------------------------------------------------------
    Tutorial
 

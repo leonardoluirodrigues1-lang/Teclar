@@ -1,9 +1,11 @@
 /* ============================================================================
    TECLAR — entrada-aluno.css
    A lista "rótulo, valor e botão de copiar" da entrada de aluno, desenhada
-   por js/componentes/DadosDeEntrada.tsx. Carregada por pages/cadastro.html
-   (o RP e a senha no fim do cadastro) e por pages/solo/configuracoes.html
-   (a senha de aluno nova). Os valores são dado: mono e grandes.
+   por js/componentes/DadosDeEntrada.tsx, e o bloco "Sua entrada como
+   aluno" de js/componentes/EntradaComoAluno.tsx. Carregada por
+   pages/cadastro.html (o RP e a senha no fim do cadastro) e pelas
+   configurações dos dois modos (o bloco e a senha de aluno nova). Os
+   valores são dado: mono e grandes.
    ========================================================================== */
 
 .entrada-aluno { margin-top: var(--e-6, 32px); }
@@ -37,4 +39,49 @@
   margin-top: var(--e-2, 8px);
   padding: 10px 16px;
   font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   O bloco "Sua entrada como aluno": texto à esquerda, botões à direita.
+   Mesmas medidas dos cartões de Configurações do Solo.
+   ------------------------------------------------------------------------- */
+.entrada-bloco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+  margin-top: 22px;
+  padding: 26px 28px;
+  border-radius: 22px;
+}
+.entrada-bloco-nome {
+  display: block;
+  font-size: 16px;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto, #fff);
+}
+.entrada-bloco-texto {
+  display: block;
+  margin-top: var(--e-1, 4px);
+  font-size: 14px;
+  line-height: var(--lh-normal, 1.5);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* O RP: é dado, então mono e maior que o texto ao redor. */
+.entrada-rp {
+  display: block;
+  margin-top: var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: var(--fs-lg, 1.25rem);
+  letter-spacing: 0.14em;
+  color: var(--cor-texto, #fff);
+}
+
+/* Copiar o RP e gerar a senha nova, um embaixo do outro, na mesma largura. */
+.entrada-rp-acoes {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--e-2, 8px);
 }
