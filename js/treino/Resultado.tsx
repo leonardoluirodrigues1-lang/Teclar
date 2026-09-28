@@ -26,7 +26,9 @@ import { CONFIG } from '../config.js';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { Mundo, Sessao, SessaoSolo } from '../nucleo/tipos.js';
+import type { Missao, Mundo, Sessao, SessaoSolo } from '../nucleo/tipos.js';
+import { desembrulhar } from '../componentes/listaExercicios.js';
+import { ordemDoPercurso, progressoDoPercurso } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
@@ -355,15 +357,133 @@ function ResultadoTela() {
         Melhor marca até agora
       </p>
 
-      <div className="acoes">
-        <a className="btn btn-solido tecla tecla-clara" id="btn-repetir" href={hrefRepetir ?? 'treino.html'} hidden={hrefRepetir == null}>
-          Repetir
-        </a>
-        <a className="btn btn-vidro vidro tecla" id="btn-voltar" href={casa}>
-          Voltar
-        </a>
-      </div>
+      {/* Solo: próxima lição, repetir, voltar ao caminho. A Escola fica
+          como sempre foi: repetir e voltar. */}
+      {solo ? (
+        <AcoesDoSolo exercicioId={r.exercicioId} hrefRepetir={hrefRepetir} />
+      ) : (
+        <div className="acoes">
+          <a className="btn btn-solido tecla tecla-clara" id="btn-repetir" href={hrefRepetir ?? 'treino.html'} hidden={hrefRepetir == null}>
+            Repetir
+          </a>
+          <a className="btn btn-vidro vidro tecla" id="btn-voltar" href={casa}>
+            Voltar
+          </a>
+        </div>
+      )}
     </section>
+  );
+}
+
+// ============================================================================
+// Fim da lição no Solo: para onde ir
+// ============================================================================
+// Três caminhos, com peso diferente:
+//   · principal (tecla clara): a próxima lição, com o nome dela;
+//   · secundários (tecla escura): repetir esta lição e voltar ao caminho.
+// Sem próxima, "Voltar ao caminho" vira o principal. Isso acontece quando
+// a lição era a última do percurso, quando o percurso não carregou e
+// quando a "próxima" seria esta mesma (tempo esgotado, ou a sessão ainda
+// na fila sem rede). Voltar ao caminho sempre existe: a tela nunca fica
+// sem saída.
+//
+// Só o fim da LIÇÃO inteira passa por aqui. A passagem entre uma
+// repetição e outra é da tela de treino e não muda.
+
+const ROTA_CAMINHO = '../solo/caminho.html';
+
+type Proxima =
+  | { estado: 'carregando' }
+  | { estado: 'nenhuma' }
+  | { estado: 'pronta'; licao: Missao };
+
+// A próxima lição pela regra de sempre (utils/percurso.ts, a mesma do
+// caminho e do dashboard), com as listas buscadas de novo: o histórico já
+// traz a sessão que acabou de terminar.
+function useProximaLicao(exercicioId: string | null): Proxima {
+  const [proxima, setProxima] = useState<Proxima>({ estado: 'carregando' });
+
+  useEffect(() => {
+    let cancelado = false;
+
+    Promise.all([
+      api.solo.missoes().then((m) => desembrulhar<Missao>(m)),
+      api.solo.historico().then((h) => desembrulhar<SessaoSolo>(h)),
+    ])
+      .then(([licoes, sessoes]) => {
+        if (cancelado) return;
+        const progresso = progressoDoPercurso(ordemDoPercurso(licoes), sessoes);
+        // `repetir`: tudo concluído, esta era a última do percurso.
+        if (progresso == null || progresso.proxima.repetir || progresso.proxima.licao.exerciseId === exercicioId) {
+          setProxima({ estado: 'nenhuma' });
+        } else {
+          setProxima({ estado: 'pronta', licao: progresso.proxima.licao });
+        }
+      })
+      .catch((falha) => {
+        console.error(falha);
+        if (!cancelado) setProxima({ estado: 'nenhuma' });
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  return proxima;
+}
+
+interface PropsAcoesDoSolo {
+  exercicioId: string | null;
+  hrefRepetir: string | null;
+}
+
+function AcoesDoSolo({ exercicioId, hrefRepetir }: PropsAcoesDoSolo) {
+  const proxima = useProximaLicao(exercicioId);
+  // Enquanto a próxima carrega, os dois secundários já estão na tela, e o
+  // voltar continua escuro: só vira principal quando se sabe que não há
+  // próxima.
+  const voltarEhPrincipal = proxima.estado === 'nenhuma';
+
+  const repetir = hrefRepetir && (
+    <a className="btn btn-vidro vidro tecla" id="btn-repetir" href={hrefRepetir}>
+      Repetir esta lição
+    </a>
+  );
+  const voltar = (
+    <a
+      className={voltarEhPrincipal ? 'btn btn-solido tecla tecla-clara' : 'btn btn-vidro vidro tecla'}
+      id="btn-voltar"
+      href={ROTA_CAMINHO}
+    >
+      Voltar ao caminho
+    </a>
+  );
+
+  return (
+    <div className="acoes acoes-solo">
+      {proxima.estado === 'pronta' && (
+        <a
+          className="btn btn-solido tecla tecla-clara btn-proxima"
+          id="btn-proxima"
+          href={`treino.html?${new URLSearchParams({ exercicio: proxima.licao.exerciseId })}`}
+        >
+          Próxima: {proxima.licao.titulo}
+        </a>
+      )}
+      {/* O principal vem primeiro. */}
+      {voltarEhPrincipal ? (
+        <>
+          {voltar}
+          {repetir}
+        </>
+      ) : (
+        <>
+          {repetir}
+          {voltar}
+        </>
+      )}
+    </div>
   );
 }
 

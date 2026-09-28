@@ -217,6 +217,15 @@ a { color: inherit; text-decoration: none; }
 .btn-vidro { color: var(--cor-texto, #fff); }
 .btn-vidro:hover { background: rgba(255, 255, 255, 0.14); }
 
+/* Fim da lição no Solo (AcoesDoSolo, Resultado.tsx): a próxima lição
+   ocupa a linha inteira, porque leva o nome da lição, que pode ser longo;
+   repetir e voltar dividem a linha de baixo. */
+.acoes-solo { flex-wrap: wrap; }
+.acoes-solo .btn-proxima {
+  flex-basis: 100%;
+  text-align: center;
+}
+
 /* ---------------------------------------------------------------------------
    Acessibilidade e responsivo
    ------------------------------------------------------------------------- */
