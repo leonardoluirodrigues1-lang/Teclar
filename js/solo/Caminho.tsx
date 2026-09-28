@@ -224,10 +224,34 @@ function numeroDaPosicao(posicao: number): string {
   return String(posicao).padStart(2, '0');
 }
 
-function ConteudoDaPedra({ estado, posicao }: { estado: EstadoDaPedra; posicao: number }) {
-  if (estado === 'proxima') return <IconeTeclado />;
+interface PropsConteudo {
+  estado: EstadoDaPedra;
+  posicao: number;
+  repeticoes: number;
+}
+
+// O miolo da pedra: o número (ou o teclado, na da vez) e, embaixo dele, as
+// repetições da lição. A concluída mostra só a estrela: a lição já foi
+// feita, e quantas vezes ela repete não serve mais para nada.
+function ConteudoDaPedra({ estado, posicao, repeticoes }: PropsConteudo) {
   if (estado === 'feita') return <Estrela tamanho={30} forma="escura" />;
-  return <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>;
+  return (
+    <>
+      {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
+      <Repeticoes quantas={repeticoes} />
+    </>
+  );
+}
+
+// "10×". Lição de uma vez só não mostra nada. Escondido do leitor de tela
+// porque o rótulo da pedra já diz "10 repetições" por extenso.
+function Repeticoes({ quantas }: { quantas: number }) {
+  if (quantas <= 1) return null;
+  return (
+    <span className="pedra-repeticoes" aria-hidden="true">
+      {quantas}×
+    </span>
+  );
 }
 
 interface PropsPedra {
@@ -265,16 +289,11 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto }: PropsPedra) {
       {/* A pedra concluída troca o número pela estrela. Quem ouve não
           perde nada: o rótulo já diz a posição e "concluída". */}
       <a className={`pedra pedra-${estado} ${classeTecla}`} href={hrefDoTreino(licao)} aria-label={rotulo}>
-        <ConteudoDaPedra estado={estado} posicao={posicao} />
+        <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} />
       </a>
       {estado === 'feita' && (
         <span className="caminho-faisca">
           <Estrela tamanho={14} />
-        </span>
-      )}
-      {repete && (
-        <span className="caminho-repeticoes" aria-hidden="true">
-          {licao.repeticoes}×
         </span>
       )}
     </div>

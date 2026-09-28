@@ -1636,6 +1636,10 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .pedra {
   display: grid;
   place-items: center;
+  /* Com as repetições, são duas linhas: juntas no meio, e não uma em
+     cima e outra embaixo. */
+  align-content: center;
+  gap: 4px;
   width: 88px;
   height: 88px;
   border-radius: var(--raio-total, 9999px);
@@ -1721,16 +1725,17 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   border-top-color: rgba(255, 255, 255, 0.86);
 }
 
-.caminho-repeticoes {
-  padding: 4px 10px;
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.58);
+/* As repetições da lição ("10×"), dentro da pedra, embaixo do número:
+   bem menores que ele e sem moldura. Na pedra que falta, um branco mais
+   firme que o do número (.4), porque em 10px o .4 não se lê; na da vez,
+   herdam o preto da face clara. */
+.pedra-repeticoes {
+  font-size: 10px;
+  font-weight: var(--peso-normal, 400);
+  line-height: 1;
+  letter-spacing: 0.06em;
 }
+.pedra-nova .pedra-repeticoes { color: rgba(255, 255, 255, 0.62); }
 
 /* ---------------------------------------------------------------------------
    Telas de texto: Configurações, Ajuda e Sobre

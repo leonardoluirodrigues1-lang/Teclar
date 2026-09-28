@@ -74,92 +74,149 @@
    Vai dentro do .fundo de cada tela:
      <div class="disco disco-canto-superior-direito"></div>
 
-   O elemento é o buraco negro: um círculo de 580px com o centro quase no
-   canto da tela, de modo que só um pedaço dele aparece. Duas camadas, cada
-   uma num pseudo-elemento:
-     ::before — o banho de luz: uma elipse enorme e fraca que sai do canto
-                e se espalha pela tela. É ela que chega ATRÁS dos painéis;
-                sem ela o vidro não tem o que desfocar e vira retângulo
-                cinza. Forte só perto do canto: no meio da tela sobra
-                menos de 5% de branco, o bastante para o vidro e pouco
-                para atrapalhar a leitura.
-     ::after  — o buraco preto e o anel de fóton em volta: a única linha
-                nítida do fundo, com brilho próprio.
-   Só gradiente, borda e sombra: sem imagem, sem canvas, nada anima.
+   O buraco negro da landing (WebGL) é a referência; aqui é só CSS, uma
+   peça única, parada. O .disco é uma caixa grande cujo CENTRO é o centro
+   do buraco, posto quase no canto da tela. A caixa inteira é girada: o
+   disco é matéria girando num plano visto de viés, e girar a caixa
+   inclina tudo junto. Três camadas, de trás para a frente:
+
+     o próprio .disco — o disco de acreção e o banho de luz, no mesmo
+                fundo e com o mesmo centro. O disco é uma faixa elíptica
+                bem achatada que passa POR TRÁS do buraco e sai dos dois
+                lados; o banho é a luz dessa faixa se espalhando pela
+                tela, na mesma elipse, só que maior e mais fraca. Por isso
+                os dois se leem como uma coisa só.
+     ::before — o brilho em volta do anel de fóton: forte do lado aceso,
+                quase nada do lado apagado.
+     ::after  — o buraco e o anel de fóton. O anel é mais aceso do lado
+                voltado para o disco e vai apagando ao dar a volta
+                (gradiente cônico, recortado em anel por uma máscara). O
+                buraco é preto, mas a borda dele pega um resto dessa luz
+                que morre para dentro: é isso que faz o preto parecer
+                fundo, e não um adesivo.
+
+   Moderação: a faixa é forte só perto do buraco; no meio da tela sobra
+   perto de 2% de branco. Só gradiente e máscara: sem imagem, sem canvas,
+   sem filtro, nada anima.
    ========================================================================== */
 
 .disco {
   position: absolute;
-  width: 580px;
-  height: 580px;
+  width: 3000px;
+  height: 1800px;
   opacity: var(--luz-disco-intensidade);
   pointer-events: none;
+  background:
+    /* o disco: faixa elíptica, achatada, com a borda de dentro logo fora
+       do anel (34% de 950px ≈ 323px) — a parte de cima e de baixo dela
+       fica escondida atrás do buraco */
+    radial-gradient(ellipse 950px 170px at center,
+      transparent 0 34%,
+      rgba(255, 255, 255, 0.20) 42%,
+      rgba(255, 255, 255, 0.09) 56%,
+      rgba(255, 255, 255, 0.035) 76%,
+      transparent 100%),
+    /* o banho: a mesma elipse, maior e fraca, que chega atrás dos painéis */
+    radial-gradient(ellipse 1500px 850px at center,
+      rgba(255, 255, 255, 0.20) 0%,
+      rgba(255, 255, 255, 0.08) 35%,
+      rgba(255, 255, 255, 0.025) 65%,
+      transparent 100%);
 }
 
 .disco::before,
 .disco::after {
   content: "";
   position: absolute;
+  top: 50%;
+  left: 50%;
   border-radius: 50%;
 }
 
-/* O banho. Fica deslocado do buraco na direção do meio da borda: a luz
-   escorre rente à borda de cima (ou de baixo) em vez de apontar para o
-   centro da tela, onde está o texto. */
+/* O brilho do anel. A máscara é um anel largo e macio em volta do anel de
+   fóton (raio 312px); o cônico decide quanto brilha em cada ângulo. */
 .disco::before {
-  width: 2100px;
-  height: 1600px;
-  background: radial-gradient(circle at 50% 50%,
-    rgba(255, 255, 255, 0.26) 0%,
-    rgba(255, 255, 255, 0.085) 44%,
-    rgba(255, 255, 255, 0.02) 75%,
-    transparent 100%);
-  filter: blur(80px);
+  width: 760px;
+  height: 760px;
+  margin: -380px 0 0 -380px;
+  background: conic-gradient(from var(--disco-lado-aceso),
+    rgba(255, 255, 255, 0.45) 0deg,
+    rgba(255, 255, 255, 0.18) 70deg,
+    rgba(255, 255, 255, 0.02) 150deg,
+    transparent 180deg,
+    rgba(255, 255, 255, 0.02) 210deg,
+    rgba(255, 255, 255, 0.18) 290deg,
+    rgba(255, 255, 255, 0.45) 360deg);
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 296px, #000 312px, transparent 380px);
+  mask-image: radial-gradient(circle at center, transparent 0 296px, #000 312px, transparent 380px);
 }
 
-/* O buraco e o anel. O anel fica 22px fora do buraco: entre os dois
-   aparece um fio do banho, como na landing. */
+/* O buraco (raio 290px) e o anel (raio 309 a 312px). Entre os dois, 19px
+   que a máscara deixa vazios: ali aparece o disco, como na landing.
+   Camadas do fundo, de cima para baixo:
+     1. o buraco: preto, deixando passar 15% da luz do anel só na borda;
+     2. a luz do anel, por ângulo: quase branca do lado aceso, some do
+        outro;
+     3. um preto por baixo do buraco, para ele não ficar transparente do
+        lado apagado. */
 .disco::after {
-  inset: -22px;
-  background: radial-gradient(circle at center, #000 0 290px, transparent 290px);
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 48px 8px rgba(255, 255, 255, 0.35);
+  width: 624px;
+  height: 624px;
+  margin: -312px 0 0 -312px;
+  background:
+    radial-gradient(circle at center, #000 0 262px, rgba(0, 0, 0, 0.85) 290px, transparent 290px),
+    conic-gradient(from var(--disco-lado-aceso),
+      rgba(255, 255, 255, 0.95) 0deg,
+      rgba(255, 255, 255, 0.55) 70deg,
+      rgba(255, 255, 255, 0.12) 150deg,
+      rgba(255, 255, 255, 0.05) 180deg,
+      rgba(255, 255, 255, 0.12) 210deg,
+      rgba(255, 255, 255, 0.55) 290deg,
+      rgba(255, 255, 255, 0.95) 360deg),
+    radial-gradient(circle at center, #000 0 290px, transparent 290px);
+  /* Duas máscaras somadas: o disco do buraco e o anel fino. */
+  -webkit-mask-image:
+    radial-gradient(circle at center, #000 0 290px, transparent 290.5px),
+    radial-gradient(circle at center, transparent 0 308.5px, #000 309px 311px, transparent 312px);
+  mask-image:
+    radial-gradient(circle at center, #000 0 290px, transparent 290.5px),
+    radial-gradient(circle at center, transparent 0 308.5px, #000 309px 311px, transparent 312px);
 }
 
-/* Um canto por mundo, para as seções não parecerem a mesma tela. Os
-   números do banho são relativos ao buraco e espelham de um canto para o
-   outro. */
+/* Um canto por mundo, para as seções não parecerem a mesma tela. O centro
+   do buraco fica 100px para dentro da borda do lado e 10px acima (ou
+   abaixo) da borda de cima (ou de baixo); daí os -1400px e -910px, que são
+   esse ponto menos metade da caixa.
+
+   A inclinação espelha de um canto para o outro, sempre para a faixa
+   entrar na tela rente à borda, e não apontando para o meio. O lado aceso
+   do anel (--disco-lado-aceso, 0deg = em cima, no sentido do relógio) é o
+   voltado para o disco que aparece — o que olha para dentro da tela. */
 
 /* Solo */
 .disco-canto-superior-direito {
-  top: -300px;
-  right: -190px;
-}
-.disco-canto-superior-direito::before {
-  top: -560px;
-  right: -230px;
+  top: -910px;
+  right: -1400px;
+  transform: rotate(-14deg);
+  --disco-lado-aceso: 270deg;
 }
 
 /* Escola. Mais fraco que o Solo: as telas do professor têm tabela e
    texto denso, e o brilho cheio competiria com a leitura. */
 .disco-canto-inferior-direito {
-  bottom: -300px;
-  right: -190px;
+  bottom: -910px;
+  right: -1400px;
+  transform: rotate(14deg);
+  --disco-lado-aceso: 270deg;
   --luz-disco-intensidade: 0.85;
-}
-.disco-canto-inferior-direito::before {
-  bottom: -560px;
-  right: -230px;
 }
 
 /* Telas de entrada: login, cadastro, modo */
 .disco-canto-superior-esquerdo {
-  top: -300px;
-  left: -190px;
-}
-.disco-canto-superior-esquerdo::before {
-  top: -560px;
-  left: -230px;
+  top: -910px;
+  left: -1400px;
+  transform: rotate(14deg);
+  --disco-lado-aceso: 90deg;
 }
 
 /* ============================================================================
