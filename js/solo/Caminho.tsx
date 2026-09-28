@@ -54,6 +54,7 @@ import {
   type ProgressoDoPercurso,
 } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
 
 // Vizinho desta em pages/solo/: é lá que mora o convite de começar.
 const ROTA_DASHBOARD = 'dashboard.html';
@@ -228,13 +229,15 @@ interface PropsConteudo {
   estado: EstadoDaPedra;
   posicao: number;
   repeticoes: number;
+  /** Concluída agora: a estrela nasce com o pulso. */
+  nova: boolean;
 }
 
 // O miolo da pedra: o número (ou o teclado, na da vez) e, embaixo dele, as
 // repetições da lição. A concluída mostra só a estrela: a lição já foi
 // feita, e quantas vezes ela repete não serve mais para nada.
-function ConteudoDaPedra({ estado, posicao, repeticoes }: PropsConteudo) {
-  if (estado === 'feita') return <Estrela tamanho={30} forma="escura" />;
+function ConteudoDaPedra({ estado, posicao, repeticoes, nova }: PropsConteudo) {
+  if (estado === 'feita') return <Estrela tamanho={30} forma="escura" nasce={nova} />;
   return (
     <>
       {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
@@ -262,9 +265,11 @@ interface PropsPedra {
   totalNoNivel: number;
   estado: EstadoDaPedra;
   ponto: Ponto;
+  /** Concluída agora (ver useEstrelasNovas): as duas estrelas pulsam. */
+  nova: boolean;
 }
 
-function Pedra({ licao, posicao, totalNoNivel, estado, ponto }: PropsPedra) {
+function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra) {
   const repete = licao.repeticoes > 1;
   // Tudo o que a pedra mostra vai no rótulo: a posição, o nível, o estado e
   // as repetições ("10×" lido em voz alta vira "dez ex"). O título da lição
@@ -289,11 +294,11 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto }: PropsPedra) {
       {/* A pedra concluída troca o número pela estrela. Quem ouve não
           perde nada: o rótulo já diz a posição e "concluída". */}
       <a className={`pedra pedra-${estado} ${classeTecla}`} href={hrefDoTreino(licao)} aria-label={rotulo}>
-        <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} />
+        <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} nova={nova} />
       </a>
       {estado === 'feita' && (
         <span className="caminho-faisca">
-          <Estrela tamanho={14} />
+          <Estrela tamanho={14} nasce={nova} />
         </span>
       )}
     </div>
@@ -354,9 +359,10 @@ function FaixaDoNivel({ grupo, temAnterior, temSeguinte, aoMudar }: PropsFaixa) 
 interface PropsTrilha {
   grupo: GrupoDoPercurso;
   progresso: ProgressoDoPercurso | null;
+  ehEstrelaNova: (exerciseId: string) => boolean;
 }
 
-function Trilha({ grupo, progresso }: PropsTrilha) {
+function Trilha({ grupo, progresso, ehEstrelaNova }: PropsTrilha) {
   const area = useRef<HTMLDivElement>(null);
   const { largura, altura } = useTamanho(area);
 
@@ -391,17 +397,21 @@ function Trilha({ grupo, progresso }: PropsTrilha) {
               diz quantas são. A ordem do DOM é a do percurso, então o Tab
               anda pela trilha da primeira pedra à última. */}
           <ol className="caminho-pedras" aria-label={`Lições do nível ${grupo.nivel}`}>
-            {grupo.licoes.map((licao, i) => (
-              <li key={licao.exerciseId}>
-                <Pedra
-                  licao={licao}
-                  posicao={i + 1}
-                  totalNoNivel={grupo.licoes.length}
-                  estado={estadoDaPedra(licao, progresso)}
-                  ponto={pontos[i]}
-                />
-              </li>
-            ))}
+            {grupo.licoes.map((licao, i) => {
+              const estado = estadoDaPedra(licao, progresso);
+              return (
+                <li key={licao.exerciseId}>
+                  <Pedra
+                    licao={licao}
+                    posicao={i + 1}
+                    totalNoNivel={grupo.licoes.length}
+                    estado={estado}
+                    ponto={pontos[i]}
+                    nova={estado === 'feita' && ehEstrelaNova(licao.exerciseId)}
+                  />
+                </li>
+              );
+            })}
           </ol>
           <div className="caminho-passo" style={{ left: pontoDoTrofeu.x, top: pontoDoTrofeu.y }}>
             <span className="pedra pedra-trofeu tecla" role="img" aria-label={`Fim do nível ${grupo.nivel}`}>
@@ -492,6 +502,9 @@ function Caminho() {
     if (!pronto?.sessoes) return null;
     return progressoDoPercurso(ordemDoPercurso(pronto.licoes), pronto.sessoes);
   }, [pronto]);
+  // As lições concluídas são as estrelas da tela: a que não estava na
+  // última visita nasce com o pulso.
+  const ehEstrelaNova = useEstrelasNovas('caminho', progresso ? [...progresso.concluidas] : null);
 
   useEffect(() => {
     if (indiceDoNivel == null && grupos.length > 0) {
@@ -537,7 +550,7 @@ function Caminho() {
           temSeguinte={indiceDoNivel < grupos.length - 1}
           aoMudar={mudarNivel}
         />
-        <Trilha grupo={grupo} progresso={progresso} />
+        <Trilha grupo={grupo} progresso={progresso} ehEstrelaNova={ehEstrelaNova} />
       </>
     );
   }

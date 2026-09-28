@@ -20,6 +20,7 @@
 // — o React não escreve nada nela depois de montada.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CONFIG } from '../config.js';
 import { api } from '../nucleo/api.js';
@@ -28,6 +29,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Mundo, Sessao, SessaoSolo } from '../nucleo/tipos.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { Estrela } from '../componentes/Estrela.js';
+import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
 
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
 const PRECISAO_MINIMA = CONFIG.METAS.PRECISAO_ALVO;
@@ -273,10 +275,15 @@ function ResultadoTela() {
   const r = tela.resultado;
   const solo = r.mundo === 'solo';
 
-  let titulo: string;
+  // O "+N XP" é o único título que conta: é a conquista da sessão.
+  let titulo: ReactNode;
   let nota: string | null = null;
   if (solo && r.xp) {
-    titulo = `+${r.xp.ganho} XP`;
+    titulo = (
+      <>
+        +<NumeroQueConta valor={r.xp.ganho} /> XP
+      </>
+    );
   } else if (solo) {
     // Solo sem XP: a sessão foi para a fila (rede) ou veio da API (F5).
     titulo = 'Sessão registrada.';
@@ -310,12 +317,14 @@ function ResultadoTela() {
       <dl className="metricas">
         <div className="metrica">
           <dt>PPM</dt>
-          <dd id="ppm">{r.wpm}</dd>
+          <dd id="ppm">
+            <NumeroQueConta valor={r.wpm} />
+          </dd>
         </div>
         <div className="metrica">
           <dt>Precisão</dt>
           <dd id="precisao" className={r.precisao < PRECISAO_MINIMA ? 'abaixo' : undefined}>
-            {r.precisao}
+            <NumeroQueConta valor={r.precisao} />
             <span className="unidade">%</span>
           </dd>
         </div>
@@ -337,9 +346,12 @@ function ResultadoTela() {
       {/* Só no mundo Solo, e só quando o XP veio com a resposta. */}
       {solo && r.xp && <BarraXp xp={r.xp} />}
 
-      {/* Estrela só aqui, com recorde: o selo inteiro já some sem ele. */}
+      {/* Estrela só aqui, com recorde: o selo inteiro já some sem ele.
+          Sempre nasce com o pulso: o recorde só vem do sessionStorage, que
+          é apagado ao ler — num F5 o dado vem da API, sem recorde, e o
+          selo nem aparece. */}
       <p className="selo selo-recorde vidro" id="selo-recorde" hidden={!r.recorde}>
-        <Estrela tamanho={12} />
+        <Estrela tamanho={12} nasce />
         Melhor marca até agora
       </p>
 
@@ -391,8 +403,10 @@ function BarraXp({ xp }: PropsBarraXp) {
 
   return (
     <section className="xp" id="xp" aria-label="Progresso de nível">
+      {/* O pulso roda quando o selo deixa de ser hidden, na virada do
+          nível. Mesmo motivo do recorde: só existe logo depois da sessão. */}
       <p className="selo vidro" id="selo-nivel" hidden={!seloNivelVisivel}>
-        <Estrela tamanho={13} />
+        <Estrela tamanho={13} nasce />
         Nível <span id="selo-nivel-num">{xp.nivel}</span> alcançado
       </p>
       <div className="xp-rotulos">

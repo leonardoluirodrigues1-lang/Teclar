@@ -5,7 +5,8 @@
      · css/componentes/vidro.css, que lê daqui as cores da luz;
      · as telas, que põem no HTML as classes .disco, .grao e .tecla.
 
-   Cinco ideias, todas estáticas — nada aqui anima sozinho:
+   Cinco ideias, todas estáticas — nada aqui anima sozinho (a única
+   exceção, a respiração do .disco, mora em css/base/movimento.css):
      1. A luz vem SEMPRE do canto superior direito da tela. Todo vidro é
         mais claro naquele canto, tem a borda acesa daquele lado e projeta
         sombra para baixo e para a esquerda.
@@ -97,7 +98,7 @@
 
    Moderação: a faixa é forte só perto do buraco; no meio da tela sobra
    perto de 2% de branco. Só gradiente e máscara: sem imagem, sem canvas,
-   sem filtro, nada anima.
+   sem filtro. O único movimento é a respiração (css/base/movimento.css).
    ========================================================================== */
 
 .disco {

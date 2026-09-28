@@ -19,6 +19,7 @@ import { TopoAluno } from '../componentes/TopoAluno.js';
 import { formatarData, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { Estrela } from '../componentes/Estrela.js';
+import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
 
 const ROTA_SALAS = 'dashboard.html';
 
@@ -62,6 +63,14 @@ function Sala({ usuario, salaId }: PropsSala) {
     };
   }, [tentativa]);
 
+  // O exercício feito que não estava na última visita (o que acabou de
+  // ser entregue) nasce com o pulso. Uma lista por sala.
+  const salaPronta = carga.estado === 'pronto' ? carga.sala : null;
+  const ehEstrelaNova = useEstrelasNovas(
+    `sala:${salaId}`,
+    salaPronta ? salaPronta.lista.filter((ex) => ex.estado === 'feito').map((ex) => ex.id) : null
+  );
+
   return (
     <>
       <TopoAluno usuario={usuario} />
@@ -94,13 +103,18 @@ function Sala({ usuario, salaId }: PropsSala) {
           </section>
         )}
 
-        {carga.estado === 'pronto' && <DetalheDaSala sala={carga.sala} />}
+        {carga.estado === 'pronto' && <DetalheDaSala sala={carga.sala} ehEstrelaNova={ehEstrelaNova} />}
       </main>
     </>
   );
 }
 
-function DetalheDaSala({ sala }: { sala: SalaDetalhe }) {
+interface PropsDetalhe {
+  sala: SalaDetalhe;
+  ehEstrelaNova: (exercicioId: string) => boolean;
+}
+
+function DetalheDaSala({ sala, ehEstrelaNova }: PropsDetalhe) {
   const { feitos, total } = sala.exercicios;
   const naoFeitos = sala.lista.filter((ex) => ex.estado === 'nao_feito');
   // Os feitos, do mais recente para o mais antigo. ISO ordena como texto.
@@ -126,10 +140,16 @@ function DetalheDaSala({ sala }: { sala: SalaDetalhe }) {
         ) : (
           <div className="aluno-fila">
             {naoFeitos.map((ex, indice) => (
-              <LinhaDoExercicio key={ex.id} exercicio={ex} salaId={sala.id} proximo={indice === 0} />
+              <LinhaDoExercicio key={ex.id} exercicio={ex} salaId={sala.id} proximo={indice === 0} nova={false} />
             ))}
             {jaFeitos.map((ex) => (
-              <LinhaDoExercicio key={ex.id} exercicio={ex} salaId={sala.id} proximo={false} />
+              <LinhaDoExercicio
+                key={ex.id}
+                exercicio={ex}
+                salaId={sala.id}
+                proximo={false}
+                nova={ex.estado === 'feito' && ehEstrelaNova(ex.id)}
+              />
             ))}
           </div>
         )}
@@ -142,9 +162,11 @@ interface PropsLinha {
   exercicio: ExercicioDaSala;
   salaId: string;
   proximo: boolean;
+  /** Entregue agora: a estrela nasce com o pulso. */
+  nova: boolean;
 }
 
-function LinhaDoExercicio({ exercicio, salaId, proximo }: PropsLinha) {
+function LinhaDoExercicio({ exercicio, salaId, proximo, nova }: PropsLinha) {
   const classes = ['exercicio', 'vidro'];
   if (proximo) classes.push('exercicio-proximo');
   if (exercicio.estado !== 'nao_feito') classes.push('exercicio-feito');
@@ -153,7 +175,7 @@ function LinhaDoExercicio({ exercicio, salaId, proximo }: PropsLinha) {
 
   return (
     <a className={classes.join(' ')} href={href}>
-      <EstrelaDoExercicio exercicio={exercicio} />
+      <EstrelaDoExercicio exercicio={exercicio} nova={nova} />
       <div>
         <h3 className="exercicio-titulo">{exercicio.titulo}</h3>
         <div className="pilulas">
@@ -170,8 +192,8 @@ function LinhaDoExercicio({ exercicio, salaId, proximo }: PropsLinha) {
 
 // A estrela repete o que o texto da direita já diz ("feito em",
 // "Tempo esgotado"): é decorativa, e o componente já a esconde do leitor.
-function EstrelaDoExercicio({ exercicio }: { exercicio: ExercicioDaSala }) {
-  if (exercicio.estado === 'feito') return <Estrela tamanho={15} opacidade={0.85} />;
+function EstrelaDoExercicio({ exercicio, nova }: { exercicio: ExercicioDaSala; nova: boolean }) {
+  if (exercicio.estado === 'feito') return <Estrela tamanho={15} opacidade={0.85} nasce={nova} />;
   if (exercicio.estado === 'tempo_esgotado') return <Estrela tamanho={15} opacidade={0.3} />;
   return null;
 }

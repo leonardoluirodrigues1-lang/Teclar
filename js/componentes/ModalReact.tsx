@@ -34,7 +34,7 @@
 // Diferenças de mecânica em relação ao modal.js, e só de mecânica:
 //   · o overlay entra no <body> por createPortal, no mesmo lugar em que o
 //     modal.js fazia document.body.appendChild;
-//   · aoFechar é chamado ao FIM da transição de saída (--t-medio), porque é
+//   · aoFechar é chamado ao FIM da transição de saída (--t-rapido), porque é
 //     ele que a tela usa para desmontar o componente — se desmontasse na
 //     hora, a saída não animaria;
 //   · a tela deve trocar a `key` a cada abertura. Uma instância fechada não
@@ -141,8 +141,8 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
     if (focoAnterior instanceof HTMLElement && document.contains(focoAnterior)) {
       focoAnterior.focus();
     }
-    // Espera a saída de modais.css (--t-medio) terminar antes de desmontar.
-    const saidaMs = duracaoDoToken('--t-medio', 240);
+    // Espera a saída de modais.css (--t-rapido) terminar antes de desmontar.
+    const saidaMs = duracaoDoToken('--t-rapido', 160);
     timer.current = window.setTimeout(() => props.current.aoFechar?.(), saidaMs);
   }
 

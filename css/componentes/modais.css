@@ -16,13 +16,15 @@
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   opacity: 0;
-  /* A regra sem .aberto vale na saída: some acelerando. A com .aberto vale
-     na entrada: chega rápido e pousa macio. JS espera o mesmo --t-medio
-     (ModalReact.tsx) antes de desmontar. */
-  transition: opacity var(--t-medio, 240ms) var(--curva-saida, ease-in);
+  /* A regra sem .aberto vale na saída: some acelerando, em --t-rapido —
+     sair é mais rápido que entrar, quem fechou já decidiu. A com .aberto
+     vale na entrada: --t-medio, chega rápido e pousa macio. JS espera o
+     mesmo --t-rapido (ModalReact.tsx) antes de desmontar. */
+  transition: opacity var(--t-rapido, 160ms) var(--curva-saida, ease-in);
 }
 .modal-overlay.aberto {
   opacity: 1;
+  transition-duration: var(--t-medio, 240ms);
   transition-timing-function: var(--curva, ease-out);
 }
 
@@ -33,10 +35,11 @@
   border-radius: var(--raio-g, 16px);
   color: var(--cor-texto, #fff);
   transform: scale(var(--escala-modal, 0.96));
-  transition: transform var(--t-medio, 240ms) var(--curva-saida, ease-in);
+  transition: transform var(--t-rapido, 160ms) var(--curva-saida, ease-in);
 }
 .modal-overlay.aberto .modal {
   transform: none;
+  transition-duration: var(--t-medio, 240ms);
   transition-timing-function: var(--curva, ease-out);
 }
 

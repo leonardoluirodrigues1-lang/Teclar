@@ -56,6 +56,7 @@
 // uma aqui seria escrever na tela um dado que não existe.
 
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { CONFIG } from '../config.js';
@@ -73,6 +74,7 @@ import { PainelErro } from '../componentes/PainelErro.js';
 import { progressoDe, type ProgressoXp } from '../componentes/BarraXp.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
 import { Estrela } from '../componentes/Estrela.js';
+import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import {
   maisRecentesPrimeiro,
@@ -88,6 +90,7 @@ import {
 } from '../utils/percurso.js';
 import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
 
 // O caminho das lições, vizinho desta em pages/solo/. Caminho relativo: as
 // duas moram na mesma pasta.
@@ -227,7 +230,7 @@ function EsbocoLobby() {
 
 interface PropsMetrica {
   rotulo: string;
-  valor: string;
+  valor: ReactNode;
 }
 
 // Uma das três métricas: número grande em mono, rótulo mono miúdo embaixo.
@@ -262,15 +265,20 @@ function PainelPersonagem({ nome, campanha, estatisticas, indicadores, xpPorNive
         <p className="lobby-nome">{nome}</p>
         {/* aria-hidden: o anel já diz isto a quem ouve a tela. */}
         <p className="lobby-xp-texto" aria-hidden="true">
-          <strong>{progresso.noNivel}</strong> / {progresso.porNivel} XP · faltam {progresso.falta}
+          <strong><NumeroQueConta valor={progresso.noNivel} /></strong> / {progresso.porNivel} XP · faltam {progresso.falta}
         </p>
       </div>
 
       {/* numero(), porcentagem() e contagem() já escrevem "—" quando o
           valor é null — inclusive quando a rota inteira falhou. */}
       <div className="lobby-metricas">
-        <Metrica rotulo="Melhor PPM" valor={numero(estatisticas?.melhorWpm)} />
-        <Metrica rotulo="Precisão média" valor={porcentagem(indicadores?.precisaoMedia)} />
+        {/* PPM, precisão e XP contam do zero (NumeroQueConta): são a
+            conquista desta tela. As lições concluídas aparecem prontas. */}
+        <Metrica rotulo="Melhor PPM" valor={<NumeroQueConta valor={estatisticas?.melhorWpm} formatar={numero} />} />
+        <Metrica
+          rotulo="Precisão média"
+          valor={<NumeroQueConta valor={indicadores?.precisaoMedia} formatar={porcentagem} />}
+        />
         <Metrica rotulo="Lições concluídas" valor={contagem(estatisticas?.licoesConcluidas)} />
       </div>
     </article>
@@ -346,9 +354,10 @@ interface PropsSequencia {
   dias: DiaDaSemana[];
   sequencia: number;
   sessoes: SessaoSolo[];
+  ehEstrelaNova: (dia: string) => boolean;
 }
 
-function PainelSequencia({ dias, sequencia, sessoes }: PropsSequencia) {
+function PainelSequencia({ dias, sequencia, sessoes, ehEstrelaNova }: PropsSequencia) {
   return (
     <article className="painel vidro lobby-sequencia">
       <span className="lobby-rotulo">Sequência</span>
@@ -362,7 +371,7 @@ function PainelSequencia({ dias, sequencia, sessoes }: PropsSequencia) {
         {dias.map((dia) => (
           <li className="lobby-dia" key={dia.dia}>
             <span className={classeDoQuadrado(dia)} aria-hidden="true">
-              {dia.treinou && <Estrela tamanho={16} forma="escura" />}
+              {dia.treinou && <Estrela tamanho={16} forma="escura" nasce={ehEstrelaNova(dia.dia)} />}
             </span>
             <b className="lobby-dia-inicial" aria-hidden="true">
               {dia.inicial}
@@ -568,6 +577,9 @@ function Lobby() {
 
   const sessoes = carga.estado === 'pronto' ? carga.sessoes : null;
   const dias = useMemo(() => (sessoes == null ? null : semanaDeDias(sessoes)), [sessoes]);
+  // O dia treinado que não estava na última visita (o de hoje, depois do
+  // primeiro treino do dia) nasce com o pulso.
+  const ehEstrelaNova = useEstrelasNovas('lobby-dias', dias ? dias.filter((d) => d.treinou).map((d) => d.dia) : null);
   const sequencia = useMemo(() => (sessoes == null ? 0 : sequenciaDeDias(sessoes)), [sessoes]);
   const licoes = carga.estado === 'pronto' ? carga.licoes : null;
   // Sem lições ou sem histórico não há como saber a próxima: null, e a
@@ -667,7 +679,7 @@ function Lobby() {
           {/* Histórico falhou: o painel some (e o ritmo com ele) e o do
               personagem ocupa a largura toda. Nenhum aviso — a tela não
               deve nada aqui. */}
-          {dias && sessoes && <PainelSequencia dias={dias} sequencia={sequencia} sessoes={sessoes} />}
+          {dias && sessoes && <PainelSequencia dias={dias} sequencia={sequencia} sessoes={sessoes} ehEstrelaNova={ehEstrelaNova} />}
         </div>
 
         <FaixaContinuar progresso={progresso} />

@@ -49,6 +49,9 @@ export const CONFIG = {
     // marca por modo: ver o tutorial de um não conta como ter visto o outro.
     TUTORIAL_SOLO: 'teclar:tutorial_solo:',
     TUTORIAL_PROFESSOR: 'teclar:tutorial_professor:',
+    // Também PREFIXO + id da pessoa: as estrelas de conquista que ela já
+    // viu neste aparelho (ver js/utils/estrelasJaVistas.ts).
+    ESTRELAS_VISTAS: 'teclar:estrelas_vistas:',
   },
 
   // A versão que o rodapé da barra lateral do Solo mostra. A mesma do

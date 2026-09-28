@@ -136,7 +136,7 @@ function sairENavegar(endereco: string): void {
   // Primeiro garante a navegação, depois anima. A troca de página depende
   // só deste timer, não da animação: se a transição não rodar (navegador
   // sem suporte, aba em segundo plano), a página troca do mesmo jeito.
-  const duracao = duracaoDoToken('--t-rapido', 160);
+  const duracao = duracaoDoToken('--t-medio', 240);
   window.setTimeout(() => {
     window.location.assign(endereco);
   }, duracao);

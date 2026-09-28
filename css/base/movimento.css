@@ -16,21 +16,27 @@
    ========================================================================== */
 
 :root {
-  --t-rapido: 160ms; /* resposta ao toque: botão, hover, foco, saída de página */
-  --t-medio: 240ms;  /* entrada e saída de elemento: modal, toast, item de lista */
+  --t-rapido: 160ms; /* resposta ao toque: botão, hover, foco */
+  --t-medio: 240ms;  /* entrada e saída de elemento (modal, toast, item de lista) e saída da página */
   --t-tela: 300ms;   /* entrada da página */
   --t-xp: 900ms;     /* enchimento da barra de XP na tela de resultado */
+  --t-respiracao: 8000ms; /* um ciclo inteiro da luz do horizonte: some um pouco e volta */
 
   --curva: cubic-bezier(.22, .61, .36, 1);        /* entrada: rápido no início, pousa macio */
   --curva-saida: cubic-bezier(.55, .06, .68, .19); /* saída: começa devagar e acelera para fora */
+  --curva-respiracao: cubic-bezier(.45, 0, .55, 1); /* vai e volta: devagar nas pontas, sem tranco */
 
   /* Deslocamentos. Ficam aqui, e não soltos nas regras, para o bloco de
      movimento reduzido no fim poder zerar todos de uma vez. */
   --deslocamento-entrada: 8px;  /* página, item e toast sobem isto ao entrar */
+  --deslocamento-saida: -4px;   /* a página sobe isto ao sair: negativo, no mesmo sentido em que a próxima entra */
   --deslocamento-cartao: -2px;  /* cartão clicável sobe isto no hover */
   --escala-toque: 0.97;         /* botão pressionado */
   --escala-modal: 0.96;         /* modal antes de terminar de abrir */
+  --escala-estrela-inicio: 0.6; /* a estrela de conquista nova nasce deste tamanho... */
+  --escala-estrela-pico: 1.25;  /* ...passa um pouco do final e assenta em 1 */
   --opacidade-inicial: 0.5;     /* de onde as entradas partem: já legível */
+  --respiracao-da-luz: 0.88;    /* no fundo do ciclo, a luz fica em 88% do normal */
 }
 
 /* ----------------------------------------------------------------------------
@@ -40,6 +46,12 @@
    treino, onde o motor de digitação mede a posição do texto na tela.
    Sem fill-mode: terminada a animação, o transform some de vez, e os
    elementos fixos lá dentro voltam a se posicionar pela tela.
+
+   :not(:empty): o #raiz chega VAZIO no HTML e só ganha conteúdo quando o
+   React monta. Sem esta condição a animação rodava na div vazia, logo que
+   a folha carregava, e já tinha acabado quando o React desenhava a tela:
+   a entrada existia, mas ninguém a via. Assim ela começa no quadro em que
+   o conteúdo aparece.
    ------------------------------------------------------------------------- */
 
 @keyframes surgir {
@@ -49,21 +61,33 @@
   }
 }
 
-.entrada-da-pagina {
+.entrada-da-pagina:not(:empty) {
   animation: surgir var(--t-tela) var(--curva);
 }
 
 /* ----------------------------------------------------------------------------
    2. SAÍDA AO NAVEGAR
    js/utils/movimento.ts põe esta classe no <body> ao clicar num link
-   interno e navega quando o tempo de --t-rapido acaba. Só JavaScript põe
+   interno e navega quando o tempo de --t-medio acaba. Só JavaScript põe
    a classe: se o script falhar, a página nunca fica apagada.
+
+   Quem sai é o mesmo elemento que entrou (.entrada-da-pagina), e não o
+   <body> inteiro: o fundo — a luz do horizonte e as estrelas — fica
+   parado, e só o conteúdo troca. A saída sobe um pouco, e a entrada da
+   tela seguinte também sobe (vem de baixo): as duas andam no mesmo
+   sentido e se leem como um movimento só.
    ------------------------------------------------------------------------- */
 
 .saindo-da-pagina {
-  opacity: 0;
   pointer-events: none; /* um segundo clique durante a saída não faz nada */
-  transition: opacity var(--t-rapido) var(--curva-saida);
+}
+
+.saindo-da-pagina .entrada-da-pagina {
+  opacity: 0;
+  transform: translateY(var(--deslocamento-saida));
+  transition:
+    opacity var(--t-medio) var(--curva-saida),
+    transform var(--t-medio) var(--curva-saida);
 }
 
 /* ----------------------------------------------------------------------------
@@ -131,6 +155,70 @@
 .landing .btn:not(:disabled):active { transform: none; }
 
 /* ----------------------------------------------------------------------------
+   5. A ESTRELA NASCE
+   O pulso da conquista nova: js/componentes/Estrela.tsx põe .estrela-nasce
+   quando recebe `nasce`, e quem decide o `nasce` é
+   js/utils/estrelasJaVistas.ts — só na primeira vez que a pessoa vê
+   aquela estrela. A estrela cresce um pouco além do tamanho final e
+   assenta; o brilho em volta (o círculo .estrela-brilho, só na forma
+   clara) sobe e volta a zero. Transform na estrela, opacity no brilho.
+   ------------------------------------------------------------------------- */
+
+@keyframes estrela-nasce {
+  0%   { transform: scale(var(--escala-estrela-inicio)); }
+  60%  { transform: scale(var(--escala-estrela-pico)); }
+  100% { transform: scale(1); }
+}
+
+/* O brilho começa e termina em 0: fora do pulso, ele não aparece. */
+@keyframes brilho-da-estrela-nasce {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.estrela-nasce {
+  animation: estrela-nasce var(--t-medio) var(--curva);
+}
+
+.estrela-nasce .estrela-brilho {
+  animation: brilho-da-estrela-nasce var(--t-medio) var(--curva);
+}
+
+/* ----------------------------------------------------------------------------
+   6. A LUZ RESPIRA
+   O brilho do horizonte (.disco, css/base/luz.css) perde um pouco de
+   intensidade e volta, num ciclo de --t-respiracao. É quase subliminar: a
+   tela parece viva sem nada chamar atenção.
+
+   Só opacity, e só no .disco — o elemento que carrega o disco e o banho
+   de luz. Nada de filtro nem de tamanho: filtro animado recalcularia o
+   desfoque a cada quadro. O campo de estrelas não anima.
+
+   Onde não respira, sem regra nenhuma: a landing e a tela de treino não
+   têm .disco (a landing tem o WebGL dela; no treino, nada se mexe na
+   periferia enquanto se digita).
+
+   Máquina fraca: js/utils/respiracaoDaLuz.ts mede os quadros logo depois
+   de a página carregar e, se faltarem, põe .luz-parada no <html>. A
+   respiração é a primeira coisa a sair.
+   ------------------------------------------------------------------------- */
+
+/* Só o meio do ciclo é escrito: o começo e o fim são a intensidade normal
+   do disco (--luz-disco-intensidade, que muda por canto e por mundo). */
+@keyframes luz-respira {
+  50% { opacity: calc(var(--luz-disco-intensidade) * var(--respiracao-da-luz)); }
+}
+
+.disco {
+  animation: luz-respira var(--t-respiracao) var(--curva-respiracao) infinite;
+}
+
+.luz-parada .disco {
+  animation: none;
+}
+
+/* ----------------------------------------------------------------------------
    MOVIMENTO REDUZIDO
    Para quem tem sensibilidade vestibular, movimento na tela causa
    mal-estar físico — não é preferência estética. Zera as durações e todos
@@ -145,17 +233,25 @@
     --t-tela: 0ms;
     --t-xp: 0ms;
     --deslocamento-entrada: 0px;
+    --deslocamento-saida: 0px;
     --deslocamento-cartao: 0px;
     --escala-toque: 1;
     --escala-modal: 1;
+    --escala-estrela-inicio: 1;
+    --escala-estrela-pico: 1;
     --opacidade-inicial: 1;
   }
 
   /* Com duração zero elas já não fariam nada; desligadas, fica explícito.
      O item escalonado precisa ser desligado aqui: sem isso, o atraso de
-     até 275ms continuaria segurando os itens no ponto de partida. */
-  .entrada-da-pagina,
+     até 275ms continuaria segurando os itens no ponto de partida. A
+     respiração da luz também: o --t-respiracao não é zerado lá em cima
+     porque uma animação infinita de 0ms giraria sem parar. */
+  .entrada-da-pagina:not(:empty),
   .entrada-escalonada > :nth-child(-n + 12),
+  .estrela-nasce,
+  .estrela-nasce .estrela-brilho,
+  .disco,
   :focus-visible {
     animation: none;
   }
@@ -170,14 +266,20 @@
   --t-tela: 0ms;
   --t-xp: 0ms;
   --deslocamento-entrada: 0px;
+  --deslocamento-saida: 0px;
   --deslocamento-cartao: 0px;
   --escala-toque: 1;
   --escala-modal: 1;
+  --escala-estrela-inicio: 1;
+  --escala-estrela-pico: 1;
   --opacidade-inicial: 1;
 }
 
-.movimento-reduzido .entrada-da-pagina,
+.movimento-reduzido .entrada-da-pagina:not(:empty),
 .movimento-reduzido .entrada-escalonada > :nth-child(-n + 12),
+.movimento-reduzido .estrela-nasce,
+.movimento-reduzido .estrela-nasce .estrela-brilho,
+.movimento-reduzido .disco,
 .movimento-reduzido :focus-visible {
   animation: none;
 }
