@@ -9,7 +9,7 @@
 //   · esconder o teclado guia — o teclado embaixo do texto na tela de
 //     treino (js/treino/Treino.tsx), que a tela lê ao abrir;
 //   · rever o tutorial — apaga a marca de "já visto" da conta
-//     (sessao.esquecerTutorial) e leva ao caminho, onde ele aparece.
+//     (sessao.esquecerTutorial('solo')) e leva ao caminho, onde ele aparece.
 //
 // E um bloco que não é configuração, mas mora aqui por ser da conta: "Sua
 // entrada como aluno" (componentes/EntradaComoAluno.tsx). O item "Minha
@@ -43,7 +43,7 @@ function Configuracoes() {
   }
 
   function reverTutorial() {
-    sessao.esquecerTutorial();
+    sessao.esquecerTutorial('solo');
     window.location.href = ROTA_CAMINHO;
   }
 

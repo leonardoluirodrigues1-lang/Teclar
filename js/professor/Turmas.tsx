@@ -10,12 +10,17 @@
 // Conversão de js/professor/turmas.js para React: mesmo markup, mesmas
 // classes de css/escola.css, mesmos textos e estados. A barra do topo, que
 // nasceu aqui e foi copiada nas outras telas, agora é ../componentes/Nav.tsx.
+//
+// Na primeira vez que a conta abre o modo Professor, antes das turmas, vem
+// o tutorial (./Tutorial.tsx). Enquanto ele está na tela a Nav não aparece:
+// o menu da conta levaria para fora do tutorial no meio dele.
 
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
+import { sessao } from '../nucleo/sessao.js';
 import type { ErroDaApi, Turma } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
@@ -25,6 +30,7 @@ import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { EsqueletoGrade } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { TutorialDoProfessor } from './Tutorial.js';
 
 // A busca é ruído enquanto a grade cabe na tela de uma olhada só. A partir
 // daqui, procurar pelo nome fica mais rápido que varrer com os olhos.
@@ -84,6 +90,16 @@ function Turmas() {
 
   const btnCriar = useRef<HTMLButtonElement>(null);
   const campoBusca = useRef<HTMLInputElement>(null);
+
+  // Lido uma vez ao abrir a tela; quem termina ou pula o tutorial vira
+  // "já visto" e cai nas turmas sem recarregar. As turmas carregam por
+  // baixo enquanto isso, e já estão prontas quando ele acaba.
+  const [mostrarTutorial, setMostrarTutorial] = useState(() => !sessao.tutorialVisto('professor'));
+
+  function terminarTutorial() {
+    sessao.marcarTutorialVisto('professor');
+    setMostrarTutorial(false);
+  }
 
   // --- carregamento ---------------------------------------------------------
 
@@ -228,6 +244,10 @@ function Turmas() {
         ))}
       </div>
     );
+  }
+
+  if (mostrarTutorial) {
+    return <TutorialDoProfessor aoTerminar={terminarTutorial} />;
   }
 
   return (

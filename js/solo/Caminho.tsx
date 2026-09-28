@@ -440,10 +440,10 @@ function Caminho() {
   const [indiceDoNivel, setIndiceDoNivel] = useState<number | null>(null);
   // Lido uma vez ao abrir a tela; quem termina ou pula o tutorial vira
   // false aqui e grava a marca na sessão.
-  const [mostrarTutorial, setMostrarTutorial] = useState(() => !sessao.tutorialVisto());
+  const [mostrarTutorial, setMostrarTutorial] = useState(() => !sessao.tutorialVisto('solo'));
 
   function terminarTutorial() {
-    sessao.marcarTutorialVisto();
+    sessao.marcarTutorialVisto('solo');
     setMostrarTutorial(false);
   }
 

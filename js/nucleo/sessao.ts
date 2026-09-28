@@ -200,7 +200,7 @@ function definirTecladoGuiaEscondido(escondido: boolean): void {
   else localStorage.removeItem(CHAVES.TECLADO_GUIA_ESCONDIDO);
 }
 
-// --- Tutorial do Solo: já visto? ---------------------------------------------
+// --- Tutoriais do Solo e do Professor: já visto? ----------------------------
 // PROVISÓRIO: enquanto a tabela Users não tiver uma coluna para isso, a
 // marca fica no navegador, uma chave por conta (o id vai no nome da
 // chave). Outra conta no mesmo navegador vê o tutorial dela; a mesma conta
@@ -208,28 +208,38 @@ function definirTecladoGuiaEscondido(escondido: boolean): void {
 // funções passam a ler e gravar pela API, e quem as chama não muda.
 // O sair() não apaga a marca: quem já viu não precisa ver de novo só por
 // ter saído.
+//
+// São DUAS marcas, uma por modo (`qual`): a mesma conta vê o tutorial do
+// Solo na primeira vez no Solo e o do Professor na primeira vez no
+// Professor, em qualquer ordem.
 
-function chaveDoTutorial(): string | null {
-  const atual = usuario();
-  if (atual == null || atual.tipo !== 'conta') return null;
-  return CHAVES.TUTORIAL_SOLO + atual.id;
+type QualTutorial = 'solo' | 'professor';
+
+function prefixoDoTutorial(qual: QualTutorial): string {
+  return qual === 'solo' ? CHAVES.TUTORIAL_SOLO : CHAVES.TUTORIAL_PROFESSOR;
 }
 
-function tutorialVisto(): boolean {
-  const chave = chaveDoTutorial();
+function chaveDoTutorial(qual: QualTutorial): string | null {
+  const atual = usuario();
+  if (atual == null || atual.tipo !== 'conta') return null;
+  return prefixoDoTutorial(qual) + atual.id;
+}
+
+function tutorialVisto(qual: QualTutorial): boolean {
+  const chave = chaveDoTutorial(qual);
   // Sem conta não há de quem ser a marca: trata como visto, para não
-  // mostrar o tutorial a quem nem é do Solo.
+  // mostrar o tutorial a quem nem tem os modos Solo e Professor.
   return chave == null || localStorage.getItem(chave) === 'visto';
 }
 
-function marcarTutorialVisto(): void {
-  const chave = chaveDoTutorial();
+function marcarTutorialVisto(qual: QualTutorial): void {
+  const chave = chaveDoTutorial(qual);
   if (chave) localStorage.setItem(chave, 'visto');
 }
 
-// O "Rever o tutorial" de Configurações.
-function esquecerTutorial(): void {
-  const chave = chaveDoTutorial();
+// O "Rever o tutorial" das Configurações de cada modo.
+function esquecerTutorial(qual: QualTutorial): void {
+  const chave = chaveDoTutorial(qual);
   if (chave) localStorage.removeItem(chave);
 }
 

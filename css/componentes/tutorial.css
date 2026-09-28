@@ -1,0 +1,289 @@
+/* ============================================================================
+   TECLAR — tutorial.css
+   A tela dos tutoriais de primeira vez, desenhada por
+   js/componentes/TelaDeTutorial.tsx: duas colunas — o texto e um painel de
+   vidro — e o rodapé com os pontinhos e os botões.
+
+   Quem carrega:
+     · pages/solo/caminho.html        — o tutorial do Solo (dentro da
+                                        moldura, que rola se a janela for
+                                        baixa);
+     · pages/solo/configuracoes.html  — só pelos botões (.tutorial-botao);
+     · pages/professor/turmas.html    — o tutorial do Professor.
+
+   O vidro (.vidro), o relevo da tecla (.tecla), a luz e o grão não se
+   repetem aqui: vêm de componentes/vidro.css e base/luz.css.
+   ========================================================================== */
+
+/* A face dos botões do tutorial: a escura das peças do Solo, e a clara
+   para o "Continuar". Também são os botões das Configurações do Solo. */
+.tutorial-botao {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  color: var(--cor-texto, #fff);
+}
+.tutorial-botao-claro {
+  background: linear-gradient(180deg, var(--cor-texto, #fff), rgba(255, 255, 255, 0.82));
+  border-color: transparent;
+  color: var(--cor-texto-inverso, #000);
+}
+
+.tutorial {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.tutorial-miolo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-8, 64px);
+  align-items: center;
+  width: 100%;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 120px 84px var(--e-6, 32px);
+}
+
+.tutorial-antes {
+  margin-bottom: 10px;
+  font-size: 19px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tutorial-titulo {
+  margin-bottom: 26px;
+  font-size: 64px;
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-apertada, 1.1);
+  letter-spacing: var(--ls-titulo, -0.02em);
+}
+/* O título recebe o foco pelo código a cada passo (tabIndex -1), para o
+   leitor de tela anunciar o passo novo. Não é um controle: sem anel. */
+.tutorial-titulo:focus { outline: none; }
+.tutorial-titulo-marca {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  letter-spacing: 0.12em;
+}
+
+.tutorial-texto {
+  max-width: 440px;
+  margin-bottom: 38px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tutorial-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.tutorial-itens li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-4, 16px);
+}
+.tutorial-itens p {
+  max-width: 330px;
+  font-size: 15px;
+  line-height: var(--lh-normal, 1.5);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.tutorial-icone {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--e-3, 12px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.tutorial-icone svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- o painel da direita ------------------------------------------------- */
+.tutorial-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 420px;
+  overflow: hidden;
+  border-radius: 26px;
+}
+
+.tutorial-frase {
+  position: absolute;
+  top: 34px;
+  left: 34px;
+  font-size: 22px;
+  font-weight: var(--peso-leve, 300);
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Só no Solo: o teclado é o componente compartilhado
+   (js/componentes/TecladoAbnt2.tsx, estilo em css/componentes/teclado.css).
+   Aqui só o lugar dele no painel. */
+.tutorial-visual .teclado {
+  margin-top: 60px;
+  padding: 0 var(--e-5, 24px);
+}
+
+/* --- rodapé: pontinhos e botões ------------------------------------------ */
+.tutorial-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5, 24px);
+  width: 100%;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 0 84px 46px;
+}
+
+.tutorial-pontos {
+  display: flex;
+  gap: 9px;
+}
+.tutorial-pontos i {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.2);
+  transition:
+    width var(--t-medio, 240ms) var(--curva, ease-out),
+    background var(--t-medio, 240ms) var(--curva, ease-out);
+}
+.tutorial-pontos i.tutorial-ponto-atual {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--cor-texto, #fff);
+}
+
+.tutorial-acoes {
+  display: flex;
+  gap: 14px;
+}
+
+.tutorial-botao {
+  padding: var(--e-4, 16px) 30px;
+  border-radius: 14px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Janela estreita: uma coluna só, e o painel da direita sai — ele é
+   desenho, e o texto é o que ensina. */
+@media (max-width: 900px) {
+  .tutorial-miolo {
+    grid-template-columns: 1fr;
+    padding: 104px var(--e-5, 24px) var(--e-6, 32px);
+  }
+  .tutorial-visual { display: none; }
+  .tutorial-titulo { font-size: 44px; }
+  .tutorial-rodape { padding: 0 var(--e-5, 24px) var(--e-5, 24px); }
+}
+
+/* ---------------------------------------------------------------------------
+   No mundo Escola (o tutorial do Professor)
+
+   A tela é a mesma; muda o lugar. No Solo o tutorial ocupa a área da
+   moldura, com a barra fixa em cima. No Professor ele fica dentro da
+   .pagina de escola.css, que já tem margem dos lados e não tem barra em
+   cima enquanto o tutorial está na tela (a Nav some).
+   ------------------------------------------------------------------------- */
+
+/* Ocupa a janela, para o rodapé ficar embaixo como no Solo. 92px é o
+   respiro de cima (28px) e de baixo (64px) da .pagina. */
+.mundo-escola .tutorial { min-height: calc(100vh - 92px); }
+
+/* Sem o padding lateral: quem dá a margem é a .pagina. O vão entre as
+   colunas é maior que no Solo para o título nunca encostar no desenho —
+   a coluna do professor é mais estreita que a da moldura. */
+.mundo-escola .tutorial-miolo {
+  gap: var(--e-9, 96px);
+  padding: var(--e-8, 64px) 0 var(--e-6, 32px);
+}
+.mundo-escola .tutorial-rodape { padding: 0 0 var(--e-6, 32px); }
+
+/* Sem isso, uma palavra longa do título empurraria a coluna do texto por
+   cima do desenho: item de grid não encolhe abaixo do próprio conteúdo. */
+.mundo-escola .tutorial-miolo > * { min-width: 0; }
+
+/* A linha de cima é um rótulo ("MODO PROFESSOR · 1 DE 3"), não uma frase. */
+.mundo-escola .tutorial-antes {
+  margin-bottom: 14px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Título de duas linhas: menor que o do Solo, que é uma palavra só. */
+.mundo-escola .tutorial-titulo {
+  margin-bottom: 20px;
+  font-size: 44px;
+  line-height: 1.18;
+}
+
+@media (max-width: 900px) {
+  .mundo-escola .tutorial-miolo { padding: var(--e-7, 48px) 0 var(--e-6, 32px); }
+}
+
+/* ---------------------------------------------------------------------------
+   Os desenhos do tutorial do Professor (js/professor/Tutorial.tsx)
+
+   SVG escrito à mão, com viewBox de 460×400: ocupa o painel inteiro e
+   encolhe junto com ele. Os rótulos têm 11 unidades para que, no painel
+   mais estreito que ainda aparece (janela de ~900px, desenho a ~82%),
+   continuem com 9px na tela.
+   ------------------------------------------------------------------------- */
+.desenho {
+  width: 100%;
+  height: 100%;
+}
+
+/* O traço de sempre: fino, branco apagado. */
+.desenho-traco {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+/* O professor, o aluno de quem o desenho fala, a seta do convite. */
+.desenho-traco-forte {
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 2;
+}
+/* As ligações e a linha de base: ficam atrás de tudo. */
+.desenho-traco-fraco { stroke: rgba(255, 255, 255, 0.16); }
+
+/* As barras do ritmo: todas apagadas, e a da sessão mais recente acesa. */
+.desenho-barra { fill: rgba(255, 255, 255, 0.17); }
+.desenho-barra-forte { fill: var(--cor-texto, #fff); }
+
+.desenho-rotulo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  fill: rgba(255, 255, 255, 0.45);
+}
+/* O RP do aluno: é dado, então mais aceso. */
+.desenho-rotulo-forte {
+  letter-spacing: 0.15em;
+  fill: rgba(255, 255, 255, 0.9);
+}

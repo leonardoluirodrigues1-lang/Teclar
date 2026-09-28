@@ -3,43 +3,24 @@
 // passos: o que é o TECLAR, como o caminho funciona e onde ficam o painel
 // e o menu. À esquerda o texto e três itens com ícone; à direita, uma
 // frase e o teclado ABNT2 (componentes/TecladoAbnt2.tsx, o mesmo do
-// treino), com a linha-guia acesa. Embaixo, os pontinhos e os botões "Pular" e "Continuar".
+// treino), com a linha-guia acesa.
+//
+// Este arquivo só tem o CONTEÚDO. A estrutura — passos, pontinhos, "Pular"
+// e "Continuar" — é a de componentes/TelaDeTutorial.tsx, a mesma do
+// tutorial do Professor.
 //
 // Quem usa: js/solo/Caminho.tsx, que mostra esta tela no lugar da trilha
-// enquanto sessao.tutorialVisto() for false. "Pular" e o "Continuar" do
-// último passo chamam aoTerminar(), e é o Caminho que grava a marca.
+// enquanto sessao.tutorialVisto('solo') for false. "Pular" e o "Continuar"
+// do último passo chamam aoTerminar(), e é o Caminho que grava a marca.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
+import { TelaDeTutorial, type PassoDoTutorial } from '../componentes/TelaDeTutorial.js';
+import { IconeEstrela, IconeGrafico, IconePessoa, IconeTeclado } from '../componentes/IconesDoTutorial.js';
 
 // ============================================================================
-// Ícones — SVG traçado em linha, feitos à mão
+// Ícones que só o Solo usa — SVG traçado em linha, feitos à mão
+// (os comuns aos dois tutoriais estão em componentes/IconesDoTutorial.tsx)
 // ============================================================================
-
-function IconeTeclado() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
-    </svg>
-  );
-}
-
-function IconeGrafico() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
-    </svg>
-  );
-}
-
-function IconeEstrela() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8z" />
-    </svg>
-  );
-}
 
 // Uma pedra da trilha: um círculo com um ponto no meio.
 function IconePedra() {
@@ -68,15 +49,6 @@ function IconeRepetir() {
   );
 }
 
-function IconePessoa() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" />
-      <circle cx="12" cy="8" r="4" />
-    </svg>
-  );
-}
-
 function IconeMenu() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -98,19 +70,22 @@ function IconeSair() {
 // ============================================================================
 // Só o que o Solo já faz: nada aqui promete função que não existe.
 
-interface Passo {
-  /** A linha pequena acima do título. */
-  antes: string;
-  titulo: string;
-  /** O título é a marca TECLAR, em mono e espaçada, como no preview. */
-  tituloEhMarca: boolean;
-  texto: string;
-  itens: { icone: ReactNode; texto: string }[];
-  /** A frase do painel da direita, em duas linhas. */
-  frase: [string, string];
+// O painel da direita de todos os passos: a frase, em duas linhas, em cima
+// do teclado com a linha-guia acesa.
+function PainelDoTeclado({ frase }: { frase: [string, string] }) {
+  return (
+    <>
+      <p className="tutorial-frase">
+        {frase[0]}
+        <br />
+        {frase[1]}
+      </p>
+      <TecladoAbnt2 tamanho="tutorial" />
+    </>
+  );
 }
 
-const PASSOS: Passo[] = [
+const PASSOS: PassoDoTutorial[] = [
   {
     antes: 'Bem-vindo ao',
     titulo: 'TECLAR',
@@ -122,7 +97,7 @@ const PASSOS: Passo[] = [
       { icone: <IconeGrafico />, texto: 'Acompanhe seu progresso e veja sua evolução.' },
       { icone: <IconeEstrela />, texto: 'Suba de nível a cada lição concluída.' },
     ],
-    frase: ['A tecla certa,', 'no momento certo.'],
+    painel: <PainelDoTeclado frase={['A tecla certa,', 'no momento certo.']} />,
   },
   {
     antes: 'Passo 2',
@@ -135,9 +110,9 @@ const PASSOS: Passo[] = [
         texto: 'Cada pedra é uma lição. A que brilha, com o balão "Começar", é a próxima a fazer.',
       },
       { icone: <IconeLivre />, texto: 'Nenhuma lição fica trancada: pode escolher qualquer uma, a qualquer hora.' },
-      { icone: <IconeRepetir />, texto: 'A pílula embaixo da pedra diz quantas vezes o texto se repete.' },
+      { icone: <IconeRepetir />, texto: 'O número pequeno dentro da pedra diz quantas vezes o texto se repete.' },
     ],
-    frase: ['Dedos na linha-guia:', 'A S D F · J K L Ç'],
+    painel: <PainelDoTeclado frase={['Dedos na linha-guia:', 'A S D F · J K L Ç']} />,
   },
   {
     antes: 'Passo 3',
@@ -155,7 +130,7 @@ const PASSOS: Passo[] = [
       },
       { icone: <IconeSair />, texto: 'No meio de uma lição, Esc sai do treino.' },
     ],
-    frase: ['Precisão primeiro.', 'A velocidade vem com ela.'],
+    painel: <PainelDoTeclado frase={['Precisão primeiro.', 'A velocidade vem com ela.']} />,
   },
 ];
 
@@ -168,75 +143,5 @@ interface PropsTutorial {
 }
 
 export function Tutorial({ aoTerminar }: PropsTutorial) {
-  const [indice, setIndice] = useState(0);
-  const titulo = useRef<HTMLHeadingElement>(null);
-  const passo = PASSOS[indice];
-  const ultimo = indice === PASSOS.length - 1;
-
-  // A cada passo o foco vai para o título: quem usa leitor de tela ouve o
-  // passo novo, e quem usa Tab recomeça do texto, não do fim da página.
-  useEffect(() => {
-    titulo.current?.focus();
-  }, [indice]);
-
-  function continuar() {
-    if (ultimo) aoTerminar();
-    else setIndice(indice + 1);
-  }
-
-  return (
-    <section className="tutorial" aria-label="Apresentação do Solo">
-      <div className="tutorial-miolo">
-        <div>
-          <p className="tutorial-antes">{passo.antes}</p>
-          {/* tabIndex -1: recebe o foco pelo código, mas não entra no Tab. */}
-          <h1
-            className={passo.tituloEhMarca ? 'tutorial-titulo tutorial-titulo-marca' : 'tutorial-titulo'}
-            ref={titulo}
-            tabIndex={-1}
-          >
-            {passo.titulo}
-          </h1>
-          <p className="tutorial-texto">{passo.texto}</p>
-          <ul className="tutorial-itens">
-            {passo.itens.map((item) => (
-              <li key={item.texto}>
-                <span className="tutorial-icone">{item.icone}</span>
-                <p>{item.texto}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="vidro tutorial-visual">
-          <p className="tutorial-frase">
-            {passo.frase[0]}
-            <br />
-            {passo.frase[1]}
-          </p>
-          <TecladoAbnt2 tamanho="tutorial" />
-        </div>
-      </div>
-
-      <div className="tutorial-rodape">
-        {/* Os pontinhos são desenho; o texto escondido diz a mesma coisa. */}
-        <p className="tutorial-pontos">
-          {PASSOS.map((_, i) => (
-            <i key={i} className={i === indice ? 'tutorial-ponto-atual' : undefined} aria-hidden="true" />
-          ))}
-          <span className="sr-only">
-            Passo {indice + 1} de {PASSOS.length}
-          </span>
-        </p>
-        <div className="tutorial-acoes">
-          <button type="button" className="tutorial-botao tecla" onClick={aoTerminar}>
-            Pular
-          </button>
-          <button type="button" className="tutorial-botao tutorial-botao-claro tecla tecla-clara" onClick={continuar}>
-            {ultimo ? 'Começar' : 'Continuar'} <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      </div>
-    </section>
-  );
+  return <TelaDeTutorial nome="Apresentação do Solo" passos={PASSOS} aoTerminar={aoTerminar} />;
 }

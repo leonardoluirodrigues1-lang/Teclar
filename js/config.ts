@@ -44,9 +44,11 @@ export const CONFIG = {
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back
     MOVIMENTO_REDUZIDO: 'teclar:movimento_reduzido', // escolha feita em pages/solo/configuracoes.html
     TECLADO_GUIA_ESCONDIDO: 'teclar:teclado_guia_escondido', // escolha feita em pages/solo/configuracoes.html
-    // PREFIXO, não chave inteira: o id da conta vai no fim (ver
-    // sessao.tutorialVisto). Provisório até existir coluna no banco.
+    // PREFIXOS, não chaves inteiras: o id da conta vai no fim (ver
+    // sessao.tutorialVisto). Provisório até existir coluna no banco. Uma
+    // marca por modo: ver o tutorial de um não conta como ter visto o outro.
     TUTORIAL_SOLO: 'teclar:tutorial_solo:',
+    TUTORIAL_PROFESSOR: 'teclar:tutorial_professor:',
   },
 
   // A versão que o rodapé da barra lateral do Solo mostra. A mesma do
