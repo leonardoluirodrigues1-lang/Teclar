@@ -27,6 +27,7 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { Mundo, Sessao, SessaoSolo } from '../nucleo/tipos.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { Estrela } from '../componentes/Estrela.js';
 
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
 const PRECISAO_MINIMA = CONFIG.METAS.PRECISAO_ALVO;
@@ -336,7 +337,9 @@ function ResultadoTela() {
       {/* Só no mundo Solo, e só quando o XP veio com a resposta. */}
       {solo && r.xp && <BarraXp xp={r.xp} />}
 
+      {/* Estrela só aqui, com recorde: o selo inteiro já some sem ele. */}
       <p className="selo selo-recorde vidro" id="selo-recorde" hidden={!r.recorde}>
+        <Estrela tamanho={12} />
         Melhor marca até agora
       </p>
 
@@ -389,6 +392,7 @@ function BarraXp({ xp }: PropsBarraXp) {
   return (
     <section className="xp" id="xp" aria-label="Progresso de nível">
       <p className="selo vidro" id="selo-nivel" hidden={!seloNivelVisivel}>
+        <Estrela tamanho={13} />
         Nível <span id="selo-nivel-num">{xp.nivel}</span> alcançado
       </p>
       <div className="xp-rotulos">

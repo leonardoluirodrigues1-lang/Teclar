@@ -4,7 +4,8 @@
 // primeiro, na ordem em que o professor atribuiu, e o primeiro deles é o
 // "próximo", em destaque. Os feitos vêm depois, apagados, com a melhor
 // marca e a data. "Tempo esgotado" fica entre os feitos, sem cor nenhuma:
-// ele fez a atividade, e o texto não diz que falhou.
+// ele fez a atividade, e o texto não diz que falhou. Por isso os dois
+// ganham a estrela: cheia no feito, apagada no tempo esgotado — tentou.
 //
 // Cada exercício leva ao treino com ?exercicio= e &turma=.
 // Estilo: css/aluno.css. O topo com o menu do nome é o <TopoAluno>.
@@ -17,6 +18,7 @@ import type { ErroDaApi, ExercicioDaSala, SalaDetalhe, Usuario } from '../nucleo
 import { TopoAluno } from '../componentes/TopoAluno.js';
 import { formatarData, numero, porcentagem } from '../utils/formato.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { Estrela } from '../componentes/Estrela.js';
 
 const ROTA_SALAS = 'dashboard.html';
 
@@ -151,6 +153,7 @@ function LinhaDoExercicio({ exercicio, salaId, proximo }: PropsLinha) {
 
   return (
     <a className={classes.join(' ')} href={href}>
+      <EstrelaDoExercicio exercicio={exercicio} />
       <div>
         <h3 className="exercicio-titulo">{exercicio.titulo}</h3>
         <div className="pilulas">
@@ -163,6 +166,14 @@ function LinhaDoExercicio({ exercicio, salaId, proximo }: PropsLinha) {
       <EstadoDoExercicio exercicio={exercicio} />
     </a>
   );
+}
+
+// A estrela repete o que o texto da direita já diz ("feito em",
+// "Tempo esgotado"): é decorativa, e o componente já a esconde do leitor.
+function EstrelaDoExercicio({ exercicio }: { exercicio: ExercicioDaSala }) {
+  if (exercicio.estado === 'feito') return <Estrela tamanho={15} opacidade={0.85} />;
+  if (exercicio.estado === 'tempo_esgotado') return <Estrela tamanho={15} opacidade={0.3} />;
+  return null;
 }
 
 function EstadoDoExercicio({ exercicio }: { exercicio: ExercicioDaSala }) {

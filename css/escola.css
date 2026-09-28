@@ -626,6 +626,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-variant-numeric: tabular-nums;
 }
 
+/* A estrela do melhor número da coluna (Relatorios.tsx), logo depois dele. */
+.marca-do-melhor { margin-left: 8px; }
+
 /* Aluno sem nenhuma sessão: a linha inteira perde ênfase, para o olho ir
    direto a quem já tem o que mostrar. */
 .tabela tr.linha-sem-dado td { color: var(--cor-texto-fraco, #8a8a8a); }

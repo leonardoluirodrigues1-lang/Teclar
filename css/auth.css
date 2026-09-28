@@ -37,7 +37,8 @@ ul { list-style: none; }
 }
 
 /* ---------------------------------------------------------------------------
-   Fundo: eco do horizonte de eventos + campo de estrelas
+   Fundo: eco do horizonte de eventos + campo de estrelas (os dois em
+   css/base/luz.css)
    backdrop-filter só desfoca o que está atrás. Sem o shader da landing, o
    vidro precisa desta luz própria para não virar retângulo cinza.
    ------------------------------------------------------------------------- */
@@ -49,13 +50,6 @@ ul { list-style: none; }
   z-index: var(--z-base, 0);
 }
 
-
-.fundo-estrelas { position: absolute; inset: 0; }
-.estrela {
-  position: absolute;
-  border-radius: var(--raio-total, 9999px);
-  background: var(--cor-texto, #fff);
-}
 
 /* A classe .vidro vem de css/componentes/vidro.css (carregar antes). */
 

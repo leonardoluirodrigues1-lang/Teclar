@@ -112,31 +112,14 @@ ul { list-style: none; }
 
 /* ---------------------------------------------------------------------------
    Fundo: campo de estrelas
-   Entra DENTRO do .fundo de dashboard.css, atrás do painel de vidro e
-   junto com o disco de luz. Sem pintura no fundo, o backdrop-filter do
-   .vidro não tem o que desfocar e o painel vira retângulo cinza.
-
-   As estrelas são gradientes radiais repetidos, não imagem: são alguns
-   bytes de CSS em vez de uma requisição, e acompanham qualquer tamanho de
-   tela. Duas camadas em passos diferentes (180px e 260px) para o olho não
-   achar o padrão; a terceira é um brilho difuso que dá profundidade.
+   As estrelas vêm de js/componentes/campoDeEstrelas.ts e a aparência delas
+   de css/base/luz.css. Aqui fica só o que é destas telas: no .tela, o
+   campo some perto do centro, porque ali mora o painel e estrela atrás de
+   vidro desfocado só suja a leitura.
    ------------------------------------------------------------------------- */
 .fundo-estrelas {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1.4px 1.4px at 22% 18%, rgba(255, 255, 255, 0.55), transparent 60%),
-    radial-gradient(1.2px 1.2px at 74% 32%, rgba(255, 255, 255, 0.40), transparent 60%),
-    radial-gradient(1px 1px at 46% 72%, rgba(255, 255, 255, 0.35), transparent 60%),
-    radial-gradient(1.6px 1.6px at 88% 84%, rgba(255, 255, 255, 0.30), transparent 60%),
-    radial-gradient(1px 1px at 12% 62%, rgba(255, 255, 255, 0.30), transparent 60%),
-    radial-gradient(1.2px 1.2px at 62% 8%, rgba(255, 255, 255, 0.25), transparent 60%);
-  background-size: 180px 180px, 260px 260px, 180px 180px, 260px 260px, 320px 320px, 320px 320px;
-  /* Some perto do centro: ali mora o painel, e estrela atrás de vidro
-     desfocado só suja a leitura. */
   -webkit-mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
   mask-image: radial-gradient(circle at 50% 44%, transparent 0%, transparent 26%, #000 64%);
-  opacity: 0.7;
 }
 
 /* ---------------------------------------------------------------------------

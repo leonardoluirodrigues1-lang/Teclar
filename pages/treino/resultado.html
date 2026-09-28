@@ -31,12 +31,15 @@
      Resultado.tsx o leva para o canto da Escola quando o treino foi de l&aacute;. -->
 <div class="fundo grao" aria-hidden="true">
   <div class="disco disco-canto-superior-direito"></div>
+  <div class="fundo-estrelas"></div>
 </div>
 
 <!-- O React monta o painel (ou o erro) aqui dentro. A raiz &eacute; o
      pr&oacute;prio <main class="tela"> de antes, para o CSS n&atilde;o mudar. -->
 <main id="raiz" class="tela entrada-da-pagina"></main>
 
+<!-- O campo de estrelas do fundo (js/componentes/campoDeEstrelas.ts). -->
+<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
 <script type="module" src="../../js/treino/Resultado.js"></script>
 </body>

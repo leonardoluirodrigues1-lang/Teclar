@@ -1,8 +1,9 @@
 /* ==================================================================
    UTILITARIOS
    ================================================================== */
-/* exportada: o campo de estrelas das telas de auth (js/auth/comum.ts) importa
-   este mesmo gerador, para a composicao nao mudar a cada recarga.
+/* exportada: o campo de estrelas do fundo das outras telas
+   (js/componentes/campoDeEstrelas.ts) importa este mesmo gerador, para a
+   composicao nao mudar a cada recarga.
    LCG de Numerical Recipes, modulo 2^32. As sementes de cada camada abaixo
    sao FIXAS de proposito: sem elas a composicao mudaria a cada recarga. */
 export function rng(seed:number):()=>number{let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};}

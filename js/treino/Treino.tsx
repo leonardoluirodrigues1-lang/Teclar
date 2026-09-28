@@ -490,7 +490,7 @@ function Treino({ usuario }: PropsTreino) {
     const marco = Math.floor(a.sequencia / SEQUENCIA_AVISO);
     if (marco > a.marco) {
       a.marco = marco;
-      toasts.mostrar(`${SEQUENCIA_AVISO} seguidos`);
+      toasts.mostrar(`${SEQUENCIA_AVISO} seguidos`, { conquista: true });
     }
 
     // 2. "precisão caindo": só ao CRUZAR o limiar para baixo, não a cada tecla.

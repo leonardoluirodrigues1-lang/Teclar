@@ -26,7 +26,6 @@ import { guarda } from '../nucleo/guarda.js';
 import { sessao } from '../nucleo/sessao.js';
 import type { Modo } from '../nucleo/tipos.js';
 import { Modal } from '../componentes/ModalReact.js';
-import { montarEstrelas } from './comum.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // O login já aberto no formulário de aluno (RP e senha de aluno).
@@ -194,7 +193,6 @@ function TelaModo() {
 // Só sessão de conta escolhe modo. Sem sessão vai para o login; aluno vai
 // para o dashboard dele. Quando redireciona, nada abaixo roda.
 if (guarda.exigir('conta')) {
-  montarEstrelas(document.getElementById('estrelas'));
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<TelaModo />);
 }

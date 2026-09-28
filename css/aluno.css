@@ -7,7 +7,8 @@
 
    Não se repete aqui: a receita do vidro (.vidro, componentes/vidro.css),
    o relevo e o afundar da tecla (.tecla, base/luz.css), o disco e o grão
-   (base/luz.css) e o fundo com estrelas (dashboard.css).
+   (base/luz.css) e o fundo com estrelas (base/luz.css e
+   js/componentes/campoDeEstrelas.ts).
 
    O único vermelho daqui é o do convite pendente (.aluno-aviso e a faixa
    do .convite): precisa ser notado. Nada mais, nem "tempo esgotado".

@@ -16,8 +16,7 @@
      a base m&iacute;nima, o fundo, .tela, .painel e o cabe&ccedil;alho
      (.rotulo/.titulo/.subtitulo/.btn-sair). Nada dela muda por causa desta
      tela &mdash; o lobby s&oacute; entra nos nomes que ela n&atilde;o define.
-     De solo.css vem o que &eacute; s&oacute; do lobby: o campo de estrelas, a barra de
-     XP, o convite, o esqueleto e os bot&otilde;es .btn/.btn-solido (que
+     De solo.css vem o que &eacute; s&oacute; do lobby: a barra de XP, o convite, o esqueleto e os bot&otilde;es .btn/.btn-solido (que
      dashboard.css n&atilde;o tem). Vem DEPOIS de prop&oacute;sito: &eacute; ele que ajusta o
      .estado do PainelErro para painel de vidro, pelo seletor mais
      espec&iacute;fico .estado.vidro. -->
@@ -58,6 +57,8 @@
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
      Caixa importa: o arquivo &eacute; Lobby.js (de Lobby.tsx), e ele se chama
      Lobby justamente para n&atilde;o colidir com nenhum .js desta pasta. -->
+<!-- O campo de estrelas do fundo (js/componentes/campoDeEstrelas.ts). -->
+<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
 <script type="module" src="../../js/solo/Lobby.js"></script>
 </body>
 </html>

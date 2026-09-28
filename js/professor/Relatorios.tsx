@@ -42,6 +42,7 @@ import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
+import { Estrela } from '../componentes/Estrela.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Linhas de esqueleto: a mesma altura que a tabela final terá numa turma de
@@ -306,6 +307,10 @@ function Relatorios() {
 
   // --- colunas --------------------------------------------------------------
 
+  // Quem tem o melhor número de cada coluna de desempenho. Sobre a lista
+  // inteira, e não a ordenada: reordenar não muda quem é o melhor.
+  const melhores = useMemo(() => melhoresDaTurma(relatorio?.alunos ?? []), [relatorio]);
+
   const colunasAlunos: ColunaTabela<RelatorioAluno>[] = [
     {
       // A identidade do aluno é o RP; o nome é o da conta dele, e pode
@@ -342,7 +347,12 @@ function Relatorios() {
       rotulo: 'PPM médio',
       campo: 'ppm',
       classe: 'col-numero',
-      celula: (a) => numero(a.wpmMedio),
+      celula: (a) => (
+        <>
+          {numero(a.wpmMedio)}
+          {melhores.ppm === a.id && <MarcaDoMelhor />}
+        </>
+      ),
     },
     {
       rotulo: 'Precisão média',
@@ -352,14 +362,26 @@ function Relatorios() {
         a.precisaoMedia != null && a.precisaoMedia < PRECISAO_DESTAQUE
           ? 'col-numero precisao-destaque'
           : 'col-numero',
-      celula: (a) => porcentagem(a.precisaoMedia),
+      celula: (a) => (
+        <>
+          {porcentagem(a.precisaoMedia)}
+          {melhores.precisao === a.id && <MarcaDoMelhor />}
+        </>
+      ),
     },
     {
       rotulo: 'Exercícios concluídos',
       campo: 'concluidos',
       classe: 'col-numero',
       celula: (a) =>
-        semSessao(a) ? '—' : `${contagem(a.exerciciosConcluidos)} de ${contagem(a.exerciciosAtribuidos)}`,
+        semSessao(a) ? (
+          '—'
+        ) : (
+          <>
+            {`${contagem(a.exerciciosConcluidos)} de ${contagem(a.exerciciosAtribuidos)}`}
+            {melhores.concluidos === a.id && <MarcaDoMelhor />}
+          </>
+        ),
     },
     {
       rotulo: 'Última atividade',
@@ -776,6 +798,54 @@ function identidade(aluno: RelatorioAluno): string {
 // calcular.
 function semSessao(aluno: RelatorioAluno): boolean {
   return !aluno.totalSessoes;
+}
+
+// ============================================================================
+// O melhor da turma
+// ============================================================================
+// Uma estrela por coluna, ao lado do MAIOR número dela — nunca em toda
+// linha. Comparar não é calcular: o número continua sendo o do back; a
+// tela só aponta qual é o maior.
+
+interface MelhoresDaTurma {
+  ppm: string | null;
+  precisao: string | null;
+  concluidos: string | null;
+}
+
+function melhoresDaTurma(alunos: RelatorioAluno[]): MelhoresDaTurma {
+  return {
+    ppm: idDoMelhor(alunos, (a) => a.wpmMedio),
+    precisao: idDoMelhor(alunos, (a) => a.precisaoMedia),
+    concluidos: idDoMelhor(alunos, (a) => (semSessao(a) ? null : a.exerciciosConcluidos)),
+  };
+}
+
+// O id do aluno com o maior valor, ou null quando não há um melhor de
+// verdade: menos de dois alunos com número (melhor que quem?), maior
+// valor zero (nada foi conquistado) ou empate no topo (a estrela seria
+// uma escolha arbitrária entre dois alunos iguais).
+function idDoMelhor(alunos: RelatorioAluno[], valorDe: (aluno: RelatorioAluno) => number | null): string | null {
+  const comValor = alunos.filter((a) => valorDe(a) != null);
+  if (comValor.length < 2) return null;
+
+  const maior = Math.max(...comValor.map(valorDe));
+  if (maior <= 0) return null;
+
+  const noTopo = comValor.filter((a) => valorDe(a) === maior);
+  if (noTopo.length > 1) return null;
+  return noTopo[0].id;
+}
+
+// A estrela diz "o melhor da turma" só para quem vê; o texto sr-only diz
+// o mesmo para quem ouve — ali a estrela é a única informação.
+function MarcaDoMelhor() {
+  return (
+    <span className="marca-do-melhor">
+      <Estrela tamanho={13} />
+      <span className="sr-only">, o melhor da turma</span>
+    </span>
+  );
 }
 
 function linkDaTurma(turmaId: string): string {

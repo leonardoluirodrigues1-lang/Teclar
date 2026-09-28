@@ -8,7 +8,8 @@
 // e termina num troféu; as setas da faixa do topo trocam de nível.
 //
 // Cada pedra é uma tecla redonda com o número da lição:
-//   · concluída        — face clara, número escuro;
+//   · concluída        — face clara, estrela escura no lugar do número e
+//                        uma faísca menor na quina;
 //   · a próxima a fazer — face clara, ícone de teclado, anel de luz e o
 //                        balão "Começar" em cima;
 //   · ainda não feita  — face escura, número apagado.
@@ -43,6 +44,7 @@ import type { ErroDaApi, Missao, SessaoSolo } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Estrela } from '../componentes/Estrela.js';
 import { Tutorial } from './Tutorial.js';
 import {
   agruparPorNivel,
@@ -222,6 +224,12 @@ function numeroDaPosicao(posicao: number): string {
   return String(posicao).padStart(2, '0');
 }
 
+function ConteudoDaPedra({ estado, posicao }: { estado: EstadoDaPedra; posicao: number }) {
+  if (estado === 'proxima') return <IconeTeclado />;
+  if (estado === 'feita') return <Estrela tamanho={30} forma="escura" />;
+  return <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>;
+}
+
 interface PropsPedra {
   licao: Missao;
   /** 1, 2, 3… dentro do nível. */
@@ -254,9 +262,16 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto }: PropsPedra) {
           <span className="caminho-halo" aria-hidden="true" />
         </>
       )}
+      {/* A pedra concluída troca o número pela estrela. Quem ouve não
+          perde nada: o rótulo já diz a posição e "concluída". */}
       <a className={`pedra pedra-${estado} ${classeTecla}`} href={hrefDoTreino(licao)} aria-label={rotulo}>
-        {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
+        <ConteudoDaPedra estado={estado} posicao={posicao} />
       </a>
+      {estado === 'feita' && (
+        <span className="caminho-faisca">
+          <Estrela tamanho={14} />
+        </span>
+      )}
       {repete && (
         <span className="caminho-repeticoes" aria-hidden="true">
           {licao.repeticoes}×

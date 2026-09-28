@@ -27,7 +27,7 @@ import {
   validarSenha,
   validarConfirmacao,
 } from '../utils/validacao.js';
-import { montarEstrelas, mensagemDoErro, ehConflito } from './comum.js';
+import { mensagemDoErro, ehConflito } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { formatarRp } from '../utils/formato.js';
@@ -340,7 +340,6 @@ function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
 
 // Quem já está logado não tem o que fazer criando conta.
 if (!guarda.redirecionarSeLogado()) {
-  montarEstrelas(document.getElementById('estrelas'));
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 1 });
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Cadastro />);

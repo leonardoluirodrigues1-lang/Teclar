@@ -72,6 +72,7 @@ import type {
 import { PainelErro } from '../componentes/PainelErro.js';
 import { progressoDe, type ProgressoXp } from '../componentes/BarraXp.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Estrela } from '../componentes/Estrela.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import {
   maisRecentesPrimeiro,
@@ -360,7 +361,9 @@ function PainelSequencia({ dias, sequencia, sessoes }: PropsSequencia) {
       <ul className="lobby-dias" aria-label="Seus dias de treino nesta semana">
         {dias.map((dia) => (
           <li className="lobby-dia" key={dia.dia}>
-            <span className={classeDoQuadrado(dia)} aria-hidden="true" />
+            <span className={classeDoQuadrado(dia)} aria-hidden="true">
+              {dia.treinou && <Estrela tamanho={16} forma="escura" />}
+            </span>
             <b className="lobby-dia-inicial" aria-hidden="true">
               {dia.inicial}
             </b>

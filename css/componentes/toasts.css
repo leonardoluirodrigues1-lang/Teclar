@@ -33,6 +33,9 @@
     opacity var(--t-medio, 240ms) var(--curva, ease-out),
     transform var(--t-medio, 240ms) var(--curva, ease-out);
 }
+/* A estrela do toast de conquista (toast.ts), antes do texto. */
+.toast .estrela { margin-right: 10px; }
+
 .toast.visivel {
   opacity: 1;
   transform: translate3d(0, 0, 0);

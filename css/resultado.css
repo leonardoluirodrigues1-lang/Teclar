@@ -176,6 +176,8 @@ a { color: inherit; text-decoration: none; }
   font-variant-numeric: tabular-nums;
 }
 .xp .selo { margin-bottom: 14px; }
+/* A estrela de conquista (js/componentes/Estrela.tsx) antes do texto do selo. */
+.selo .estrela { margin-right: 8px; }
 .selo-recorde {
   margin-top: 22px;
   color: var(--cor-texto-suave, #c4c4c4);

@@ -837,6 +837,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 
 .lobby-quad {
+  /* grid: centraliza a estrela do dia com treino. */
+  display: grid;
+  place-items: center;
   width: 42px;
   height: 42px;
   border-radius: var(--raio-n, 8px);
@@ -1657,6 +1660,15 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.76));
   border-color: transparent;
   color: rgba(0, 0, 0, 0.72);
+}
+
+/* A faísca: a estrela menor que sai da quina da pedra concluída. Fica no
+   .caminho-passo, fora do link, para não entrar no que se clica. */
+.caminho-faisca {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  pointer-events: none;
 }
 
 /* A próxima a fazer: a face mais clara da tela, com o teclado no meio. */

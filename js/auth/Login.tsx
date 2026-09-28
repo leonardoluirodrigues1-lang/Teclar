@@ -27,7 +27,7 @@ import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
 import type { RespostaLogin } from '../nucleo/tipos.js';
 import { validarEmail, validarSenhaLogin, validarRp, normalizarRp } from '../utils/validacao.js';
-import { montarEstrelas, mensagemDoErro, MENSAGENS } from './comum.js';
+import { mensagemDoErro, MENSAGENS } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -344,8 +344,6 @@ function Login() {
 // Quem já está logado não deveria ver esta tela — vai direto para a casa
 // da sessão. Quando redireciona, nada abaixo roda.
 if (!guarda.redirecionarSeLogado()) {
-  montarEstrelas(document.getElementById('estrelas'));
-
   // Sessão expirada: avisa por que a pessoa está aqui de novo, em vez de
   // deixá-la achar que o app simplesmente a jogou fora.
   if (new URLSearchParams(window.location.search).get('expirou') === '1') {

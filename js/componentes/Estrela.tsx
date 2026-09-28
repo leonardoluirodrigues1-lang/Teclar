@@ -1,0 +1,76 @@
+// Estrela.tsx
+// A estrela de quatro pontas, desenhada à mão em SVG. É o símbolo de
+// CONQUISTA do site e só aparece onde houve uma: lição concluída, dia
+// treinado, recorde batido, nível que subiu, exercício entregue, melhor
+// número da turma, toast de acertos seguidos. Nunca como ícone de menu,
+// marcador de lista, separador nem enfeite.
+//
+// Quem usa: solo/Caminho.tsx, solo/Lobby.tsx, treino/Resultado.tsx,
+// professor/Relatorios.tsx, aluno/Sala.tsx e componentes/toast.ts.
+//
+// Duas formas:
+//   · clara  — branca com brilho em volta, para fundo escuro;
+//   · escura — preta sem brilho, para dentro de superfície clara (a pedra
+//              concluída, o dia com treino).
+//
+// Sempre aria-hidden: é desenho. Onde ela é a única informação, quem a
+// usa escreve o significado em texto (rótulo do botão ou texto sr-only).
+//
+// O estilo vai inline, e não numa folha CSS, porque a estrela entra em
+// lugares cujas folhas já estilizam "svg" (ex.: `.pedra svg` em solo.css
+// tira o preenchimento e põe contorno). Inline, nenhuma regra de fora
+// muda o desenho.
+
+import type { CSSProperties } from 'react';
+
+interface PropsEstrela {
+  /** Largura e altura, em px. */
+  tamanho: number;
+  /** De 0 a 1. A estrela apagada do "tempo esgotado" usa 0.3. */
+  opacidade?: number;
+  forma?: 'clara' | 'escura';
+}
+
+// A mesma cor do número escuro da pedra concluída (.pedra-feita em solo.css).
+const COR_ESCURA = 'rgba(0, 0, 0, 0.72)';
+
+// As quatro pontas: de cada ponta até a seguinte, uma curva que passa
+// perto do centro. Quanto menor o `miolo`, mais finas as pontas.
+function caminhoDaEstrela(tamanho: number): string {
+  const r = tamanho / 2;
+  const m = r * 0.22;
+  return (
+    `M0 ${-r} C ${m} ${-m} ${m} ${-m} ${r} 0 ` +
+    `C ${m} ${m} ${m} ${m} 0 ${r} ` +
+    `C ${-m} ${m} ${-m} ${m} ${-r} 0 ` +
+    `C ${-m} ${-m} ${-m} ${-m} 0 ${-r} Z`
+  );
+}
+
+export function Estrela({ tamanho, opacidade = 1, forma = 'clara' }: PropsEstrela) {
+  const clara = forma === 'clara';
+  const estilo: CSSProperties = {
+    display: 'inline-block',
+    flex: 'none',
+    verticalAlign: 'middle',
+    width: tamanho,
+    height: tamanho,
+    fill: clara ? '#fff' : COR_ESCURA,
+    stroke: 'none',
+    opacity: opacidade,
+    filter: clara ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.65))' : 'none',
+  };
+  const r = tamanho / 2;
+
+  return (
+    <svg
+      className="estrela"
+      style={estilo}
+      viewBox={`${-r} ${-r} ${tamanho} ${tamanho}`}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={caminhoDaEstrela(tamanho)} />
+    </svg>
+  );
+}
