@@ -25,11 +25,13 @@
 import { writeFileSync } from 'node:fs';
 import { deflateSync, crc32 } from 'node:zlib';
 
-// A abertura em tela grande: 1280px de .pagina menos 24px de cada lado,
-// por 520px de altura. O shader mede tudo pela altura, e o CSS usa "cover"
-// centrado: em tela mais estreita, os lados são cortados como o shader
-// cortaria.
-const LARGURA = 1232;
+// A abertura em tela grande tem 520px de altura e a largura da JANELA (o
+// horizonte sangra até a borda, ver .horizonte em css/escola.css). O
+// shader mede tudo pela altura, e o CSS põe a imagem com a altura da
+// seção, centrada: em janela mais estreita, os lados são cortados como o
+// shader cortaria. 2560 cobre até uma janela de 2560px; além disso, o que
+// faltaria já é quase preto no shader e some na máscara dos lados.
+const LARGURA = 2560;
 const ALTURA = 520;
 const SAIDA = 'assets/img/buraco-negro.png';
 

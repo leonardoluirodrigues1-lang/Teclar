@@ -209,30 +209,56 @@ ul { list-style: none; }
 /* Abertura: o horizonte de eventos com a marca por cima. O horizonte é o
    buraco negro em WebGL da landing (o <canvas> de Horizonte, em
    js/componentes/EntradaDoModo.tsx), DENTRO da seção — e não no .fundo
-   fixo. overflow: hidden corta na borda da seção: ao rolar, o horizonte
-   vai embora junto com ela. */
+   fixo: ao rolar, o horizonte vai embora junto com ela.
+
+   Corte só na vertical (overflow-y: clip): na horizontal o horizonte
+   sangra para fora da casca até a borda da janela (ver .horizonte).
+   "clip", e não "hidden": com hidden num eixo, o outro deixa de ser
+   visible e viraria rolagem. Navegador sem "clip" ignora a linha, e não
+   perde nada: o canvas tem a altura exata da seção. */
 .abertura {
   position: relative;
   height: 520px;
-  overflow: hidden;
+  overflow-x: visible;
+  overflow-y: clip;
   display: grid;
   place-items: center;
 }
 .horizonte {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  top: 0;
+  /* Largura da JANELA, centrada no meio da seção — que é o meio da
+     janela, porque a .pagina é centrada e tem o mesmo padding dos dois
+     lados. Assim o canvas ignora o max-width e o padding da casca, e a
+     marca continua no centro. Nunca mais largo que 100vw: o que passar
+     (a barra de rolagem entra no 100vw) o overflow-x: hidden do body
+     corta, sem rolagem lateral. */
+  left: 50%;
+  width: 100vw;
   height: 100%;
-  /* O shader escurece os lados, mas não o alto nem a base: sem a máscara,
-     a seção terminaria num corte reto sobre as estrelas do .fundo. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent);
+  transform: translateX(-50%);
+  /* Máscara nos quatro lados: uma faixa que some no alto e na base, outra
+     que some nos lados, e só fica o que as duas deixam (intersect). Todo
+     lado chega a transparente, então não sobra aresta sobre as estrelas
+     do .fundo. A versão -webkit- é para Safari e Chrome mais antigos,
+     que chamam o intersect de source-in. */
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent),
+    linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent),
+    linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+  mask-composite: intersect;
 }
 /* A versão parada: um quadro do mesmo shader, renderizado à parte. O
-   shader mede tudo pela altura, então "cover" centrado corta os lados
-   como ele cortaria numa tela mais estreita. */
+   shader mede tudo pela ALTURA (a largura só mostra mais ou menos dos
+   lados), então a imagem entra com a altura da seção e a largura que
+   der, centrada. A imagem é larga (gerar-buraco-negro.mjs) para cobrir
+   até janelas bem largas; o que passar dela já seria quase preto no
+   shader e cai na máscara dos lados. */
 .horizonte-estatico {
-  background: url("../assets/img/buraco-negro.png") center / cover no-repeat;
+  background: url("../assets/img/buraco-negro.png") center / auto 100% no-repeat;
 }
 
 /* A marca: grande, mono, letter-spacing largo. Os .42em são os mesmos da
