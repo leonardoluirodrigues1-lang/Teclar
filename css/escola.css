@@ -1761,8 +1761,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 /* --- a trilha dos exercícios ---------------------------------------------- */
 /* Quatro pedras por fileira, e a fileira seguinte volta: a coluna e a
-   fileira de cada pedra vêm do Sala.tsx (--coluna e --fileira). A pedra
-   é uma .tecla, com o relevo de css/base/luz.css. */
+   fileira de cada pedra vêm do TelaDaTurma.tsx (--coluna e --fileira). A
+   pedra é uma .tecla, com o relevo de css/base/luz.css. A altura acompanha
+   o número de fileiras: o grid só cria as fileiras que as pedras ocupam. */
 .trilha {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1770,6 +1771,15 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   margin-top: var(--e-6, 32px);
   padding: 0;
   list-style: none;
+}
+/* Até 3 pedras: uma linha só, centralizada. Uma coluna por pedra, cada uma
+   com a largura de uma coluna da trilha de quatro (25%): o espaço entre as
+   pedras é igual entre si e igual ao da trilha longa. Fica antes do
+   @media de tela estreita de propósito: lá, a regra da .trilha vem depois
+   e volta para duas por fileira. */
+.trilha-curta {
+  grid-template-columns: repeat(var(--quantas), 25%);
+  justify-content: center;
 }
 .trilha .no {
   grid-column: var(--coluna);
@@ -1883,6 +1893,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   /* Duas pedras por fileira e sem serpentear: a ordem é a da lista. */
   .trilha { grid-template-columns: repeat(2, 1fr); row-gap: var(--e-6, 32px); }
   .trilha .no { grid-column: auto; grid-row: auto; }
+  /* Uma pedra só ocupa as duas colunas, para ficar no centro e não na
+     metade esquerda. */
+  .trilha-curta .no:only-child { grid-column: 1 / -1; }
   .painel-relatorio { padding: var(--e-4, 16px); }
 }
 

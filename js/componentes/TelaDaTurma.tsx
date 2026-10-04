@@ -220,9 +220,20 @@ export interface PedraDaTrilha {
 // esquerda, como uma trilha que serpenteia (ver .trilha em escola.css).
 const PEDRAS_POR_FILEIRA = 4;
 
+// Até 3 exercícios não há caminho para serpentear: nas quatro colunas,
+// as pedras ficariam amontoadas à esquerda. Viram uma linha só,
+// centralizada, com uma coluna por pedra (--quantas, ver .trilha-curta em
+// escola.css). A posição de cada uma não muda: com menos de 4, todas já
+// caem na primeira fileira, da esquerda para a direita.
+const TRILHA_CURTA_ATE = 3;
+
 export function TrilhaDeExercicios({ pedras }: { pedras: PedraDaTrilha[] }) {
+  const curta = pedras.length <= TRILHA_CURTA_ATE;
+  const classe = curta ? 'trilha trilha-curta' : 'trilha';
+  const estilo = curta ? ({ '--quantas': pedras.length } as React.CSSProperties) : undefined;
+
   return (
-    <ol className="trilha">
+    <ol className={classe} style={estilo}>
       {pedras.map((pedra, i) => (
         <Pedra key={pedra.id} pedra={pedra} posicao={i} />
       ))}

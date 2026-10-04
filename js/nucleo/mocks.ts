@@ -585,7 +585,10 @@ export const dados: BancoMock = {
       professorId: 'u-2',
       nome: '9º Ano A — Manhã',
       totalAlunos: 4,
-      totalExercicios: 3,
+      // Oito: é a turma da trilha LONGA, que serpenteia (ver os ex-prof-8
+      // a ex-prof-12 em `exercicios`). As outras salas do aluno de teste
+      // ficam com a trilha curta.
+      totalExercicios: 8,
       periodo: '2026 · 1º semestre',
       capaSemente: 7001,
       ativa: true,
@@ -889,6 +892,54 @@ export const dados: BancoMock = {
       dificuldade: 'facil',
       tempoLimiteSegundos: 180,
     },
+    // Cinco a mais, só na turma-1, para a sala dela ter 8 exercícios e a
+    // trilha serpentear (4 por fileira, a segunda volta da direita). Os
+    // dois primeiros da turma o aluno de teste já fez, o ex-prof-7 é o
+    // próximo, e estes cinco são os seguintes: ninguém tem sessão neles.
+    // Por isso não mexem nos agregados dos alunos nem nos relatórios da
+    // turma-1, que só contam sessões; na visão do professor, cada pedra
+    // destes diz "0 de 4".
+    {
+      id: 'ex-prof-8',
+      professorId: 'u-2',
+      titulo: 'Fileira de baixo',
+      texto: 'Zebra, vaca e cobra: a fileira de baixo pede calma, um dedo de cada vez.',
+      dificuldade: 'facil',
+      tempoLimiteSegundos: 90,
+    },
+    {
+      id: 'ex-prof-9',
+      professorId: 'u-2',
+      titulo: 'Pontuação',
+      texto: 'Vírgula respira, ponto encerra; dois-pontos anunciam: e a pergunta termina assim?',
+      dificuldade: 'medio',
+      tempoLimiteSegundos: 120,
+    },
+    {
+      id: 'ex-prof-10',
+      professorId: 'u-2',
+      titulo: 'Maiúsculas',
+      texto: 'Em Belo Horizonte, Ana e Pedro leram O Pequeno Príncipe numa tarde de Março.',
+      dificuldade: 'medio',
+      tempoLimiteSegundos: 0,
+    },
+    {
+      id: 'ex-prof-11',
+      professorId: 'u-2',
+      titulo: 'Datas e horários',
+      texto: 'A prova é dia 12/06, às 7h45; a entrega vai até 19/06, às 23h59, sem atraso.',
+      dificuldade: 'dificil',
+      tempoLimiteSegundos: 150,
+    },
+    {
+      id: 'ex-prof-12',
+      professorId: 'u-2',
+      titulo: 'Parágrafo final',
+      texto:
+        'Digitar bem é ritmo antes de pressa: olhos no texto, dedos em casa, e a velocidade chega sozinha com o tempo.',
+      dificuldade: 'dificil',
+      tempoLimiteSegundos: 0,
+    },
     // O único exercício de leo (u-1). Não aparece na biblioteca de prof.
     {
       id: 'ex-prof-6',
@@ -913,6 +964,11 @@ export const dados: BancoMock = {
       { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: '2026-03-15' },
       { exerciseId: 'ex-prof-2', atribuidoEm: '2026-02-17', prazo: null },
       { exerciseId: 'ex-prof-7', atribuidoEm: '2026-03-20', prazo: null },
+      { exerciseId: 'ex-prof-8', atribuidoEm: '2026-03-24', prazo: null },
+      { exerciseId: 'ex-prof-9', atribuidoEm: '2026-03-27', prazo: '2026-04-15' },
+      { exerciseId: 'ex-prof-10', atribuidoEm: '2026-03-31', prazo: null },
+      { exerciseId: 'ex-prof-11', atribuidoEm: '2026-04-03', prazo: null },
+      { exerciseId: 'ex-prof-12', atribuidoEm: '2026-04-07', prazo: null },
     ],
     'turma-2': [
       { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: '2026-03-01' },
