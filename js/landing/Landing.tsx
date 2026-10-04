@@ -1,6 +1,6 @@
 // Landing.tsx — index.html
 // A página inicial em React. É a tela de MAIOR RISCO do projeto: o hero tem
-// um shader WebGL escrito à mão (buracoNegro.ts), três camadas de DOM
+// um shader WebGL escrito à mão (componentes/shaderBuracoNegro.ts), três camadas de DOM
 // gerado com semente fixa (letras.ts) e o reveal por palavra no scroll
 // (reveal.ts). Nada disso virou React. O componente faz só duas coisas:
 //   1. renderiza o mesmo markup que o index.html tinha (mesmas classes,
@@ -15,7 +15,7 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { iniciarBuracoNegro } from './buracoNegro.js';
+import { iniciarBuracoNegro } from '../componentes/shaderBuracoNegro.js';
 import { iniciarRaiosEParticulas, iniciarLetrasOrbitando, iniciarLetrasEspalhadas } from './letras.js';
 import { useRevelacao } from './reveal.js';
 
@@ -36,8 +36,19 @@ function Hero() {
   const scatter = useRef<HTMLDivElement>(null);
 
   // O WebGL: iniciarBuracoNegro devolve a própria limpeza (cancela o rAF,
-  // desliga os observadores, solta o contexto).
-  useLayoutEffect(() => iniciarBuracoNegro(canvas.current), []);
+  // desliga os observadores, solta o contexto). Sem WebGL ele devolve null
+  // e esconde o canvas, como sempre fez. Aqui o shader tem a tela só para
+  // ele: 40 quadros, pausa só quando o hero (#top) sai da tela, e segue
+  // desenhando sem foco — o mesmo de antes de ele sair da landing.
+  useLayoutEffect(
+    () =>
+      iniciarBuracoNegro(canvas.current, {
+        quadrosPorSegundo: 40,
+        area: document.getElementById('top'),
+        pausarSemFoco: false,
+      }) ?? undefined,
+    [],
+  );
 
   // As camadas: DOM direto dentro de hosts que o React não toca (não têm
   // filhos no JSX). Ao desmontar, esvazia os hosts.

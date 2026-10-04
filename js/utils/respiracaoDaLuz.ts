@@ -10,6 +10,11 @@
 //
 // Carregado por <script type="module"> em toda página que tem .disco, ao
 // lado do campoDeEstrelas.js. Sem este script, a luz só respira: nada some.
+//
+// Nas telas de turmas do Professor e de salas do Aluno, que trocaram o
+// .disco pelo buraco negro em WebGL, o mesmo veredito vale para ele: com
+// .luz-parada, a abertura troca o shader pela imagem estática (Horizonte,
+// em js/componentes/EntradaDoModo.tsx).
 
 // Abaixo de uns 40 quadros por segundo, o movimento já não é suave.
 const QUADRO_MAIS_LENTO_ACEITO_MS = 1000 / 40;

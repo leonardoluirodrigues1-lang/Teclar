@@ -1,14 +1,26 @@
 /* ==================================================================
-   HORIZONTE DE EVENTOS - shader animado
-   No original o shader era desenhado UMA vez com uTime=0 e uMotion=0,
-   entao o buraco negro ficava congelado. Agora roda em loop.
+   shaderBuracoNegro.ts
+   HORIZONTE DE EVENTOS - o buraco negro em WebGL, animado em loop.
+   Nasceu no hero da landing (js/landing/Landing.tsx) e saiu de la para
+   ser usado tambem na abertura das telas de turmas do Professor e de
+   salas do Aluno (Abertura, em js/componentes/EntradaDoModo.tsx).
 
-   Modulo ES puro, sem React: o Landing.tsx so monta o <canvas> e chama
-   iniciarBuracoNegro() num useEffect. O loop NAO passa por estado React
+   Modulo ES puro, sem React: quem usa monta o <canvas> e chama
+   iniciarBuracoNegro() num efeito. O loop NAO passa por estado React
    (um setState por frame destruiria a performance); ele fala direto
-   com o WebGL, como sempre falou. A unica diferenca da versao .js e que
-   a funcao devolve a limpeza (cancelar o rAF, desligar observadores e
-   soltar o contexto) para o useEffect usar ao desmontar.
+   com o WebGL. A funcao devolve a limpeza (cancelar o rAF, desligar
+   observadores e soltar o contexto) para o efeito usar ao desmontar.
+
+   O que muda de um lugar para o outro vem nas opcoes: o teto de
+   quadros, a area que precisa estar na tela e a pausa sem foco. O
+   shader e o mesmo nos dois.
+
+   ATENCAO: existe uma traducao manual deste shader, de GLSL para JS, em
+   gerar-buraco-negro.mjs (na raiz). Ela gera a imagem estatica
+   (assets/img/buraco-negro.png) que a abertura mostra com menos
+   movimento, sem WebGL ou em maquina fraca. Mexeu no FRAG aqui? Atualize
+   a traducao la e rode npm run buraco-negro, senao a imagem parada deixa
+   de ser o mesmo desenho da animacao.
    ================================================================== */
 const VERT = `
 attribute vec2 aPos;
@@ -169,11 +181,14 @@ void main() {
 }
 `;
 
+/* Shader que nao compila e tratado como WebGL indisponivel: quem usa cai
+   no que tiver no lugar (a imagem estatica, na abertura). Por isso um
+   aviso, e nao um erro: a tela continua certa. */
 function compile(gl:WebGLRenderingContext,type:number,src:string):WebGLShader|null{
   const sh=gl.createShader(type);
   gl.shaderSource(sh,src); gl.compileShader(sh);
   if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){
-    console.error(gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null;
+    console.warn(gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null;
   }
   return sh;
 }
@@ -181,24 +196,31 @@ function compile(gl:WebGLRenderingContext,type:number,src:string):WebGLShader|nu
 /** Desfaz tudo o que iniciarBuracoNegro() ligou. Sem efeito na 2a chamada. */
 export type PararBuracoNegro = () => void;
 
-const NADA_A_PARAR: PararBuracoNegro = () => {};
+export interface OpcoesBuracoNegro {
+  /** Teto de quadros por segundo: o shader e caro. */
+  quadrosPorSegundo: number;
+  /** Enquanto este elemento estiver fora da tela, nada e desenhado. */
+  area: Element;
+  /** Tambem para de desenhar quando a janela perde o foco. */
+  pausarSemFoco: boolean;
+}
 
 /* Recebe o canvas do buraco negro e inicia o WebGL: compila o programa,
    define o tamanho do canvas e comeca o loop de animacao.
    Devolve a funcao que para o loop e solta o contexto (limpeza do
-   useEffect). Quando o WebGL nao esta disponivel ou o shader nao
-   compila, devolve uma limpeza vazia -- nao ha nada ligado. */
-export function iniciarBuracoNegro(canvas:HTMLCanvasElement):PararBuracoNegro{
+   efeito). Quando o WebGL nao esta disponivel ou o shader nao compila,
+   devolve null: nada foi ligado, e quem chamou decide o que mostrar. */
+export function iniciarBuracoNegro(canvas:HTMLCanvasElement,opcoes:OpcoesBuracoNegro):PararBuracoNegro|null{
   /* 'experimental-webgl' nao tem overload tipado no lib.dom, dai o cast */
   const gl=(canvas.getContext('webgl',{antialias:false,alpha:false,powerPreference:'high-performance'})
         || canvas.getContext('experimental-webgl')) as WebGLRenderingContext|null;
-  if(!gl){canvas.style.display='none';return NADA_A_PARAR;}
+  if(!gl){canvas.style.display='none';return null;}
 
   const vs=compile(gl,gl.VERTEX_SHADER,VERT), fs=compile(gl,gl.FRAGMENT_SHADER,FRAG);
-  if(!vs||!fs) return NADA_A_PARAR;
+  if(!vs||!fs) return null;
   const prog=gl.createProgram();
   gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
-  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(prog));return NADA_A_PARAR;}
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn(gl.getProgramInfoLog(prog));return null;}
   gl.useProgram(prog);
 
   const buf=gl.createBuffer();
@@ -229,14 +251,29 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement):PararBuracoNegro{
   const ro=new ResizeObserver(resize);
   ro.observe(canvas);
 
-  /* pausa quando o hero sai da tela, pra nao gastar GPU a toa */
+  /* pausa quando a area sai da tela, pra nao gastar GPU a toa */
   let visivel=true;
   const io=new IntersectionObserver(e=>{visivel=e[0].isIntersecting},{threshold:0});
-  io.observe(document.getElementById('top'));
+  io.observe(opcoes.area);
+
+  /* Pausa sem foco: onde o buraco negro divide a tela com conteudo, nao
+     faz sentido a GPU trabalhar para uma janela que ninguem esta olhando.
+     Comeca em true: quem abriu a pagina esta nela, e o primeiro quadro
+     precisa sair mesmo que o foco ainda esteja em outro lugar. */
+  let comFoco=true;
+  function perdeuFoco(){comFoco=false;}
+  function ganhouFoco(){comFoco=true;}
+  if(opcoes.pausarSemFoco){
+    window.addEventListener('blur',perdeuFoco);
+    window.addEventListener('focus',ganhouFoco);
+  }
 
   const t0=performance.now();
   let ultimo=0;
-  const INTERVALO=1000/40;   /* teto de 40fps: o shader e caro */
+  /* O rAF bate a cada ~16,7ms; um teto de 30fps quer um quadro a cada
+     33,3ms, e a diferenca entre dois rAF pode dar 33,2 por arredondamento.
+     A folga de 1ms evita pular um quadro a toa e cair para 20fps. */
+  const INTERVALO=1000/opcoes.quadrosPorSegundo-1;
 
   /* A resolucao e escolhida UMA vez e nao muda mais.
      A versao anterior tinha um auto-degrade que somava frames lentos
@@ -244,11 +281,14 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement):PararBuracoNegro{
      acabava baixando a qualidade e nunca voltava. */
 
   let raf=0;
+  let desenhou=false;
   function frame(now:number){
     raf=requestAnimationFrame(frame);
-    if(!visivel){ ultimo=0; return; }        /* volta zerado ao reaparecer */
+    /* sem foco, so depois do primeiro quadro: senao o canvas fica preto */
+    if(!visivel || (!comFoco && desenhou)){ ultimo=0; return; }   /* volta zerado ao reaparecer */
     if(ultimo && now-ultimo < INTERVALO) return;
     ultimo=now;
+    desenhou=true;
 
     gl.viewport(0,0,canvas.width,canvas.height);
     gl.uniform2f(uRes,canvas.width,canvas.height);
@@ -262,7 +302,7 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement):PararBuracoNegro{
   }
   raf=requestAnimationFrame(frame);
 
-  /* Limpeza para o useEffect: para o loop, desliga os observadores,
+  /* Limpeza para o efeito: para o loop, desliga os observadores,
      devolve os recursos da GPU e solta o contexto. Sem isso, desmontar
      o componente deixaria o rAF rodando para sempre num canvas orfao. */
   let parado=false;
@@ -270,6 +310,8 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement):PararBuracoNegro{
     if(parado) return; parado=true;
     cancelAnimationFrame(raf);
     ro.disconnect(); io.disconnect();
+    window.removeEventListener('blur',perdeuFoco);
+    window.removeEventListener('focus',ganhouFoco);
     gl.deleteBuffer(buf);
     gl.deleteProgram(prog);
     gl.deleteShader(vs); gl.deleteShader(fs);

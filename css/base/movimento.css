@@ -195,8 +195,9 @@
    de luz. Nada de filtro nem de tamanho: filtro animado recalcularia o
    desfoque a cada quadro. O campo de estrelas não anima.
 
-   Onde não respira, sem regra nenhuma: a landing e a tela de treino não
-   têm .disco (a landing tem o WebGL dela; no treino, nada se mexe na
+   Onde não respira, sem regra nenhuma: a landing, as telas de turmas do
+   Professor e de salas do Aluno e a tela de treino não têm .disco (as três
+   primeiras têm o buraco negro em WebGL; no treino, nada se mexe na
    periferia enquanto se digita).
 
    Máquina fraca: js/utils/respiracaoDaLuz.ts mede os quadros logo depois

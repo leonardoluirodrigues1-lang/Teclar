@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "contrato": "node gerar-contrato.mjs"
+    "contrato": "node gerar-contrato.mjs",
+    "buraco-negro": "node gerar-buraco-negro.mjs"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",

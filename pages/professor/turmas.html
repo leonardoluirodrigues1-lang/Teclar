@@ -34,9 +34,9 @@
 <body>
 
 <!-- Fundo fixo: s&oacute; as estrelas e o gr&atilde;o (css/base/luz.css). Nesta tela o
-     horizonte de eventos (o .disco) N&Atilde;O fica aqui: ele vive dentro da
-     abertura, no topo da p&aacute;gina, e vai embora junto com ela ao rolar (ver
-     a Abertura em js/professor/Turmas.tsx). -->
+     horizonte de eventos (o buraco negro em WebGL da landing) N&Atilde;O fica aqui:
+     ele vive dentro da abertura, no topo da p&aacute;gina, e vai embora junto com
+     ela ao rolar (ver a Abertura em js/componentes/EntradaDoModo.tsx). -->
 <div class="fundo grao" aria-hidden="true">
   <div class="fundo-estrelas"></div>
 </div>
@@ -50,7 +50,8 @@
 
 <!-- O campo de estrelas do fundo (js/componentes/campoDeEstrelas.ts). -->
 <script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
-<!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
+<!-- Mede os quadros: em m&aacute;quina lenta, o horizonte da abertura vira a
+     imagem est&aacute;tica (js/utils/respiracaoDaLuz.ts). -->
 <script type="module" src="../../js/utils/respiracaoDaLuz.js"></script>
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
 <script type="module" src="../../js/professor/Turmas.js"></script>

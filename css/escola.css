@@ -207,10 +207,10 @@ ul { list-style: none; }
 }
 
 /* Abertura: o horizonte de eventos com a marca por cima. O horizonte é o
-   mesmo .disco de css/base/luz.css (e respira pela mesma regra de
-   movimento.css), só que aqui DENTRO da seção, centrado e menor — e não
-   no .fundo fixo. overflow: hidden corta a luz na borda da seção: ao
-   rolar, o horizonte vai embora junto com ela. */
+   buraco negro em WebGL da landing (o <canvas> de Horizonte, em
+   js/componentes/EntradaDoModo.tsx), DENTRO da seção — e não no .fundo
+   fixo. overflow: hidden corta na borda da seção: ao rolar, o horizonte
+   vai embora junto com ela. */
 .abertura {
   position: relative;
   height: 520px;
@@ -218,13 +218,21 @@ ul { list-style: none; }
   display: grid;
   place-items: center;
 }
-.abertura .disco {
-  top: 50%;
-  left: 50%;
-  /* 0.68: o buraco (raio 290px no luz.css) fica com uns 200px de raio e
-     cabe inteiro na altura da seção. */
-  transform: translate(-50%, -50%) rotate(8deg) scale(0.68);
-  --disco-lado-aceso: 210deg;
+.horizonte {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* O shader escurece os lados, mas não o alto nem a base: sem a máscara,
+     a seção terminaria num corte reto sobre as estrelas do .fundo. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 72%, transparent);
+}
+/* A versão parada: um quadro do mesmo shader, renderizado à parte. O
+   shader mede tudo pela altura, então "cover" centrado corta os lados
+   como ele cortaria numa tela mais estreita. */
+.horizonte-estatico {
+  background: url("../assets/img/buraco-negro.png") center / cover no-repeat;
 }
 
 /* A marca: grande, mono, letter-spacing largo. Os .42em são os mesmos da
@@ -1131,7 +1139,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 @media (max-width: 900px) {
   .abertura { height: 340px; }
-  .abertura .disco { transform: translate(-50%, -50%) rotate(8deg) scale(0.46); }
   .funcoes { grid-template-columns: 1fr; }
 }
 
@@ -1876,6 +1883,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   /* O céu (estrelas e grão), o horizonte e tudo o que é navegação. */
   .fundo,
   .disco,
+  .horizonte,
   .conta-fixa,
   .barra,
   .voltar,

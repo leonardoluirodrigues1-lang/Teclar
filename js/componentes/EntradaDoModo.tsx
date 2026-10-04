@@ -10,14 +10,16 @@
 //   CartaoDeTurma  capa gerada, nome e a linha em mono; o rodapé é de
 //                  quem usa (contagens no professor, progresso no aluno)
 //
-// Desenho em css/escola.css. O vidro, o relevo de tecla, a luz e o grão
-// são as classes de css/base/ e css/componentes/ (.vidro, .tecla, .disco):
-// nenhuma receita é repetida aqui.
+// Desenho em css/escola.css. O vidro, o relevo de tecla e o grão são as
+// classes de css/base/ e css/componentes/ (.vidro, .tecla): nenhuma
+// receita é repetida aqui. O horizonte da abertura é o shader da landing
+// (shaderBuracoNegro.ts).
 
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { sessao } from '../nucleo/sessao.js';
 import { rng } from '../landing/letras.js';
 import { MenuDaConta, type SecoesNav } from './Nav.js';
+import { iniciarBuracoNegro } from './shaderBuracoNegro.js';
 
 // ============================================================================
 // Conta fixa no canto
@@ -47,7 +49,7 @@ export function ContaFixa({ secoes, papel }: PropsContaFixa) {
 // Abertura
 // ============================================================================
 
-// O horizonte é o .disco de css/base/luz.css, posto dentro da seção (ver
+// O horizonte é o buraco negro da landing, posto dentro da seção (ver
 // .abertura em escola.css): ao rolar, vai embora junto com ela. A marca se
 // digita com a MESMA animação da landing (.teclar-typed-word, em
 // css/base/movimento.css). O leitor de tela lê só o "TECLAR" do sr-only, e
@@ -55,7 +57,7 @@ export function ContaFixa({ secoes, papel }: PropsContaFixa) {
 export function Abertura() {
   return (
     <section className="abertura">
-      <div className="disco" aria-hidden="true"></div>
+      <Horizonte />
       <p className="marca-abertura">
         <span className="sr-only">TECLAR</span>
         <span className="teclar-typed-word" aria-hidden="true">
@@ -65,6 +67,65 @@ export function Abertura() {
       </p>
     </section>
   );
+}
+
+// Aqui o buraco negro divide a tela com conteúdo, diferente da landing, em
+// que ele é a tela. Por isso ele é mais contido: 30 quadros, para fora da
+// tela e sem foco. E tem uma versão estática, a imagem de um quadro do
+// mesmo shader (assets/img/buraco-negro.png, via .horizonte-estatico), que
+// entra quando a animação não deve ou não pode rodar:
+//   · menos movimento pedido (pelo sistema ou nas Configurações do Solo):
+//     entra direto, o shader nem liga;
+//   · sem WebGL (ou shader que não compila): o shader devolve null;
+//   · máquina fraca: o medidor de quadros que já existe
+//     (js/utils/respiracaoDaLuz.ts) põe .luz-parada no <html>. Daí em
+//     diante fica a imagem, e a animação não volta até a próxima página.
+const QUADROS_DA_ABERTURA = 30;
+
+function querMenosMovimento(): boolean {
+  if (document.documentElement.classList.contains('movimento-reduzido')) return true;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function maquinaLenta(): boolean {
+  return document.documentElement.classList.contains('luz-parada');
+}
+
+function Horizonte() {
+  const [estatico, setEstatico] = useState(() => querMenosMovimento() || maquinaLenta());
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (estatico) return;
+
+    const parar = iniciarBuracoNegro(canvas.current, {
+      quadrosPorSegundo: QUADROS_DA_ABERTURA,
+      area: canvas.current,
+      pausarSemFoco: true,
+    });
+    if (!parar) {
+      setEstatico(true);
+      return;
+    }
+
+    // O medidor mede uns segundos depois de a página carregar, com o
+    // shader já rodando, e marca o <html> se faltar quadro. Observar a
+    // classe é esperar por esse veredito sem mexer no medidor.
+    const observador = new MutationObserver(() => {
+      if (maquinaLenta()) setEstatico(true);
+    });
+    observador.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    // Ao trocar para a imagem, esta limpeza para o loop e solta o contexto
+    // do WebGL: a GPU fica livre de vez.
+    return () => {
+      observador.disconnect();
+      parar();
+    };
+  }, [estatico]);
+
+  if (estatico) return <div className="horizonte horizonte-estatico" aria-hidden="true"></div>;
+  return <canvas className="horizonte" ref={canvas} aria-hidden="true"></canvas>;
 }
 
 // ============================================================================
