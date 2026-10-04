@@ -128,7 +128,10 @@ function Login() {
       requisicao: () =>
         api.auth.entrar({
           email: email.current.value.trim(),
-          senha: senha.current.value,
+          // Aparada: um espaço colado junto não pode virar "senha
+          // incorreta". O cadastro não aceita espaço nas pontas, então
+          // nenhuma senha certa muda com isso (ver validarSenha).
+          senha: senha.current.value.trim(),
         }),
       credenciais: MENSAGENS.CREDENCIAIS,
       mostrarErro: setErroConta,
@@ -154,7 +157,9 @@ function Login() {
           perfil: 'Aluno',
           // Vai sem espaço e em maiúscula, a forma em que o back guarda.
           rp: normalizarRp(rp.current.value),
-          senha: senhaAluno.current.value,
+          // Aparada pelo mesmo motivo da senha de conta. A senha de aluno é
+          // gerada pelo back e não tem espaço nas pontas.
+          senha: senhaAluno.current.value.trim(),
         }),
       credenciais: MENSAGENS.CREDENCIAIS_ALUNO,
       mostrarErro: setErroAluno,

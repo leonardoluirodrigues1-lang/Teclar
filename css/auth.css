@@ -481,3 +481,5 @@ ul { list-style: none; }
 .entrada-aviso strong { font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
 
 .entrada-continuar { margin-top: var(--e-5, 24px); }
+/* "Copiar RP e senha": logo abaixo da lista, antes do aviso. */
+.entrada-copiar-tudo { margin-top: var(--e-4, 16px); }

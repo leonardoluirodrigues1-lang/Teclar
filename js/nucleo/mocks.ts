@@ -1986,16 +1986,18 @@ const rotas: [string, RegExp, Handler][] = [
     'POST',
     montarRegex('/auth/login'),
     (params, corpo) => {
+      // As pontas da senha são aparadas, como o back faz: o cadastro não
+      // aceita senha com espaço nas pontas, então nenhuma senha certa muda.
+      const senha = String(corpo?.senha ?? '').trim();
+
       if (corpo?.perfil === 'Aluno') {
         // O back aceita o RP com espaço ou minúsculo, como a tela.
         const rp = String(corpo?.rp ?? '').replace(/\s+/g, '').toUpperCase();
-        return exigirConta(CONTAS.find((c) => c.rp === rp && c.senha === corpo?.senha));
+        return exigirConta(CONTAS.find((c) => c.rp === rp && c.senha === senha));
       }
 
       const email = normalizarEmail(corpo?.email);
-      return exigirConta(
-        CONTAS.find((c) => normalizarEmail(c.email) === email && c.senha === corpo?.senha)
-      );
+      return exigirConta(CONTAS.find((c) => normalizarEmail(c.email) === email && c.senha === senha));
     },
   ],
 
@@ -2007,6 +2009,14 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/auth/cadastro'),
     (params, corpo) => {
       const email = normalizarEmail(corpo?.email);
+
+      // O login apara as pontas da senha antes de enviar: uma senha
+      // gravada com espaço na ponta nunca mais bateria. A tela já barra
+      // isso (validarSenha); aqui o mock barra como o back vai barrar.
+      const senha = String(corpo?.senha ?? '');
+      if (senha !== senha.trim()) {
+        throw erro(400, 'A senha não pode começar nem terminar com espaço.', 'DADOS_INVALIDOS');
+      }
 
       // 409 é o erro que a tela mostra NO CAMPO do e-mail, com link para o
       // login. leo@teclar.dev é o caminho garantido para testar isso.

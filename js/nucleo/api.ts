@@ -316,6 +316,12 @@ export const api = {
     // @back O `tipo` é a tabela em que o back autenticou ('conta' = Users,
     //   'aluno' = Alunos), nunca o que a tela mandou. O RP aceita espaço e
     //   minúscula ("rp 2025043"): o back normaliza antes de procurar.
+    //   A tela apara as pontas da senha (de conta e de aluno) antes de
+    //   enviar; o back faz o mesmo antes de comparar o hash.
+    // @nota Senha colada costuma trazer um espaço ou uma quebra de linha no
+    //   fim, e isso virava "senha incorreta". Aparar no login só é seguro
+    //   porque nenhuma senha válida tem espaço nas pontas: ver a regra no
+    //   POST /auth/cadastro e no POST /conta/rp/nova-senha.
     entrar: (credenciais: Credenciais) =>
       postPublico<RespostaLogin>('/auth/login', credenciais),
 
@@ -326,13 +332,20 @@ export const api = {
     //   { "token": "...", "usuario": { "id": "u-9", "nome": "Henrique Lima",
     //     "email": "prof@teclar.dev", "tipo": "conta" },
     //     "rp": "RP2026117", "senhaAluno": "Kx7#pq2M" }
-    // @erros 409 EMAIL_EM_USO — o e-mail já tem conta
+    // @erros 400 DADOS_INVALIDOS — a senha começa ou termina com espaço
+    //   409 EMAIL_EM_USO — o e-mail já tem conta
     // @identidade Pública.
     // @back Cria a linha em Users E a linha em Alunos (com Alunos.UserID
     //   apontando para a conta nova), gerando o RP e a senha de aluno.
     //   senhaAluno sai em texto puro SÓ nesta resposta; depois o back
     //   guarda apenas o hash.
+    //   Recusa senha que comece ou termine com espaço (no meio pode), e
+    //   grava a senha como veio, sem aparar. A senha de aluno gerada também
+    //   nunca tem espaço nas pontas.
     // @nota Quem acabou de se cadastrar não passa pelo login de novo.
+    //   A regra do espaço existe porque o login apara as pontas da senha:
+    //   uma conta criada com "abc12345 " nunca mais entraria. A tela já
+    //   barra antes de enviar, mas o back precisa barrar também.
     cadastrar: ({ nome, email, senha }: DadosCadastro) =>
       postPublico<RespostaCadastro>('/auth/cadastro', { nome, email, senha }),
 
@@ -372,7 +385,8 @@ export const api = {
     //   404 NAO_ENCONTRADO — a conta não tem RP
     // @identidade O token. Sem parâmetro: troca sempre a senha da própria conta.
     // @back Gera a senha, grava só o hash e invalida a antiga na mesma hora.
-    //   Não existe rota de LEITURA da senha de aluno.
+    //   Não existe rota de LEITURA da senha de aluno. A senha gerada nunca
+    //   tem espaço nas pontas: o login apara antes de enviar.
     novaSenhaAluno: () => post<NovaSenhaAluno>('/conta/rp/nova-senha'),
   },
 

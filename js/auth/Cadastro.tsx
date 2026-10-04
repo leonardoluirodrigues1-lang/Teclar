@@ -32,6 +32,7 @@ import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formu
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { formatarRp } from '../utils/formato.js';
 import { DadosDeEntrada } from '../componentes/DadosDeEntrada.js';
+import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
 import type { RespostaCadastro } from '../nucleo/tipos.js';
 
 // O host dos toasts fica fora da raiz do React (ver cadastro.html), e o
@@ -320,6 +321,14 @@ function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
             rotuloCopiar: 'Copiar senha',
           },
         ]}
+      />
+
+      {/* Os dois de uma vez, em duas linhas, para colar num bloco de notas
+          ou mandar para si mesmo sem copiar campo por campo. */}
+      <BotaoCopiar
+        texto={`RP: ${resposta.rp}\nSenha de aluno: ${resposta.senhaAluno}`}
+        rotulo="Copiar RP e senha"
+        className="btn btn-vidro vidro tecla entrada-copiar-tudo"
       />
 
       <p className="entrada-aviso" role="note">

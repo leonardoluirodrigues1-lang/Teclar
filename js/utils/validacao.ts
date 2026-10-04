@@ -53,12 +53,17 @@ export function validarEmail(valor: unknown): Validacao {
   return null;
 }
 
-// Senha NÃO leva trim: espaço é caractere de senha como qualquer outro, e
-// cortá-lo aqui faria o front validar uma senha diferente da que é enviada.
-/** Mínimo de 8 caracteres, com pelo menos uma letra e um número. */
+// O login apara as pontas da senha (um espaço colado junto fazia a pessoa
+// tomar "senha incorreta" sem motivo). Para isso não trancar ninguém para
+// fora, o cadastro recusa senha que comece ou termine com espaço: assim
+// nenhuma senha válida perde nada no trim. Espaço no MEIO continua valendo.
+// Aqui não se apara nada: a senha validada é exatamente a que é enviada.
+/** Mínimo de 8 caracteres, com pelo menos uma letra e um número, sem
+ *  espaço nas pontas. */
 export function validarSenha(valor: unknown): Validacao {
   const senha = String(valor ?? '');
   if (senha.length === 0) return 'Informe uma senha.';
+  if (senha !== senha.trim()) return 'A senha não pode começar nem terminar com espaço.';
   if (senha.length < LIMITES.SENHA_MIN) return 'A senha precisa de pelo menos 8 caracteres.';
   if (!TEM_LETRA.test(senha) || !TEM_NUMERO.test(senha)) {
     return 'A senha precisa ter pelo menos uma letra e um número.';
@@ -137,9 +142,15 @@ export function validarTempoLimite(valor: unknown): Validacao {
 // não seguir a regra de hoje. Só se confere que o campo não está vazio —
 // quem julga o resto é o back.
 
-/** Campo de senha do login: só não pode estar vazio. */
+// A senha do login é aparada nas pontas, a de conta e a de aluno: quem cola
+// a senha costuma trazer um espaço ou uma quebra de linha junto. A senha de
+// aluno é gerada pelo back e não tem espaço; a de conta não pode ter espaço
+// nas pontas desde o cadastro (ver validarSenha).
+
+/** Campo de senha do login: só não pode estar vazio. Só espaço conta como
+ *  vazio, porque é aparado antes de ir para o back (ver Login.tsx). */
 export function validarSenhaLogin(valor: unknown): Validacao {
-  return String(valor ?? '').length === 0 ? 'Informe a senha.' : null;
+  return String(valor ?? '').trim().length === 0 ? 'Informe a senha.' : null;
 }
 
 // --- RP (a identificação de aluno de cada conta) ---------------------------
