@@ -7,25 +7,14 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Base mínima (reset.css do projeto ainda está vazio)
+   Base desta folha. O que todas as telas têm igual (margens zeradas,
+   box-sizing, fundo e fonte do body, [hidden], anel de foco) está em
+   css/base/reset.css; aqui fica só o que esta folha usa e as outras
+   não usam todas.
    ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  min-height: 100vh;
-  background: var(--cor-fundo, #000);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-normal, 1.5);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 ul { list-style: none; }
-[hidden] { display: none !important; }
-:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
 
 /* ---------------------------------------------------------------------------
    Fundo: a camada fixa atrás da página; a luz dentro dela é o disco de
@@ -199,7 +188,7 @@ ul { list-style: none; }
 /* ---------------------------------------------------------------------------
    Rótulo de seção e estados
    (A lista de exercícios .item saiu: a tela do aluno, a última que a usava,
-   passou a mostrar salas — ver css/aluno.css.)
+   passou a mostrar salas — ver o acréscimo do aluno em css/escola.css.)
    ------------------------------------------------------------------------- */
 .secao-rotulo {
   margin-top: 36px;

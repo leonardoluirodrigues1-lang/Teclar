@@ -219,6 +219,63 @@
 }
 
 /* ----------------------------------------------------------------------------
+   7. A MARCA SE DIGITA
+   TECLAR aparece letra a letra, como se alguém digitasse, fica um tempo na
+   tela e é apagada; o cursor pisca ao lado. Nasceu no hero da landing
+   (index.html) e é a mesma na abertura da tela de turmas do professor —
+   por isso mora aqui, e não em landing.css.
+
+     <span class="teclar-typed-word">TECLAR</span><span class="teclar-caret"></span>
+
+   O --tw-word é a largura da palavra inteira: 6 letras de 1ch mais o
+   letter-spacing de .42em de cada uma. Quem usa precisa do mesmo
+   letter-spacing de .42em, senão a palavra corta antes do fim.
+
+   Movimento reduzido: a landing deixa rodar de propósito (ver o aviso em
+   landing.css); a tela de turmas entrega a palavra pronta (escola.css).
+   ------------------------------------------------------------------------- */
+
+@keyframes teclar-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes teclar-type-delete {
+  0%,  3%  { width: 0; }
+  40%, 60% { width: var(--tw-word); }
+  97%, 100% { width: 0; }
+}
+
+.teclar-typed-word {
+  --tw-word: calc(6ch + 6 * 0.42em);
+  display: inline-block;
+  width: 0;
+  max-width: none;
+  overflow: hidden;
+  white-space: nowrap;
+  animation-name: teclar-type-delete;
+  animation-duration: 7.2s;
+  animation-timing-function: steps(6, end);
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+  will-change: width;
+}
+
+.teclar-caret {
+  display: inline-block;
+  height: .95em;
+  width: .07em;
+  margin-left: -.30em;
+  background: var(--cor-texto, #fff);
+  vertical-align: middle;
+  animation-name: teclar-caret;
+  animation-duration: 1.05s;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+}
+
+/* ----------------------------------------------------------------------------
    MOVIMENTO REDUZIDO
    Para quem tem sensibilidade vestibular, movimento na tela causa
    mal-estar físico — não é preferência estética. Zera as durações e todos

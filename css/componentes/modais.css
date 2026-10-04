@@ -67,29 +67,10 @@
   line-height: var(--lh-normal, 1.5);
 }
 
-/* Números em destaque dentro do modal (PPM, erros, XP...) */
-.modal-metricas {
-  display: flex;
-  gap: 28px;
-  margin-top: 22px;
-}
-.modal-metrica-rotulo {
-  display: block;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-.modal-metrica-valor {
-  display: block;
-  margin-top: 6px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-3xl, 2.4414rem);
-  font-weight: var(--peso-medio, 500);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
+/* Bloco de desempenho no modal de fim do treino. O desenho vem de
+   componentes/metricas.css; aqui só a distância até o texto do modal, menor
+   que a da tela de resultado. */
+.modal-corpo .bloco-metricas { margin-top: 22px; }
 
 .modal-acoes {
   display: flex;

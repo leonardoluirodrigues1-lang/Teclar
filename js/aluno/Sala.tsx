@@ -1,248 +1,408 @@
 // Sala.tsx — pages/aluno/sala.html?id=<sala>
-// O detalhe de uma sala do aluno: o nome, o professor, quando ele entrou e
-// os exercícios dela (GET /aluno/salas/:id). Os que ele ainda não fez vêm
-// primeiro, na ordem em que o professor atribuiu, e o primeiro deles é o
-// "próximo", em destaque. Os feitos vêm depois, apagados, com a melhor
-// marca e a data. "Tempo esgotado" fica entre os feitos, sem cor nenhuma:
-// ele fez a atividade, e o texto não diz que falhou. Por isso os dois
-// ganham a estrela: cheia no feito, apagada no tempo esgotado — tentou.
+// A tela da turma vista pelo ALUNO. A tela em si (casca, abas, trilha,
+// painel de relatório) é a mesma do professor e mora em
+// ../componentes/TelaDaTurma.tsx; aqui fica só o que muda para o aluno:
 //
-// Cada exercício leva ao treino com ?exercicio= e &turma=.
-// Estilo: css/aluno.css. O topo com o menu do nome é o <TopoAluno>.
+//   EXERCÍCIOS     a trilha com o estado DELE: concluído sólido com o
+//                  visto, o próximo aceso, os seguintes apagados. Toda
+//                  pedra leva ao treino. Nada sobre quantos colegas
+//                  entregaram.
+//   PARTICIPANTES  o ranking da sala, já ordenado e pontuado pelo back.
+//                  Do quarto lugar em diante o nome vem vazio DO BACK; a
+//                  linha dele vem sempre com o nome, destacada.
+//   RELATÓRIO      o relatório individual dele na sala, com a comparação
+//                  com a média da sala. Abaixo de 3 sessões concluídas, só
+//                  a barra de quanto falta e os botões desligados.
+//
+// Dados (api.escola.aluno, tudo pelo token; sala da qual ele não participa
+// é 404): GET /aluno/salas/:id dá o cabeçalho e a trilha; cada uma das
+// outras abas busca o seu quando é aberta.
 
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { ErroDaApi, ExercicioDaSala, SalaDetalhe, Usuario } from '../nucleo/tipos.js';
-import { TopoAluno } from '../componentes/TopoAluno.js';
-import { formatarData, numero, porcentagem } from '../utils/formato.js';
-import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import type { DesempenhoNaTurma, ErroDaApi, ExercicioDaSala, LinhaDoRanking, SalaDetalhe } from '../nucleo/tipos.js';
+import { SECOES_ALUNO } from '../componentes/Nav.js';
+import {
+  CascaDaTurma,
+  PainelDeRelatorio,
+  TrilhaDeExercicios,
+  TurmaNaoEncontrada,
+  useAbaDaUrl,
+  type PedraDaTrilha,
+} from '../componentes/TelaDaTurma.js';
+import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
+import { EsqueletoTabela } from '../componentes/Esqueleto.js';
+import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
-import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
+import { contagem, formatarRp, numero, porcentagem } from '../utils/formato.js';
+import { baixarCsv, slug } from '../utils/csv.js';
+import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-const ROTA_SALAS = 'dashboard.html';
+// Guarda de aluno antes de qualquer outra coisa. Devolveu null, já
+// redirecionou: a montagem lá no fim do arquivo não acontece e a tela para.
+const usuario = guarda.soAluno();
 
-const NOME_DA_DIFICULDADE = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
+// O mínimo de sessões concluídas NA SALA para o relatório ter média. Quem
+// decide é o back (abaixo disso ele manda as médias nulas); aqui o número
+// só serve para dizer quanto falta.
+const MINIMO_DE_SESSOES = 3;
+
+const MENSAGENS = {
+  CONEXAO: 'Não foi possível conectar ao servidor.',
+  GENERICA: 'Algo deu errado. Tente de novo.',
+};
+
+const salaId = new URLSearchParams(window.location.search).get('id');
+
+// ============================================================================
+// Tela
+// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
   | { estado: 'nao-encontrada' }
-  | { estado: 'erro' }
+  | { estado: 'erro'; mensagem: string }
   | { estado: 'pronto'; sala: SalaDetalhe };
 
-interface PropsSala {
-  usuario: Usuario;
-  salaId: string | null;
-}
-
-function Sala({ usuario, salaId }: PropsSala) {
+function Sala() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
+  const [aba, selecionarAba] = useAbaDaUrl();
 
   useEffect(() => {
-    if (!salaId) {
-      setCarga({ estado: 'nao-encontrada' });
-      return;
-    }
+    // Sem ?id= não há o que carregar.
+    if (!salaId) return;
     let cancelado = false;
-    setCarga({ estado: 'carregando' });
-    api.aluno
-      .sala(salaId)
-      .then((sala) => {
+
+    async function carregar() {
+      setCarga({ estado: 'carregando' });
+      try {
+        const sala = await api.escola.aluno.sala(salaId);
         if (!cancelado) setCarga({ estado: 'pronto', sala });
-      })
-      .catch((erro: ErroDaApi) => {
+      } catch (excecao) {
         if (cancelado) return;
         // 404: a sala não existe ou ele não está nela. Tentar de novo não
         // adianta, então a tela só oferece o caminho de volta.
-        setCarga({ estado: erro?.status === 404 ? 'nao-encontrada' : 'erro' });
+        if (ehErroApi(excecao) && excecao.status === 404) setCarga({ estado: 'nao-encontrada' });
+        else setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+      }
+    }
+
+    carregar();
+    return () => {
+      cancelado = true;
+    };
+  }, [tentativa]);
+
+  const sala = carga.estado === 'pronto' ? carga.sala : null;
+
+  useEffect(() => {
+    if (sala) document.title = `Teclar — ${sala.nome}`;
+  }, [sala]);
+
+  if (!salaId || carga.estado === 'nao-encontrada') {
+    return (
+      <TurmaNaoEncontrada
+        secoes={SECOES_ALUNO}
+        papel={formatarRp(usuario.id)}
+        texto="Ela pode ter sido encerrada, ou você não está nela. Suas salas estão na tela inicial."
+        link={{ href: 'dashboard.html', rotulo: 'Ver minhas salas' }}
+      />
+    );
+  }
+
+  function renderizarAba() {
+    if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={5} />;
+    if (carga.estado === 'erro') {
+      return (
+        <PainelErro
+          titulo="Não foi possível carregar a sala"
+          texto={carga.mensagem}
+          aoTentarDeNovo={() => setTentativa((n) => n + 1)}
+        />
+      );
+    }
+    if (aba === 'participantes') return <AbaParticipantes />;
+    if (aba === 'relatorio') return <AbaRelatorio nomeDaSala={sala.nome} />;
+    return <AbaExercicios sala={sala} />;
+  }
+
+  return (
+    <CascaDaTurma
+      secoes={SECOES_ALUNO}
+      papel={formatarRp(usuario.id)}
+      voltar={{ href: 'dashboard.html', rotulo: 'Salas' }}
+      titulo={sala ? sala.nome : null}
+      subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}
+      aba={aba}
+      aoSelecionarAba={selecionarAba}
+      carregando={carga.estado === 'carregando'}
+    >
+      {renderizarAba()}
+    </CascaDaTurma>
+  );
+}
+
+function participantes(total: number): string {
+  return total === 1 ? '1 participante' : `${total} participantes`;
+}
+
+// ============================================================================
+// Aba Exercícios — a trilha com o estado DELE
+// ============================================================================
+
+function AbaExercicios({ sala }: { sala: SalaDetalhe }) {
+  if (sala.lista.length === 0) {
+    return (
+      <PainelEstado
+        titulo="Nenhum exercício ainda"
+        texto="O professor ainda não passou nenhum exercício nesta sala. Quando passar, ele aparece aqui."
+      />
+    );
+  }
+
+  // O próximo é o primeiro ainda não feito, na ordem em que o professor
+  // atribuiu.
+  const indiceDoProximo = sala.lista.findIndex((ex) => ex.estado === 'nao_feito');
+  const pedras = sala.lista.map((ex, i) => pedraDoAluno(ex, i, indiceDoProximo, sala.id));
+
+  return (
+    <>
+      <TrilhaDeExercicios pedras={pedras} />
+      <p className="nota">
+        O que você concluiu fica sólido, o próximo fica aceso e o resto espera. A ordem é a que o professor
+        atribuiu.
+      </p>
+    </>
+  );
+}
+
+// Toda pedra é link para o treino, inclusive as apagadas: o banco não tem
+// regra de liberação, e trancar seria inventar uma. "Tempo esgotado" conta
+// como feito: ele fez a atividade, e o texto não diz que falhou.
+function pedraDoAluno(ex: ExercicioDaSala, indice: number, indiceDoProximo: number, idDaSala: string): PedraDaTrilha {
+  const href = `../treino/treino.html?${new URLSearchParams({ exercicio: ex.id, turma: idDaSala })}`;
+  if (ex.estado === 'tempo_esgotado') return { id: ex.id, titulo: ex.titulo, estado: 'feito', legenda: 'tempo esgotado', href };
+  if (ex.estado === 'feito') return { id: ex.id, titulo: ex.titulo, estado: 'feito', legenda: 'concluído', href };
+  if (indice === indiceDoProximo) return { id: ex.id, titulo: ex.titulo, estado: 'agora', legenda: 'é o próximo', href };
+  return { id: ex.id, titulo: ex.titulo, estado: 'depois', legenda: 'a seguir', href };
+}
+
+// ============================================================================
+// Aba Participantes — o ranking que o back manda pronto
+// ============================================================================
+
+type CargaRanking =
+  | { estado: 'carregando' }
+  | { estado: 'erro'; mensagem: string }
+  | { estado: 'pronto'; linhas: LinhaDoRanking[] };
+
+function AbaParticipantes() {
+  const [carga, setCarga] = useState<CargaRanking>({ estado: 'carregando' });
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarga({ estado: 'carregando' });
+    api.escola.aluno
+      .rankingDaTurma(salaId)
+      .then((linhas) => {
+        if (!cancelado) setCarga({ estado: 'pronto', linhas });
+      })
+      .catch((excecao) => {
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
       });
     return () => {
       cancelado = true;
     };
   }, [tentativa]);
 
-  // O exercício feito que não estava na última visita (o que acabou de
-  // ser entregue) nasce com o pulso. Uma lista por sala.
-  const salaPronta = carga.estado === 'pronto' ? carga.sala : null;
-  const ehEstrelaNova = useEstrelasNovas(
-    `sala:${salaId}`,
-    salaPronta ? salaPronta.lista.filter((ex) => ex.estado === 'feito').map((ex) => ex.id) : null
-  );
+  if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={5} />;
+  if (carga.estado === 'erro') {
+    return (
+      <PainelErro
+        titulo="Não foi possível carregar o ranking"
+        texto={carga.mensagem}
+        aoTentarDeNovo={() => setTentativa((n) => n + 1)}
+      />
+    );
+  }
 
   return (
     <>
-      <TopoAluno usuario={usuario} />
-
-      <main>
-        <a className="aluno-botao aluno-voltar vidro tecla" href={ROTA_SALAS}>
-          ← Suas salas
-        </a>
-
-        {carga.estado === 'carregando' && (
-          <p className="aluno-sub" role="status">
-            Carregando a sala…
-          </p>
-        )}
-
-        {carga.estado === 'nao-encontrada' && (
-          <section className="aluno-painel vidro" role="alert">
-            <h2>Sala não encontrada</h2>
-            <p>Ela pode ter sido encerrada, ou você não está nela. Suas salas estão na tela inicial.</p>
-          </section>
-        )}
-
-        {carga.estado === 'erro' && (
-          <section className="aluno-painel vidro" role="alert">
-            <h2>Não foi possível carregar a sala</h2>
-            <p>Confira a conexão e tente de novo.</p>
-            <button type="button" className="aluno-botao vidro tecla" onClick={() => setTentativa((n) => n + 1)}>
-              Tentar de novo
-            </button>
-          </section>
-        )}
-
-        {carga.estado === 'pronto' && <DetalheDaSala sala={carga.sala} ehEstrelaNova={ehEstrelaNova} />}
-      </main>
-    </>
-  );
-}
-
-interface PropsDetalhe {
-  sala: SalaDetalhe;
-  ehEstrelaNova: (exercicioId: string) => boolean;
-}
-
-function DetalheDaSala({ sala, ehEstrelaNova }: PropsDetalhe) {
-  const { feitos, total } = sala.exercicios;
-  const naoFeitos = sala.lista.filter((ex) => ex.estado === 'nao_feito');
-  // Os feitos, do mais recente para o mais antigo. ISO ordena como texto.
-  const jaFeitos = sala.lista
-    .filter((ex) => ex.estado !== 'nao_feito')
-    .sort((a, b) => String(b.ultimaSessao ?? '').localeCompare(String(a.ultimaSessao ?? '')));
-
-  return (
-    <>
-      <span className="aluno-rotulo">Sala · {sala.professor ? `Prof. ${sala.professor}` : '—'}</span>
-      <h1 className="aluno-titulo">{sala.nome}</h1>
-      <p className="aluno-sub">
-        Você entrou em {formatarData(sala.entrouEm)} · {feitos} de {total}{' '}
-        {total === 1 ? 'exercício feito' : 'exercícios feitos'}
+      <Tabela
+        colunas={COLUNAS_DO_RANKING}
+        linhas={carga.linhas}
+        chave={(linha) => String(linha.posicao)}
+        // A linha dele em destaque; as anônimas em cinza.
+        classeLinha={(linha) => (linha.voce ? 'linha-voce' : linha.nome === null ? 'linha-anonima' : undefined)}
+      />
+      <p className="nota">
+        Do quarto lugar em diante os nomes ficam escondidos — menos o seu, que você sempre vê. A posição não é só
+        velocidade: soma lições, ritmo e dias seguidos.
       </p>
-
-      <section className="aluno-secao" aria-labelledby="titulo-exercicios">
-        <h2 className="aluno-rotulo" id="titulo-exercicios">
-          Exercícios da sala
-        </h2>
-        {sala.lista.length === 0 ? (
-          <p className="aluno-sub">O professor ainda não passou nenhum exercício nesta sala.</p>
-        ) : (
-          <div className="aluno-fila">
-            {naoFeitos.map((ex, indice) => (
-              <LinhaDoExercicio key={ex.id} exercicio={ex} salaId={sala.id} proximo={indice === 0} nova={false} />
-            ))}
-            {jaFeitos.map((ex) => (
-              <LinhaDoExercicio
-                key={ex.id}
-                exercicio={ex}
-                salaId={sala.id}
-                proximo={false}
-                nova={ex.estado === 'feito' && ehEstrelaNova(ex.id)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
     </>
   );
 }
 
-interface PropsLinha {
-  exercicio: ExercicioDaSala;
-  salaId: string;
-  proximo: boolean;
-  /** Entregue agora: a estrela nasce com o pulso. */
-  nova: boolean;
-}
+// A ordem e os pontos são os do back: a tela não ordena e não soma nada.
+const COLUNAS_DO_RANKING: ColunaTabela<LinhaDoRanking>[] = [
+  { rotulo: '#', classe: 'col-numero', celula: (l) => l.posicao },
+  {
+    rotulo: 'Participante',
+    celula: (l) =>
+      l.voce ? (
+        <>
+          {l.nome} <span className="marca-voce">você</span>
+        </>
+      ) : (
+        // null: o back não mandou o nome. A tela não tem o que esconder.
+        (l.nome ?? 'Participante')
+      ),
+  },
+  { rotulo: 'Lições', classe: 'col-numero', celula: (l) => contagem(l.licoes) },
+  { rotulo: 'Ritmo', classe: 'col-numero', celula: (l) => numero(l.ritmo) },
+  { rotulo: 'Dias', classe: 'col-numero', celula: (l) => contagem(l.diasSeguidos) },
+  {
+    rotulo: 'Pontos',
+    classe: 'col-numero',
+    celula: (l) => (
+      <>
+        {contagem(l.pontos)}
+        {/* Estrela só no primeiro lugar, e só se ele tiver pontos: zero
+            pontos não é conquista de ninguém. */}
+        {l.posicao === 1 && l.pontos > 0 && (
+          <>
+            <span className="marca-do-melhor">
+              <Estrela tamanho={14} />
+            </span>
+            <span className="sr-only"> — primeiro lugar</span>
+          </>
+        )}
+      </>
+    ),
+  },
+];
 
-function LinhaDoExercicio({ exercicio, salaId, proximo, nova }: PropsLinha) {
-  const classes = ['exercicio', 'vidro'];
-  if (proximo) classes.push('exercicio-proximo');
-  if (exercicio.estado !== 'nao_feito') classes.push('exercicio-feito');
+// ============================================================================
+// Aba Relatório — o relatório individual
+// ============================================================================
 
-  const href = `../treino/treino.html?${new URLSearchParams({ exercicio: exercicio.id, turma: salaId })}`;
+type CargaRelatorio =
+  | { estado: 'carregando' }
+  | { estado: 'erro'; mensagem: string }
+  | { estado: 'pronto'; desempenho: DesempenhoNaTurma };
+
+function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
+  const [carga, setCarga] = useState<CargaRelatorio>({ estado: 'carregando' });
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarga({ estado: 'carregando' });
+    api.escola.aluno
+      .desempenhoNaTurma(salaId)
+      .then((desempenho) => {
+        if (!cancelado) setCarga({ estado: 'pronto', desempenho });
+      })
+      .catch((excecao) => {
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [tentativa]);
+
+  if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={3} />;
+  if (carga.estado === 'erro') {
+    return (
+      <PainelErro
+        titulo="Não foi possível carregar seu relatório"
+        texto={carga.mensagem}
+        aoTentarDeNovo={() => setTentativa((n) => n + 1)}
+      />
+    );
+  }
+
+  const d = carga.desempenho;
+  // O back manda as médias nulas abaixo do mínimo. É isso que decide a
+  // tela, e não uma conta feita aqui.
+  const temMedia = d.minhaMedia !== null && d.mediaSala !== null;
 
   return (
-    <a className={classes.join(' ')} href={href}>
-      <EstrelaDoExercicio exercicio={exercicio} nova={nova} />
-      <div>
-        <h3 className="exercicio-titulo">{exercicio.titulo}</h3>
-        <div className="pilulas">
-          <span className="pilula">{NOME_DA_DIFICULDADE[exercicio.dificuldade] ?? '—'}</span>
-          <span className="pilula">{exercicio.caracteres} caracteres</span>
-          <span className="pilula">{tempoLimite(exercicio.tempoLimiteSegundos)}</span>
-          {exercicio.prazo && <span className="pilula">Prazo {formatarData(exercicio.prazo)}</span>}
-        </div>
-      </div>
-      <EstadoDoExercicio exercicio={exercicio} />
-    </a>
+    <>
+      <PainelDeRelatorio
+        rotulo="Seu relatório nesta sala"
+        falta={temMedia ? null : { sessoes: d.sessoesConcluidas, minimo: MINIMO_DE_SESSOES }}
+        grupos={temMedia ? gruposDoAluno(d) : []}
+        aoGerarCsv={() => baixarCsv(`relatorio-${slug(nomeDaSala)}.csv`, linhasDoCsv(nomeDaSala, d))}
+      />
+      <p className="nota">O relatório é só o seu. A média da sala soma as sessões concluídas de todos que estão nela.</p>
+    </>
   );
 }
 
-// A estrela repete o que o texto da direita já diz ("feito em",
-// "Tempo esgotado"): é decorativa, e o componente já a esconde do leitor.
-function EstrelaDoExercicio({ exercicio, nova }: { exercicio: ExercicioDaSala; nova: boolean }) {
-  if (exercicio.estado === 'feito') return <Estrela tamanho={15} opacidade={0.85} nasce={nova} />;
-  if (exercicio.estado === 'tempo_esgotado') return <Estrela tamanho={15} opacidade={0.3} />;
-  return null;
+// Cada número dele ao lado da média da sala, a média em tom apagado: o
+// assunto é ele, a sala é a régua.
+function gruposDoAluno(d: DesempenhoNaTurma) {
+  return [
+    [
+      { rotulo: 'Sessões', valor: contagem(d.sessoesConcluidas) },
+      { rotulo: 'Lições', valor: contagem(d.licoes) },
+      { rotulo: 'Dias seguidos', valor: contagem(d.diasSeguidos) },
+    ],
+    [
+      { rotulo: 'Seu ritmo', valor: numero(d.minhaMedia.velocidade) },
+      { rotulo: 'Média da sala', valor: numero(d.mediaSala.velocidade), apagado: true },
+      { rotulo: 'Sua precisão', valor: porcentagem(d.minhaMedia.precisao) },
+      { rotulo: 'Média da sala', valor: porcentagem(d.mediaSala.precisao), apagado: true },
+    ],
+  ];
 }
 
-function EstadoDoExercicio({ exercicio }: { exercicio: ExercicioDaSala }) {
-  if (exercicio.estado === 'feito') {
-    return (
-      <div className="exercicio-estado">
-        <b className="exercicio-marca">
-          {numero(exercicio.melhorWpm)} PPM · {porcentagem(exercicio.melhorPrecisao)}
-        </b>
-        <span className="exercicio-data">feito em {formatarData(exercicio.ultimaSessao)}</span>
-      </div>
-    );
-  }
-  if (exercicio.estado === 'tempo_esgotado') {
-    return (
-      <div className="exercicio-estado">
-        <b className="exercicio-marca">Tempo esgotado</b>
-        <span className="exercicio-data">tentado em {formatarData(exercicio.ultimaSessao)}</span>
-      </div>
-    );
-  }
-  return (
-    <div className="exercicio-estado">
-      <b className="exercicio-marca">Não feito</b>
-      {exercicio.atribuidoEm && (
-        <span className="exercicio-data">atribuído em {formatarData(exercicio.atribuidoEm)}</span>
-      )}
-    </div>
-  );
+// As linhas do CSV: o que a tela mostra, com os números crus (o Excel
+// precisa de número, não de "94%").
+function linhasDoCsv(nomeDaSala: string, d: DesempenhoNaTurma): (string | number)[][] {
+  return [
+    ['Sala', nomeDaSala],
+    ['Sessões concluídas', d.sessoesConcluidas],
+    ['Lições', d.licoes],
+    ['Dias seguidos', d.diasSeguidos],
+    ['Seu ritmo (PPM)', d.minhaMedia?.velocidade ?? ''],
+    ['Ritmo médio da sala (PPM)', d.mediaSala?.velocidade ?? ''],
+    ['Sua precisão (%)', d.minhaMedia?.precisao ?? ''],
+    ['Precisão média da sala (%)', d.mediaSala?.precisao ?? ''],
+  ];
 }
 
-// 150 -> "2:30"; 0 é "sem limite", como no banco.
-function tempoLimite(segundos: number): string {
-  if (!segundos) return 'Sem limite';
-  const resto = segundos % 60;
-  return `${Math.floor(segundos / 60)}:${String(resto).padStart(2, '0')}`;
+// ============================================================================
+// Erros — decide pelo status, nunca pelo texto que o servidor mandou
+// ============================================================================
+
+// Duck typing, não instanceof: o erro do mock tem a forma do ErroApi do
+// api.ts, mas não é instância dele.
+function ehErroApi(excecao: unknown): excecao is ErroDaApi {
+  return (excecao as ErroDaApi | null | undefined)?.name === 'ErroApi';
+}
+
+function mensagemDaFalha(excecao: unknown): string {
+  if (!ehErroApi(excecao)) {
+    console.error(excecao);
+    return MENSAGENS.GENERICA;
+  }
+  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
+  if (excecao.status === 0) return MENSAGENS.CONEXAO;
+  return MENSAGENS.GENERICA;
 }
 
 // ============================================================================
 // Montagem — guarda primeiro, React depois
 // ============================================================================
 
-const usuario = guarda.soAluno();
-
 if (usuario) {
   guarda.aplicarMundo();
   ativarSaidaAoNavegar();
-  const salaId = new URLSearchParams(window.location.search).get('id');
-  createRoot(document.getElementById('raiz')).render(<Sala usuario={usuario} salaId={salaId} />);
+  createRoot(document.getElementById('raiz')).render(<Sala />);
 }

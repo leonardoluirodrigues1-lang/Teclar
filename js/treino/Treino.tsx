@@ -78,6 +78,7 @@ import { MotorDigitacao, type EstadoMotor, type StatusCaractere } from './typing
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { Modal, type AcaoModal } from '../componentes/ModalReact.js';
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
+import { BlocoDeMetricas, formatarTempo } from './BlocoDeMetricas.js';
 
 // Onde o resultado da sessão espera a tela de resultado (sessionStorage).
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
@@ -683,12 +684,13 @@ function Treino({ usuario }: PropsTreino) {
       conteudo: (
         <div>
           {mensagem && <p>{mensagem}</p>}
-          <Metricas
-            pares={[
-              ['PPM', metricas.wpm],
-              ['Erros', metricas.erros],
-              ['Precisão', `${metricas.precisao}%`],
-            ]}
+          {/* Mesmo bloco da tela de resultado do Solo. */}
+          <BlocoDeMetricas
+            wpm={metricas.wpm}
+            precisao={metricas.precisao}
+            erros={metricas.erros}
+            acertos={metricas.acertos}
+            tempoSegundos={metricas.tempo_gasto_segundos}
           />
         </div>
       ),
@@ -941,32 +943,6 @@ function mesmoStatus(a: StatusCaractere[], b: StatusCaractere[]): boolean {
     if (a[i] !== b[i]) return false;
   }
   return true;
-}
-
-// ============================================================================
-// Métricas do modal de fim (dl.modal-metricas, de modais.css)
-// ============================================================================
-
-interface PropsMetricas {
-  pares: [string, string | number][];
-}
-
-function Metricas({ pares }: PropsMetricas) {
-  return (
-    <dl className="modal-metricas">
-      {pares.map(([rotulo, valor]) => (
-        <div key={rotulo}>
-          <dt className="modal-metrica-rotulo">{rotulo}</dt>
-          <dd className="modal-metrica-valor">{valor}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-function formatarTempo(segundos: number): string {
-  const s = Math.max(0, segundos | 0);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 // ============================================================================

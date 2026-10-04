@@ -13,8 +13,8 @@
 // o que já existe. Na prática quase não acontece, porque a pessoa passa
 // pelo caminho, pelo lobby e pela sala antes de conquistar alguma coisa.
 //
-// Quem usa: solo/Caminho.tsx (pedra concluída), solo/Lobby.tsx (dia com
-// treino) e aluno/Sala.tsx (exercício feito). O resultado do treino não
+// Quem usa: solo/Caminho.tsx (pedra concluída) e solo/Lobby.tsx (dia com
+// treino). O resultado do treino não
 // precisa: lá o selo só existe logo depois da sessão (ver Resultado.tsx).
 
 import { useRef } from 'react';

@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { Modo } from '../nucleo/tipos.js';
+import { ModalTrocarModoDoAluno } from './TopoAluno.js';
 
 export interface ItemNav {
   /** O que a tela passa em `ativo` para marcar este item com aria-current. */
@@ -30,10 +31,13 @@ export interface SecoesNav {
   rotulo: string;
   /** Texto abaixo do nome no menu da conta, ex.: 'Professor'. */
   modo: string;
-  /** O item "Ir para ..." do menu: o outro modo da conta. (O aluno não
-   *  usa esta barra: o topo dele é o componentes/TopoAluno.tsx.) */
-  outroModo: { rotulo: string; modo: Modo };
+  /** O item "Ir para ..." do menu: o outro modo da conta. null na
+   *  entrada de aluno, que não abre Solo nem Professor. */
+  outroModo: { rotulo: string; modo: Modo } | null;
   itens: ItemNav[];
+  /** 'aluno': a sessão é a entrada de aluno (RP + senha de aluno), e o
+   *  menu muda — ver MenuDaConta. */
+  sessao: 'conta' | 'aluno';
 }
 
 export type SecaoProfessor = 'turmas' | 'biblioteca' | 'relatorios';
@@ -48,6 +52,17 @@ export const SECOES_PROFESSOR: SecoesNav = {
     { chave: 'biblioteca', rotulo: 'Biblioteca', href: 'biblioteca.html' },
     { chave: 'relatorios', rotulo: 'Relatórios', href: 'relatorios.html' },
   ],
+  sessao: 'conta',
+};
+
+/** A entrada de aluno. Não tem barra no topo — só o menu da conta fixa,
+ *  nas telas de pages/aluno/. Sem itens de barra, por isso. */
+export const SECOES_ALUNO: SecoesNav = {
+  rotulo: 'Seções do aluno',
+  modo: 'Aluno',
+  outroModo: null,
+  itens: [],
+  sessao: 'aluno',
 };
 
 interface PropsNav {
@@ -69,10 +84,39 @@ function iniciais(nome: string | null | undefined): string {
 }
 
 export function Nav({ secoes, ativo }: PropsNav) {
-  // A conta sempre tem nome (vem da tabela Users).
+  return (
+    <header className="barra">
+      <nav className="nav vidro" aria-label={secoes.rotulo}>
+        <a className="nav-marca" href="../../index.html" aria-label="Voltar para a página inicial">
+          <span>TECLAR</span>
+        </a>
+        {secoes.itens.map((item) => (
+          <a
+            key={item.chave}
+            className="nav-item tecla"
+            href={item.href}
+            aria-current={ativo === item.chave ? 'page' : undefined}
+          >
+            {item.rotulo}
+          </a>
+        ))}
+      </nav>
+
+      <MenuDaConta secoes={secoes} />
+    </header>
+  );
+}
+
+// O avatar com o menu da conta, sem a barra. A Nav usa no canto dela; a
+// tela de turmas, que não tem barra no topo, usa sozinho, fixo no canto.
+export function MenuDaConta({ secoes }: { secoes: SecoesNav }) {
+  // Conta: o nome da tabela Users. Aluno sem nome: o RP (ver sessao.nomeExibicao).
   const nome = sessao.nomeExibicao();
 
   const [aberto, setAberto] = useState(false);
+  // A confirmação de trocar de modo do aluno. Um número (e não true) para
+  // cada abertura montar um modal novo, como o ModalReact pede.
+  const [modalAluno, setModalAluno] = useState<number | null>(null);
   const avatar = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const btnSair = useRef<HTMLButtonElement>(null);
@@ -115,103 +159,122 @@ export function Nav({ secoes, ativo }: PropsNav) {
   }, [aberto]);
 
   return (
-    <header className="barra">
-      <nav className="nav vidro" aria-label={secoes.rotulo}>
-        <a className="nav-marca" href="../../index.html" aria-label="Voltar para a página inicial">
-          <span>TECLAR</span>
-        </a>
-        {secoes.itens.map((item) => (
-          <a
-            key={item.chave}
-            className="nav-item tecla"
-            href={item.href}
-            aria-current={ativo === item.chave ? 'page' : undefined}
-          >
-            {item.rotulo}
-          </a>
-        ))}
-      </nav>
+    <div className="conta">
+      <button
+        type="button"
+        className="avatar vidro tecla"
+        id="avatar"
+        ref={avatar}
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        aria-controls="menu-conta"
+        onClick={() => {
+          if (!aberto) setAberto(true);
+          else fechar({ devolverFoco: true });
+        }}
+      >
+        <span id="avatar-iniciais" aria-hidden="true">
+          {iniciais(nome)}
+        </span>
+        <span className="sr-only" id="avatar-rotulo">
+          Conta de {nome}
+        </span>
+      </button>
 
-      <div className="conta">
+      <div
+        className="menu-conta vidro"
+        id="menu-conta"
+        ref={menu}
+        role="menu"
+        aria-labelledby="avatar"
+        hidden={!aberto}
+      >
+        <div className="menu-cabecalho">
+          <p className="menu-nome" id="menu-nome">
+            {nome}
+          </p>
+          <p className="menu-modo">{secoes.modo}</p>
+        </div>
+        {secoes.sessao === 'aluno' ? (
+          <ItensDoAluno
+            aoTrocarDeModo={() => {
+              fechar({ devolverFoco: true });
+              setModalAluno(Date.now());
+            }}
+          />
+        ) : (
+          <ItensDaConta secoes={secoes} aoEscolher={() => fechar()} />
+        )}
+        {/* Sair fecha o menu antes de navegar, para o menu não ficar
+              aberto se a navegação demorar. */}
         <button
           type="button"
-          className="avatar vidro tecla"
-          id="avatar"
-          ref={avatar}
-          aria-haspopup="menu"
-          aria-expanded={aberto}
-          aria-controls="menu-conta"
+          className="menu-item"
+          id="btn-sair"
+          ref={btnSair}
+          role="menuitem"
           onClick={() => {
-            if (!aberto) setAberto(true);
-            else fechar({ devolverFoco: true });
+            guarda.sair();
+            fechar();
           }}
         >
-          <span id="avatar-iniciais" aria-hidden="true">
-            {iniciais(nome)}
-          </span>
-          <span className="sr-only" id="avatar-rotulo">
-            Conta de {nome}
-          </span>
+          Sair
         </button>
-
-        <div
-          className="menu-conta vidro"
-          id="menu-conta"
-          ref={menu}
-          role="menu"
-          aria-labelledby="avatar"
-          hidden={!aberto}
-        >
-          <div className="menu-cabecalho">
-            <p className="menu-nome" id="menu-nome">
-              {nome}
-            </p>
-            <p className="menu-modo">{secoes.modo}</p>
-          </div>
-          {/* Troca de modo: sem logout, sem tela intermediária. A mesma
-              conta abre os dois mundos. */}
-          <button
-            type="button"
-            className="menu-item"
-            id="btn-trocar-modo"
-            role="menuitem"
-            onClick={() => {
-              guarda.trocarModo(secoes.outroModo.modo);
-              fechar();
-            }}
-          >
-            {secoes.outroModo.rotulo}
-          </button>
-          {/* A tela dos três cartões (Professor, Solo, Aluno). O item acima é
-              o atalho direto para o outro modo; este é a escolha completa —
-              é por aqui que a conta chega à entrada de aluno sem sair.
-              O href é relativo às páginas que montam a Nav, todas em
-              pages/<mundo>/. */}
-          <a className="menu-item" href="../modo.html" role="menuitem" onClick={() => fechar()}>
-            Trocar de modo
-          </a>
-          {/* O bloco do RP, em Configurações do modo. Relativo a
-              pages/professor/, como os itens de SECOES_PROFESSOR. */}
-          <a className="menu-item" href="configuracoes.html#entrada-aluno" role="menuitem" onClick={() => fechar()}>
-            Minha entrada como aluno
-          </a>
-          {/* Sair fecha o menu antes de navegar, para o menu não ficar
-              aberto se a navegação demorar. */}
-          <button
-            type="button"
-            className="menu-item"
-            id="btn-sair"
-            ref={btnSair}
-            role="menuitem"
-            onClick={() => {
-              guarda.sair();
-              fechar();
-            }}
-          >
-            Sair
-          </button>
-        </div>
       </div>
-    </header>
+
+      {modalAluno !== null && <ModalTrocarModoDoAluno key={modalAluno} aoFechar={() => setModalAluno(null)} />}
+    </div>
+  );
+}
+
+// Os itens da CONTA (Professor): o atalho para o outro modo, a tela dos
+// três cartões e o RP. O href é relativo às páginas que montam o menu,
+// todas em pages/<mundo>/.
+function ItensDaConta({ secoes, aoEscolher }: { secoes: SecoesNav; aoEscolher: () => void }) {
+  return (
+    <>
+      {/* Troca de modo: sem logout, sem tela intermediária. A mesma conta
+          abre os dois mundos. */}
+      {secoes.outroModo && (
+        <button
+          type="button"
+          className="menu-item"
+          id="btn-trocar-modo"
+          role="menuitem"
+          onClick={() => {
+            guarda.trocarModo(secoes.outroModo.modo);
+            aoEscolher();
+          }}
+        >
+          {secoes.outroModo.rotulo}
+        </button>
+      )}
+      {/* A tela dos três cartões (Professor, Solo, Aluno). O item acima é o
+          atalho direto para o outro modo; este é a escolha completa — é por
+          aqui que a conta chega à entrada de aluno sem sair. */}
+      <a className="menu-item" href="../modo.html" role="menuitem" onClick={aoEscolher}>
+        Trocar de modo
+      </a>
+      {/* O bloco do RP, em Configurações do modo. */}
+      <a className="menu-item" href="configuracoes.html#entrada-aluno" role="menuitem" onClick={aoEscolher}>
+        Minha entrada como aluno
+      </a>
+    </>
+  );
+}
+
+// Os itens da entrada de ALUNO. "Trocar de modo" não pode ir direto para
+// ../modo.html: a sessão de aluno não abre o Solo nem o Professor, que são
+// da conta. Por isso pergunta antes e sai da sessão (ModalTrocarModoDoAluno).
+function ItensDoAluno({ aoTrocarDeModo }: { aoTrocarDeModo: () => void }) {
+  return (
+    <>
+      <a className="menu-item" href="historico.html" role="menuitem">
+        Meu histórico
+      </a>
+      <button type="button" className="menu-item" role="menuitem" onClick={aoTrocarDeModo}>
+        Trocar de modo
+      </button>
+    </>
   );
 }

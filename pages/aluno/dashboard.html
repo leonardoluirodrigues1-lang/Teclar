@@ -4,22 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teclar &mdash; Suas salas</title>
+<meta name="description" content="Suas salas no Teclar: convites, exerc&iacute;cios e progresso.">
 <link rel="stylesheet" href="../../css/base/fontes.css">
 <link rel="stylesheet" href="../../css/base/tokens.css">
 <link rel="stylesheet" href="../../css/base/luz.css">
 <link rel="stylesheet" href="../../css/base/movimento.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
-<!-- De dashboard.css vem a base m&iacute;nima e o fundo com estrelas; de
-     aluno.css, o topo, a faixa dos n&uacute;meros e as salas. -->
-<link rel="stylesheet" href="../../css/dashboard.css">
-<link rel="stylesheet" href="../../css/aluno.css">
-<!-- O modal de "Trocar de modo", no menu do nome. -->
 <link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/base/reset.css">
+<link rel="stylesheet" href="../../css/escola.css">
 
 <!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
      projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
      nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
-     <script type="module">. -->
+     <script type="module">. "react-dom" (sem /client) &eacute; de onde saem
+     createPortal e flushSync, usados pelo Modal e pelas telas. -->
 <script type="importmap">
 { "imports": {
     "react": "../../vendor/react/react.mjs",
@@ -31,18 +30,17 @@
 </head>
 <body>
 
-<!-- A luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto
-     da Escola, ver css/base/luz.css), o campo de estrelas e o gr&atilde;o. S&oacute;
-     pintura. Sem essa luz o backdrop-filter do vidro n&atilde;o tem o que
-     desfocar e a tecla da sala vira ret&acirc;ngulo cinza. -->
-<div class="fundo fundo-largo grao" aria-hidden="true">
-  <div class="disco disco-canto-inferior-direito"></div>
+<!-- Fundo fixo: s&oacute; as estrelas e o gr&atilde;o (css/base/luz.css). O horizonte de
+     eventos (o .disco) vive dentro da abertura, no topo da p&aacute;gina, e vai
+     embora junto com ela ao rolar &mdash; o mesmo desenho da tela de turmas
+     do Professor (ver js/componentes/EntradaDoModo.tsx). -->
+<div class="fundo grao" aria-hidden="true">
   <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta a p&aacute;gina inteira aqui dentro: o topo com o menu do
-     nome e, abaixo, as salas. -->
-<div id="raiz" class="aluno-pagina entrada-da-pagina"></div>
+<!-- O React monta a tela inteira aqui dentro (conta, abertura, convites,
+     salas e estados). -->
+<div id="raiz" class="pagina entrada-da-pagina"></div>
 
 <!-- O campo de estrelas do fundo (js/componentes/campoDeEstrelas.ts). -->
 <script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>

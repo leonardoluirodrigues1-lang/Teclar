@@ -34,7 +34,7 @@ import type {
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { gerarCsv } from '../utils/csv.js';
+import { baixarCsv, slug } from '../utils/csv.js';
 import { contagem, formatarDataHora, formatarDecimal, formatarRp, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
@@ -951,38 +951,6 @@ function linhaCsvExercicio(item: RelatorioExercicio): (string | number)[] {
 // como número) e vazio quando o back não mandou nada.
 function celulaNumero(valor: number | null | undefined): string {
   return valor == null || !Number.isFinite(valor) ? '' : formatarDecimal(valor);
-}
-
-// Nome do arquivo: relatorio-<turma>-<aba>.csv, com o nome da turma em
-// minúsculas e sem acento. Fora disso, o que não é letra nem número vira
-// hífen — "9º Ano A — Manhã" tem espaço, ordinal e travessão, e um nome de
-// arquivo com isso dentro é um convite a problema no download.
-function slug(nome: string): string {
-  return String(nome ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'turma';
-}
-
-// Ponto e vírgula como separador e BOM na frente: é o par que faz o Excel
-// em português abrir o arquivo em colunas e em UTF-8, em vez de jogar tudo
-// na coluna A com os acentos quebrados. O gerarCsv de utils/csv.ts já põe o
-// BOM e já escapa a célula que contenha o separador.
-function baixarCsv(nomeArquivo: string, linhas: (string | number)[][]): void {
-  const csv = gerarCsv(linhas, { separador: ';', bom: true });
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nomeArquivo;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  // Um instante depois: revogar na hora cancela o download em alguns
-  // navegadores.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ============================================================================

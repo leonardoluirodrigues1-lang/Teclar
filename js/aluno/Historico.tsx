@@ -19,7 +19,7 @@
 // esqueleto, o PainelErro e o formato de data. O que esta tela calcula por
 // conta são a SEQUÊNCIA de dias e a EVOLUÇÃO — as duas saem das datas e
 // dos PPM da lista que ela já carregou, e é por isso que não há rota para
-// elas (ver api.aluno e a seção 11 de tipos.ts). As duas contas, a
+// elas (ver api.escola.aluno e a seção 11 de tipos.ts). As duas contas, a
 // formatação ("—" para o que não veio) e a regra de ordenação moram em
 // js/utils/ (desempenho.ts, formato.ts, ordenacao.ts), compartilhadas com
 // a tela de estatísticas do Solo; só a FRASE da evolução é desta tela.
@@ -111,7 +111,7 @@ function Historico({ usuario }: PropsHistorico) {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        const [historico, resumo] = await Promise.all([api.aluno.historico(), api.aluno.resumo()]);
+        const [historico, resumo] = await Promise.all([api.escola.aluno.historico(), api.escola.aluno.resumo()]);
         if (cancelado) return;
         const sessoes = desembrulhar(historico);
         setCarga({

@@ -1,9 +1,9 @@
 // TopoAluno.tsx
-// O topo das telas do modo Aluno: a marca à esquerda e, à direita, o botão
-// do nome (retrato com a inicial, nome e RP), que abre o menu com o RP em
-// destaque, Convites, Meu histórico, Trocar de modo e Sair. Usado por
-// js/aluno/Dashboard.tsx, Sala.tsx, Convites.tsx e Historico.tsx; o
-// desenho está em css/aluno.css.
+// O topo da tela de histórico do Aluno: a marca à esquerda e, à direita, o
+// botão do nome (retrato com a inicial, nome e RP), que abre o menu com o
+// RP em destaque, Convites, Meu histórico, Trocar de modo e Sair. Usado por
+// js/aluno/Historico.tsx; o desenho está em css/aluno.css. As salas e a
+// sala usam a conta fixa no canto (componentes/EntradaDoModo.tsx).
 //
 // O AVISO VERMELHO: com convite pendente, um ponto vermelho com o número
 // aparece no retrato e de novo na linha "Convites" do menu. É o único
@@ -115,7 +115,8 @@ export function TopoAluno({ usuario, convites }: PropsTopoAluno) {
           <span className="aluno-rotulo">Seu RP</span>
           <b>{rp}</b>
         </div>
-        <a className="aluno-menu-item" href="convites.html" role="menuitem">
+        {/* Os convites moram na tela de salas, antes da grade. */}
+        <a className="aluno-menu-item" href="dashboard.html#convites" role="menuitem">
           Convites
           {pendentes > 0 && <AvisoDeConvites quantidade={pendentes} classe="aluno-aviso-linha" />}
         </a>
@@ -139,24 +140,30 @@ export function TopoAluno({ usuario, convites }: PropsTopoAluno) {
         </button>
       </div>
 
-      {modal !== null && (
-        <Modal
-          key={modal}
-          eyebrow="Aluno"
-          titulo="Trocar de modo?"
-          acoes={[
-            { rotulo: 'Sair e ir para o login', principal: true, fecha: false, aoClicar: sairParaConta },
-            { rotulo: 'Cancelar' },
-          ]}
-          aoFechar={() => setModal(null)}
-        >
-          <p>
-            Você vai sair da entrada de aluno e voltar ao login. O Solo e o Professor abrem com o e-mail e a
-            senha da sua conta.
-          </p>
-        </Modal>
-      )}
+      {modal !== null && <ModalTrocarModoDoAluno key={modal} aoFechar={() => setModal(null)} />}
     </header>
+  );
+}
+
+// A confirmação de "Trocar de modo" da entrada de aluno. Exportada porque o
+// menu da conta fixa (componentes/Nav.tsx, na tela de salas) pergunta a
+// mesma coisa, do mesmo jeito.
+export function ModalTrocarModoDoAluno({ aoFechar }: { aoFechar: () => void }) {
+  return (
+    <Modal
+      eyebrow="Aluno"
+      titulo="Trocar de modo?"
+      acoes={[
+        { rotulo: 'Sair e ir para o login', principal: true, fecha: false, aoClicar: sairParaConta },
+        { rotulo: 'Cancelar' },
+      ]}
+      aoFechar={aoFechar}
+    >
+      <p>
+        Você vai sair da entrada de aluno e voltar ao login. O Solo e o Professor abrem com o e-mail e a
+        senha da sua conta.
+      </p>
+    </Modal>
   );
 }
 
@@ -184,7 +191,7 @@ function useConvitesPendentes(daTela: number | null | undefined): number {
   useEffect(() => {
     if (telaInforma) return;
     let cancelado = false;
-    api.aluno
+    api.escola.aluno
       .convites()
       .then((lista) => {
         if (!cancelado) setDoBack(lista.length);

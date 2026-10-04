@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "contrato": "node gerar-contrato.mjs"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",

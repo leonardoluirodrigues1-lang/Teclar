@@ -6,23 +6,12 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Base mínima (reset.css do projeto ainda está vazio)
+   Base desta folha. O que todas as telas têm igual (margens zeradas,
+   box-sizing, fundo e fonte do body, [hidden], anel de foco) está em
+   css/base/reset.css; aqui fica só o que esta folha usa e as outras
+   não usam todas.
    ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  min-height: 100vh;
-  background: var(--cor-fundo, #000);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-normal, 1.5);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
 a { color: inherit; text-decoration: none; }
-[hidden] { display: none !important; }
-:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
 
 /* ---------------------------------------------------------------------------
    Fundo: a camada fixa com o disco de acreção (css/base/luz.css).
@@ -84,46 +73,10 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------------------------------------------------------------------------
-   Métricas: três colunas com divisórias verticais
+   Métricas: o desenho está em componentes/metricas.css (o mesmo do modal de
+   fim do treino). Aqui só a distância até o título, própria desta tela.
    ------------------------------------------------------------------------- */
-.metricas {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: 36px;
-}
-.metrica {
-  padding: 4px 18px;
-  text-align: center;
-}
-.metrica:first-child { padding-left: 0; text-align: left; }
-.metrica:last-child { padding-right: 0; text-align: right; }
-.metrica + .metrica { border-left: 1px solid rgba(255, 255, 255, 0.12); }
-
-.metrica dt {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-.metrica dd {
-  margin-top: 8px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 34px;
-  font-weight: var(--peso-medio, 500);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.metrica .unidade {
-  font-size: 0.5em;
-  font-weight: var(--peso-normal, 400);
-  color: var(--cor-texto-fraco, #8a8a8a);
-  margin-left: 2px;
-}
-/* Abaixo da precisao_minima do banco. O número continua visível: a cor
-   reforça, não substitui. */
-.metrica dd.abaixo { color: var(--cor-erro, #ff5a5a); }
-.metrica dd.abaixo .unidade { color: inherit; }
+.painel .bloco-metricas { margin-top: 36px; }
 
 /* ---------------------------------------------------------------------------
    Barra de XP (Solo)
@@ -236,8 +189,6 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 640px) {
   .painel { padding: 32px 24px; }
   .titulo { font-size: 32px; }
-  .metrica dd { font-size: 26px; }
-  .metrica { padding: 4px 10px; }
   .acoes { flex-direction: column; }
 }
 

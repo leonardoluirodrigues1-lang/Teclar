@@ -7,24 +7,12 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Base mínima (reset.css do projeto ainda está vazio)
+   Base desta folha. O que todas as telas têm igual (margens zeradas,
+   box-sizing, fundo e fonte do body, [hidden], anel de foco) está em
+   css/base/reset.css; aqui fica só o que esta folha usa e as outras
+   não usam todas.
    ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  min-height: 100vh;
-  background: var(--cor-fundo, #000);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-normal, 1.5);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
-/* O atributo hidden precisa ganhar de qualquer display: definido abaixo. */
-[hidden] { display: none !important; }
 
 /* Luz de fundo discreta para o vidro ter o que desfocar. Sem estrelas: a
    tela de treino pede silêncio, o foco é o texto. */

@@ -1,21 +1,25 @@
-// Turma.tsx — pages/professor/turma.html
-// Segunda tela da gestão acadêmica: o detalhe de UMA turma. A turma vem por
-// query string (?turma=<id>); sem ela, ou com um id que o back não conhece,
-// a tela mostra "Turma não encontrada" — nunca fica em branco.
+// Turma.tsx — pages/professor/turma.html?turma=<id>
+// A tela da turma vista pelo PROFESSOR. A tela em si (casca, abas, trilha,
+// painel de relatório) é a mesma do aluno e mora em
+// ../componentes/TelaDaTurma.tsx; aqui fica só o que muda para o professor:
 //
-// Duas abas, mesmo painel: Alunos (tabela com os ATIVOS e os CONVIDADOS
-// que ainda não responderam, cada um com o seu estado) e Exercícios (o que
-// foi atribuído e quanto da turma já concluiu). A aba escolhida vive na
-// URL (?aba=) para sobreviver a um F5.
+//   · o cabeçalho tem as ações (Convidar alunos, Atribuir exercício) e o
+//     painel de métricas da turma;
+//   EXERCÍCIOS     a trilha na visão da turma — cada pedra diz quantos
+//                  alunos concluíram — e, embaixo, a tabela de atribuições
+//                  com o "Remover atribuição";
+//   PARTICIPANTES  a lista inteira, ativos e convidados, com nome e RP. O
+//                  professor não tem anonimização: a turma é dele.
+//   RELATÓRIO      os números da turma inteira (GET /turmas/:id/relatorio),
+//                  com PDF, CSV e o link para o relatório completo.
+//
+// Sem ?turma=, ou com um id que o back não conhece, a tela mostra "Turma
+// não encontrada" — nunca fica em branco.
 //
 // Convidado não é aluno da turma ainda: aparece apagado, com a data do
 // convite e sem número nenhum, e fica de fora do contador e da média.
-//
-// Conversão de js/professor/turma.js para React: mesmo markup, mesmas
-// classes de css/escola.css, mesmos textos e estados. Barra do topo,
-// tabela, esqueletos e painéis de estado vêm de ../componentes/.
 
-import { useEffect, useRef, useState, type KeyboardEvent as KeyboardEventReact } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
@@ -26,14 +30,25 @@ import type {
   ErroDaApi,
   Exercicio,
   LinhaDaTurma,
+  RelatorioTurma,
   TurmaDetalhe,
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
+import { SECOES_PROFESSOR } from '../componentes/Nav.js';
+import {
+  CascaDaTurma,
+  focarAba,
+  PainelDeRelatorio,
+  TrilhaDeExercicios,
+  TurmaNaoEncontrada,
+  useAbaDaUrl,
+  type PedraDaTrilha,
+} from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { contagem, formatarData, formatarDataHora, formatarRp } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, formatarRp, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
+import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
@@ -49,19 +64,14 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// O &nbsp; que o HTML original deixava no título: ele já tem a altura
-// certa antes de a turma chegar, e nada pula quando o nome aparece.
-const NBSP = String.fromCharCode(0xa0);
-
 // ============================================================================
 // Estado da tela
 // ============================================================================
 
-type Aba = 'alunos' | 'exercicios';
-
 // `turma` é o detalhe; `alunos` e `atribuicoes` são as duas listas que
 // Promise.all traz juntas. Tudo o que a tela mostra — inclusive as três
-// métricas do topo — sai destes três.
+// métricas do topo — sai destes três. O relatório é à parte: só é pedido
+// quando a aba dele abre.
 type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
@@ -77,12 +87,6 @@ let proximaChave = 0;
 
 const turmaId = new URLSearchParams(window.location.search).get('turma');
 
-function abaDaUrl(): Aba {
-  return new URLSearchParams(window.location.search).get('aba') === 'exercicios'
-    ? 'exercicios'
-    : 'alunos';
-}
-
 // ============================================================================
 // Tela
 // ============================================================================
@@ -90,15 +94,13 @@ function abaDaUrl(): Aba {
 function Turma() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
-  const [abaAtual, setAbaAtual] = useState<Aba>(abaDaUrl);
-  // Ordenação da tabela de alunos: só ela é ordenável. null = ordem em que
-  // o back mandou.
+  const [aba, selecionarAba] = useAbaDaUrl();
+  // Ordenação da tabela de participantes: só ela é ordenável. null = ordem
+  // em que o back mandou.
   const [ordenacaoAlunos, setOrdenacaoAlunos] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
   const [modal, setModal] = useState<ConfigModal | null>(null);
 
   const btnAtribuir = useRef<HTMLButtonElement>(null);
-  const abaAlunos = useRef<HTMLButtonElement>(null);
-  const abaExercicios = useRef<HTMLButtonElement>(null);
 
   // --- carregamento — detalhe, alunos e atribuições numa tacada só ----------
 
@@ -162,49 +164,14 @@ function Turma() {
     );
   }
 
-  // --- abas — estado de URL, roving tabindex, seta esquerda/direita ---------
-
-  function selecionarAba(aba: Aba) {
-    if (aba === abaAtual) return;
-    setAbaAtual(aba);
-    // replaceState, não pushState: trocar de aba não é uma "página" nova
-    // para o botão voltar — só recarregar nesta URL precisa lembrar dela.
-    const url = new URL(window.location.href);
-    url.searchParams.set('aba', aba);
-    window.history.replaceState(null, '', url);
-  }
-
-  function aoTeclarNaAba(evento: KeyboardEventReact, indice: number) {
-    if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
-    evento.preventDefault();
-    const abas = [abaAlunos.current, abaExercicios.current];
-    const proximo =
-      evento.key === 'ArrowRight'
-        ? abas[(indice + 1) % abas.length]
-        : abas[(indice - 1 + abas.length) % abas.length];
-    proximo?.focus();
-    selecionarAba(proximo === abaAlunos.current ? 'alunos' : 'exercicios');
-  }
-
-  // --- painel "turma não encontrada" ----------------------------------------
-  // Substitui a tela inteira (cabeçalho, métricas e abas incluídos): uma
-  // turma que não existe não tem o que essas peças mostrariam.
-
   if (!turmaId || carga.estado === 'nao-encontrada') {
     return (
-      <>
-        <Nav secoes={SECOES_PROFESSOR} ativo="turmas" />
-        <main id="corpo">
-          <PainelEstado
-            titulo="Turma não encontrada"
-            texto="Ela pode ter sido removida, ou o link usado está incompleto."
-          >
-            <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
-              Ver minhas turmas
-            </a>
-          </PainelEstado>
-        </main>
-      </>
+      <TurmaNaoEncontrada
+        secoes={SECOES_PROFESSOR}
+        papel={SECOES_PROFESSOR.modo}
+        texto="Ela pode ter sido removida, ou o link usado está incompleto."
+        link={{ href: 'turmas.html', rotulo: 'Ver minhas turmas' }}
+      />
     );
   }
 
@@ -223,32 +190,39 @@ function Turma() {
       );
     }
 
-    if (abaAtual === 'exercicios') {
-      if (atribuicoes.length === 0) {
-        return (
-          <PainelEstado
-            titulo="Nenhum exercício atribuído"
-            texto="Atribua exercícios da sua biblioteca para esta turma treinar."
-          >
-            <button
-              type="button"
-              className="btn btn-solido tecla tecla-clara"
-              onClick={(evento) => abrirAtribuir(evento.currentTarget)}
-            >
-              Atribuir exercício
-            </button>
-          </PainelEstado>
-        );
-      }
+    if (aba === 'relatorio') return <AbaRelatorio nomeDaTurma={turma.nome ?? 'turma'} />;
+    if (aba === 'participantes') return renderizarParticipantes();
+    return renderizarExercicios();
+  }
+
+  function renderizarExercicios() {
+    if (atribuicoes.length === 0) {
       return (
-        <Tabela
-          colunas={colunasExercicios}
-          linhas={atribuicoes}
-          chave={(item) => item.exercicioId}
-        />
+        <PainelEstado
+          titulo="Nenhum exercício atribuído"
+          texto="Atribua exercícios da sua biblioteca para esta turma treinar."
+        >
+          <button
+            type="button"
+            className="btn btn-solido tecla tecla-clara"
+            onClick={(evento) => abrirAtribuir(evento.currentTarget)}
+          >
+            Atribuir exercício
+          </button>
+        </PainelEstado>
       );
     }
+    // A trilha é a ordem que os alunos veem; a tabela embaixo é onde se
+    // administra cada atribuição (data, dificuldade, remover).
+    return (
+      <>
+        <TrilhaDeExercicios pedras={atribuicoes.map(pedraDaTurma)} />
+        <Tabela colunas={colunasExercicios} linhas={atribuicoes} chave={(item) => item.exercicioId} />
+      </>
+    );
+  }
 
+  function renderizarParticipantes() {
     if (alunos.length === 0) {
       return (
         <PainelEstado
@@ -397,7 +371,7 @@ function Turma() {
             toasts.mostrar(convidado ? 'Convite cancelado' : 'Aluno removido da turma');
             // A linha (e o botão que a pessoa clicou) acabou de sumir do DOM;
             // a aba é o próximo lugar estável para o foco pousar.
-            abaAlunos.current?.focus();
+            focarAba('participantes');
           }}
           aoFechar={fechar}
         />
@@ -418,7 +392,7 @@ function Turma() {
           aoConcluir={() => {
             atualizarAtribuicoes((lista) => lista.filter((a) => a.exercicioId !== item.exercicioId));
             toasts.mostrar('Atribuição removida');
-            abaExercicios.current?.focus();
+            focarAba('exercicios');
           }}
           aoFechar={fechar}
         />
@@ -440,114 +414,162 @@ function Turma() {
     );
   }
 
+  // O que só o professor tem no cabeçalho: as duas ações e, embaixo do
+  // título, o painel com os três números da turma.
+  const acoes = (
+    <>
+      <a
+        className="btn btn-vidro vidro tecla"
+        id="btn-convidar"
+        href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
+      >
+        Convidar alunos
+      </a>
+      <button
+        type="button"
+        className="btn btn-solido tecla tecla-clara"
+        id="btn-atribuir"
+        ref={btnAtribuir}
+        onClick={(evento) => abrirAtribuir(evento.currentTarget)}
+      >
+        Atribuir exercício
+      </button>
+    </>
+  );
+
+  // Métricas do topo — recalculadas no cliente sempre que a lista muda,
+  // para remover aluno ou atribuição não precisar de outra ida ao back.
+  const metricas = (
+    <div className="metricas-turma vidro" id="metricas">
+      <div className="metrica-item">
+        <span className="metrica-rotulo">Alunos</span>
+        <span className="metrica-valor">{turma ? contagem(ativos.length) : '—'}</span>
+      </div>
+      <div className="metrica-item">
+        <span className="metrica-rotulo">Exercícios atribuídos</span>
+        <span className="metrica-valor">{turma ? contagem(atribuicoes.length) : '—'}</span>
+      </div>
+      <div className="metrica-item">
+        <span className="metrica-rotulo">PPM médio da turma</span>
+        <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(ativos)) : '—'}</span>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <Nav secoes={SECOES_PROFESSOR} ativo="turmas" />
-
-      <main id="corpo">
-        <a className="voltar" href="turmas.html">
-          <span className="voltar-seta" aria-hidden="true">
-            ←
-          </span>
-          Turmas
-        </a>
-
-        <div className="cabecalho">
-          <h1 className="titulo" id="titulo-turma">
-            {turma ? turma.nome ?? 'Turma sem nome' : NBSP}
-          </h1>
-          <div className="cabecalho-acoes">
-            <a
-              className="btn btn-vidro vidro tecla"
-              id="btn-convidar"
-              href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
-            >
-              Convidar alunos
-            </a>
-            <button
-              type="button"
-              className="btn btn-solido tecla tecla-clara"
-              id="btn-atribuir"
-              ref={btnAtribuir}
-              onClick={(evento) => abrirAtribuir(evento.currentTarget)}
-            >
-              Atribuir exercício
-            </button>
-          </div>
-        </div>
-
-        {/* Métricas do topo — recalculadas no cliente sempre que a lista muda,
-            para remover aluno ou atribuição não precisar de outra ida ao back. */}
-        <div className="metricas-turma vidro" id="metricas">
-          <div className="metrica-item">
-            <span className="metrica-rotulo">Alunos</span>
-            <span className="metrica-valor" id="metrica-alunos">
-              {turma ? contagem(ativos.length) : '—'}
-            </span>
-          </div>
-          <div className="metrica-item">
-            <span className="metrica-rotulo">Exercícios atribuídos</span>
-            <span className="metrica-valor" id="metrica-exercicios">
-              {turma ? contagem(atribuicoes.length) : '—'}
-            </span>
-          </div>
-          <div className="metrica-item">
-            <span className="metrica-rotulo">PPM médio da turma</span>
-            <span className="metrica-valor" id="metrica-ppm">
-              {turma ? contagem(calcularPpmMedio(ativos)) : '—'}
-            </span>
-          </div>
-        </div>
-
-        {/* Roving tabindex: só a aba selecionada está na ordem do Tab; as
-            setas é que movem entre as duas. */}
-        <div className="abas" role="tablist" aria-label="Seções da turma">
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-alunos"
-            ref={abaAlunos}
-            role="tab"
-            aria-selected={abaAtual === 'alunos'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'alunos' ? 0 : -1}
-            onClick={() => selecionarAba('alunos')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 0)}
-          >
-            Alunos
-          </button>
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-exercicios"
-            ref={abaExercicios}
-            role="tab"
-            aria-selected={abaAtual === 'exercicios'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'exercicios' ? 0 : -1}
-            onClick={() => selecionarAba('exercicios')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 1)}
-          >
-            Exercícios
-          </button>
-        </div>
-
-        {/* As duas abas apontam para o mesmo #conteudo (ele troca de tabela,
-            não existem dois painéis escondidos); aria-labelledby segue a aba
-            ativa para o leitor de tela anunciar de qual delas o conteúdo é. */}
-        <div
-          id="conteudo"
-          role="tabpanel"
-          aria-busy={carga.estado === 'carregando'}
-          aria-labelledby={abaAtual === 'alunos' ? 'aba-alunos' : 'aba-exercicios'}
-        >
-          {renderizarConteudo()}
-        </div>
-      </main>
+      <CascaDaTurma
+        secoes={SECOES_PROFESSOR}
+        papel={SECOES_PROFESSOR.modo}
+        voltar={{ href: 'turmas.html', rotulo: 'Turmas' }}
+        titulo={turma ? turma.nome ?? 'Turma sem nome' : null}
+        subtitulo={turma ? turma.periodo ?? '' : null}
+        acoes={acoes}
+        extra={metricas}
+        aba={aba}
+        aoSelecionarAba={selecionarAba}
+        carregando={carga.estado === 'carregando'}
+      >
+        {renderizarConteudo()}
+      </CascaDaTurma>
 
       {renderizarModal()}
     </>
   );
+}
+
+// Na visão do professor a pedra não tem "o seu" estado: é neutra, com o
+// número, e a legenda diz quantos alunos ativos já concluíram.
+function pedraDaTurma(item: AtribuicaoProfessor): PedraDaTrilha {
+  return {
+    id: item.exercicioId,
+    titulo: item.titulo ?? 'Sem título',
+    estado: 'turma',
+    legenda: `${contagem(item.concluidoPor)} de ${contagem(item.totalAlunos)} concluíram`,
+  };
+}
+
+// ============================================================================
+// Aba Relatório — os números da turma inteira
+// ============================================================================
+
+type CargaRelatorio =
+  | { estado: 'carregando' }
+  | { estado: 'erro'; mensagem: string }
+  | { estado: 'pronto'; relatorio: RelatorioTurma };
+
+function AbaRelatorio({ nomeDaTurma }: { nomeDaTurma: string }) {
+  const [carga, setCarga] = useState<CargaRelatorio>({ estado: 'carregando' });
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarga({ estado: 'carregando' });
+    api.relatorios
+      .turma(turmaId)
+      .then((relatorio) => {
+        if (!cancelado) setCarga({ estado: 'pronto', relatorio });
+      })
+      .catch((excecao) => {
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [tentativa]);
+
+  if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={3} />;
+  if (carga.estado === 'erro') {
+    return (
+      <PainelErro
+        titulo="Não foi possível carregar o relatório"
+        texto={carga.mensagem}
+        aoTentarDeNovo={() => setTentativa((n) => n + 1)}
+      />
+    );
+  }
+
+  const r = carga.relatorio;
+  // Tudo pronto do back. Média que ele não calculou chega null e vira "—".
+  const grupos = [
+    [
+      { rotulo: 'Alunos ativos (7 dias)', valor: `${contagem(r.alunosAtivos)} de ${contagem(r.totalAlunos)}` },
+      { rotulo: 'Exercícios concluídos', valor: contagem(r.exerciciosConcluidos) },
+    ],
+    [
+      { rotulo: 'PPM médio', valor: numero(r.wpmMedio) },
+      { rotulo: 'Precisão média', valor: porcentagem(r.precisaoMedia) },
+    ],
+  ];
+
+  return (
+    <>
+      <PainelDeRelatorio
+        rotulo="Relatório da turma"
+        grupos={grupos}
+        aoGerarCsv={() => baixarCsv(`relatorio-${slug(nomeDaTurma)}.csv`, linhasDoCsv(nomeDaTurma, r))}
+      />
+      <p className="nota">
+        Aluno por aluno e exercício por exercício estão no{' '}
+        <a className="tabela-link" href={`relatorios.html?${new URLSearchParams({ turma: turmaId })}`}>
+          relatório completo
+        </a>
+        .
+      </p>
+    </>
+  );
+}
+
+// Números crus no CSV: o Excel precisa de número, não de "94%".
+function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[][] {
+  return [
+    ['Turma', nomeDaTurma],
+    ['Alunos', r.totalAlunos ?? ''],
+    ['Alunos ativos (7 dias)', r.alunosAtivos ?? ''],
+    ['Exercícios concluídos', r.exerciciosConcluidos ?? ''],
+    ['PPM médio', r.wpmMedio ?? ''],
+    ['Precisão média (%)', r.precisaoMedia ?? ''],
+  ];
 }
 
 // ============================================================================

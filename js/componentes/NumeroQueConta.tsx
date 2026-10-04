@@ -1,7 +1,8 @@
 // NumeroQueConta.tsx
 // Um número que conta do zero até o valor, em vez de aparecer pronto. Só
-// para o número que é a CONQUISTA da tela: PPM, precisão e XP no resultado
-// do treino (treino/Resultado.tsx) e no dashboard do Solo (solo/Lobby.tsx).
+// para o número que é a CONQUISTA da tela: o desempenho do treino
+// (treino/BlocoDeMetricas.tsx, na tela de resultado e no modal de fim), o XP
+// do resultado e o dashboard do Solo (solo/Lobby.tsx).
 // Nunca em tabela, relatório ou lista: quem está comparando números
 // precisa lê-los parados.
 //

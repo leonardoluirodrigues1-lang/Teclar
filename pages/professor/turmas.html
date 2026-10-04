@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
 <link rel="stylesheet" href="../../css/componentes/toasts.css">
 <link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/base/reset.css">
 <link rel="stylesheet" href="../../css/escola.css">
 <!-- A tela do tutorial (e, no Solo, os botões .tutorial-botao). -->
 <link rel="stylesheet" href="../../css/componentes/tutorial.css">
@@ -32,15 +33,15 @@
 </head>
 <body>
 
-<!-- Luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto da
-     Escola) e o gr&atilde;o &mdash; ver css/base/luz.css. Sem ela o backdrop-filter do
-     vidro n&atilde;o tem o que desfocar. -->
+<!-- Fundo fixo: s&oacute; as estrelas e o gr&atilde;o (css/base/luz.css). Nesta tela o
+     horizonte de eventos (o .disco) N&Atilde;O fica aqui: ele vive dentro da
+     abertura, no topo da p&aacute;gina, e vai embora junto com ela ao rolar (ver
+     a Abertura em js/professor/Turmas.tsx). -->
 <div class="fundo grao" aria-hidden="true">
-  <div class="disco disco-canto-inferior-direito"></div>
   <div class="fundo-estrelas"></div>
 </div>
 
-<!-- O React monta a tela inteira aqui dentro (barra do topo, conte&uacute;do,
+<!-- O React monta a tela inteira aqui dentro (conta, abertura, conte&uacute;do,
      estados). Fora da raiz s&oacute; fica o que n&atilde;o depende de estado. -->
 <div id="raiz" class="pagina entrada-da-pagina"></div>
 

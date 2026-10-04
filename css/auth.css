@@ -7,34 +7,17 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Base mínima (reset.css do projeto ainda está vazio)
+   Base desta folha. O que todas as telas têm igual (margens zeradas,
+   box-sizing, fundo e fonte do body, [hidden], anel de foco) está em
+   css/base/reset.css; aqui fica só o que esta folha usa e as outras
+   não usam todas.
    ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  position: relative;
-  min-height: 100vh;
-  background: var(--cor-fundo, #000);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-normal, 1.5);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
+/* position: relative só existe nesta folha; por isso não subiu para o reset. */
+body { position: relative; }
 a { color: inherit; text-decoration: none; }
-/* O atributo hidden precisa ganhar de qualquer display declarado depois:
-   as seções de login trocam de modo por hidden, não por classe. */
-[hidden] { display: none !important; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 input { font: inherit; color: inherit; }
 ul { list-style: none; }
-
-/* Anel de foco visível só para navegação por teclado. */
-:focus-visible {
-  outline: 2px solid var(--cor-anel-foco, #fff);
-  outline-offset: 3px;
-}
 
 /* ---------------------------------------------------------------------------
    Fundo: eco do horizonte de eventos + campo de estrelas (os dois em

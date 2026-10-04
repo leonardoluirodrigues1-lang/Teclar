@@ -44,8 +44,8 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
 @media(min-width:640px){h1.titulo{font-size:4.5rem}}
 @media(min-width:768px){h1.titulo{font-size:6rem}}
 
-.teclar-caret{display:inline-block;height:.95em;width:.07em;margin-left:-.30em;
-  background:var(--foreground);vertical-align:middle}
+/* .teclar-typed-word e .teclar-caret (a marca se digitando) moram em
+   css/base/movimento.css: a tela de turmas do professor usa a mesma. */
 
 .cta-hero{position:absolute;bottom:3rem;left:0;right:0;display:flex;justify-content:center;z-index:10}
 .btn{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:5px;
@@ -161,41 +161,6 @@ footer p{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.3em;color
 @media(prefers-reduced-motion:reduce){
   .reveal,.w{opacity:1;transform:none;filter:none;transition:none}
 }
-@keyframes teclar-caret {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
-@keyframes teclar-type-delete {
-  0%,  3%  { width: 0; }
-  40%, 60% { width: var(--tw-word); }
-  97%, 100% { width: 0; }
-}
-
-.teclar-typed-word {
-  --tw-word: calc(6ch + 6 * 0.42em);
-  display: inline-block;
-  width: 0;
-  max-width: none;
-  overflow: hidden;
-  white-space: nowrap;
-  animation-name: teclar-type-delete;
-  animation-duration: 7.2s;
-  animation-timing-function: steps(6, end);
-  animation-iteration-count: infinite;
-  animation-play-state: running;
-  will-change: width;
-}
-
-
-.teclar-caret {
-  animation-name: teclar-caret;
-  animation-duration: 1.05s;
-  animation-timing-function: steps(1, end);
-  animation-iteration-count: infinite;
-  animation-play-state: running;
-}
-
 .teclar-canvas-motion {
   animation-name: teclar-canvas-drift;
   animation-duration: 18s;

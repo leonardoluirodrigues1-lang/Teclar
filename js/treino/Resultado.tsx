@@ -32,9 +32,9 @@ import { ordemDoPercurso, progressoDoPercurso } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
+import { BlocoDeMetricas } from './BlocoDeMetricas.js';
 
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
-const PRECISAO_MINIMA = CONFIG.METAS.PRECISAO_ALVO;
 const XP_POR_NIVEL = CONFIG.SOLO.XP_POR_NIVEL;
 
 // O que a tela de treino guarda no sessionStorage (ver irParaResultado em
@@ -50,7 +50,9 @@ interface Guardado {
   metricas?: {
     wpm?: number;
     precisao?: number;
+    acertos?: number;
     erros?: number;
+    tempo_gasto_segundos?: number;
     concluida?: boolean;
     exercicio_id?: string;
     turma_id?: string | null;
@@ -75,6 +77,10 @@ interface Resultado {
   wpm: number;
   precisao: number;
   erros: number;
+  // null quando o dado não veio: a linha some em vez de mostrar um número
+  // inventado. Vem do treino (sessionStorage) ou da API depois de um F5.
+  acertos: number | null;
+  tempoSegundos: number | null;
   exercicioId: string | null;
   turmaId: string | null;
   enfileirada: boolean;
@@ -114,6 +120,8 @@ function normalizarGuardado(g: Guardado, mundo: Mundo | null): Resultado {
     wpm: m.wpm ?? 0,
     precisao: m.precisao ?? 0,
     erros: m.erros ?? 0,
+    acertos: m.acertos ?? null,
+    tempoSegundos: m.tempo_gasto_segundos ?? null,
     exercicioId: m.exercicio_id ?? g.exercicio?.id ?? null,
     turmaId: m.turma_id ?? null,
     enfileirada: g.enfileirada === true,
@@ -156,6 +164,10 @@ function normalizarDaApi(r: SessaoDaApi, mundo: Mundo | null): Resultado {
     wpm: r.wpm ?? 0,
     precisao: r.precisao ?? 0,
     erros: r.erros ?? 0,
+    // Gravado pelo treino no POST e devolvido pela leitura: é o mesmo
+    // número de antes do F5, não uma conta feita aqui.
+    acertos: r.acertos ?? null,
+    tempoSegundos: r.tempoSegundos ?? null,
     exercicioId: r.exerciseId ?? r.exercicio_id ?? null,
     turmaId: r.turmaId ?? r.turma_id ?? null,
     enfileirada: false,
@@ -316,25 +328,14 @@ function ResultadoTela() {
         {nota}
       </p>
 
-      <dl className="metricas">
-        <div className="metrica">
-          <dt>PPM</dt>
-          <dd id="ppm">
-            <NumeroQueConta valor={r.wpm} />
-          </dd>
-        </div>
-        <div className="metrica">
-          <dt>Precisão</dt>
-          <dd id="precisao" className={r.precisao < PRECISAO_MINIMA ? 'abaixo' : undefined}>
-            <NumeroQueConta valor={r.precisao} />
-            <span className="unidade">%</span>
-          </dd>
-        </div>
-        <div className="metrica">
-          <dt>Erros</dt>
-          <dd id="erros">{r.erros}</dd>
-        </div>
-      </dl>
+      {/* Mesmo bloco do modal de fim da tela de treino. */}
+      <BlocoDeMetricas
+        wpm={r.wpm}
+        precisao={r.precisao}
+        erros={r.erros}
+        acertos={r.acertos}
+        tempoSegundos={r.tempoSegundos}
+      />
 
       {/* Lição com repetições: a evolução dentro dela, discreta. Só existe
           quando o dado veio da tela de treino (sessionStorage). */}

@@ -6,7 +6,8 @@
 // marcador de lista, separador nem enfeite.
 //
 // Quem usa: solo/Caminho.tsx, solo/Lobby.tsx, treino/Resultado.tsx,
-// professor/Relatorios.tsx, aluno/Sala.tsx e componentes/toast.ts.
+// professor/Relatorios.tsx, aluno/Dashboard.tsx (sala com tudo feito),
+// aluno/Sala.tsx (primeiro lugar do ranking) e componentes/toast.ts.
 //
 // Duas formas:
 //   · clara  — branca com brilho em volta, para fundo escuro;

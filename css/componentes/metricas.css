@@ -1,0 +1,65 @@
+/* ============================================================================
+   TECLAR — metricas.css
+   Bloco de desempenho de uma sessão (js/treino/BlocoDeMetricas.tsx): PPM,
+   precisão e erros numa linha; acertos e tempo numa segunda, menor.
+   Usado na tela de resultado do Solo e no modal de fim do treino.
+   A margem acima do bloco NÃO fica aqui: cada container define a sua
+   (resultado.css e modais.css), porque os respiros são diferentes.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Métricas: três colunas com divisórias verticais
+   ------------------------------------------------------------------------- */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.metrica {
+  padding: 4px 18px;
+  text-align: center;
+}
+.metrica:first-child { padding-left: 0; text-align: left; }
+.metrica:last-child { padding-right: 0; text-align: right; }
+.metrica + .metrica { border-left: 1px solid rgba(255, 255, 255, 0.12); }
+
+.metrica dt {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.metrica dd {
+  margin-top: 8px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 34px;
+  font-weight: var(--peso-medio, 500);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.metrica .unidade {
+  font-size: 0.5em;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto-fraco, #8a8a8a);
+  margin-left: 2px;
+}
+/* Abaixo da precisao_minima do banco. O número continua visível: a cor
+   reforça, não substitui. */
+.metrica dd.abaixo { color: var(--cor-erro, #ff5a5a); }
+.metrica dd.abaixo .unidade { color: inherit; }
+
+/* Acertos e tempo: mesma régua, em tamanho menor — o destaque continua
+   sendo PPM e precisão. */
+.metricas-secundarias {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 20px;
+}
+.metricas-secundarias .metrica dd { font-size: 20px; }
+/* Só o tempo (dado vindo da API, sem acertos): fica à esquerda, não solto
+   à direita como um "último" de uma linha vazia. */
+.metricas-secundarias .metrica:only-child { text-align: left; }
+
+@media (max-width: 640px) {
+  .metrica dd { font-size: 26px; }
+  .metrica { padding: 4px 10px; }
+}

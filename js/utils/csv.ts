@@ -1,7 +1,8 @@
 // csv.ts
 // Parser de CSV feito à mão, sem biblioteca. Existe para a importação de
 // alunos (pages/professor/alunos.html), mas não sabe nada de aluno: recebe
-// texto, devolve linhas de células. Sem DOM, sem fetch.
+// texto, devolve linhas de células. Sem fetch; o único toque no DOM é o
+// baixarCsv(), no fim, que entrega o arquivo ao navegador.
 //
 // O que ele aguenta, porque é o que chega de verdade de uma planilha:
 //   · separador vírgula OU ponto e vírgula — o Excel em português salva
@@ -185,4 +186,40 @@ export function gerarCsv(
 
   const corpo = linhas.map((linha) => linha.map(escapar).join(separador)).join('\r\n') + '\r\n';
   return bom ? BOM + corpo : corpo;
+}
+
+// ============================================================================
+// Download — saiu de professor/Relatorios.tsx quando o relatório do aluno
+// (aluno/Sala.tsx) também passou a exportar CSV.
+// ============================================================================
+
+// Um nome de turma em pedaço de nome de arquivo: minúsculas e sem acento.
+// Fora disso, o que não é letra nem número vira hífen — "9º Ano A — Manhã" tem espaço, ordinal e travessão, e um nome de
+// arquivo com isso dentro é um convite a problema no download.
+export function slug(nome: string): string {
+  return String(nome ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'turma';
+}
+
+// Ponto e vírgula como separador e BOM na frente: é o par que faz o Excel
+// em português abrir o arquivo em colunas e em UTF-8, em vez de jogar tudo
+// na coluna A com os acentos quebrados. O gerarCsv, acima, já põe o
+// BOM e já escapa a célula que contenha o separador.
+export function baixarCsv(nomeArquivo: string, linhas: (string | number)[][]): void {
+  const csv = gerarCsv(linhas, { separador: ';', bom: true });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Um instante depois: revogar na hora cancela o download em alguns
+  // navegadores.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

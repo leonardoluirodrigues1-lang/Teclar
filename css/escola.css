@@ -15,25 +15,15 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Base mínima (reset.css do projeto ainda está vazio)
+   Base desta folha. O que todas as telas têm igual (margens zeradas,
+   box-sizing, fundo e fonte do body, [hidden], anel de foco) está em
+   css/base/reset.css; aqui fica só o que esta folha usa e as outras
+   não usam todas.
    ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  min-height: 100vh;
-  background: var(--cor-fundo, #000);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-weight: var(--peso-leve, 300);
-  line-height: var(--lh-normal, 1.5);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 input { font: inherit; color: inherit; }
 ul { list-style: none; }
-[hidden] { display: none !important; }
 
 /* Texto que só o leitor de tela lê. Some da vista sem sair da árvore de
    acessibilidade — display:none o tiraria dos dois. */
@@ -47,12 +37,6 @@ ul { list-style: none; }
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-/* Anel de foco só para quem navega por teclado. */
-:focus-visible {
-  outline: 2px solid var(--cor-anel-foco, #fff);
-  outline-offset: 3px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -198,6 +182,128 @@ ul { list-style: none; }
 .menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
 
 /* ---------------------------------------------------------------------------
+   Tela de turmas — sem barra no topo
+   A conta fica fixa no canto; o resto rola. É o único elemento fixo da
+   tela, por isso o z-index de cabeçalho fixo.
+   ------------------------------------------------------------------------- */
+.conta-fixa {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  right: 22px;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.conta-fixa-texto { text-align: right; }
+.conta-fixa-nome { font-size: 13px; color: var(--cor-texto, #fff); }
+/* O papel tem a mesma voz do .menu-modo, dentro do menu. */
+.conta-fixa-papel {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* Abertura: o horizonte de eventos com a marca por cima. O horizonte é o
+   mesmo .disco de css/base/luz.css (e respira pela mesma regra de
+   movimento.css), só que aqui DENTRO da seção, centrado e menor — e não
+   no .fundo fixo. overflow: hidden corta a luz na borda da seção: ao
+   rolar, o horizonte vai embora junto com ela. */
+.abertura {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.abertura .disco {
+  top: 50%;
+  left: 50%;
+  /* 0.68: o buraco (raio 290px no luz.css) fica com uns 200px de raio e
+     cabe inteiro na altura da seção. */
+  transform: translate(-50%, -50%) rotate(8deg) scale(0.68);
+  --disco-lado-aceso: 210deg;
+}
+
+/* A marca: grande, mono, letter-spacing largo. Os .42em são os mesmos da
+   landing — a largura da palavra no .teclar-typed-word (movimento.css)
+   conta com eles. */
+.marca-abertura {
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: clamp(30px, 6.4vw, 62px);
+  font-weight: var(--peso-medio, 500);
+  letter-spacing: 0.42em;
+  white-space: nowrap;
+  text-shadow: 0 0 34px rgba(255, 255, 255, 0.45);
+}
+
+/* Movimento reduzido: a palavra chega pronta e o cursor não pisca. Só
+   aqui — a landing deixa o hero rodar de propósito (ver landing.css). */
+@media (prefers-reduced-motion: reduce) {
+  .marca-abertura .teclar-typed-word { animation: none; width: var(--tw-word); }
+  .marca-abertura .teclar-caret { animation: none; }
+}
+.movimento-reduzido .marca-abertura .teclar-typed-word { animation: none; width: var(--tw-word); }
+.movimento-reduzido .marca-abertura .teclar-caret { animation: none; }
+
+/* Divisão de funções: três teclas grandes entre duas linhas de 1px. O
+   relevo e o afundar são os da .tecla (css/base/luz.css). */
+.funcoes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e-4, 16px);
+  padding: 30px 0;
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  border-bottom: 1px solid var(--cor-borda, #2b2b2b);
+}
+.funcao {
+  display: block;
+  padding: 20px 22px 22px;
+  border-radius: var(--raio-g, 16px);
+  background: var(--cor-superficie, #0e0e0e);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  /* A lista da .tecla mais a borda do hover. */
+  transition: transform var(--t-rapido, 160ms) var(--curva, ease-out),
+              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
+              border-color var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.funcao:hover { border-color: rgba(255, 255, 255, 0.34); }
+/* O cabeçalho de "Suas turmas" logo abaixo das teclas: mais respiro que o
+   .cabecalho das outras telas, que vem logo depois da barra. */
+.funcoes + .cabecalho { margin-top: var(--e-7, 48px); }
+.funcao-nome { display: block; font-size: 16px; color: var(--cor-texto, #fff); }
+.funcao-texto {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.funcao-sinal {
+  display: block;
+  margin-top: 11px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cor-erro, #ff5a5a);
+}
+
+/* A capa no modal de "Editar capa": a mesma do cartão, mais alta. */
+.capa-previa {
+  height: 140px;
+  border-radius: var(--raio-n, 8px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.capa-previa svg { display: block; width: 100%; height: 100%; }
+.capa-previa + .btn { margin-top: var(--e-4, 16px); }
+
+/* ---------------------------------------------------------------------------
    Cabeçalho da tela
    ------------------------------------------------------------------------- */
 .cabecalho {
@@ -292,30 +398,55 @@ ul { list-style: none; }
 }
 
 /* O cartão inteiro é clicável, mas o link é só o nome: o <a> se estica por
-   cima do cartão com ::after. Assim o HTML continua válido (botão de
-   renomear FORA do link) e o leitor de tela anuncia um destino só. */
+   cima do cartão com ::after. Assim o HTML continua válido (o botão "⋯"
+   fica FORA do link) e o leitor de tela anuncia um destino só.
+
+   Sem overflow: hidden no cartão: o menu do "⋯" mora dentro dele e não
+   pode ser cortado. Quem arredonda os cantos de cima é a própria capa. */
 .cartao {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 132px;
-  padding: var(--espaco-card, 16px);
   border-radius: var(--raio-card, 8px);
   transition: background var(--dur-normal, 240ms) var(--ease-padrao, ease),
               transform var(--t-rapido, 160ms) var(--curva, ease-out),
               border-color var(--t-rapido, 160ms) var(--curva, ease-out);
 }
-.cartao:hover {
+.cartao:not(.cartao-arquivado):hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.34);
   transform: translateY(var(--deslocamento-cartao, -2px));
 }
+/* O vidro cria um contexto de empilhamento por cartão; com o menu aberto,
+   este cartão passa por cima dos vizinhos. */
+.cartao-com-menu { z-index: var(--z-flutuante, 10); }
+
+/* A capa: arcos de luz sobre preto, desenhados em SVG pelo Turmas.tsx. A
+   altura é fixa — é ela que o esqueleto copia. */
+.cartao-capa,
+.esqueleto-capa {
+  height: 104px;
+  border-radius: var(--raio-card, 8px) var(--raio-card, 8px) 0 0;
+  overflow: hidden;
+  background: var(--cor-fundo, #000);
+}
+.cartao-capa svg { display: block; width: 100%; height: 100%; }
+
+/* O corpo tem altura mínima para nome, período e contagens caberem sem o
+   cartão mudar de tamanho de um para o outro — e para o esqueleto, que
+   usa a mesma regra, ter a altura do cartão final. */
+.cartao-corpo,
+.esqueleto-corpo {
+  display: flex;
+  flex-direction: column;
+  min-height: 132px;
+  padding: var(--e-4, 16px) 18px 18px;
+}
 
 .cartao-nome {
   font-size: 17px;
+  font-weight: var(--peso-leve, 300);
   line-height: var(--lh-apertada, 1.1);
-  /* Espaço para o botão de renomear no canto. */
-  padding-right: 92px;
   overflow-wrap: anywhere;
 }
 .cartao-link::after {
@@ -323,6 +454,15 @@ ul { list-style: none; }
   position: absolute;
   inset: 0;
   border-radius: inherit;
+}
+
+.cartao-periodo {
+  margin-top: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
 }
 
 /* O anel de foco cerca o cartão todo, não as letras do nome: é o cartão que
@@ -335,31 +475,51 @@ ul { list-style: none; }
 }
 .cartao:has(.cartao-link:focus-visible) .cartao-link:focus-visible { outline: none; }
 
-/* Renomear: fica acima do link esticado (z-index) e não navega. */
-.btn-renomear {
+/* "⋯": por cima da capa e do link esticado (z-index), e não navega. */
+.cartao-mais {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  padding: 6px 12px;
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--raio-n, 8px);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--cor-texto-suave, #c4c4c4);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
-.btn-renomear:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.16); }
+.cartao-mais:hover,
+.cartao-mais[aria-expanded="true"] { color: var(--cor-texto, #fff); background: rgba(0, 0, 0, 0.85); }
+
+/* O menu do cartão: os itens são os mesmos .menu-item do menu da conta. */
+.cartao-menu {
+  position: absolute;
+  top: 46px;
+  right: 10px;
+  z-index: 3;
+  min-width: 180px;
+  padding: 2px 8px 8px;
+  border-radius: var(--raio-n, 8px);
+}
+
+/* Turmas arquivadas — abaixo da grade, fechadas até a pessoa pedir.
+   O cartão fica apagado e sem o hover dos outros (ver .cartao:hover): não
+   é um destino, só está ali para ser desarquivado. A opacidade vai na capa e no nome, e
+   não no cartão inteiro, para o botão e a mensagem de erro continuarem
+   com o contraste de texto normal. */
+.arquivadas { margin-top: var(--e-7, 48px); }
+.cartao-arquivado .cartao-capa,
+.cartao-arquivado .cartao-nome,
+.cartao-arquivado .cartao-periodo { opacity: 0.45; }
+.cartao-desarquivar { align-self: flex-start; margin-top: auto; }
 
 .metricas {
   display: flex;
-  gap: 32px;
+  gap: 28px;
   margin-top: auto;
   padding-top: var(--e-4, 16px);
 }
@@ -386,29 +546,30 @@ ul { list-style: none; }
 
 /* ---------------------------------------------------------------------------
    Carregando — esqueleto do MESMO tamanho do cartão final
-   Altura igual evita o pulo do layout quando os dados chegam.
+   Mesma capa, mesmo corpo (regras de cima). Altura igual evita o pulo do
+   layout quando os dados chegam.
    ------------------------------------------------------------------------- */
 .esqueleto {
-  min-height: 132px;
-  padding: var(--espaco-card, 16px);
-  border-radius: var(--raio-card, 8px);
   display: flex;
   flex-direction: column;
+  border-radius: var(--raio-card, 8px);
 }
+.esqueleto-capa { background: rgba(255, 255, 255, 0.04); }
 .esqueleto-barra {
   height: 17px;
   width: 62%;
   border-radius: var(--raio-p, 4px);
   background: rgba(255, 255, 255, 0.10);
 }
+.esqueleto-barra-curta { width: 38%; height: 12px; margin-top: 6px; }
 .esqueleto-metricas {
   display: flex;
-  gap: 32px;
+  gap: 28px;
   margin-top: auto;
   padding-top: var(--e-4, 16px);
 }
 .esqueleto-metrica {
-  height: 34px;
+  height: 39px;
   width: 58px;
   border-radius: var(--raio-p, 4px);
   background: rgba(255, 255, 255, 0.10);
@@ -968,6 +1129,12 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .grade { grid-template-columns: repeat(2, 1fr); }
 }
 
+@media (max-width: 900px) {
+  .abertura { height: 340px; }
+  .abertura .disco { transform: translate(-50%, -50%) rotate(8deg) scale(0.46); }
+  .funcoes { grid-template-columns: 1fr; }
+}
+
 /* Abaixo de 900px a tabela rola na horizontal DENTRO do próprio painel —
    .tabela-painel já nasce com overflow-x: auto e a tabela com min-width,
    então a rolagem já existe sem media query nenhuma; não há aqui uma
@@ -975,6 +1142,8 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 @media (max-width: 700px) {
   .grade { grid-template-columns: 1fr; }
+  /* No celular o nome e o papel cobririam a marca; fica só o avatar. */
+  .conta-fixa-texto { display: none; }
   .pagina { padding: 18px var(--e-4, 16px) var(--e-7, 48px); }
   .barra { flex-wrap: wrap; }
   .nav { flex: 1; justify-content: center; }
@@ -1371,8 +1540,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
    O acabamento do desenho no painel do histórico: vidro, rótulo mono 9px
    com letter-spacing .30em, número em tabular-nums e a luz de fundo que o
-   backdrop-filter precisa. O topo com o menu do nome, e as outras telas
-   do aluno (as salas e o detalhe da sala), estão em css/aluno.css.
+   backdrop-filter precisa. O topo com o menu do nome está em
+   css/aluno.css; as salas e o detalhe da sala, no acréscimo "As salas do
+   Aluno", no fim desta folha.
 
    A DENSIDADE é a do professor, não a do Solo: raio 16 e respiro menor.
    São ferramenta, não jogo — a classe .mundo-escola no <body> já abre os
@@ -1473,3 +1643,260 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .aba.tecla:hover { background: rgba(255, 255, 255, 0.08); }
 .aba.tecla[aria-selected="true"] { background: rgba(255, 255, 255, 0.14); }
 .aba.tecla[aria-selected="true"]::after { content: none; }
+
+/* ============================================================================
+   ACRÉSCIMO — Salas do Aluno e a tela de uma turma (dos dois papéis)
+
+   As salas do aluno (pages/aluno/dashboard.html) usam a MESMA casca da
+   tela de turmas do professor: conta fixa, abertura, teclas de função,
+   cartão, esqueleto, estados, abas e tabela são as classes de cima, sem
+   cópia. Aqui fica o que faltava: o anel de progresso do cartão e o
+   painel do convite (só do aluno), e a trilha, o destaque da própria
+   linha no ranking e o painel de relatório — estes da tela de UMA turma
+   (componentes/TelaDaTurma.tsx), que professor e aluno dividem.
+   ========================================================================== */
+
+/* --- cartão: estrela e progresso ------------------------------------------ */
+/* A estrela de conquista ao lado do nome (componentes/Estrela.tsx). */
+.cartao-nome .estrela { margin-left: var(--e-2, 8px); }
+
+/* O anel no lugar das contagens. Mesmo lugar e mesmo respiro do .metricas,
+   para o cartão do aluno ter a altura do cartão do professor (e do
+   esqueleto, que é o mesmo dos dois). */
+.cartao-progresso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: var(--e-4, 16px);
+}
+.anel-progresso { flex: none; transform: rotate(-90deg); }
+.anel-progresso circle { fill: none; stroke-width: 4; }
+.anel-progresso-trilho { stroke: rgba(255, 255, 255, 0.14); }
+.anel-progresso-feito { stroke: var(--cor-texto, #fff); stroke-linecap: round; }
+
+/* --- estado vazio: o RP em destaque --------------------------------------- */
+.estado-rp {
+  margin-top: var(--e-5, 24px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+}
+.estado-rp + .btn { margin-top: var(--e-4, 16px); }
+
+/* --- convite: o painel de alerta ------------------------------------------ */
+/* A seção dos convites fica entre as teclas e "Suas salas": as duas
+   pontas ganham o mesmo respiro que o .funcoes + .cabecalho dá na tela de
+   turmas. */
+.funcoes + .secao-convites > .cabecalho:first-child,
+.secao-convites + .cabecalho { margin-top: var(--e-7, 48px); }
+
+/* A borda vermelha é o alerta da tela: o convite é a única coisa que espera
+   uma resposta dele. O mesmo vermelho do .funcao-sinal. */
+.convite {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: var(--e-4, 16px);
+  padding: 18px 20px;
+  border-radius: var(--raio-card, 8px);
+  background: rgba(255, 90, 90, 0.07);
+  border: 1px solid var(--cor-erro, #ff5a5a);
+}
+.convite-texto { flex: 1; min-width: 0; }
+.convite-marcador {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-erro, #ff5a5a);
+}
+.convite-turma { font-size: 15px; color: var(--cor-texto, #fff); }
+.convite-quem { margin-top: 3px; font-size: 13px; color: var(--cor-texto-fraco, #8a8a8a); }
+.convite-acoes { display: flex; gap: 10px; }
+
+/* --- nota embaixo de cada aba --------------------------------------------- */
+.nota {
+  max-width: var(--medida-leitura, 66ch);
+  margin-top: var(--e-4, 16px);
+  font-size: 13px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* --- a trilha dos exercícios ---------------------------------------------- */
+/* Quatro pedras por fileira, e a fileira seguinte volta: a coluna e a
+   fileira de cada pedra vêm do Sala.tsx (--coluna e --fileira). A pedra
+   é uma .tecla, com o relevo de css/base/luz.css. */
+.trilha {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--e-7, 48px);
+  margin-top: var(--e-6, 32px);
+  padding: 0;
+  list-style: none;
+}
+.trilha .no {
+  grid-column: var(--coluna);
+  grid-row: var(--fileira);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  text-align: center;
+}
+.trilha .pedra {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.trilha .pedra:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }
+.no-titulo { font-size: 12px; color: var(--cor-texto-suave, #c4c4c4); }
+.no-estado {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+/* Concluído: sólido, face branca. */
+.no-feito .pedra {
+  background: var(--cor-texto, #fff);
+  border-color: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+}
+/* O próximo: aceso, com a borda cheia e o brilho em volta. */
+.no-agora .pedra {
+  border: 2px solid var(--cor-texto, #fff);
+  box-shadow: var(--relevo-tecla), 0 0 22px rgba(255, 255, 255, 0.35);
+}
+/* Os seguintes: apagados. Continuam links — apagado é "a seguir". */
+.no-depois .pedra,
+.no-depois .no-titulo,
+.no-depois .no-estado { opacity: 0.35; }
+
+/* --- ranking -------------------------------------------------------------- */
+/* A linha dele, em qualquer posição: um fundo a mais. */
+.tabela tr.linha-voce td { background: rgba(255, 255, 255, 0.06); }
+/* As anônimas: cinza. */
+.tabela tr.linha-anonima td { color: var(--cor-texto-fraco, #8a8a8a); }
+.marca-voce {
+  margin-left: var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+
+/* --- relatório ------------------------------------------------------------ */
+.painel-relatorio {
+  margin-top: var(--e-5, 24px);
+  padding: 26px 28px;
+  border-radius: var(--raio-g, 16px);
+}
+/* Os números são .metrica-item / .metrica-rotulo / .metrica-valor, as
+   mesmas classes do painel da tela de turma. */
+.relatorio-numeros { display: flex; flex-wrap: wrap; gap: var(--e-5, 24px) 46px; }
+/* Cada fileira de números depois da primeira ganha a linha fina em cima. */
+.relatorio-numeros + .relatorio-numeros {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+/* A média da sala é a régua, não o assunto: um tom abaixo. */
+.relatorio-apagado .metrica-valor { color: var(--cor-texto-fraco, #8a8a8a); }
+
+.relatorio-falta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.barra-falta {
+  flex: 1;
+  max-width: 260px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.barra-falta span { display: block; height: 100%; background: rgba(255, 255, 255, 0.75); }
+.relatorio-aviso {
+  max-width: 60ch;
+  margin-top: var(--e-4, 16px);
+  font-size: 14px;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.relatorio-acoes {
+  display: flex;
+  gap: var(--e-3, 12px);
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 700px) {
+  .convite { flex-direction: column; align-items: flex-start; }
+  /* Duas pedras por fileira e sem serpentear: a ordem é a da lista. */
+  .trilha { grid-template-columns: repeat(2, 1fr); row-gap: var(--e-6, 32px); }
+  .trilha .no { grid-column: auto; grid-row: auto; }
+  .painel-relatorio { padding: var(--e-4, 16px); }
+}
+
+/* ============================================================================
+   ACRÉSCIMO — Impressão do relatório ("Gerar PDF")
+   O "Gerar PDF" do painel de relatório (componentes/TelaDaTurma.tsx) é a
+   impressão do navegador. Sem esta folha, sai uma página preta, com o
+   céu, o grão e os botões. No papel fica só o conteúdo: preto no branco,
+   sem luz, sem vidro e sem nada que só serve para navegar.
+   ========================================================================== */
+@media print {
+  /* Os tokens de cor viram os do papel: todo texto que lê var(--cor-*)
+     acompanha sem precisar de regra própria. */
+  :root {
+    --cor-fundo: #fff;
+    --cor-superficie: #fff;
+    --cor-texto: #000;
+    --cor-texto-suave: #222;
+    --cor-texto-fraco: #555;
+    --cor-borda: #bbb;
+  }
+  body { background: #fff; color: #000; }
+
+  /* O céu (estrelas e grão), o horizonte e tudo o que é navegação. */
+  .fundo,
+  .disco,
+  .conta-fixa,
+  .barra,
+  .voltar,
+  .abas,
+  .cabecalho-acoes,
+  .relatorio-acoes,
+  #toasts { display: none !important; }
+
+  /* Vidro sem luz atrás não tem o que desfocar: vira caixa com contorno. */
+  .vidro {
+    background: none;
+    border: 1px solid #bbb;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .pagina { padding: 0; max-width: none; }
+  .metrica-rotulo,
+  .nota,
+  .subtitulo { color: #555; }
+  .relatorio-numeros + .relatorio-numeros { border-top-color: #bbb; }
+  /* A entrada animada da página não pode deixar nada transparente no papel. */
+  .entrada-da-pagina, .entrada-escalonada > * { animation: none !important; opacity: 1 !important; }
+}

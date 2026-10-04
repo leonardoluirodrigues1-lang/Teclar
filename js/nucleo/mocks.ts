@@ -39,10 +39,13 @@
 // ENTRADAS DE ALUNO — "Sou aluno" no login, com RP e senha de aluno. Toda
 // conta tem uma; a senha de aluno de todas as de teste é a mesma:
 //
-//   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está na turma-1
-//                            (falta 1 exercício) e na turma-2 (tudo em
-//                            dia), tem sessões e histórico, e DOIS
-//                            convites pendentes (turma-4 e turma-5).
+//   RP2025043   Aluno#2025   de ana. O ALUNO DE TESTE: está em TRÊS
+//                            salas — turma-1 (falta 1 exercício, e só 2
+//                            sessões concluídas: o relatório mostra quanto
+//                            falta), turma-2 (tudo feito: estrela no
+//                            cartão; e SEXTO lugar no ranking de 8) e
+//                            turma-5 (nenhum feito) —, tem histórico e UM
+//                            convite pendente (turma-4).
 //   RP2025001   Aluno#2025   de leo. Em sala nenhuma e sem convite
 //                            nenhum (os dois estados vazios).
 //   RP2025002   Aluno#2025   de prof. Em sala nenhuma.
@@ -62,6 +65,9 @@
 //   ClassMembers  ganha Status ('convidado' | 'ativo' | 'recusado') e
 //                 Data_Convite. O professor convida pelo RP; só depois de o
 //                 aluno aceitar ele está na sala.
+//                 Data_Matricula JÁ EXISTE e muda de significado: passa a
+//                 ser a data do ACEITE (NULL enquanto convidado), e não mais
+//                 a data em que o professor matriculou.
 //
 // O front e este mock já se comportam como se as duas existissem. Quem gera
 // o RP e a senha de aluno é o BACK, no POST /auth/cadastro (e a senha nova,
@@ -119,6 +125,8 @@ import type {
   RespostaCadastro,
   ConviteDoAluno,
   ConvidadoDaTurma,
+  DesempenhoNaTurma,
+  LinhaDoRanking,
   EstadoNaTurma,
   LinhaDaTurma,
   ResultadoConvites,
@@ -132,7 +140,6 @@ import type {
   SessaoDoAluno,
   SessaoDoHistorico,
   SessaoSolo,
-  StatusTurma,
   Turma,
   Usuario,
 } from './tipos.js';
@@ -232,6 +239,7 @@ export const USUARIOS: {
     turmas: [
       { id: 'turma-1', nome: '9º Ano A — Manhã' },
       { id: 'turma-2', nome: 'Reforço de digitação' },
+      { id: 'turma-5', nome: 'Oficina de digitação' },
     ],
   },
 };
@@ -427,6 +435,86 @@ interface ConviteMock {
   convidadoEm: string;
 }
 
+// ----------------------------------------------------------------------------
+// Os colegas do ranking da turma-2
+// ----------------------------------------------------------------------------
+// Seis alunos a mais na turma-2, para o aluno de teste (RP2025043) cair em
+// SEXTO lugar no ranking da sala. Os pontos são os que o back calcularia
+// com a fórmula documentada em api.ts (escola.aluno.rankingDaTurma) — o
+// mock não calcula, só devolve a tabela RANKING_PRONTO, mais abaixo:
+//
+//   1º RP2025050  2 lições, 46 PPM, 12 dias  -> 146
+//   2º RP2025051  2 lições, 44 PPM, 10 dias  -> 134
+//   3º RP2025052  2 lições, 47 PPM,  9 dias  -> 132
+//   4º RP2025053  2 lições, 42 PPM,  8 dias  -> 122   (anônimo)
+//   5º RP2025054  2 lições, 43 PPM,  7 dias  -> 118   (anônimo)
+//   6º RP2025043  2 lições, 40 PPM,  3 dias  ->  95   (ELE: sempre com nome)
+//   7º RP2025055  2 lições, 31 PPM,  3 dias  ->  86   (anônimo)
+//   8º RP2025046  0 lições, sem ritmo, 0 dias ->  0   (anônimo)
+//
+// O 3º tem o MAIOR ritmo da sala e não é o primeiro: a ordem é por pontos,
+// nunca por velocidade pura.
+//
+// Fica antes de `dados` porque `dados` usa esta lista ao ser montado.
+
+interface ColegaDoRanking {
+  id: string;
+  nome: string;
+  dias: number;
+  wpm: number;
+  precisao: number;
+}
+
+const COLEGAS_DO_RANKING: ColegaDoRanking[] = [
+  { id: 'RP2025050', nome: 'Bruno Sato', dias: 12, wpm: 46, precisao: 95 },
+  { id: 'RP2025051', nome: 'Carla Nunes', dias: 10, wpm: 44, precisao: 94 },
+  { id: 'RP2025052', nome: 'Diego Ramos', dias: 9, wpm: 47, precisao: 93 },
+  { id: 'RP2025053', nome: 'Elisa Prado', dias: 8, wpm: 42, precisao: 92 },
+  { id: 'RP2025054', nome: 'Fábio Mendes', dias: 7, wpm: 43, precisao: 90 },
+  { id: 'RP2025055', nome: 'Gabriela Luz', dias: 3, wpm: 31, precisao: 86 },
+];
+
+// Uma sessão concluída por dia, de (dias - 1) dias atrás até hoje,
+// alternando os dois exercícios da turma-2. Assim cada colega fez os dois
+// (2 lições) e tem `dias` dias seguidos.
+function sessoesDoColega(colega: ColegaDoRanking): Sessao[] {
+  const sessoes: Sessao[] = [];
+  for (let i = 0; i < colega.dias; i++) {
+    const exerciseId = i % 2 === 0 ? 'ex-prof-3' : 'ex-prof-5';
+    const erros = Math.round((100 - colega.precisao) * 1.5);
+    sessoes.push({
+      id: `ses-${colega.id}-${i + 1}`,
+      exerciseId,
+      alunoId: colega.id,
+      turmaId: 'turma-2',
+      wpm: colega.wpm,
+      precisao: colega.precisao,
+      tempoSegundos: exerciseId === 'ex-prof-5' ? 40 : 140,
+      // Coerentes com a precisão, como o motor calcula:
+      // precisao = acertos / (acertos + erros).
+      acertos: Math.round((erros * colega.precisao) / (100 - colega.precisao)),
+      erros,
+      concluida: true,
+      data: diasAtras(colega.dias - 1 - i),
+    });
+  }
+  return sessoes;
+}
+
+// A linha do colega na turma-2, com os agregados que as sessões geradas
+// acima dão — os mesmos números que /turmas/:id/alunos mostraria.
+function linhaDoColega(colega: ColegaDoRanking): Aluno {
+  return {
+    id: colega.id,
+    nome: colega.nome,
+    entrouEm: '2026-02-10',
+    totalSessoes: colega.dias,
+    wpmMedio: colega.wpm,
+    precisaoMedia: colega.precisao,
+    ultimaAtividade: diasAtras(0),
+  };
+}
+
 export const dados: BancoMock = {
   // As 5 categorias do seed.
   categorias: [
@@ -481,8 +569,10 @@ export const dados: BancoMock = {
   // apaga. Já saem na ordem do percurso, porque LICOES está nela.
   missoes: LICOES.map(montarLicao),
 
-  // 4 turmas de prof (u-2), uma Encerrada, e 1 de leo (u-1). ana (u-3) não
-  // tem nenhuma: é o estado vazio da tela de turmas.
+  // 6 turmas ativas de prof (u-2), mais 1 arquivada, e 1 de leo (u-1). ana (u-3) não
+  // tem nenhuma: é o estado vazio da tela de turmas. Seis, e não quatro,
+  // para a busca da tela de turmas (só a partir de 5) aparecer. Os convites
+  // pendentes de prof estão na turma-4 (ver `convites`).
   turmas: [
     // É a primeira da lista, logo a que a tela de relatórios abre sem
     // ?turma= nenhum. Por isso é ela que carrega os três casos que o
@@ -494,18 +584,25 @@ export const dados: BancoMock = {
       id: 'turma-1',
       professorId: 'u-2',
       nome: '9º Ano A — Manhã',
-      status: 'Ativa',
       totalAlunos: 4,
       totalExercicios: 3,
+      periodo: '2026 · 1º semestre',
+      capaSemente: 7001,
+      ativa: true,
       dataCriacao: '2026-02-01',
     },
+    // Oito alunos: é a turma do ranking do aluno de teste, que fica em
+    // sexto — o bastante para se ver, ao mesmo tempo, os três nomes do
+    // pódio, os "Participante" anônimos e a linha dele destacada.
     {
       id: 'turma-2',
       professorId: 'u-2',
       nome: 'Reforço de digitação',
-      status: 'Ativa',
-      totalAlunos: 2,
+      totalAlunos: 8,
       totalExercicios: 2,
+      periodo: '2026 · 1º semestre',
+      capaSemente: 7138,
+      ativa: true,
       dataCriacao: '2026-02-10',
     },
     // Turma sem nenhum aluno matriculado: é o cartão que mostra a contagem
@@ -516,9 +613,11 @@ export const dados: BancoMock = {
       id: 'turma-3',
       professorId: 'u-2',
       nome: 'Projeto de Extensão 2025',
-      status: 'Encerrada',
       totalAlunos: 0,
       totalExercicios: 3,
+      periodo: '2025 · 2º semestre',
+      capaSemente: 7275,
+      ativa: true,
       dataCriacao: '2025-08-15',
     },
     // O caso inverso da turma-3: tem aluno e NENHUM exercício atribuído. É
@@ -529,21 +628,66 @@ export const dados: BancoMock = {
       id: 'turma-4',
       professorId: 'u-2',
       nome: '7º Ano C — Tarde',
-      status: 'Ativa',
       totalAlunos: 2,
       totalExercicios: 0,
+      periodo: '2026 · 1º semestre',
+      capaSemente: 7412,
+      ativa: true,
       dataCriacao: '2026-03-02',
     },
-    // A única turma de leo (u-1): sem aluno, com o único exercício dela
+    // Zero alunos E zero exercícios: a turma recém-criada, o cartão com as
+    // duas contagens zeradas. `alunos` e `atribuicoes` não têm entrada para
+    // ela; toda rota lê esses mapas com `?? []`.
+    {
+      id: 'turma-6',
+      professorId: 'u-2',
+      nome: 'Oficina de férias',
+      totalAlunos: 0,
+      totalExercicios: 0,
+      periodo: '2026 · 2º semestre',
+      capaSemente: 7686,
+      ativa: true,
+      dataCriacao: '2026-07-01',
+    },
+    // Sem período e sem capaSemente: o cartão sem a linha do período e com
+    // a capa derivada do id. Vazia como a turma-6, pelo mesmo motivo.
+    {
+      id: 'turma-7',
+      professorId: 'u-2',
+      nome: '1º Médio — Informática',
+      totalAlunos: 0,
+      totalExercicios: 0,
+      ativa: true,
+      dataCriacao: '2026-07-15',
+    },
+    // Já arquivada: é ela que faz o "Mostrar arquivadas" da tela de turmas
+    // aparecer sem ninguém precisar arquivar nada antes. Contagens zeradas
+    // porque `alunos` e `atribuicoes` não têm entrada para ela (ver a
+    // turma-6); desarquivada, vira mais um cartão comum.
+    {
+      id: 'turma-8',
+      professorId: 'u-2',
+      nome: '8º Ano B — 2025',
+      totalAlunos: 0,
+      totalExercicios: 0,
+      periodo: '2025 · 2º semestre',
+      capaSemente: 7823,
+      ativa: false,
+      dataCriacao: '2025-08-04',
+    },
+    // A única turma de leo (u-1): um aluno (o de teste, que ainda não fez
+    // o único exercício dela — é a sala com zero feitos) e um exercício
     // atribuído. Serve para ver a mesma conta nos dois mundos. `alunos` e
     // `atribuicoes` abaixo acompanham.
     {
       id: 'turma-5',
       professorId: 'u-1',
       nome: 'Oficina de digitação',
-      status: 'Ativa',
-      totalAlunos: 0,
+      totalAlunos: 1,
       totalExercicios: 1,
+      periodo: '2026 · 1º semestre',
+      capaSemente: 7549,
+      ativa: true,
       dataCriacao: '2026-03-10',
     },
   ],
@@ -632,6 +776,10 @@ export const dados: BancoMock = {
         precisaoMedia: 91,
         ultimaAtividade: diasAtras(0),
       },
+      // Os colegas do ranking (ver COLEGAS_DO_RANKING, acima de `dados`).
+      // Todos com nome: é assim que se vê que o nome do quarto lugar em
+      // diante some no BACK — ele existe aqui e não chega à tela do aluno.
+      ...COLEGAS_DO_RANKING.map(linhaDoColega),
     ],
     // Vazia de propósito — ver o comentário em `turmas`.
     'turma-3': [],
@@ -653,19 +801,28 @@ export const dados: BancoMock = {
         ultimaAtividade: null,
       },
     ],
-    // A turma de leo: ninguém matriculado ainda.
-    'turma-5': [],
+    // A turma de leo: só o aluno de teste, que ainda não treinou nela.
+    'turma-5': [
+      {
+        id: 'RP2025043',
+        nome: 'Ana Pires',
+        entrouEm: '2026-03-12',
+        totalSessoes: 12,
+        wpmMedio: 39,
+        precisaoMedia: 91,
+        ultimaAtividade: diasAtras(0),
+      },
+    ],
   },
 
-  // Convites pendentes (ClassMembers com Status = 'convidado'). Os dois são
-  // para o aluno de teste: aceitar a turma-5 traz uma sala com exercício
-  // por fazer; aceitar a turma-4, uma sala ainda sem exercício. Aceito,
+  // Convites pendentes (ClassMembers com Status = 'convidado'). Um só, para
+  // o aluno de teste: aceitar a turma-4 traz uma sala ainda sem
+  // exercício. Aceito,
   // o convite sai daqui e a linha entra em `alunos`; recusado, só sai
   // daqui (o back grava Status = 'recusado'). O estado sem convite nenhum
   // é o de RP2025001, sem editar este arquivo.
   convites: [
-    { turmaId: 'turma-5', alunoId: 'RP2025043', convidadoEm: diasAtras(1) },
-    { turmaId: 'turma-4', alunoId: 'RP2025043', convidadoEm: diasAtras(5) },
+    { turmaId: 'turma-4', alunoId: 'RP2025043', convidadoEm: diasAtras(2) },
   ],
 
   // 5 exercícios do professor (ExerciciosProf), no formato de GET
@@ -792,6 +949,7 @@ export const dados: BancoMock = {
       wpm: 40,
       precisao: 95,
       tempoSegundos: 58,
+      acertos: 76,
       erros: 4,
       concluida: true,
       data: '2026-02-18T14:10:00.000Z',
@@ -803,6 +961,7 @@ export const dados: BancoMock = {
       wpm: 36,
       precisao: 92,
       tempoSegundos: 61,
+      acertos: 80,
       erros: 7,
       concluida: true,
       data: '2026-02-19T09:30:00.000Z',
@@ -814,6 +973,7 @@ export const dados: BancoMock = {
       wpm: 22,
       precisao: 80,
       tempoSegundos: 120,
+      acertos: 60,
       erros: 15,
       concluida: false,
       data: '2026-02-20T16:45:00.000Z',
@@ -826,6 +986,7 @@ export const dados: BancoMock = {
       wpm: 29,
       precisao: 88,
       tempoSegundos: 96,
+      acertos: 81,
       erros: 11,
       concluida: true,
       data: diasAtras(6),
@@ -841,6 +1002,7 @@ export const dados: BancoMock = {
       wpm: 24,
       precisao: 81,
       tempoSegundos: 120,
+      acertos: 77,
       erros: 18,
       concluida: false,
       data: diasAtras(3),
@@ -854,6 +1016,7 @@ export const dados: BancoMock = {
       wpm: 33,
       precisao: 79,
       tempoSegundos: 104,
+      acertos: 79,
       erros: 21,
       concluida: true,
       data: diasAtras(2),
@@ -865,6 +1028,7 @@ export const dados: BancoMock = {
       wpm: 30,
       precisao: 76,
       tempoSegundos: 131,
+      acertos: 86,
       erros: 27,
       concluida: true,
       data: diasAtras(9),
@@ -898,6 +1062,7 @@ export const dados: BancoMock = {
       wpm: 28,
       precisao: 84,
       tempoSegundos: 178,
+      acertos: 126,
       erros: 24,
       concluida: true,
       data: diasAtras(26),
@@ -910,6 +1075,7 @@ export const dados: BancoMock = {
       wpm: 31,
       precisao: 86,
       tempoSegundos: 165,
+      acertos: 129,
       erros: 21,
       concluida: true,
       data: diasAtras(22),
@@ -925,6 +1091,7 @@ export const dados: BancoMock = {
       wpm: 30,
       precisao: 82,
       tempoSegundos: 45,
+      acertos: 41,
       erros: 9,
       concluida: false,
       data: diasAtras(18),
@@ -937,6 +1104,7 @@ export const dados: BancoMock = {
       wpm: 35,
       precisao: 88,
       tempoSegundos: 151,
+      acertos: 125,
       erros: 17,
       concluida: true,
       data: diasAtras(14),
@@ -949,6 +1117,7 @@ export const dados: BancoMock = {
       wpm: 38,
       precisao: 89,
       tempoSegundos: 41,
+      acertos: 40,
       erros: 5,
       concluida: true,
       data: diasAtras(10),
@@ -961,6 +1130,7 @@ export const dados: BancoMock = {
       wpm: 41,
       precisao: 91,
       tempoSegundos: 139,
+      acertos: 131,
       erros: 13,
       concluida: true,
       data: diasAtras(6),
@@ -973,6 +1143,7 @@ export const dados: BancoMock = {
       wpm: 44,
       precisao: 90,
       tempoSegundos: 38,
+      acertos: 36,
       erros: 4,
       concluida: true,
       data: diasAtras(4),
@@ -986,6 +1157,7 @@ export const dados: BancoMock = {
       wpm: 45,
       precisao: 93,
       tempoSegundos: 132,
+      acertos: 133,
       erros: 10,
       concluida: true,
       data: diasAtras(2),
@@ -998,6 +1170,7 @@ export const dados: BancoMock = {
       wpm: 47,
       precisao: 94,
       tempoSegundos: 36,
+      acertos: 47,
       erros: 3,
       concluida: true,
       data: diasAtras(1),
@@ -1011,10 +1184,15 @@ export const dados: BancoMock = {
       wpm: 49,
       precisao: 96,
       tempoSegundos: 126,
+      acertos: 144,
       erros: 6,
       concluida: true,
       data: diasAtras(0),
     },
+
+    // As sessões dos colegas do ranking da turma-2, geradas (ver
+    // sessoesDoColega): um dia seguido de treino por sessão, até hoje.
+    ...COLEGAS_DO_RANKING.flatMap(sessoesDoColega),
   ],
 
   // Histórico de sessões do mundo Solo (mapa campanhaId -> lista).
@@ -1039,25 +1217,25 @@ export const dados: BancoMock = {
   historicoSolo: {
     'camp-1': [
       // 50 + round(25 * 0,85) = 71
-      { id: 'hs-1', exerciseId: 'solo-001', wpm: 27, precisao: 85, tempoSegundos: 132, erros: 9, concluida: true, xpGanho: 71, data: diasAtras(15.4) },
+      { id: 'hs-1', exerciseId: 'solo-001', wpm: 27, precisao: 85, tempoSegundos: 132, acertos: 51, erros: 9, concluida: true, xpGanho: 71, data: diasAtras(15.4) },
       // 50 + round(25 * 0,89) = 72
-      { id: 'hs-2', exerciseId: 'solo-002', wpm: 29, precisao: 89, tempoSegundos: 124, erros: 7, concluida: true, xpGanho: 72, data: diasAtras(12.1) },
+      { id: 'hs-2', exerciseId: 'solo-002', wpm: 29, precisao: 89, tempoSegundos: 124, acertos: 57, erros: 7, concluida: true, xpGanho: 72, data: diasAtras(12.1) },
       // 50 + round(25 * 0,91) = 73
-      { id: 'hs-3', exerciseId: 'solo-001', wpm: 31, precisao: 91, tempoSegundos: 116, erros: 5, concluida: true, xpGanho: 73, data: diasAtras(9.3) },
+      { id: 'hs-3', exerciseId: 'solo-001', wpm: 31, precisao: 91, tempoSegundos: 116, acertos: 51, erros: 5, concluida: true, xpGanho: 73, data: diasAtras(9.3) },
       // 50 + round(25 * 0,86) = 72
-      { id: 'hs-4', exerciseId: 'solo-001', wpm: 30, precisao: 86, tempoSegundos: 120, erros: 8, concluida: true, xpGanho: 72, data: diasAtras(5.2) },
+      { id: 'hs-4', exerciseId: 'solo-001', wpm: 30, precisao: 86, tempoSegundos: 120, acertos: 49, erros: 8, concluida: true, xpGanho: 72, data: diasAtras(5.2) },
       // 50 + round(25 * 0,96) = 74
-      { id: 'hs-5', exerciseId: 'solo-009', wpm: 34, precisao: 96, tempoSegundos: 104, erros: 2, concluida: true, xpGanho: 74, data: diasAtras(3.1) },
+      { id: 'hs-5', exerciseId: 'solo-009', wpm: 34, precisao: 96, tempoSegundos: 104, acertos: 48, erros: 2, concluida: true, xpGanho: 74, data: diasAtras(3.1) },
       // tempo esgotou: round(50 * 0,3) = 15
-      { id: 'hs-6', exerciseId: 'solo-020', wpm: 36, precisao: 84, tempoSegundos: 244, erros: 11, concluida: false, xpGanho: 15, data: diasAtras(2.2) },
+      { id: 'hs-6', exerciseId: 'solo-020', wpm: 36, precisao: 84, tempoSegundos: 244, acertos: 58, erros: 11, concluida: false, xpGanho: 15, data: diasAtras(2.2) },
       // 50 + round(25 * 0,90) = 73
-      { id: 'hs-7', exerciseId: 'solo-020', wpm: 40, precisao: 90, tempoSegundos: 236, erros: 6, concluida: true, xpGanho: 73, data: diasAtras(1.4) },
+      { id: 'hs-7', exerciseId: 'solo-020', wpm: 40, precisao: 90, tempoSegundos: 236, acertos: 54, erros: 6, concluida: true, xpGanho: 73, data: diasAtras(1.4) },
       // 50 + round(25 * 0,95) = 74
-      { id: 'hs-8', exerciseId: 'solo-009', wpm: 38, precisao: 95, tempoSegundos: 96, erros: 3, concluida: true, xpGanho: 74, data: diasAtras(1.1) },
+      { id: 'hs-8', exerciseId: 'solo-009', wpm: 38, precisao: 95, tempoSegundos: 96, acertos: 57, erros: 3, concluida: true, xpGanho: 74, data: diasAtras(1.1) },
       // 50 + round(25 * 0,88) = 72
-      { id: 'hs-9', exerciseId: 'solo-015', wpm: 39, precisao: 88, tempoSegundos: 88, erros: 6, concluida: true, xpGanho: 72, data: diasAtras(0.3) },
+      { id: 'hs-9', exerciseId: 'solo-015', wpm: 39, precisao: 88, tempoSegundos: 88, acertos: 44, erros: 6, concluida: true, xpGanho: 72, data: diasAtras(0.3) },
       // 50 + round(25 * 0,92) = 73
-      { id: 'hs-10', exerciseId: 'solo-015', wpm: 41, precisao: 92, tempoSegundos: 84, erros: 4, concluida: true, xpGanho: 73, data: diasAtras(0.1) },
+      { id: 'hs-10', exerciseId: 'solo-015', wpm: 41, precisao: 92, tempoSegundos: 84, acertos: 46, erros: 4, concluida: true, xpGanho: 73, data: diasAtras(0.1) },
     ],
   },
 };
@@ -1067,11 +1245,6 @@ export const dados: BancoMock = {
 // ============================================================================
 
 const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Rótulos exatos do ENUM Status da tabela Turmas. O mock NÃO traduz slug
-// nenhum para cá: se traduzisse, aceitaria uma entrada que o back real
-// recusa e a divergência só apareceria na integração.
-const STATUS_TURMA: StatusTurma[] = ['Ativa', 'Encerrada'];
 
 // Envelope das listagens paginadas do contrato. O mock não fatia páginas —
 // devolve tudo na página 1 —, mas a forma da resposta é a real, para a tela
@@ -1104,7 +1277,7 @@ function media(numeros: number[]): number | null {
 
 // Mesma ideia de `media()`, mas com 1 casa decimal — é o formato que o
 // PPM médio do topo da tela de turma usa (ex.: 41.7), diferente do inteiro
-// que /turmas/:id/desempenho devolve. Duas rotas, duas precisões: cada uma
+// que /turmas/:id/relatorio devolve. Duas rotas, duas precisões: cada uma
 // espelha o que a tela dela precisa mostrar.
 function mediaDecimal(numeros: number[]): number | null {
   if (numeros.length === 0) return null;
@@ -1158,8 +1331,11 @@ function montarRegex(padrao: string): RegExp {
   return new RegExp('^' + padrao.replace(/:[A-Za-z]+/g, '([^/]+)') + '$');
 }
 
-function acharCampanha(id: string): Campanha {
-  const campanha = dados.campanhas.find((c) => c.campanhaId === id);
+// A campanha pelo id, se for da conta do token. De outra conta é o MESMO
+// 404 de campanha que não existe: o 403 confirmaria que ela existe.
+function campanhaDaConta(id: string, token: string | null | undefined): Campanha {
+  const dono = contaDoToken(token).id;
+  const campanha = dados.campanhas.find((c) => c.campanhaId === id && c.jogadorId === dono);
   if (!campanha) throw erro(404, 'Campanha não encontrada.', 'NAO_ENCONTRADO');
   return campanha;
 }
@@ -1380,12 +1556,12 @@ function historicoDoAluno(alunoId: string): SessaoDoHistorico[] {
 // ----------------------------------------------------------------------------
 // As salas do aluno (/aluno/salas)
 // ----------------------------------------------------------------------------
-// "Sala" é a turma vista pelo aluno. Turma encerrada não aparece: não há
+// "Sala" é a turma vista pelo aluno. Turma arquivada não aparece: não há
 // mais o que fazer nela, e o histórico continua mostrando as sessões.
 
 function salasDoAluno(alunoId: string): Turma[] {
   return dados.turmas.filter(
-    (t) => t.status === 'Ativa' && (dados.alunos[t.id] ?? []).some((a) => a.id === alunoId)
+    (t) => t.ativa && (dados.alunos[t.id] ?? []).some((a) => a.id === alunoId)
   );
 }
 
@@ -1437,17 +1613,92 @@ function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
 
 function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
   const lista = exerciciosDaSala(turma.id, alunoId);
-  const linha = (dados.alunos[turma.id] ?? []).find((a) => a.id === alunoId);
   return {
     id: turma.id,
     nome: turma.nome,
     professor: nomeDoProfessor(turma.professorId),
-    entrouEm: linha?.entrouEm ?? null,
-    exercicios: {
-      feitos: lista.filter((ex) => ex.estado !== 'nao_feito').length,
-      total: lista.length,
-    },
+    capaSemente: turma.capaSemente,
+    totalAlunos: (dados.alunos[turma.id] ?? []).length,
+    exerciciosFeitos: lista.filter((ex) => ex.estado !== 'nao_feito').length,
+    exerciciosTotal: lista.length,
   };
+}
+
+// A sala, se ele estiver nela; senão 404 — e não 403. "Não é sua" e "não
+// existe" dão a mesma resposta: o 403 confirmaria, a quem tenta ids, que
+// aquela turma existe.
+function salaDoToken(turmaId: string, token: string | null | undefined): { turma: Turma; aluno: Usuario } {
+  const aluno = alunoDoToken(token);
+  const turma = salasDoAluno(aluno.id).find((t) => t.id === turmaId);
+  if (!turma) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
+  return { turma, aluno };
+}
+
+// ----------------------------------------------------------------------------
+// Relatório individual e ranking da sala (o lado do aluno)
+// ----------------------------------------------------------------------------
+
+// Abaixo disto, a média de uma pessoa não diz nada: uma sessão ruim (ou
+// boa) decide tudo. A tela mostra quanto falta em vez de um número.
+const MINIMO_DE_SESSOES = 3;
+
+// O que a sala sabe de um aluno: lições (exercícios DIFERENTES concluídos),
+// ritmo (PPM médio das concluídas) e dias seguidos. Só sessões da sala.
+function numerosNaSala(turmaId: string, alunoId: string) {
+  const sessoes = sessoesNaSala(turmaId, alunoId);
+  const concluidas = sessoes.filter((s) => s.concluida);
+  return {
+    concluidas,
+    licoes: new Set(concluidas.map((s) => s.exerciseId)).size,
+    ritmo: media(concluidas.map((s) => s.wpm)),
+    diasSeguidos: sequenciaDeDias(sessoes),
+  };
+}
+
+// O ranking das salas do aluno de teste, como o back o devolve: já em
+// ordem e já com os pontos. A fórmula (e quem calcula) é do back — ver o
+// comentário de rankingDaTurma em api.ts. Os números aqui batem com as
+// sessões semeadas: são os que aquela fórmula daria sobre elas.
+//
+// Turma sem entrada aqui (ex.: a turma-4, depois de aceito o convite):
+// todos os membros com zero, como uma turma em que ninguém treinou.
+interface LinhaPronta {
+  alunoId: string;
+  licoes: number;
+  ritmo: number | null;
+  diasSeguidos: number;
+  pontos: number;
+}
+
+const RANKING_PRONTO: Record<string, LinhaPronta[]> = {
+  'turma-1': [
+    { alunoId: 'RP2025043', licoes: 2, ritmo: 38, diasSeguidos: 0, pontos: 78 },
+    { alunoId: 'RP2025049', licoes: 2, ritmo: 32, diasSeguidos: 0, pontos: 72 },
+    { alunoId: 'RP2025044', licoes: 1, ritmo: 29, diasSeguidos: 0, pontos: 49 },
+    { alunoId: 'RP2025045', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 },
+  ],
+  'turma-2': [
+    { alunoId: 'RP2025050', licoes: 2, ritmo: 46, diasSeguidos: 12, pontos: 146 },
+    { alunoId: 'RP2025051', licoes: 2, ritmo: 44, diasSeguidos: 10, pontos: 134 },
+    { alunoId: 'RP2025052', licoes: 2, ritmo: 47, diasSeguidos: 9, pontos: 132 },
+    { alunoId: 'RP2025053', licoes: 2, ritmo: 42, diasSeguidos: 8, pontos: 122 },
+    { alunoId: 'RP2025054', licoes: 2, ritmo: 43, diasSeguidos: 7, pontos: 118 },
+    { alunoId: 'RP2025043', licoes: 2, ritmo: 40, diasSeguidos: 3, pontos: 95 },
+    { alunoId: 'RP2025055', licoes: 2, ritmo: 31, diasSeguidos: 3, pontos: 86 },
+    { alunoId: 'RP2025046', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 },
+  ],
+  'turma-5': [{ alunoId: 'RP2025043', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 }],
+};
+
+// As linhas prontas da turma, só de quem ainda é membro, e quem não tem
+// linha no fim, zerado.
+function rankingDaTurma(turmaId: string): LinhaPronta[] {
+  const membros = (dados.alunos[turmaId] ?? []).map((a) => a.id);
+  const prontas = (RANKING_PRONTO[turmaId] ?? []).filter((l) => membros.includes(l.alunoId));
+  const semLinha = membros
+    .filter((id) => !prontas.some((l) => l.alunoId === id))
+    .map((alunoId) => ({ alunoId, licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 }));
+  return [...prontas, ...semLinha];
 }
 
 // ----------------------------------------------------------------------------
@@ -1628,6 +1879,42 @@ function exigirConta(conta: Conta | undefined): RespostaLogin {
   if (!conta) throw erro(401, 'Credenciais inválidas.', 'CREDENCIAIS');
   if (!conta.ativo) throw erro(403, 'Conta desativada.', 'CONTA_INATIVA');
   return sessaoDe(conta.usuario);
+}
+
+// A sessão pelo id, só se for de quem pede: token de aluno lê as sessões
+// Escola DELE; token de conta lê as sessões Solo da campanha DELA. É a rota
+// do F5 da tela de resultado — sem esta checagem, qualquer pessoa logada
+// leria o treino de outra trocando o ?sessao= da URL. Sessão de outra
+// pessoa é o MESMO 404 de sessão que não existe.
+function sessaoDoToken(id: string, token: string | null | undefined): Sessao | SessaoSolo {
+  const usuario = usuarioDoToken(token);
+  if (usuario?.tipo === 'aluno') {
+    const daEscola = dados.sessoes.find((s) => s.id === id && s.alunoId === usuario.id);
+    if (daEscola) return daEscola;
+  }
+  if (usuario?.tipo === 'conta') {
+    const campanha = campanhaDoJogador(usuario.id);
+    const doSolo = campanha && (dados.historicoSolo[campanha.campanhaId] ?? []).find((h) => h.id === id);
+    if (doSolo) return doSolo;
+  }
+  throw erro(404, 'Sessão não encontrada.', 'NAO_ENCONTRADO');
+}
+
+// Quem pode mexer em categorias e parâmetros globais. A tabela Users não
+// tem coluna de papel, então o back ainda precisa de um lugar para dizer
+// quem é administrador (ver @coluna-pendente em api.ts). Até lá, a lista
+// é explícita e VAZIA: nenhuma conta semeada é administradora, e nenhuma
+// tela de administração existe. Para testar o caminho de sucesso, ponha
+// aqui o id de uma conta (ex.: 'u-2').
+const ADMINISTRADORES: string[] = [];
+
+// Token que não é de administrador: 404, como recurso que não existe —
+// para conta comum, estas rotas de escrita simplesmente não existem.
+function exigirAdministrador(token: string | null | undefined): void {
+  const usuario = usuarioDoToken(token);
+  if (usuario?.tipo !== 'conta' || !ADMINISTRADORES.includes(usuario.id)) {
+    throw erro(404, 'Recurso não encontrado.', 'NAO_ENCONTRADO');
+  }
 }
 
 // ============================================================================
@@ -1915,14 +2202,13 @@ const rotas: [string, RegExp, Handler][] = [
       };
     },
   ],
-  ['GET', montarRegex('/solo/campanhas/:id'), (params) => acharCampanha(params[0])],
+  ['GET', montarRegex('/solo/campanhas/:id'), (params, corpo, token) => campanhaDaConta(params[0], token)],
   [
     'DELETE',
     montarRegex('/solo/campanhas/:id'),
-    (params) => {
-      const i = dados.campanhas.findIndex((c) => c.campanhaId === params[0]);
-      if (i < 0) throw erro(404, 'Campanha não encontrada.', 'NAO_ENCONTRADO');
-      dados.campanhas.splice(i, 1);
+    (params, corpo, token) => {
+      const campanha = campanhaDaConta(params[0], token);
+      dados.campanhas.splice(dados.campanhas.indexOf(campanha), 1);
       return null;
     },
   ],
@@ -1986,6 +2272,7 @@ const rotas: [string, RegExp, Handler][] = [
         wpm: corpo?.wpm ?? 0,
         precisao,
         tempoSegundos: corpo?.tempo_gasto_segundos ?? 0,
+        acertos: corpo?.acertos ?? 0,
         erros: corpo?.erros ?? 0,
         concluida,
         xpGanho,
@@ -2006,13 +2293,22 @@ const rotas: [string, RegExp, Handler][] = [
   ],
 
   // --- turmas ----------------------------------------------------------
-  // Só as turmas da conta do token — o WHERE ProfessorID do back.
+  // As turmas da conta do token, filtradas por Ativa — o WHERE
+  // ProfessorID = ? AND Ativa = ? do back. Sem ?ativa=, vale TRUE: a tela
+  // de turmas pede as arquivadas à parte, com ?ativa=false. convitesPendentes é o COUNT que o back faz em
+  // ClassMembers (Status = 'convidado'); aqui, contado em `convites`.
   [
     'GET',
     montarRegex('/turmas'),
-    (params, corpo, token) => {
+    (params, corpo, token, query) => {
       const dono = contaDoToken(token).id;
-      return dados.turmas.filter((t) => t.professorId === dono);
+      const querAtivas = query?.get('ativa') !== 'false';
+      return dados.turmas
+        .filter((t) => t.professorId === dono && t.ativa === querAtivas)
+        .map((t) => ({
+          ...t,
+          convitesPendentes: dados.convites.filter((c) => c.turmaId === t.id).length,
+        }));
     },
   ],
   [
@@ -2023,47 +2319,17 @@ const rotas: [string, RegExp, Handler][] = [
         id: gerarId('turma'),
         professorId: contaDoToken(token).id,
         nome: corpo?.nome ?? 'Nova turma',
-        status: 'Ativa',
-        totalAlunos: 0,
+          totalAlunos: 0,
         totalExercicios: 0,
+        ativa: true,
         dataCriacao: hoje(),
       };
       dados.turmas.push(nova);
       dados.alunos[nova.id] = [];
       dados.atribuicoes[nova.id] = [];
-      return nova;
-    },
-  ],
-  [
-    'GET',
-    montarRegex('/turmas/:id/desempenho'),
-    (params, corpo, token) => {
-      const [turmaId] = params;
-      turmaDaConta(turmaId, token);
-      const lista = dados.alunos[turmaId] ?? [];
-      const comSessao = lista.filter((a) => a.totalSessoes > 0);
-      return {
-        turmaId,
-        totalAlunos: lista.length,
-        alunosComSessao: comSessao.length,
-        // Médias só sobre alunos com sessão; null quando não há nenhum.
-        wpmMedio: media(comSessao.map((a) => a.wpmMedio)),
-        precisaoMedia: media(comSessao.map((a) => a.precisaoMedia)),
-      };
-    },
-  ],
-  [
-    'PATCH',
-    montarRegex('/turmas/:id/status'),
-    (params, corpo, token) => {
-      const turma = turmaDaConta(params[0], token);
-      // Sem tradução de slug: o valor tem de chegar já no formato do ENUM.
-      // Qualquer outro é recusado aqui, como o MySQL estrito recusaria.
-      if (!STATUS_TURMA.includes(corpo?.status)) {
-        throw erro(400, 'Status inválido para a turma.', 'DADOS_INVALIDOS');
-      }
-      turma.status = corpo.status;
-      return turma;
+      // A mesma forma de um item de GET /turmas: a tela põe a resposta
+      // direto na grade.
+      return { ...nova, convitesPendentes: 0 };
     },
   ],
   [
@@ -2086,27 +2352,34 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   [
-    // Renomear. PATCH porque só o nome muda — e é a única coisa que uma
-    // turma tem para mudar. O 400 daqui espelha o que o back valida: a
-    // tela já barra antes, mas o mock não pode ser mais frouxo que ele.
+    // PATCH: só o campo enviado muda. Três usos, um campo cada: renomear
+    // ({ nome }), trocar a capa ({ capaSemente }) e arquivar/desarquivar
+    // ({ ativa: false | true }).
+    // Os 400 daqui espelham o que o back valida: a tela já barra antes,
+    // mas o mock não pode ser mais frouxo que ele.
     'PATCH',
     montarRegex('/turmas/:id'),
     (params, corpo, token) => {
       const turma = turmaDaConta(params[0], token);
-      const nome = String(corpo?.nome ?? '').trim();
-      if (nome.length < 3 || nome.length > 100) {
-        throw erro(400, 'Nome de turma inválido.', 'DADOS_INVALIDOS');
+      if (corpo?.nome !== undefined) {
+        const nome = String(corpo.nome).trim();
+        if (nome.length < 3 || nome.length > 100) {
+          throw erro(400, 'Nome de turma inválido.', 'DADOS_INVALIDOS');
+        }
+        turma.nome = nome;
       }
-      turma.nome = nome;
-      return turma;
-    },
-  ],
-  [
-    'PUT',
-    montarRegex('/turmas/:id'),
-    (params, corpo, token) => {
-      const turma = turmaDaConta(params[0], token);
-      turma.nome = corpo?.nome ?? turma.nome;
+      if (corpo?.capaSemente !== undefined) {
+        if (!Number.isInteger(corpo.capaSemente)) {
+          throw erro(400, 'Semente de capa inválida.', 'DADOS_INVALIDOS');
+        }
+        turma.capaSemente = corpo.capaSemente;
+      }
+      if (corpo?.ativa !== undefined) {
+        if (typeof corpo.ativa !== 'boolean') {
+          throw erro(400, 'Valor de ativa inválido.', 'DADOS_INVALIDOS');
+        }
+        turma.ativa = corpo.ativa;
+      }
       return turma;
     },
   ],
@@ -2185,13 +2458,18 @@ const rotas: [string, RegExp, Handler][] = [
       turmaDaConta(turmaId, token);
       const aluno = (dados.alunos[turmaId] ?? []).find((a) => a.id === alunoId);
       if (!aluno) throw erro(404, 'Aluno não encontrado nesta turma.', 'NAO_ENCONTRADO');
+      // Só as sessões DESTA turma: as das outras turmas dele são de outros
+      // professores, e este professor não tem nada com elas. Os agregados
+      // saem da mesma lista, para os números baterem com as sessões.
+      const sessoes = sessoesNaSala(turmaId, alunoId);
+      const concluidas = sessoes.filter((s) => s.concluida);
       return {
         // A tela identifica o aluno por alunoId, que é o RP.
         alunoId,
-        totalSessoes: aluno.totalSessoes,
-        wpmMedio: aluno.wpmMedio, // null quando nunca treinou
-        precisaoMedia: aluno.precisaoMedia,
-        sessoes: dados.sessoes.filter((s) => s.alunoId === alunoId),
+        totalSessoes: sessoes.length,
+        wpmMedio: media(concluidas.map((s) => s.wpm)), // null quando nunca concluiu
+        precisaoMedia: media(concluidas.map((s) => s.precisao)),
+        sessoes,
       };
     },
   ],
@@ -2275,36 +2553,6 @@ const rotas: [string, RegExp, Handler][] = [
       return null;
     },
   ],
-  [
-    'POST',
-    montarRegex('/turmas/:turmaId/exercicios'),
-    (params, corpo, token) => {
-      const turma = turmaDaConta(params[0], token);
-      const lista = (dados.atribuicoes[params[0]] ??= []);
-      const prazo = corpo?.prazo ?? null;
-      for (const exId of corpo?.exercicio_ids ?? []) {
-        exercicioDaConta(exId, token);
-        if (!lista.some((a) => a.exerciseId === exId)) {
-          lista.push({ exerciseId: exId, prazo });
-        }
-      }
-      turma.totalExercicios = lista.length;
-      return lista;
-    },
-  ],
-  [
-    'DELETE',
-    montarRegex('/turmas/:turmaId/exercicios/:exId'),
-    (params, corpo, token) => {
-      const [turmaId, exId] = params;
-      const turma = turmaDaConta(turmaId, token);
-      const lista = dados.atribuicoes[turmaId] ?? [];
-      const i = lista.findIndex((a) => a.exerciseId === exId);
-      if (i >= 0) lista.splice(i, 1);
-      turma.totalExercicios = lista.length;
-      return null;
-    },
-  ],
 
   // --- atribuições (visão do professor) ----------------------------
   // Mesma tabela que /aluno/salas/:id lê, outro leitor: aqui vai a
@@ -2384,8 +2632,8 @@ const rotas: [string, RegExp, Handler][] = [
   // Toda média passa por media(), que devolve null sem amostra — o null que
   // a tela transforma em "—". Nenhuma delas devolve 0 no lugar de null.
   [
-    // As quatro métricas do topo. Superconjunto de /turmas/:id/desempenho:
-    // os quatro campos de lá continuam iguais, e vêm mais dois.
+    // As quatro métricas do topo. Estende o tipo DesempenhoTurma (que era a
+    // resposta da antiga /turmas/:id/desempenho) com mais dois campos.
     'GET',
     montarRegex('/turmas/:turmaId/relatorio'),
     (params, corpo, token): RelatorioTurma => {
@@ -2537,6 +2785,68 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
 
+  // O relatório individual do aluno na sala. Abaixo do mínimo de sessões
+  // concluídas, as duas médias vêm null: a tela mostra quanto falta.
+  [
+    'GET',
+    montarRegex('/turmas/:id/meu-desempenho'),
+    (params, corpo, token): DesempenhoNaTurma => {
+      const { turma, aluno } = salaDoToken(params[0], token);
+      const meus = numerosNaSala(turma.id, aluno.id);
+      const resposta: DesempenhoNaTurma = {
+        sessoesConcluidas: meus.concluidas.length,
+        licoes: meus.licoes,
+        diasSeguidos: meus.diasSeguidos,
+        minhaMedia: null,
+        mediaSala: null,
+      };
+      if (meus.concluidas.length < MINIMO_DE_SESSOES) return resposta;
+
+      // A média da sala é sobre as sessões concluídas de TODOS os alunos
+      // ativos dela, ele incluído.
+      const daSala = (dados.alunos[turma.id] ?? []).flatMap(
+        (membro) => numerosNaSala(turma.id, membro.id).concluidas
+      );
+      resposta.minhaMedia = {
+        velocidade: media(meus.concluidas.map((s) => s.wpm)),
+        precisao: media(meus.concluidas.map((s) => s.precisao)),
+      };
+      resposta.mediaSala = {
+        velocidade: media(daSala.map((s) => s.wpm)),
+        precisao: media(daSala.map((s) => s.precisao)),
+      };
+      return resposta;
+    },
+  ],
+
+  // O ranking da sala, visto pelo aluno. A ANONIMIZAÇÃO É AQUI: do quarto
+  // lugar em diante o nome não sai do servidor, menos o dele próprio. Se a
+  // tela é que escondesse, o nome de todo mundo estaria na resposta, à
+  // vista de qualquer um que abrisse o DevTools.
+  [
+    'GET',
+    montarRegex('/turmas/:id/ranking'),
+    (params, corpo, token): LinhaDoRanking[] => {
+      const { turma, aluno } = salaDoToken(params[0], token);
+      return rankingDaTurma(turma.id).map((linha, i) => {
+        const voce = linha.alunoId === aluno.id;
+        const noPodio = i < 3;
+        const membro = (dados.alunos[turma.id] ?? []).find((a) => a.id === linha.alunoId);
+        // Sem nome no cadastro, o RP: nunca um nome inventado.
+        const nome = membro?.nome ?? nomeDoRp(linha.alunoId) ?? linha.alunoId;
+        return {
+          posicao: i + 1,
+          nome: voce || noPodio ? nome : null,
+          voce,
+          licoes: linha.licoes,
+          ritmo: linha.ritmo,
+          diasSeguidos: linha.diasSeguidos,
+          pontos: linha.pontos,
+        };
+      });
+    },
+  ],
+
   // Os convites do aluno. Também saem do token: o :turmaId é da sala, e
   // só vale o convite que é DELE.
   [
@@ -2546,7 +2856,7 @@ const rotas: [string, RegExp, Handler][] = [
       const aluno = alunoDoToken(token);
       const lista: ConviteDoAluno[] = [];
       for (const convite of dados.convites.filter((c) => c.alunoId === aluno.id)) {
-        const turma = dados.turmas.find((t) => t.id === convite.turmaId && t.status === 'Ativa');
+        const turma = dados.turmas.find((t) => t.id === convite.turmaId && t.ativa);
         if (!turma) continue;
         lista.push({
           turmaId: turma.id,
@@ -2571,6 +2881,10 @@ const rotas: [string, RegExp, Handler][] = [
       if (!turma) throw erro(404, 'Convite não encontrado.', 'NAO_ENCONTRADO');
       tirarConvite(convite);
       // Status 'convidado' -> 'ativo': agora ele está na sala.
+      // No banco: Status = 'ativo' (coluna da v6, ainda não criada) e
+      // Data_Matricula = agora (coluna que já existe; na v6 ela passa a
+      // ser a data do aceite — ver o topo de api.ts). O entrouEm de
+      // novoAluno() é essa data.
       (dados.alunos[turma.id] ??= []).push({ ...novoAluno(aluno.id), nome: aluno.nome ?? null });
       turma.totalAlunos = dados.alunos[turma.id].length;
       return resumoDaSala(turma, aluno.id);
@@ -2581,6 +2895,8 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/aluno/convites/:turmaId/recusar'),
     (params, corpo, token) => {
       const aluno = alunoDoToken(token);
+      // No banco: Status = 'recusado' (coluna da v6, ainda não criada). A
+      // linha fica, e só o professor pode convidar de novo.
       tirarConvite(exigirConvite(params[0], aluno.id));
       return null;
     },
@@ -2619,6 +2935,7 @@ const rotas: [string, RegExp, Handler][] = [
         wpm: corpo?.wpm ?? 0,
         precisao: corpo?.precisao ?? 0,
         tempoSegundos: corpo?.tempo_gasto_segundos ?? 0,
+        acertos: corpo?.acertos ?? 0,
         erros: corpo?.erros ?? 0,
         concluida: corpo?.concluida ?? false,
         data: agora(),
@@ -2646,17 +2963,7 @@ const rotas: [string, RegExp, Handler][] = [
   [
     'GET',
     montarRegex('/sessoes/:id'),
-    (params) => {
-      // Escola primeiro; depois o histórico Solo (todas as campanhas), para
-      // um F5 na tela de resultado de uma sessão Solo não cair em 404.
-      const sessao =
-        dados.sessoes.find((s) => s.id === params[0]) ??
-        Object.values(dados.historicoSolo)
-          .flat()
-          .find((h) => h.id === params[0]);
-      if (!sessao) throw erro(404, 'Sessão não encontrada.', 'NAO_ENCONTRADO');
-      return sessao;
-    },
+    (params, corpo, token) => sessaoDoToken(params[0], token),
   ],
 
   // --- admin ----------------------------------------------------
@@ -2664,7 +2971,8 @@ const rotas: [string, RegExp, Handler][] = [
   [
     'POST',
     montarRegex('/categorias'),
-    (params, corpo) => {
+    (params, corpo, token) => {
+      exigirAdministrador(token);
       const nome = corpo?.nome?.trim();
       if (!nome) throw erro(400, 'Nome é obrigatório.', 'DADOS_INVALIDOS');
       if (dados.categorias.some((c) => c.ativo && c.nome.toLowerCase() === nome.toLowerCase())) {
@@ -2678,7 +2986,8 @@ const rotas: [string, RegExp, Handler][] = [
   [
     'PATCH',
     montarRegex('/categorias/:id'),
-    (params, corpo) => {
+    (params, corpo, token) => {
+      exigirAdministrador(token);
       const cat = dados.categorias.find((c) => String(c.id) === params[0]);
       if (!cat) throw erro(404, 'Categoria não encontrada.', 'NAO_ENCONTRADO');
       cat.nome = corpo?.nome?.trim() ?? cat.nome;
@@ -2688,7 +2997,8 @@ const rotas: [string, RegExp, Handler][] = [
   [
     'DELETE',
     montarRegex('/categorias/:id'),
-    (params) => {
+    (params, corpo, token) => {
+      exigirAdministrador(token);
       const cat = dados.categorias.find((c) => String(c.id) === params[0]);
       if (!cat) throw erro(404, 'Categoria não encontrada.', 'NAO_ENCONTRADO');
       // 409 se ainda houver exercício nessa categoria. (Os do professor não
@@ -2705,7 +3015,8 @@ const rotas: [string, RegExp, Handler][] = [
   [
     'PUT',
     montarRegex('/parametros'),
-    (params, corpo) => {
+    (params, corpo, token) => {
+      exigirAdministrador(token);
       Object.assign(dados.parametros, corpo ?? {});
       return dados.parametros;
     },

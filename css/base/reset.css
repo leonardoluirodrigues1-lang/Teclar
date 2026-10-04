@@ -1,0 +1,46 @@
+/* ============================================================================
+   TECLAR — reset.css
+   O ponto de partida comum das telas: zera as margens do navegador, acerta
+   a caixa dos elementos e dá ao <body> o fundo, a cor e a fonte do projeto.
+
+   Por que existe: auth.css, dashboard.css, escola.css, resultado.css e
+   treino.css começavam com o MESMO bloco copiado. Ficou aqui só o que os
+   cinco tinham igual, regra por regra. O que só algumas folhas usavam
+   (a, button, ul, input) continua dentro de cada uma.
+
+   Carregar logo ANTES do CSS da página — é a posição em que o bloco
+   copiado estava, então a cascata continua a mesma.
+   ========================================================================== */
+
+/* O navegador põe margem e padding em vários elementos (body, h1, p, ul...).
+   Zerando tudo, cada folha só tem o espaço que ela mesma declarar.
+   border-box: a largura de uma caixa já inclui borda e padding. */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Impede o iPhone de aumentar a fonte sozinho ao girar a tela. */
+html { -webkit-text-size-adjust: 100%; }
+
+/* Fundo preto, texto claro e Inter leve: a identidade de todas as telas.
+   Cada token tem um valor concreto depois da vírgula para a tela continuar
+   de pé se tokens.css não carregar. overflow-x: hidden porque a luz de
+   fundo passa da largura da janela e não pode criar rolagem lateral. */
+body {
+  min-height: 100vh;
+  background: var(--cor-fundo, #000);
+  color: var(--cor-texto, #fff);
+  font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-weight: var(--peso-leve, 300);
+  line-height: var(--lh-normal, 1.5);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* As telas mostram e escondem partes pelo atributo hidden. Sem !important,
+   qualquer display: flex ou grid declarado depois reapareceria com a parte. */
+[hidden] { display: none !important; }
+
+/* Anel de foco: aparece quando se navega pelo teclado (Tab) e não no
+   clique do mouse — é o que :focus-visible decide. Sem ele, quem não usa
+   mouse não sabe onde está. A cor vem de tokens.css; o offset afasta o anel
+   da borda para ele não se perder no vidro. */
+:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 3px; }

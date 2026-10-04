@@ -56,7 +56,7 @@ Estão no cabeçalho de `js/nucleo/mocks.ts`:
 | Conta | `prof@teclar.dev` | `senha123` | Professor com 4 turmas e 6 exercícios. Solo recém-começado (nível 1). |
 | Conta | `leo@teclar.dev`  | `senha123` | Professor com 1 turma e 1 exercício. Solo no nível 4.  |
 | Conta | `ana@teclar.dev`  | `senha123` | Nenhuma turma, nenhum exercício, sem campanha (telas vazias). |
-| Aluno | `RP2025043`       | `Aluno#2025` | Entrada de aluno da ana: duas salas (uma com exercício pendente, outra em dia) e dois convites. |
+| Aluno | `RP2025043`       | `Aluno#2025` | Entrada de aluno da ana: três salas (uma com exercício pendente, uma toda feita, uma sem nada feito), sexto lugar no ranking da turma-2 e um convite. |
 | Aluno | `RP2025001`       | `Aluno#2025` | Entrada de aluno do leo: sem sala e sem convite (telas vazias). |
 | Aluno | `RP2025002`       | `Aluno#2025` | Entrada de aluno do prof: em sala nenhuma.             |
 
@@ -82,8 +82,8 @@ Tudo abaixo está dentro de `teclar/`.
 | Pasta | O que mora lá | Quando mexer |
 |-------|---------------|--------------|
 | `css/` | Um arquivo por área: `landing`, `auth`, `dashboard`, `solo`, `escola`, `aluno`, `treino`, `resultado`. | Para mudar o visual de uma tela específica. |
-| `css/base/` | O que vale para o site todo: `tokens.css` (cores, espaçamentos, fontes em variáveis), `reset.css`, `layout.css`, `fontes.css`. | Para mudar uma cor, fonte ou medida em todo lugar de uma vez. |
-| `css/componentes/` | Estilo das peças reutilizadas: botões, cards, abas, tabelas, modais, toasts, sidebar, vidro. | Para mudar uma peça que aparece em várias telas. |
+| `css/base/` | O que vale para o site todo: `tokens.css` (cores, espaçamentos, fontes em variáveis), `reset.css` (o ponto de partida comum das telas), `fontes.css` (Inter e JetBrains Mono servidas de dentro do projeto), `luz.css` (a luz de fundo e o relevo das teclas), `movimento.css` (duração e curva das animações). | Para mudar uma cor, fonte ou medida em todo lugar de uma vez. |
+| `css/componentes/` | Estilo das peças reutilizadas: vidro, modais, toasts, métricas, teclado, tutorial, entrada de aluno. | Para mudar uma peça que aparece em várias telas. |
 | `js/nucleo/` | O coração: `api` (conversa com o back), `sessao` (quem está logado), `guarda` (quem pode abrir cada tela), `mocks` (back falso), `tipos` (formato dos dados). | Ao mudar o contrato com o back ou a regra de login. Todo o resto depende daqui. |
 | `js/componentes/` | Peças de tela reutilizadas: navegação, modal, tabela, barra de XP, esqueleto de carregamento, painel de erro, toast, lista de exercícios. | Ao mudar uma peça usada em mais de uma tela. |
 | `js/utils/` | Funções puras, sem tela: CSV, validação de formulário, cálculos de desempenho, formatação, ordenação. | Ao mudar um cálculo ou formato usado em vários lugares. |
@@ -139,8 +139,13 @@ Há um mapa mais detalhado de `js/` em [`js/README.md`](js/README.md).
 
 - **`js/nucleo/api.ts`** lista todas as rotas que o front chama, agrupadas
   por assunto (`auth`, `solo`, `turmas`, `alunos`, `relatorios`,
-  `exercicios`, `sessoes`, `aluno`, `admin`), com método HTTP, caminho e o
-  tipo da resposta.
+  `exercicios`, `sessoes`, `escola.aluno`, `admin`). Cada rota tem um bloco
+  de comentário com método, caminho, corpo, resposta de exemplo, erros, de
+  onde sai a identidade e o que o back calcula.
+- **`CONTRATO-API.md`** é o mesmo contrato em texto corrido, para virar
+  Swagger. É GERADO dos comentários do api.ts (`npm run contrato`, ou
+  `node gerar-contrato.mjs`): não edite à mão. Se os dois divergirem, vale
+  o api.ts.
 - **`js/nucleo/mocks.ts`** é como o back deve responder a cada uma dessas
   rotas: o formato exato de cada resposta e também os erros (400, 401, 403,
   404, 409), com mensagem e código.

@@ -17,9 +17,6 @@
 /** Rótulos exatos do ENUM Dificuldade. */
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
-/** Rótulos exatos do ENUM Status da tabela Turmas — com maiúscula. */
-export type StatusTurma = 'Ativa' | 'Encerrada';
-
 /** Os dois mundos do app. Casa com as classes .mundo-solo / .mundo-escola. */
 export type Mundo = 'solo' | 'escola';
 
@@ -245,6 +242,10 @@ export interface SessaoSolo {
   wpm: number;
   precisao: number;
   tempoSegundos: number;
+  /** Caracteres digitados certo, como o motor contou e a tela de treino
+   *  enviou no POST. Volta na leitura para a tela de resultado mostrar o
+   *  mesmo número depois de um F5. */
+  acertos: number;
   erros: number;
   concluida: boolean;
   xpGanho: number;
@@ -332,11 +333,21 @@ export interface Turma {
    *  ser professora — não um perfil. */
   professorId: string;
   nome: string;
-  status: StatusTurma;
   /** COUNT feito no back — o front não soma nada. Só alunos ATIVOS:
    *  convidado que não respondeu não é aluno da turma ainda. */
   totalAlunos: number;
   totalExercicios: number;
+  /** COUNT dos convites ainda sem resposta (ClassMembers com Status =
+   *  'convidado'). Opcional: só GET /turmas manda. */
+  convitesPendentes?: number;
+  /** Texto pronto do back, ex.: "2026 · 1º semestre". A tela não monta. */
+  periodo?: string;
+  /** Semente do desenho da capa. Sem ela, a tela deriva uma do id. */
+  capaSemente?: number;
+  /** false = arquivada: some de GET /turmas e aparece em
+   *  GET /turmas?ativa=false; o histórico continua. É o único estado da
+   *  turma — não existe "encerrada" à parte. */
+  ativa: boolean;
   dataCriacao: string;
 }
 
@@ -344,11 +355,6 @@ export interface Turma {
 export interface TurmaDetalhe extends Turma {
   /** média com 1 casa decimal, só dos alunos que treinaram; null se ninguém */
   ppmMedio: number | null;
-}
-
-/** Corpo de PUT /turmas/:id. */
-export interface DadosTurma {
-  nome?: string;
 }
 
 /**
@@ -466,7 +472,10 @@ export interface AtribuicaoProfessor {
   totalAlunos: number;
 }
 
-/** GET /turmas/:id/desempenho. Médias só sobre alunos com sessão. */
+/** O miolo dos números de uma turma: a base de RelatorioTurma. Era a
+ *  resposta de GET /turmas/:id/desempenho, apagada por repetir o
+ *  relatório; o tipo fica como base, para o relatório não repetir campo.
+ *  Médias só sobre alunos com sessão. */
 export interface DesempenhoTurma {
   turmaId: string;
   totalAlunos: number;
@@ -496,7 +505,7 @@ export interface DadosSessaoTreino {
   turma_id?: string | null;
 }
 
-/** Uma sessão do mundo Escola (GET /sessoes, GET /sessoes/:id). */
+/** Uma sessão do mundo Escola (GET /sessoes/:id; e a base das linhas de histórico). */
 export interface Sessao {
   id: string;
   exerciseId: string | null;
@@ -505,6 +514,10 @@ export interface Sessao {
   wpm: number;
   precisao: number;
   tempoSegundos: number;
+  /** Caracteres digitados certo, como o motor contou e a tela de treino
+   *  enviou no POST. Volta na leitura para a tela de resultado mostrar o
+   *  mesmo número depois de um F5. */
+  acertos: number;
   erros: number;
   concluida: boolean;
   data: string;
@@ -591,7 +604,7 @@ export interface ResultadoSincronizacao {
 // nada: recebe pronto e mostra.
 //
 // Os três tipos ESTENDEM os que já existiam, em vez de repetir campo:
-//   RelatorioTurma     estende DesempenhoTurma     (/turmas/:id/desempenho)
+//   RelatorioTurma     estende DesempenhoTurma     (a base, sem rota própria)
 //   RelatorioAluno     estende Aluno               (/turmas/:id/alunos)
 //   RelatorioExercicio estende AtribuicaoProfessor (/turmas/:id/atribuicoes)
 // Assim o relatório é o superconjunto declarado dessas rotas, e o dia em
@@ -604,9 +617,9 @@ export interface ResultadoSincronizacao {
 /**
  * GET /turmas/:id/relatorio — as quatro métricas do topo da tela.
  *
- * Superconjunto de /turmas/:id/desempenho: de lá vêm totalAlunos,
- * alunosComSessao, wpmMedio e precisaoMedia; aqui entram os dois números
- * que só o relatório mostra.
+ * Estende DesempenhoTurma: de lá vêm totalAlunos, alunosComSessao,
+ * wpmMedio e precisaoMedia; aqui entram os dois números que só o
+ * relatório mostra.
  */
 export interface RelatorioTurma extends DesempenhoTurma {
   /** Quantos alunos treinaram nos ÚLTIMOS 7 DIAS — a janela é do back.
@@ -734,24 +747,28 @@ export interface ResumoDoAluno extends IndicadoresEscola {
 // ============================================================================
 // 12. As salas do aluno (pages/aluno/dashboard.html e sala.html)
 // ============================================================================
-// "Sala" é a turma vista pelo aluno. As duas rotas saem do TOKEN, como as
-// da seção 11: nenhuma recebe RP ou id de aluno.
+// "Sala" é a turma vista pelo aluno. Todas as rotas daqui saem do TOKEN,
+// como as da seção 11: nenhuma recebe RP ou id de aluno (ver o grupo
+// escola.aluno em api.ts).
 
-/** Quantos exercícios da sala ele já fez, de quantos a sala tem. */
-export interface ProgressoDaSala {
-  feitos: number;
-  total: number;
-}
-
-/** Item de GET /aluno/salas. `professor` é o nome da conta dona da turma;
- *  null se não veio (a tela mostra "—"). */
+/**
+ * Item de GET /aluno/salas: uma turma em que ele está ATIVO, já com o
+ * progresso DELE. Tudo pronto do back — a tela não conta nada.
+ *
+ * `professor` é o nome da conta dona da turma; null se não veio (a tela
+ * mostra "—"). `capaSemente` é a mesma da tela de turmas do professor:
+ * as duas telas desenham a mesma capa para a mesma turma.
+ */
 export interface SalaDoAluno {
   id: string;
   nome: string;
   professor: string | null;
-  /** Data em que ele entrou na sala. */
-  entrouEm: string | null;
-  exercicios: ProgressoDaSala;
+  capaSemente?: number;
+  /** Alunos ATIVOS da sala, ele incluído. COUNT do back. */
+  totalAlunos: number;
+  /** Exercícios atribuídos que ele já fez (concluído ou tempo esgotado). */
+  exerciciosFeitos: number;
+  exerciciosTotal: number;
 }
 
 /**
@@ -790,6 +807,47 @@ export interface ExercicioDaSala {
  *  front. */
 export interface SalaDetalhe extends SalaDoAluno {
   lista: ExercicioDaSala[];
+}
+
+/**
+ * GET /turmas/:id/meu-desempenho — o relatório individual do aluno NA
+ * SALA: só as sessões dele naquela turma contam.
+ *
+ * Com sessoesConcluidas abaixo de 3, minhaMedia e mediaSala vêm null: com
+ * uma ou duas sessões a média não diz nada, e a tela mostra quanto falta
+ * em vez de um número. A média é sempre do BACK; a tela não calcula.
+ */
+export interface DesempenhoNaTurma {
+  sessoesConcluidas: number;
+  /** Exercícios diferentes que ele concluiu na sala. */
+  licoes: number;
+  diasSeguidos: number;
+  minhaMedia: MediaDaSala | null;
+  mediaSala: MediaDaSala | null;
+}
+
+/** Ritmo (PPM) e precisão (%), inteiros. */
+export interface MediaDaSala {
+  velocidade: number;
+  precisao: number;
+}
+
+/**
+ * Uma linha de GET /turmas/:id/ranking, já na ordem por pontos.
+ *
+ * `nome` vem null do quarto lugar em diante — a não ser na linha do
+ * próprio aluno (`voce`). Quem esconde é o BACK: o nome dos colegas não
+ * chega ao navegador, nem escondido.
+ */
+export interface LinhaDoRanking {
+  posicao: number;
+  nome: string | null;
+  voce: boolean;
+  licoes: number;
+  /** PPM médio das sessões concluídas; null sem nenhuma. */
+  ritmo: number | null;
+  diasSeguidos: number;
+  pontos: number;
 }
 
 /**
