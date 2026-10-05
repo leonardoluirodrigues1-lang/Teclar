@@ -1,5 +1,5 @@
 // seed.ts
-// Dados de teste para o teclarDB. Rodar com:  npm run seed
+// Dados de teste para o teclardb. Rodar com:  npm run seed
 //
 // ATENÇÃO: APAGA tudo das tabelas que ele preenche (contas, alunos, turmas,
 // exercícios, sessões) antes de inserir. É para o banco de desenvolvimento.

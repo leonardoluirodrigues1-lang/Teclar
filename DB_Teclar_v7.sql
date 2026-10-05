@@ -44,10 +44,16 @@
 -- apagada de verdade: DELETE /categorias e exclusao logica (Ativo = FALSE).
 -- ==========================================
 
-CREATE DATABASE IF NOT EXISTS teclarDB
+-- Nome em minusculas de proposito. No Windows o MySQL guarda o nome do
+-- banco em minusculas (lower_case_table_names = 1) mesmo que o CREATE use
+-- maiuscula, e o Prisma compara esse nome com o da DATABASE_URL
+-- diferenciando caixa: com "teclarDB" na URL, o prisma db pull descartava
+-- todas as chaves estrangeiras. Em minusculas aqui e na URL, bate em
+-- qualquer sistema. (No Windows, "teclardb" e o mesmo banco ja criado.)
+CREATE DATABASE IF NOT EXISTS teclardb
     DEFAULT CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
-USE teclarDB;
+USE teclardb;
 
 -- ==========================================
 -- 1. CONTAS
@@ -291,7 +297,7 @@ INSERT INTO Configuracoes (Chave, Valor, Descricao) VALUES
 -- que e o comportamento certo (ja estava na turma antes de existir convite).
 --
 -- v7 (categorias, configuracoes, XP, arquivar turma, capa, prazo):
--- ALTER DATABASE teclarDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- ALTER DATABASE teclardb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 --
 -- CREATE TABLE Categorias (
 --     ID    INT AUTO_INCREMENT PRIMARY KEY,

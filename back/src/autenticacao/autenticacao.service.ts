@@ -72,7 +72,12 @@ export class AutenticacaoService {
   }
 
   private async entrarComoConta(email: string, senha: string): Promise<RespostaLogin> {
-    const conta = await this.banco.users.findUnique({ where: { Email: email } });
+    const conta = await this.banco.users.findUnique({
+      where: { Email: email },
+      // A campanha do Solo vem junto, pela relação users -> campanhassolo.
+      // Um jogador tem uma campanha só; o take: 1 deixa isso explícito.
+      include: { campanhassolo: { select: { CampanhaID: true }, take: 1 } },
+    });
 
     // Compara ANTES de olhar se a conta existe (ver HASH_DE_NINGUEM).
     // SenhaHash NULL é conta que só entra pelo Google: nenhuma senha serve.
@@ -87,7 +92,7 @@ export class AutenticacaoService {
     }
 
     const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta' };
-    const campanha = await this.banco.campanhassolo.findFirst({ where: { JogadorID: conta.ID } });
+    const campanha = conta.campanhassolo[0];
     if (campanha) {
       usuario.campanhaAtiva = campanha.CampanhaID;
     }
@@ -96,7 +101,21 @@ export class AutenticacaoService {
   }
 
   private async entrarComoAluno(rp: string, senha: string): Promise<RespostaLogin> {
-    const aluno = await this.banco.alunos.findUnique({ where: { ID: rp } });
+    const aluno = await this.banco.alunos.findUnique({
+      where: { ID: rp },
+      include: {
+        // A conta dona (alunos -> users), de onde vem o nome.
+        users: { select: { Nome: true } },
+        // As turmas em que ele está ATIVO (aceitou o convite) e que não
+        // foram arquivadas — as mesmas que GET /aluno/salas mostra.
+        // Convidado ou recusado ainda não é aluno da turma.
+        classmembers: {
+          where: { Status: 'ativo', classesprof: { Ativa: true } },
+          orderBy: { Data_Matricula: 'asc' }, // na ordem em que ele entrou
+          include: { classesprof: { select: { ClassID: true, NomeTurma: true } } },
+        },
+      },
+    });
 
     const senhaCerta = await senhaConfere(senha, aluno?.SenhaHash ?? null);
     if (!aluno || !senhaCerta) {
@@ -108,48 +127,18 @@ export class AutenticacaoService {
 
     const usuario: UsuarioAluno = {
       id: aluno.ID,
-      nome: await this.nomeDoAluno(aluno.UserID, aluno.Nome),
+      // O nome é o da conta dona. Aluno antigo, sem conta ligada, usa a
+      // coluna Alunos.Nome. Sem nenhum dos dois vai null, e a tela mostra
+      // o RP — nunca um nome inventado.
+      nome: aluno.users?.Nome ?? aluno.Nome,
       tipo: 'aluno',
-      turmas: await this.turmasDoAluno(aluno.ID),
+      turmas: aluno.classmembers.map((matricula) => ({
+        id: matricula.classesprof.ClassID,
+        nome: matricula.classesprof.NomeTurma ?? '',
+      })),
     };
 
     return { token: await this.emitirToken(aluno.ID, 'aluno'), usuario };
-  }
-
-  // O nome do aluno é o da conta dona (Alunos.UserID -> Users.Nome). Aluno
-  // antigo, sem conta ligada, usa a coluna Alunos.Nome. Sem nenhum dos
-  // dois vai null, e a tela mostra o RP — nunca um nome inventado.
-  private async nomeDoAluno(userId: string | null, nomeEmAlunos: string | null): Promise<string | null> {
-    if (userId) {
-      const dona = await this.banco.users.findUnique({ where: { ID: userId } });
-      if (dona) {
-        return dona.Nome;
-      }
-    }
-    return nomeEmAlunos;
-  }
-
-  // As turmas em que o aluno está ATIVO (aceitou o convite) e que não foram
-  // arquivadas — as mesmas que GET /aluno/salas mostra. Convidado ou
-  // recusado ainda não é aluno da turma.
-  // São duas consultas porque o schema do Prisma veio do db pull sem as
-  // relações entre as tabelas (ver o README do back).
-  private async turmasDoAluno(rp: string): Promise<{ id: string; nome: string }[]> {
-    const matriculas = await this.banco.classmembers.findMany({
-      where: { ID: rp, Status: 'ativo' },
-      orderBy: { Data_Matricula: 'asc' }, // na ordem em que ele entrou
-    });
-    const ids = matriculas.map((m) => m.ClassID);
-
-    const turmas = await this.banco.classesprof.findMany({
-      where: { ClassID: { in: ids }, Ativa: true },
-    });
-
-    // O findMany não garante ordem; esta volta à ordem das matrículas.
-    return ids
-      .map((id) => turmas.find((t) => t.ClassID === id))
-      .filter((turma) => turma !== undefined)
-      .map((turma) => ({ id: turma.ClassID, nome: turma.NomeTurma ?? '' }));
   }
 
   private emitirToken(id: string, tipo: TipoDeLogin): Promise<string> {

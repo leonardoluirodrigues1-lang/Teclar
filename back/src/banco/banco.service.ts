@@ -1,5 +1,5 @@
 // banco.service.ts
-// A conexão com o MySQL. É o client do Prisma (gerado do teclarDB pelo
+// A conexão com o MySQL. É o client do Prisma (gerado do teclardb pelo
 // db pull) virando um serviço do Nest, para os módulos de rota o
 // receberem por injeção no construtor em vez de cada um abrir a sua.
 //

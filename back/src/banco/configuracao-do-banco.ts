@@ -18,7 +18,7 @@ export function configuracaoDoBanco() {
     // A URL guarda usuário e senha codificados (%40 no lugar de @).
     user: decodeURIComponent(url.username),
     password: decodeURIComponent(url.password),
-    database: url.pathname.slice(1), // "/teclarDB" -> "teclarDB"
+    database: url.pathname.slice(1), // "/teclardb" -> "teclardb"
     // O MySQL 8 usa por padrão a autenticação caching_sha2_password, que
     // sem SSL precisa da chave pública do servidor. Sem esta opção o
     // driver recusa a conexão ("RSA public key is not available").

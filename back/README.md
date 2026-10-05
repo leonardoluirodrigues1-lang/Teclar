@@ -1,6 +1,6 @@
 # TECLAR — back-end
 
-API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclarDB`).
+API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
@@ -103,12 +103,17 @@ npx prisma generate
 Por isso este projeto não usa `prisma migrate`: as migrações ficam no
 `.sql` (seção de ALTER TABLE no fim dele).
 
-**Sem relações no schema.** No Windows o MySQL guarda os nomes de tabela
-em minúsculas (`lower_case_table_names = 1`), e com isso o `db pull` trouxe
-os models (`users`, `alunos`...) sem os campos de relação entre eles. As
-chaves estrangeiras existem no banco e funcionam (o CASCADE inclusive); só
-o Prisma não as enxerga. Na prática: não dá para usar `include` para
-buscar a turma junto com os alunos — o código faz uma consulta por tabela.
+**O nome do banco é `teclardb`, em minúsculas — na URL também.** No
+Windows o MySQL guarda nomes de banco e de tabela em minúsculas
+(`lower_case_table_names = 1`), e o Prisma compara o banco de cada chave
+estrangeira com o nome da `DATABASE_URL` diferenciando caixa. Com
+`teclarDB` na URL, o `db pull` achava que as 15 FKs eram de "outro banco"
+e trazia o schema sem nenhuma relação. Com `teclardb`, vêm as 15, e as
+rotas podem usar `include` (ex.: o aluno junto com as turmas dele).
+Os models também vêm em minúsculas (`users`, `alunos`...) pelo mesmo motivo.
+
+Se um dia o `db pull` voltar sem `@relation` no schema, confira a caixa do
+nome do banco no `.env` antes de qualquer outra coisa.
 
 Para olhar as tabelas e os dados pelo Prisma, no navegador:
 
