@@ -1,0 +1,4886 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "TECLAR — API",
+    "version": "v7",
+    "description": "Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.ts), por gerar-contrato.mjs. Rotas marcadas \"(ainda não implementada)\" ainda não existem no back.\n\nPara testar uma rota com cadeado: faça o POST /api/auth/login, copie o \"token\" da resposta e cole em **Authorize** (sem a palavra Bearer)."
+  },
+  "tags": [
+    {
+      "name": "Autenticação",
+      "description": "Um login para as duas tabelas: Users entra por e-mail; Alunos entra pelo RP e pela senha de aluno. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
+    },
+    {
+      "name": "Conta",
+      "description": "A conta logada, fora de qualquer mundo. Token de aluno nestas rotas é 403: são da conta (Users), não da entrada de aluno."
+    },
+    {
+      "name": "Solo",
+      "description": "O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha."
+    },
+    {
+      "name": "Turmas (professor)",
+      "description": "Mundo ESCOLA, lado do professor. A turma é da conta do token (Turmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não existe, para não confirmar a quem tenta ids que ela existe."
+    },
+    {
+      "name": "Alunos e convites (professor)",
+      "description": "O professor administrando o quadro de UMA turma dele. A turma sai do token (tem de ser da conta: senão 404); o aluno-alvo vai na URL pelo RP, porque é sobre ELE que a ação é — não é a identidade de quem pede. RP na URL aqui é decisão, não descuido: a identidade continua saindo do token, e o aluno só é alcançável dentro de uma turma da conta."
+    },
+    {
+      "name": "Relatórios (professor)",
+      "description": "pages/professor/relatorios.html e a aba Relatório da turma. Tudo sai de SessionsProf com JOIN e chega PRONTO: nenhuma média é calculada na tela, e toda média pode vir null — que vira \"—\", nunca 0. A turma tem de ser da conta do token (senão 404); token de aluno é 403."
+    },
+    {
+      "name": "Biblioteca de exercícios (professor)",
+      "description": "ExerciciosProf. A listagem devolve só os do professor do token; busca e filtro de dificuldade são no cliente. Exercício de outra conta responde 404, como o que não existe."
+    },
+    {
+      "name": "Sessões",
+      "description": "Gravar uma sessão do mundo Escola e reler uma sessão (Escola ou Solo) na tela de resultado. A lista e o resumo das sessões do aluno são do grupo \"Aluno\", em /aluno/."
+    },
+    {
+      "name": "Aluno",
+      "description": "O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo \"Alunos e convites\", que é o PROFESSOR administrando a turma dele. Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe RP ou id de aluno na URL: não existe caminho — nem por URL editada à mão — para um aluno pedir o histórico, a sala ou o relatório de outro. · Token de conta é 403 TIPO_INVALIDO. · Turma da qual ele não participa responde 404, e não 403: o 403 diria \"essa turma existe, só não é sua\". · Aceitar o convite grava ClassMembers.Status = 'ativo' e preenche Data_Matricula com a data do aceite (o significado novo da v6: antes era a data em que o professor matriculava); recusar grava Status = 'recusado' (a linha fica, para o professor ver que o convite foi respondido). `escola.aluno`, e não só `aluno`: é o aluno do mundo Escola. O Solo é da conta, e mora em `solo`."
+    },
+    {
+      "name": "Administração",
+      "description": "Categorias e parâmetros globais (tabela Configuracoes)."
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.entrar",
+        "summary": "entrar: RespostaLogin",
+        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { perfil: \"Aluno\", rp, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\nO `tipo` é a tabela em que o back autenticou ('conta' = Users, 'aluno' = Alunos), nunca o que a tela mandou. O RP aceita espaço e minúscula (\"rp 2025043\"): o back normaliza antes de procurar. A tela apara as pontas da senha (de conta e de aluno) antes de enviar; o back faz o mesmo antes de comparar o hash.\n\n**Notas:**\n\nSenha colada costuma trazer um espaço ou uma quebra de linha no fim, e isso virava \"senha incorreta\". Aparar no login só é seguro porque nenhuma senha válida tem espaço nas pontas: ver a regra no POST /auth/cadastro e no POST /conta/rp/nova-senha.",
+        "parameters": [],
+        "requestBody": {
+          "description": "Conta: { email, senha }. Aluno: { perfil: \"Aluno\", rp, senha } (Credenciais)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "email": "prof@teclar.dev",
+                    "senha": "senha123"
+                  }
+                },
+                "exemplo2": {
+                  "summary": "Exemplo 2",
+                  "value": {
+                    "perfil": "Aluno",
+                    "rp": "RP2025043",
+                    "senha": "Aluno#2025"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RespostaLogin",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "token": "eyJhbGciOi...",
+                      "usuario": {
+                        "id": "u-2",
+                        "nome": "Henrique Lima",
+                        "email": "prof@teclar.dev",
+                        "tipo": "conta",
+                        "campanhaAtiva": "camp-2"
+                      }
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "Aluno",
+                    "value": {
+                      "token": "...",
+                      "usuario": {
+                        "id": "RP2025043",
+                        "nome": "Ana Pires",
+                        "tipo": "aluno",
+                        "turmas": [
+                          {
+                            "id": "turma-1",
+                            "nome": "9º Ano A — Manhã"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`CREDENCIAIS` — e-mail/RP ou senha errados (mesma mensagem para os dois, existindo a conta ou não)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CREDENCIAIS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CREDENCIAIS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`CONTA_INATIVA` — a conta existe e está desativada",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CONTA_INATIVA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CONTA_INATIVA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/cadastro": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.cadastrar",
+        "summary": "(ainda não implementada) cadastrar: RespostaCadastro — a sessão, como no login, mais a entrada de aluno",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.cadastrar`\n\n**Corpo:** DadosCadastro\n\n**Resposta:** 200 RespostaCadastro — a sessão, como no login, mais a entrada de aluno\n\n**Identidade:**\n\nPública.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCria a linha em Users E a linha em Alunos (com Alunos.UserID apontando para a conta nova), gerando o RP e a senha de aluno. senhaAluno sai em texto puro SÓ nesta resposta; depois o back guarda apenas o hash. Recusa senha que comece ou termine com espaço (no meio pode), e grava a senha como veio, sem aparar. A senha de aluno gerada também nunca tem espaço nas pontas.\n\n**Notas:**\n\nQuem acabou de se cadastrar não passa pelo login de novo. A regra do espaço existe porque o login apara as pontas da senha: uma conta criada com \"abc12345 \" nunca mais entraria. A tela já barra antes de enviar, mas o back precisa barrar também.",
+        "parameters": [],
+        "requestBody": {
+          "description": "DadosCadastro",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "Henrique Lima",
+                    "email": "prof@teclar.dev",
+                    "senha": "senha123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RespostaCadastro — a sessão, como no login, mais a entrada de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "token": "...",
+                      "usuario": {
+                        "id": "u-9",
+                        "nome": "Henrique Lima",
+                        "email": "prof@teclar.dev",
+                        "tipo": "conta"
+                      },
+                      "rp": "RP2026117",
+                      "senhaAluno": "Kx7#pq2M"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — a senha começa ou termina com espaço",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`EMAIL_EM_USO` — o e-mail já tem conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "EMAIL_EM_USO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "EMAIL_EM_USO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/eu": {
+      "get": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.eu",
+        "summary": "(ainda não implementada) eu: Usuario — o dono do token, na forma do login",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.eu`\n\n**Resposta:** 200 Usuario — o dono do token, na forma do login\n\n**Identidade:**\n\nO token. Não recebe id: é sempre \"quem sou eu\".",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Usuario — o dono do token, na forma do login",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "u-2",
+                      "nome": "Henrique Lima",
+                      "email": "prof@teclar.dev",
+                      "tipo": "conta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO`",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.sair",
+        "summary": "(ainda não implementada) sair: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.sair`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que deixa de valer. Marcada como pública: um 401 aqui não pode derrubar a tela no meio da saída.\n\n**Notas:**\n\nPode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que não depende desta resposta.",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          }
+        }
+      }
+    },
+    "/api/conta/rp": {
+      "get": {
+        "tags": [
+          "Conta"
+        ],
+        "operationId": "conta.rp",
+        "summary": "(ainda não implementada) rp: RpDaConta",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.conta.rp`\n\n**Resposta:** 200 RpDaConta\n\n**Identidade:**\n\nO token. Sem parâmetro: é sempre o RP da própria conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nO RP é a linha de Alunos ligada à conta por Alunos.UserID. Conta sem linha em Alunos: { \"rp\": null }.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "RpDaConta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "rp": "RP2025043"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/conta/rp/nova-senha": {
+      "post": {
+        "tags": [
+          "Conta"
+        ],
+        "operationId": "conta.novaSenhaAluno",
+        "summary": "(ainda não implementada) novaSenhaAluno: NovaSenhaAluno — a senha nova, uma vez",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.conta.novaSenhaAluno`\n\n**Resposta:** 200 NovaSenhaAluno — a senha nova, uma vez\n\n**Identidade:**\n\nO token. Sem parâmetro: troca sempre a senha da própria conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGera a senha, grava só o hash e invalida a antiga na mesma hora. Não existe rota de LEITURA da senha de aluno. A senha gerada nunca tem espaço nas pontas: o login apara antes de enviar.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "NovaSenhaAluno — a senha nova, uma vez",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "senhaAluno": "Q2w#e4Rt"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta não tem RP",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/campanha": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.campanhaAtual",
+        "summary": "(ainda não implementada) campanhaAtual: Campanha | null — null quando o jogador ainda não começou",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.campanhaAtual`\n\n**Resposta:** 200 Campanha | null — null quando o jogador ainda não começou\n\n**Identidade:**\n\nO token (JogadorID). Não recebe id.\n\n**Notas:**\n\nnull é ESTADO, não falha: é a primeira vez dele no Solo, e o lobby mostra o convite de começar. 404 obrigaria a tela a tratar isso dentro de um catch.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Campanha | null — null quando o jogador ainda não começou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "campanhaId": "camp-1",
+                      "jogadorId": "u-1",
+                      "nivelAtual": 4,
+                      "xpTotal": 669
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.criarCampanha",
+        "summary": "(ainda não implementada) criarCampanha: Campanha — a nova (nível 1, 0 XP) ou a que já existia",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.criarCampanha`\n\n**Resposta:** 200 Campanha — a nova (nível 1, 0 XP) ou a que já existia\n\n**Identidade:**\n\nO token (JogadorID).\n\n**Regras de negócio no back (a tela não calcula):**\n\nIdempotente: quem já tem campanha recebe a que existe, e nenhuma segunda é criada (clique duplo, aba duplicada, F5).\n\n**Notas:**\n\nSem corpo porque nenhuma das seis colunas de CampanhasSolo vem da tela: CampanhaID, NivelAtual, XPTotal, Data_Criacao e Ativo são do back, e JogadorID sai do token. Não há nome de personagem nem avatar para mandar.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Campanha — a nova (nível 1, 0 XP) ou a que já existia",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "campanhaId": "camp-7",
+                      "jogadorId": "u-3",
+                      "nivelAtual": 1,
+                      "xpTotal": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/campanhas/{id}": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.campanha",
+        "summary": "(ainda não implementada) campanha: Campanha",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.campanha`\n\n**Resposta:** 200 Campanha\n\n**Identidade:**\n\nO token. Só o dono lê: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa: as telas pedem a campanha do token em GET /solo/campanha, sem id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "campanhaId": "camp-1",
+                      "jogadorId": "u-1",
+                      "nivelAtual": 4,
+                      "xpTotal": 669
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe, ou é de outra conta (o mesmo 404)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.apagarCampanha",
+        "summary": "(ainda não implementada) apagarCampanha: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.apagarCampanha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só o dono apaga: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe, ou é de outra conta (o mesmo 404)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/missoes": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.missoes",
+        "summary": "(ainda não implementada) missoes: Missao[] — as 76 lições, na ordem do percurso, SEM o texto",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.missoes`\n\n**Resposta:** 200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto\n\n**Identidade:**\n\nO token (precisa ter campanha). Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo existe desde a v7, mas esta rota não o lê (ver @nao-usado no topo). Quem agrupa por nível é a tela.\n\n**Notas:**\n\nAceita filtros em query string (montarQuery), mas nenhuma tela manda filtro hoje. O texto fica de fora: na lista seria ~30 KB que nenhum cartão mostra.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Missao[] — as 76 lições, na ordem do percurso, SEM o texto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "exerciseId": "solo-001",
+                        "ordem": 1,
+                        "nivel": 1,
+                        "titulo": "Lição 01 — Linha-guia",
+                        "dificuldade": "facil",
+                        "repeticoes": 10,
+                        "tempoLimiteSegundos": 472,
+                        "tamanhoCaracteres": 59
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta ainda não tem campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/missoes/{id}": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.missao",
+        "summary": "(ainda não implementada) missao: MissaoDetalhe — a lição com o texto",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.missao`\n\n**Resposta:** 200 MissaoDetalhe — a lição com o texto\n\n**Identidade:**\n\nQualquer token válido. As lições são conteúdo semeado, iguais para todos: não há recurso \"de outra conta\" aqui.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MissaoDetalhe — a lição com o texto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "exerciseId": "solo-001",
+                      "ordem": 1,
+                      "nivel": 1,
+                      "titulo": "Lição 01 — Linha-guia",
+                      "dificuldade": "facil",
+                      "repeticoes": 10,
+                      "tempoLimiteSegundos": 472,
+                      "tamanhoCaracteres": 59,
+                      "texto": "asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — lição inexistente",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/sessoes": {
+      "post": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.registrarSessao",
+        "summary": "(ainda não implementada) registrarSessao: RespostaSessaoSolo — o id abre a tela de resultado",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.registrarSessao`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais a lição\n\n**Resposta:** 200 RespostaSessaoSolo — o id abre a tela de resultado\n\n**Identidade:**\n\nO token: a sessão vai para a campanha DO TOKEN. Não aceita campanha_id no corpo — com ele, dava para gravar XP na campanha de outro jogador.\n\n**Regras de negócio no back (a tela não calcula):**\n\nXP ganho (concluída: XP_BASE_MISSAO + bônus proporcional à precisão; não concluída: 30% do base), o novo XPTotal, o nível (recalculado do XP), subiuDeNivel e recordePessoal (PPM maior que o melhor anterior NESTA lição). A tela não calcula XP nem nível.",
+        "parameters": [],
+        "requestBody": {
+          "description": "DadosSessaoTreino — o que o motor mediu, mais a lição",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "exercicio_id": "solo-009",
+                    "wpm": 38,
+                    "precisao": 95,
+                    "acertos": 57,
+                    "erros": 3,
+                    "tempo_gasto_segundos": 96,
+                    "concluida": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RespostaSessaoSolo — o id abre a tela de resultado",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "hs-11",
+                      "xpGanho": 74,
+                      "xpTotal": 743,
+                      "nivelAtual": 4,
+                      "subiuDeNivel": false,
+                      "recordePessoal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — sem campanha, ou lição inexistente",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/historico": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.historico",
+        "summary": "(ainda não implementada) historico: Paginado<SessaoSolo> — as sessões da campanha",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.historico`\n\n**Resposta:** 200 Paginado<SessaoSolo> — as sessões da campanha\n\n**Identidade:**\n\nO token. Não recebe id: era /solo/campanhas/:id/historico, e um id de campanha na URL é um caminho para o histórico de outra pessoa.\n\n**Notas:**\n\nAceita filtros em query string; as telas não mandam nenhum.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Paginado<SessaoSolo> — as sessões da campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "total": 10,
+                      "pagina": 1,
+                      "itens": [
+                        {
+                          "id": "hs-10",
+                          "exerciseId": "solo-015",
+                          "wpm": 41,
+                          "precisao": 92,
+                          "tempoSegundos": 84,
+                          "acertos": 46,
+                          "erros": 4,
+                          "concluida": true,
+                          "xpGanho": 73,
+                          "data": "2026-10-02T21:10:00.000Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta ainda não tem campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/indicadores": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.indicadores",
+        "summary": "(ainda não implementada) indicadores: IndicadoresSolo",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.indicadores`\n\n**Resposta:** 200 IndicadoresSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das sessões concluídas, inteiras; null sem nenhuma (nunca 0). melhorWpm considera todas as sessões.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "IndicadoresSolo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "campanhaId": "camp-1",
+                      "nivelAtual": 4,
+                      "xpTotal": 669,
+                      "sessoesTotais": 10,
+                      "wpmMedio": 35,
+                      "precisaoMedia": 91,
+                      "melhorWpm": 41
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta ainda não tem campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/solo/estatisticas": {
+      "get": {
+        "tags": [
+          "Solo"
+        ],
+        "operationId": "solo.estatisticas",
+        "summary": "(ainda não implementada) estatisticas: EstatisticasSolo",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.estatisticas`\n\n**Resposta:** 200 EstatisticasSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nlicoesConcluidas = lições DISTINTAS com sessão concluída; o agregado por lição (tentativas, melhores marcas, última vez) com o JOIN em ExerciciosSolo para título e nível. Lição nunca tentada não aparece.\n\n**Notas:**\n\nNível e XP não vêm aqui (são de /solo/campanha). Sequência de dias e evolução a tela deriva das datas e dos PPM do histórico.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "EstatisticasSolo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "campanhaId": "camp-1",
+                      "licoesConcluidas": 5,
+                      "melhorWpm": 41,
+                      "melhorPrecisao": 96,
+                      "porLicao": [
+                        {
+                          "exerciseId": "solo-015",
+                          "titulo": "Lição 15 — Vocabulário real",
+                          "nivel": 3,
+                          "tentativas": 2,
+                          "melhorWpm": 41,
+                          "melhorPrecisao": 92,
+                          "ultimaVez": "2026-10-02T21:10:00.000Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta ainda não tem campanha",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas": {
+      "get": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.listar_turmas.listarArquivadas",
+        "summary": "(ainda não implementada) listar / listarArquivadas",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n### listar\n\n**Chamada no front:** `api.turmas.listar`\n\n**Resposta:** 200 Turma[] — só as com ativa = true, array puro (lista curta)\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\ntotalAlunos (COUNT em ClassMembers com Status = 'ativo'), totalExercicios (COUNT em AtribuicoesProf) e convitesPendentes (COUNT com Status = 'convidado'). O filtro é Turmas.Ativa. O texto de `periodo` vem pronto. A tela não soma nada por turma.\n\n### listarArquivadas\n\n**Chamada no front:** `api.turmas.listarArquivadas`\n\n**Resposta:** 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas\n\n**Identidade:**\n\nO token, como em GET /turmas.\n\n**Notas:**\n\nÉ a mesma rota de listar(); só o filtro muda. Serve ao \"Mostrar arquivadas\" da tela de turmas.",
+        "parameters": [
+          {
+            "name": "ativa",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turma[] — só as com ativa = true, array puro (lista curta) | Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "listar",
+                    "value": [
+                      {
+                        "id": "turma-1",
+                        "professorId": "u-2",
+                        "nome": "9º Ano A — Manhã",
+                        "totalAlunos": 4,
+                        "totalExercicios": 3,
+                        "convitesPendentes": 0,
+                        "periodo": "2026 · 1º semestre",
+                        "capaSemente": 7001,
+                        "ativa": true,
+                        "dataCriacao": "2026-02-01"
+                      }
+                    ]
+                  },
+                  "exemplo2": {
+                    "summary": "listarArquivadas",
+                    "value": [
+                      {
+                        "id": "turma-8",
+                        "professorId": "u-2",
+                        "nome": "8º Ano B — 2025",
+                        "totalAlunos": 0,
+                        "totalExercicios": 0,
+                        "convitesPendentes": 0,
+                        "periodo": "2025 · 2º semestre",
+                        "capaSemente": 7823,
+                        "ativa": false,
+                        "dataCriacao": "2025-08-04"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.criar",
+        "summary": "(ainda não implementada) criar: Turma — já na forma de um item de GET /turmas",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome } — 3 a 100 caracteres\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. Não aceita professorId no corpo.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true. O período, se houver, é o back que monta.\n\n**Notas:**\n\nClassesProf.Ano e Semestre existem desde a v7, mas esta rota não os recebe (ver @nao-usado no topo): a turma nasce com os dois NULL e sem `periodo`. O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ nome } — 3 a 100 caracteres",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "7º Ano C — Tarde"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Turma — já na forma de um item de GET /turmas",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "turma-9",
+                      "professorId": "u-2",
+                      "nome": "7º Ano C — Tarde",
+                      "totalAlunos": 0,
+                      "totalExercicios": 0,
+                      "convitesPendentes": 0,
+                      "ativa": true,
+                      "dataCriacao": "2026-10-03"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "(sem código) — a conta já tem uma turma com esse nome",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "sem código",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}": {
+      "get": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.obter",
+        "summary": "(ainda não implementada) obter: TurmaDetalhe — a turma mais o PPM médio",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.obter`\n\n**Resposta:** 200 TurmaDetalhe — a turma mais o PPM médio\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nppmMedio com 1 casa decimal, só dos alunos que treinaram (quem nunca treinou não entra); null se ninguém treinou.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TurmaDetalhe — a turma mais o PPM médio",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "turma-1",
+                      "professorId": "u-2",
+                      "nome": "9º Ano A — Manhã",
+                      "totalAlunos": 4,
+                      "totalExercicios": 3,
+                      "periodo": "2026 · 1º semestre",
+                      "capaSemente": 7001,
+                      "ativa": true,
+                      "dataCriacao": "2026-02-01",
+                      "ppmMedio": 33.3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.renomear_turmas.trocarCapa_turmas.arquivar_turmas.desarquivar",
+        "summary": "(ainda não implementada) renomear / trocarCapa / arquivar / desarquivar",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n### renomear\n\n**Chamada no front:** `api.turmas.renomear`\n\n**Corpo:** { nome } — renomear; só o campo enviado muda\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nPATCH porque só o campo enviado muda. A tela mantém as contagens que já tinha: o PATCH não as recalcula.\n\n### trocarCapa\n\n**Chamada no front:** `api.turmas.trocarCapa`\n\n**Corpo:** { capaSemente } — inteiro; troca o desenho da capa\n\n**Resposta:** 200 Turma — a turma como ficou (mesma forma do renomear)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava em Turmas.CapaSemente. Sem semente gravada, a tela deriva uma do id — por isso a coluna aceita NULL.\n\n### arquivar\n\n**Chamada no front:** `api.turmas.arquivar`\n\n**Corpo:** { ativa: false } — arquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = false. A turma some de GET /turmas e o histórico de sessões fica intacto.\n\n**Notas:**\n\nArquivar, e NÃO excluir: SessionsProf aponta para a turma com ON DELETE CASCADE, e apagar a turma apagaria o histórico de treino de todos os alunos dela. Por isso não existe DELETE /turmas/:id.\n\n### desarquivar\n\n**Chamada no front:** `api.turmas.desarquivar`\n\n**Corpo:** { ativa: true } — desarquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = true: a turma volta a GET /turmas como estava.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ nome } — renomear; só o campo enviado muda | { capaSemente } — inteiro; troca o desenho da capa | { ativa: false } — arquivar | { ativa: true } — desarquivar",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "renomear",
+                  "value": {
+                    "nome": "9º Ano A — Manhã (2026)"
+                  }
+                },
+                "exemplo2": {
+                  "summary": "trocarCapa",
+                  "value": {
+                    "capaSemente": 418207
+                  }
+                },
+                "exemplo3": {
+                  "summary": "arquivar",
+                  "value": {
+                    "ativa": false
+                  }
+                },
+                "exemplo4": {
+                  "summary": "desarquivar",
+                  "value": {
+                    "ativa": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Turma — a turma como ficou | Turma — a turma como ficou (mesma forma do renomear)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "renomear",
+                    "value": {
+                      "id": "turma-1",
+                      "professorId": "u-2",
+                      "nome": "9º Ano A — Manhã (2026)",
+                      "totalAlunos": 4,
+                      "totalExercicios": 3,
+                      "periodo": "2026 · 1º semestre",
+                      "capaSemente": 7001,
+                      "ativa": true,
+                      "dataCriacao": "2026-02-01"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "trocarCapa",
+                    "value": {
+                      "id": "turma-1",
+                      "nome": "9º Ano A — Manhã",
+                      "capaSemente": 418207,
+                      "ativa": true
+                    }
+                  },
+                  "exemplo3": {
+                    "summary": "arquivar",
+                    "value": {
+                      "id": "turma-3",
+                      "nome": "Projeto de Extensão 2025",
+                      "ativa": false
+                    }
+                  },
+                  "exemplo4": {
+                    "summary": "desarquivar",
+                    "value": {
+                      "id": "turma-8",
+                      "nome": "8º Ano B — 2025",
+                      "ativa": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres\n\n`DADOS_INVALIDOS` — capaSemente não é inteiro\n\n`DADOS_INVALIDOS` — ativa não é booleano",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  },
+                  "exemplo3": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "(sem código) — a conta já tem uma turma com esse nome",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "sem código",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/atribuicoes": {
+      "get": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.atribuicoes",
+        "summary": "(ainda não implementada) atribuicoes: AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos ATIVOS da turma com sessão concluída no exercício; totalAlunos = alunos ativos. A tela não conta.\n\n**Notas:**\n\nA visão do ALUNO sobre a mesma tabela é GET /aluno/salas/:id, e não traz contagem da turma: seria entregar o desempenho dos colegas.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "exercicioId": "ex-prof-1",
+                        "titulo": "Acentuação em foco",
+                        "dificuldade": "medio",
+                        "atribuidoEm": "2026-02-03",
+                        "concluidoPor": 3,
+                        "totalAlunos": 4
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.atribuir",
+        "summary": "(ainda não implementada) atribuir: Atribuicao[] — a lista crua de atribuições da turma, como ficou",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.atribuir`\n\n**Corpo:** { exercicioIds } — vários de uma vez\n\n**Resposta:** 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou\n\n**Identidade:**\n\nO token: a turma E cada exercício têm de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere todos os ids ANTES de gravar qualquer um (metade atribuída é pior que nada). Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).\n\n**Notas:**\n\nA resposta não traz título nem concluidoPor: a tela relê GET /turmas/:id/atribuicoes depois.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ exercicioIds } — vários de uma vez",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "exercicioIds": [
+                      "ex-prof-3",
+                      "ex-prof-4"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atribuicao[] — a lista crua de atribuições da turma, como ficou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "exerciseId": "ex-prof-1",
+                        "atribuidoEm": "2026-02-03",
+                        "prazo": null
+                      },
+                      {
+                        "exerciseId": "ex-prof-3",
+                        "atribuidoEm": "2026-10-03",
+                        "prazo": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma ou algum exercício não é da conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/atribuicoes/{exercicioId}": {
+      "delete": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.removerAtribuicao",
+        "summary": "(ainda não implementada) removerAtribuicao: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.removerAtribuicao`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nA atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o exercício não está atribuído a ela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/alunos": {
+      "get": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.daTurma",
+        "summary": "(ainda não implementada) daTurma: LinhaDaTurma[] — ativos primeiro, depois os convidados, cada um com o estado",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 LinhaDaTurma[] — ativos primeiro, depois os convidados, cada um com o estado\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nJunta ClassMembers com Status = 'ativo' e 'convidado' (o 'recusado' não aparece). O nome é o da conta dona do RP (Alunos.UserID -> Users.Nome). Os agregados (totalSessoes, médias, última atividade) são do aluno no sistema todo e vêm prontos; quem nunca treinou vem com null, nunca 0. Convidado não traz número.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "LinhaDaTurma[] — ativos primeiro, depois os convidados, cada um com o estado",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "estado": "ativo",
+                        "id": "RP2025043",
+                        "nome": "Ana Pires",
+                        "entrouEm": "2026-02-01",
+                        "totalSessoes": 12,
+                        "wpmMedio": 39,
+                        "precisaoMedia": 91,
+                        "ultimaAtividade": "2026-10-03T12:00:00.000Z"
+                      },
+                      {
+                        "estado": "convidado",
+                        "id": "RP2025047",
+                        "nome": null,
+                        "convidadoEm": "2026-10-01T12:00:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/alunos/{rp}": {
+      "delete": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.remover",
+        "summary": "(ainda não implementada) remover: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.remover`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.\n\n**Regras de negócio no back (a tela não calcula):**\n\nTira o aluno ativo da turma, e o histórico de sessões dele nesta turma vai junto. Para quem só foi convidado, é DELETE .../convites/:rp.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rp",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o RP não está ativo nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/convites": {
+      "post": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.convidar",
+        "summary": "(ainda não implementada) convidar: ConvidadoDaTurma",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.convidar`\n\n**Corpo:** { rp } — de uma conta que já existe\n\n**Resposta:** 200 ConvidadoDaTurma\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNormaliza o RP (sem espaço, maiúsculo) e grava ClassMembers com Status = 'convidado' e Data_Convite = agora. Ninguém entra na turma sem aceitar: o professor não cria aluno nem vê senha.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ rp } — de uma conta que já existe",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "rp": "RP2025001"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ConvidadoDaTurma",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "estado": "convidado",
+                      "id": "RP2025001",
+                      "nome": "Leonardo",
+                      "convidadoEm": "2026-10-03T14:02:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`RP_INVALIDO` — fora do formato RP + 7 dígitos\n\n`CONVITE_PROPRIO` — o RP é o da própria conta do token",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "RP_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "RP_INVALIDO"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "CONVITE_PROPRIO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CONVITE_PROPRIO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`RP_NAO_ENCONTRADO` — nenhuma conta com esse RP\n\n`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "RP_NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "RP_NAO_ENCONTRADO"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`JA_NA_TURMA` — o RP já está ativo na turma\n\n`JA_CONVIDADO` — já foi convidado e ainda não respondeu",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "JA_NA_TURMA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "JA_NA_TURMA"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "JA_CONVIDADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "JA_CONVIDADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/convites/importar": {
+      "post": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.convidarVarios",
+        "summary": "(ainda não implementada) convidarVarios: ResultadoConvites — cada RP cai numa das três listas",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.convidarVarios`\n\n**Corpo:** { rps } — o lote inteiro numa requisição\n\n**Resposta:** 200 ResultadoConvites — cada RP cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nImportação parcial é permitida. RP repetido na lista vira falha (\"RP repetido na lista\"); os outros motivos são os do convite um por um.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ rps } — o lote inteiro numa requisição",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "rps": [
+                      "RP2025001",
+                      "RP2025002",
+                      "RP2025043",
+                      "RP9999999"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ResultadoConvites — cada RP cai numa das três listas",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "convidados": [
+                        {
+                          "estado": "convidado",
+                          "id": "RP2025001",
+                          "nome": "Leonardo",
+                          "convidadoEm": "2026-10-03T14:02:00.000Z"
+                        }
+                      ],
+                      "jaEstavam": [
+                        {
+                          "rp": "RP2025043",
+                          "estado": "ativo"
+                        }
+                      ],
+                      "falhas": [
+                        {
+                          "rp": "RP9999999",
+                          "motivo": "Nenhuma conta com esse RP."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/convites/{rp}": {
+      "delete": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.cancelarConvite",
+        "summary": "(ainda não implementada) cancelarConvite: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.cancelarConvite`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga o convite ainda não respondido; ele some da lista do aluno.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rp",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou não há convite pendente para esse RP",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/alunos/{rp}/desempenho": {
+      "get": {
+        "tags": [
+          "Alunos e convites (professor)"
+        ],
+        "operationId": "alunos.desempenho",
+        "summary": "(ainda não implementada) desempenho: DesempenhoAluno — os agregados e as sessões do aluno NESTA turma",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.desempenho`\n\n**Resposta:** 200 DesempenhoAluno — os agregados e as sessões do aluno NESTA turma\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó as sessões DESTA turma (e os agregados sobre elas): as das outras turmas do aluno são de outros professores, e este não pode vê-las.\n\n**Notas:**\n\nNenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:rp/sessoes).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rp",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DesempenhoAluno — os agregados e as sessões do aluno NESTA turma",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "alunoId": "RP2025043",
+                      "totalSessoes": 2,
+                      "wpmMedio": 38,
+                      "precisaoMedia": 94,
+                      "sessoes": [
+                        {
+                          "id": "ses-1",
+                          "exerciseId": "ex-prof-1",
+                          "alunoId": "RP2025043",
+                          "wpm": 40,
+                          "precisao": 95,
+                          "tempoSegundos": 58,
+                          "acertos": 76,
+                          "erros": 4,
+                          "concluida": true,
+                          "data": "2026-02-18T14:10:00.000Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o RP não está ativo nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/relatorio": {
+      "get": {
+        "tags": [
+          "Relatórios (professor)"
+        ],
+        "operationId": "relatorios.turma",
+        "summary": "(ainda não implementada) turma: RelatorioTurma — as quatro métricas do topo",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.relatorios.turma`\n\n**Resposta:** 200 RelatorioTurma — as quatro métricas do topo\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosAtivos = alunos que treinaram nos últimos 7 dias (a janela é do back); médias inteiras das sessões concluídas da turma, null sem amostra; exerciciosConcluidos = pares (aluno, exercício) concluídos (COUNT: zero é zero).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RelatorioTurma — as quatro métricas do topo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "turmaId": "turma-1",
+                      "totalAlunos": 4,
+                      "alunosComSessao": 3,
+                      "alunosAtivos": 2,
+                      "wpmMedio": 33,
+                      "precisaoMedia": 87,
+                      "exerciciosConcluidos": 5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/relatorio/alunos": {
+      "get": {
+        "tags": [
+          "Relatórios (professor)"
+        ],
+        "operationId": "relatorios.porAluno",
+        "summary": "(ainda não implementada) porAluno: RelatorioAluno[] — uma linha por aluno ATIVO, inclusive quem nunca treinou",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.relatorios.porAluno`\n\n**Resposta:** 200 RelatorioAluno[] — uma linha por aluno ATIVO, inclusive quem nunca treinou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAgregados DESTA turma (só as sessões dela), diferentes dos de GET /turmas/:id/alunos, que são do sistema todo. Quem nunca treinou: totalSessoes 0 e médias null. exerciciosConcluidos = exercícios DISTINTOS concluídos.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RelatorioAluno[] — uma linha por aluno ATIVO, inclusive quem nunca treinou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "id": "RP2025049",
+                        "nome": "Marina Duarte Alves",
+                        "entrouEm": "2026-02-05",
+                        "totalSessoes": 2,
+                        "wpmMedio": 32,
+                        "precisaoMedia": 78,
+                        "ultimaAtividade": "2026-10-01T12:00:00.000Z",
+                        "exerciciosConcluidos": 2,
+                        "exerciciosAtribuidos": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/relatorio/exercicios": {
+      "get": {
+        "tags": [
+          "Relatórios (professor)"
+        ],
+        "operationId": "relatorios.porExercicio",
+        "summary": "(ainda não implementada) porExercicio: RelatorioExercicio[] — uma linha por exercício ATRIBUÍDO; nada atribuído = []",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.relatorios.porExercicio`\n\n**Resposta:** 200 RelatorioExercicio[] — uma linha por exercício ATRIBUÍDO; nada atribuído = []\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias da turma no exercício (null enquanto ninguém concluiu); estouraramTempo = sessões não concluídas, e 0 sempre que o exercício não tem tempo limite.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RelatorioExercicio[] — uma linha por exercício ATRIBUÍDO; nada atribuído = []",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "exercicioId": "ex-prof-1",
+                        "titulo": "Acentuação em foco",
+                        "dificuldade": "medio",
+                        "atribuidoEm": "2026-02-03",
+                        "concluidoPor": 2,
+                        "totalAlunos": 4,
+                        "wpmMedio": 37,
+                        "precisaoMedia": 87,
+                        "estouraramTempo": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/alunos/{rp}/sessoes": {
+      "get": {
+        "tags": [
+          "Relatórios (professor)"
+        ],
+        "operationId": "relatorios.sessoesDoAluno",
+        "summary": "(ainda não implementada) sessoesDoAluno: Paginado<SessaoDoAluno> — as sessões do aluno NESTA turma, da mais recente para a mais antiga",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.relatorios.sessoesDoAluno`\n\n**Resposta:** 200 Paginado<SessaoDoAluno> — as sessões do aluno NESTA turma, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com ExerciciosProf; exercício excluído: null.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rp",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginado<SessaoDoAluno> — as sessões do aluno NESTA turma, da mais recente para a mais antiga",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "total": 2,
+                      "pagina": 1,
+                      "itens": [
+                        {
+                          "id": "ses-2",
+                          "exerciseId": "ex-prof-2",
+                          "alunoId": "RP2025043",
+                          "wpm": 36,
+                          "precisao": 92,
+                          "tempoSegundos": 61,
+                          "acertos": 80,
+                          "erros": 7,
+                          "concluida": true,
+                          "data": "2026-02-19T09:30:00.000Z",
+                          "tituloExercicio": "Números do cotidiano"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o RP não está ativo nela (não lista vazia)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/exercicios": {
+      "get": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.listar",
+        "summary": "(ainda não implementada) listar: Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.listar`\n\n**Resposta:** 200 Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\natribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "total": 4,
+                      "pagina": 1,
+                      "itens": [
+                        {
+                          "id": "ex-prof-1",
+                          "professorId": "u-2",
+                          "titulo": "Acentuação em foco",
+                          "texto": "...",
+                          "dificuldade": "medio",
+                          "tempoLimiteSegundos": 120,
+                          "atribuidoA": 2
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.criar",
+        "summary": "(ainda não implementada) criar: Exercicio",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.criar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio\n\n**Identidade:**\n\nO token vira o ProfessorID.\n\n**Notas:**\n\ntempoLimiteSegundos 0 = sem limite. A contagem de caracteres não tem coluna: a tela conta do texto.",
+        "parameters": [],
+        "requestBody": {
+          "description": "DadosExercicio — o formulário inteiro",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "titulo": "Pontuação e ritmo",
+                    "texto": "Vírgula, ponto; dois-pontos: ...",
+                    "dificuldade": "facil",
+                    "tempoLimiteSegundos": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exercicio",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "ex-prof-8",
+                      "professorId": "u-2",
+                      "titulo": "Pontuação e ritmo",
+                      "texto": "Vírgula, ponto; dois-pontos: ...",
+                      "dificuldade": "facil",
+                      "tempoLimiteSegundos": 0,
+                      "atribuidoA": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/exercicios/{id}": {
+      "get": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.obter",
+        "summary": "(ainda não implementada) obter: ExercicioDetalhe — mesma forma de um item da listagem",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.obter`\n\n**Resposta:** 200 ExercicioDetalhe — mesma forma de um item da listagem\n\n**Identidade:**\n\nConta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, e o exercício tem de estar atribuído a ela E ele tem de estar ativo nela.\n\n**Notas:**\n\nA mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "turma",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ExercicioDetalhe — mesma forma de um item da listagem",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "ex-prof-1",
+                      "professorId": "u-2",
+                      "titulo": "Acentuação em foco",
+                      "texto": "...",
+                      "dificuldade": "medio",
+                      "tempoLimiteSegundos": 120,
+                      "atribuidoA": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe, é de outra conta, ou (aluno) não está atribuído à turma dele",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.atualizar",
+        "summary": "(ainda não implementada) atualizar: Exercicio — como ficou",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.atualizar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio — como ficou\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "DadosExercicio — o formulário inteiro",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "titulo": "Pontuação e ritmo",
+                    "texto": "...",
+                    "dificuldade": "medio",
+                    "tempoLimiteSegundos": 90
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exercicio — como ficou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "ex-prof-2",
+                      "professorId": "u-2",
+                      "titulo": "Pontuação e ritmo",
+                      "texto": "...",
+                      "dificuldade": "medio",
+                      "tempoLimiteSegundos": 90,
+                      "atribuidoA": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.excluir",
+        "summary": "(ainda não implementada) excluir: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.excluir`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nDELETE de verdade: SessionsProf e AtribuicoesProf têm ON DELETE CASCADE, então ele sai de todas as turmas e leva junto as sessões dos alunos nele. A tela avisa antes de confirmar.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sessoes": {
+      "post": {
+        "tags": [
+          "Sessões"
+        ],
+        "operationId": "sessoes.registrar",
+        "summary": "(ainda não implementada) registrar: RespostaSessaoEscola — a sessão gravada mais o recorde",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.sessoes.registrar`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma\n\n**Resposta:** 200 RespostaSessaoEscola — a sessão gravada mais o recorde\n\n**Identidade:**\n\nO token: o AlunoID sai dele, nunca do corpo.\n\n**Regras de negócio no back (a tela não calcula):**\n\nrecordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram.",
+        "parameters": [],
+        "requestBody": {
+          "description": "DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "exercicio_id": "ex-prof-7",
+                    "turma_id": "turma-1",
+                    "wpm": 42,
+                    "precisao": 94,
+                    "acertos": 141,
+                    "erros": 9,
+                    "tempo_gasto_segundos": 88,
+                    "concluida": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RespostaSessaoEscola — a sessão gravada mais o recorde",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "ses-31",
+                      "exerciseId": "ex-prof-7",
+                      "alunoId": "RP2025043",
+                      "turmaId": "turma-1",
+                      "wpm": 42,
+                      "precisao": 94,
+                      "tempoSegundos": 88,
+                      "acertos": 141,
+                      "erros": 9,
+                      "concluida": true,
+                      "data": "2026-10-03T14:20:00.000Z",
+                      "recordePessoal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — exercício não atribuído à turma, ou o aluno não está ativo nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sessoes/{id}": {
+      "get": {
+        "tags": [
+          "Sessões"
+        ],
+        "operationId": "sessoes.obter",
+        "summary": "(ainda não implementada) obter: Sessao | SessaoSolo — a sessão gravada, com acertos e tempo",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.sessoes.obter`\n\n**Resposta:** 200 Sessao | SessaoSolo — a sessão gravada, com acertos e tempo\n\n**Identidade:**\n\nO token. Só o DONO lê: token de aluno lê só as sessões Escola dele (SessionsProf.AlunoID); token de conta lê só as sessões Solo da campanha dele (SessionsSolo da CampanhaID do token). Sessão de outra pessoa responde 404, nunca 403. É a rota do F5 da tela de resultado: sem esta regra, trocar o ?sessao= da URL mostraria o treino de outra pessoa.\n\n**Regras de negócio no back (a tela não calcula):**\n\nProcura em SessionsProf e depois em SessionsSolo.\n\n**Notas:**\n\nÉ o que a tela de resultado lê num F5. Os acertos voltam aqui para ela mostrar o mesmo número de antes, sem cálculo nenhum.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessao | SessaoSolo — a sessão gravada, com acertos e tempo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Escola",
+                    "value": {
+                      "id": "ses-17",
+                      "exerciseId": "ex-prof-3",
+                      "alunoId": "RP2025043",
+                      "turmaId": "turma-2",
+                      "wpm": 49,
+                      "precisao": 96,
+                      "tempoSegundos": 126,
+                      "acertos": 144,
+                      "erros": 6,
+                      "concluida": true,
+                      "data": "2026-10-03T12:00:00.000Z"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "Solo",
+                    "value": {
+                      "id": "hs-10",
+                      "exerciseId": "solo-015",
+                      "wpm": 41,
+                      "precisao": 92,
+                      "tempoSegundos": 84,
+                      "acertos": 46,
+                      "erros": 4,
+                      "concluida": true,
+                      "xpGanho": 73,
+                      "data": "2026-10-02T21:10:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não existe, ou é de outra pessoa (o mesmo 404)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/historico": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.historico",
+        "summary": "(ainda não implementada) historico: Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.historico`\n\n**Resposta:** 200 Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nO JOIN com o título do exercício e o nome da turma; a ordem é parte do contrato. Sem filtro por exercício: a tela filtra a própria lista.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "total": 12,
+                      "pagina": 1,
+                      "itens": [
+                        {
+                          "id": "ses-17",
+                          "exerciseId": "ex-prof-3",
+                          "alunoId": "RP2025043",
+                          "turmaId": "turma-2",
+                          "wpm": 49,
+                          "precisao": 96,
+                          "tempoSegundos": 126,
+                          "acertos": 144,
+                          "erros": 6,
+                          "concluida": true,
+                          "data": "2026-10-03T12:00:00.000Z",
+                          "tituloExercicio": "Funções em JavaScript",
+                          "nomeTurma": "Reforço de digitação"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/resumo": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.resumo",
+        "summary": "(ainda não implementada) resumo: ResumoDoAluno — os números do topo do histórico",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.resumo`\n\n**Resposta:** 200 ResumoDoAluno — os números do topo do histórico\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das concluídas (null sem nenhuma); melhores marcas de todas as sessões; diasSeguidos terminando hoje ou ontem (senão 0). Nenhuma média de turma: o aluno não recebe número de colega.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "ResumoDoAluno — os números do topo do histórico",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "sessoesTotais": 12,
+                      "sessoesConcluidas": 11,
+                      "wpmMedio": 39,
+                      "precisaoMedia": 91,
+                      "melhorWpm": 49,
+                      "melhorPrecisao": 96,
+                      "diasSeguidos": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/salas": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.salas",
+        "summary": "(ainda não implementada) salas: SalaDoAluno[] — as turmas em que ele está ATIVO, com o progresso dele",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.salas`\n\n**Resposta:** 200 SalaDoAluno[] — as turmas em que ele está ATIVO, com o progresso dele\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó turmas com ClassMembers.Status = 'ativo' para ele e Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos ativos; professor = nome da conta dona.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "SalaDoAluno[] — as turmas em que ele está ATIVO, com o progresso dele",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "id": "turma-1",
+                        "nome": "9º Ano A — Manhã",
+                        "professor": "Henrique Lima",
+                        "capaSemente": 7001,
+                        "totalAlunos": 4,
+                        "exerciciosFeitos": 2,
+                        "exerciciosTotal": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/salas/{turmaId}": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.sala",
+        "summary": "(ainda não implementada) sala: SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.sala`\n\n**Resposta:** 200 SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nO estado de cada exercício para ele (nao_feito, feito, tempo_esgotado), a melhor marca dele e a contagem de caracteres (o texto não vem). Na ordem em que o professor atribuiu. Nenhum número de colega.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "turma-1",
+                      "nome": "9º Ano A — Manhã",
+                      "professor": "Henrique Lima",
+                      "capaSemente": 7001,
+                      "totalAlunos": 4,
+                      "exerciciosFeitos": 2,
+                      "exerciciosTotal": 3,
+                      "lista": [
+                        {
+                          "id": "ex-prof-1",
+                          "titulo": "Acentuação em foco",
+                          "dificuldade": "medio",
+                          "caracteres": 247,
+                          "tempoLimiteSegundos": 120,
+                          "atribuidoEm": "2026-02-03",
+                          "prazo": null,
+                          "estado": "feito",
+                          "melhorWpm": 40,
+                          "melhorPrecisao": 95,
+                          "ultimaSessao": "2026-02-18T14:10:00.000Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a sala não existe ou ele não está nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/convites": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.convites",
+        "summary": "(ainda não implementada) convites: ConviteDoAluno[] — os que esperam resposta dele, o mais recente primeiro",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.convites`\n\n**Resposta:** 200 ConviteDoAluno[] — os que esperam resposta dele, o mais recente primeiro\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nClassMembers com Status = 'convidado' para o RP dele, só de turmas ativas; totalAlunos conta só os ativos.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "ConviteDoAluno[] — os que esperam resposta dele, o mais recente primeiro",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "turmaId": "turma-4",
+                        "nome": "7º Ano C — Tarde",
+                        "professor": "Henrique Lima",
+                        "totalAlunos": 2,
+                        "totalExercicios": 0,
+                        "convidadoEm": "2026-10-01T12:00:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/convites/{turmaId}/aceitar": {
+      "post": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.aceitarConvite",
+        "summary": "(ainda não implementada) aceitarConvite: SalaDoAluno — a sala, pronta para entrar na grade",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.aceitarConvite`\n\n**Resposta:** 200 SalaDoAluno — a sala, pronta para entrar na grade\n\n**Identidade:**\n\nO token: só vale o convite que é DELE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava ClassMembers.Status = 'ativo' e preenche ClassMembers.Data_Matricula com a data de agora: na v6 ela é a data em que o ALUNO aceitou, e era NULL até aqui.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SalaDoAluno — a sala, pronta para entrar na grade",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "turma-4",
+                      "nome": "7º Ano C — Tarde",
+                      "professor": "Henrique Lima",
+                      "capaSemente": 7412,
+                      "totalAlunos": 3,
+                      "exerciciosFeitos": 0,
+                      "exerciciosTotal": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não há convite pendente dele para a turma (cancelado, já respondido, nunca existiu)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/convites/{turmaId}/recusar": {
+      "post": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.recusarConvite",
+        "summary": "(ainda não implementada) recusarConvite: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.recusarConvite`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: só vale o convite que é DELE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava ClassMembers.Status = 'recusado'. Não tem volta pelo lado dele: só o professor pode mandar outro convite.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não há convite pendente dele para a turma",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{turmaId}/meu-desempenho": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.desempenhoNaTurma",
+        "summary": "(ainda não implementada) desempenhoNaTurma: DesempenhoNaTurma — o relatório individual dele NA sala",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.desempenhoNaTurma`\n\n**Resposta:** 200 DesempenhoNaTurma — o relatório individual dele NA sala\n\n**Identidade:**\n\nO token. O :turmaId é da turma, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nTudo sobre as sessões DESTA turma: sessoesConcluidas; licoes (exercícios distintos concluídos); diasSeguidos; minhaMedia (PPM e precisão médios dele, inteiros) e mediaSala (das sessões concluídas de todos os alunos ativos). Com menos de 3 sessões concluídas, as duas médias vêm null. A tela não calcula média.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DesempenhoNaTurma — o relatório individual dele NA sala",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "sessoesConcluidas": 9,
+                      "licoes": 2,
+                      "diasSeguidos": 3,
+                      "minhaMedia": {
+                        "velocidade": 40,
+                        "precisao": 90
+                      },
+                      "mediaSala": {
+                        "velocidade": 43,
+                        "precisao": 92
+                      }
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "Abaixo de 3 sessões concluídas",
+                    "value": {
+                      "sessoesConcluidas": 2,
+                      "licoes": 2,
+                      "diasSeguidos": 0,
+                      "minhaMedia": null,
+                      "mediaSala": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a turma não existe ou ele não está nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{turmaId}/ranking": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.rankingDaTurma",
+        "summary": "(ainda não implementada) rankingDaTurma: LinhaDoRanking[] — JÁ ORDENADO E PONTUADO; a tela só exibe",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.rankingDaTurma`\n\n**Resposta:** 200 LinhaDoRanking[] — JÁ ORDENADO E PONTUADO; a tela só exibe\n\n**Identidade:**\n\nO token marca a linha `voce`. O :turmaId é da turma.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA ANONIMIZAÇÃO É DO BACK: do 4º lugar em diante, nome = null — menos na linha dele, que vem sempre com o nome. O nome dos colegas não pode chegar ao navegador, nem escondido. Sem nome no cadastro, vai o RP; nunca um nome inventado. Para cada aluno ATIVO, só com as sessões DESTA turma (SessionsProf):\n\n```\nlicoes        exercícios DIFERENTES com sessão concluída\n              (COUNT DISTINCT ExercicioID WHERE concluida = 1)\nritmo         PPM médio das concluídas, inteiro; null sem nenhuma\ndiasSeguidos  dias de calendário seguidos com sessão (concluída\n              ou não), terminando HOJE ou ONTEM; senão 0\npontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5\n```\n\nOrdem: pontos desc; empate, mais lições; depois mais dias. posicao começa em 1.\n\n**Notas:**\n\nLição pesa mais que tudo: quem fez mais exercícios fica na frente de quem só digita rápido; o ritmo entra a 1 ponto por PPM e cada dia seguido vale 5, para a constância contar. Nunca é velocidade pura.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "LinhaDoRanking[] — JÁ ORDENADO E PONTUADO; a tela só exibe",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "posicao": 1,
+                        "nome": "Bruno Sato",
+                        "voce": false,
+                        "licoes": 2,
+                        "ritmo": 46,
+                        "diasSeguidos": 12,
+                        "pontos": 146
+                      },
+                      {
+                        "posicao": 4,
+                        "nome": null,
+                        "voce": false,
+                        "licoes": 2,
+                        "ritmo": 42,
+                        "diasSeguidos": 8,
+                        "pontos": 122
+                      },
+                      {
+                        "posicao": 6,
+                        "nome": "Ana Pires",
+                        "voce": true,
+                        "licoes": 2,
+                        "ritmo": 40,
+                        "diasSeguidos": 3,
+                        "pontos": 95
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a turma não existe ou ele não está nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/categorias": {
+      "get": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.categorias",
+        "summary": "(ainda não implementada) categorias: Categoria[] — só as ativas",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.categorias`\n\n**Resposta:** 200 Categoria[] — só as ativas\n\n**Identidade:**\n\nQualquer token válido: ler a lista não exige papel.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Categoria[] — só as ativas",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "id": 1,
+                        "nome": "Palavras comuns",
+                        "ativo": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.criarCategoria",
+        "summary": "(ainda não implementada) criarCategoria: Categoria",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.criarCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse (ver a pendência do papel de administrador, no topo).",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ nome }",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "Atalhos de teclado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categoria",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": 6,
+                      "nome": "Atalhos de teclado",
+                      "ativo": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — nome vazio",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — o token não é de administrador",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`CATEGORIA_DUPLICADA` — já existe uma ativa com esse nome (sem diferenciar maiúscula)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CATEGORIA_DUPLICADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CATEGORIA_DUPLICADA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/categorias/{id}": {
+      "patch": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.renomearCategoria",
+        "summary": "(ainda não implementada) renomearCategoria: Categoria",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.renomearCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ nome }",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "Palavras do dia a dia"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categoria",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": 1,
+                      "nome": "Palavras do dia a dia",
+                      "ativo": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a categoria não existe, ou o token não é de administrador",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.apagarCategoria",
+        "summary": "(ainda não implementada) apagarCategoria: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.apagarCategoria`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExclusão LÓGICA (ativo = false).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a categoria não existe, ou o token não é de administrador",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`CATEGORIA_EM_USO` — algum exercício ativo usa a categoria",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CATEGORIA_EM_USO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CATEGORIA_EM_USO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/parametros": {
+      "get": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.parametros",
+        "summary": "(ainda não implementada) parametros: Parametros — a tabela Configuracoes",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.parametros`\n\n**Resposta:** 200 Parametros — a tabela Configuracoes\n\n**Identidade:**\n\nQualquer token válido: o lobby do Solo lê o xpPorNivel.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Parametros — a tabela Configuracoes",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "wpmMeta": 40,
+                      "precisaoMinima": 90,
+                      "tempoLimitePadrao": 60,
+                      "xpPorNivel": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Administração"
+        ],
+        "operationId": "admin.salvarParametros",
+        "summary": "(ainda não implementada) salvarParametros: Parametros — como ficou",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.salvarParametros`\n\n**Corpo:** Partial<Parametros> — só os campos que mudam\n\n**Resposta:** 200 Parametros — como ficou\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.",
+        "parameters": [],
+        "requestBody": {
+          "description": "Partial<Parametros> — só os campos que mudam",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "wpmMeta": 45
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Parametros — como ficou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "wpmMeta": 45,
+                      "precisaoMinima": 90,
+                      "tempoLimitePadrao": 60,
+                      "xpPorNivel": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — o token não é de administrador",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

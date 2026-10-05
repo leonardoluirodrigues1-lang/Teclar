@@ -4,9 +4,9 @@ API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
-**Rotas prontas:** só `POST /auth/login`. As outras 54 já existem e estão
-no Swagger, mas respondem `501` com
-`{ "mensagem": "Rota ainda não implementada.", "codigo": "NAO_IMPLEMENTADA" }`.
+**Rotas prontas:** só `POST /auth/login`. As outras 54 estão no contrato
+e no Swagger, marcadas "(ainda não implementada)", e ainda não existem no
+back (respondem 404).
 
 ## Swagger
 
@@ -16,22 +16,25 @@ Com o back no ar: **http://localhost:3000/api/docs**
 Para testar uma rota com cadeado: faça o `POST /api/auth/login` pelo
 próprio Swagger, copie o `token` da resposta e cole em **Authorize**.
 
-O texto de cada rota (resumo, descrição, corpo, exemplos, erros) não é
-escrito no back: o `gerar-contrato.mjs`, na raiz, gera o
-`src/documentacao/contrato.gerado.ts` do mesmo `js/nucleo/api.ts` que gera
-o `CONTRATO-API.md`, e o decorador `@Documentar` monta o Swagger a partir
-dele. Mudou o contrato? Na raiz do repositório:
+O Swagger não é montado a partir do código do back: ele mostra o
+`back/openapi.json`, que o `gerar-contrato.mjs` (na raiz) gera do mesmo
+`js/nucleo/api.ts` que gera o `CONTRATO-API.md`. Por isso documenta as 55
+rotas do contrato, prontas ou não, sem controller vazio no back. Mudou o
+contrato, ou implementou uma rota? Na raiz do repositório:
 
 ```bash
 npm run contrato
 ```
 
+Ao implementar uma rota, ponha a chamada dela (ex.: `'conta.rp'`) na lista
+`ROTAS_IMPLEMENTADAS` do `gerar-contrato.mjs` e rode o comando acima: o
+"(ainda não implementada)" sai do resumo dela.
+
 O contrato tem 59 chamadas, e o Swagger mostra 55 rotas: o
 `PATCH /turmas/:id` serve a quatro chamadas (renomear, trocar a capa,
 arquivar, desarquivar) e o `GET /turmas` a duas (com e sem
 `?ativa=false`). Cada uma dessas aparece uma vez, com as variantes
-dentro. Na subida, o back confere se toda rota do contrato está no
-Swagger e avisa no log se faltar alguma.
+dentro.
 
 ## Primeira vez
 
@@ -152,30 +155,15 @@ npx prisma studio
 | Caminho | O que é |
 | --- | --- |
 | `src/main.ts` | Ponto de entrada: porta, prefixo `/api`, CORS |
-| `src/app.module.ts` | Junta o banco e os módulos de rota |
+| `src/app.module.ts` | Junta o banco e os módulos que têm rota implementada |
+| `src/swagger.ts` | Serve o `openapi.json` em `/api/docs` |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
 | `src/autenticacao/` | O login, o token e o guard |
-| `src/documentacao/` | O Swagger: `@Documentar`, a resposta 501 e os dados gerados do contrato |
-| `src/<grupo>/` | Um módulo e um controller por grupo de rotas do contrato |
+| `openapi.json` | O Swagger, gerado do contrato — não editar à mão |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |
 | `prisma.config.ts` | Configuração da CLI do Prisma (lê o `DATABASE_URL`) |
 | `.env` | Senha do banco e segredo do JWT. Fora do git; o modelo é o `.env.example` |
-
-Os grupos e suas pastas:
-
-| Grupo no contrato | Pasta |
-| --- | --- |
-| Autenticação | `autenticacao/` |
-| Conta | `conta/` |
-| Solo | `solo/` |
-| Turmas (professor) | `turmas/` |
-| Alunos e convites (professor) | `alunos-e-convites/` |
-| Relatórios (professor) | `relatorios/` |
-| Biblioteca de exercícios (professor) | `exercicios/` |
-| Sessões | `sessoes/` |
-| Aluno | `aluno/` |
-| Administração | `administracao/` |
 
 ## Versões
 

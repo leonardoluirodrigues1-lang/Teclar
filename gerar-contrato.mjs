@@ -2,10 +2,9 @@
 // Gera o CONTRATO-API.md (na raiz) a partir dos comentários de
 // js/nucleo/api.ts. Rodar com:  node gerar-contrato.mjs
 //
-// Gera também back/src/documentacao/contrato.gerado.ts: as mesmas rotas,
-// como dados, de onde o Swagger do back tira resumo, descrição, exemplos e
-// erros. Assim a documentação do Swagger é o contrato, e não uma cópia
-// dele digitada à mão (ver o fim deste arquivo).
+// Gera também back/openapi.json: as mesmas rotas no formato OpenAPI, que o
+// back serve no Swagger (/api/docs). Assim a documentação do Swagger é o
+// contrato, e não uma cópia dele digitada à mão (ver o fim deste arquivo).
 //
 // Por que gerar, e não escrever o .md à mão: o api.ts é o contrato que o
 // front de fato chama. Um .md escrito à parte começaria a divergir dele na
@@ -29,7 +28,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const ORIGEM = 'js/nucleo/api.ts';
 const DESTINO = 'CONTRATO-API.md';
-const DESTINO_DO_BACK = 'back/src/documentacao/contrato.gerado.ts';
+const DESTINO_DO_BACK = 'back/openapi.json';
 
 // Colunas de nome comum demais para valer sozinho na busca de "usada em":
 // "Status" e "Ativa" aparecem em todo canto. Para elas, a tabela tem de
@@ -338,12 +337,12 @@ function escreverMarkdown(contrato) {
 }
 
 // ============================================================================
-// Escrita dos dados do Swagger do back
+// Escrita do back/openapi.json (o Swagger do back)
 // ============================================================================
-// O back não lê este script nem o .md: lê um arquivo .ts com as rotas já
-// separadas em campos (método, caminho, exemplos como objetos, erros um a
-// um). Os textos longos (identidade, regras, notas) vão em markdown, pelo
-// mesmo paragrafo() do .md, e o Swagger mostra igual.
+// Primeiro cada rota é lida em campos (método, caminho, exemplos como
+// objetos, erros um a um); depois os campos viram o documento OpenAPI. Os
+// textos longos (identidade, regras, notas) vão em markdown, pelo mesmo
+// paragrafo() do .md, e o Swagger mostra igual.
 
 // "POST /turmas/:id?ativa=false" -> método, caminho e os nomes da query.
 function separarRota(texto) {
@@ -420,7 +419,7 @@ function lerErro(linha) {
   return { status: Number(partes[1]), codigo: partes[2] ?? null, quando: partes[3] ?? '' };
 }
 
-function rotaParaOBack(rota, grupo) {
+function lerCamposDaRota(rota, grupo) {
   const onde = `${rota.rota} (${rota.funcao})`;
   const { metodo, caminho, query } = separarRota(rota.rota);
   const resposta = lerDescricaoComExemplos(rota.marcas.resposta, onde);
@@ -447,60 +446,218 @@ function rotaParaOBack(rota, grupo) {
   };
 }
 
-function escreverDocumentacaoDoBack(contrato) {
-  // A chave é a chamada do front sem o "api." ("turmas.renomear"): é o
-  // único nome que não se repete (o PATCH /turmas/:id serve a quatro).
-  const rotas = {};
+// As rotas que o back JÁ implementa, pela chamada do front sem o "api.".
+// As outras saem com "(ainda não implementada)" no resumo. Implementou uma
+// rota no back? Ponha a chave aqui e rode "npm run contrato".
+const ROTAS_IMPLEMENTADAS = ['auth.entrar'];
+
+// As três rotas públicas da primeira @convencao do contrato. Todas as
+// outras exigem "Authorization: Bearer <token>" e ganham o cadeado.
+const ROTAS_PUBLICAS = ['auth.entrar', 'auth.cadastrar', 'auth.sair'];
+
+// Também da convenção: token ausente, vencido ou inválido. Entra em toda
+// rota protegida, mesmo nas que não o listam no @erros.
+const ERRO_DE_TOKEN = { status: 401, codigo: 'TOKEN_INVALIDO', quando: 'token ausente, vencido ou inválido' };
+
+// O back serve tudo sob /api (ver back/src/main.ts).
+const PREFIXO_DO_BACK = '/api';
+
+// "turmas.renomear" -> "renomear": o nome da chamada é o verbo da rota.
+function nomeCurto(chave) {
+  return chave.split('.').pop();
+}
+
+// Junta as chamadas que são a mesma rota HTTP. O PATCH /turmas/:id serve a
+// quatro (renomear, trocar a capa, arquivar, desarquivar) e o GET /turmas
+// a duas: o OpenAPI só aceita uma operação por método e caminho, então
+// cada uma dessas vira uma operação com as variantes dentro.
+function agruparPorRotaHttp(contrato) {
+  const porRota = new Map();
   for (const grupo of contrato.grupos) {
     for (const rota of grupo.rotas) {
-      rotas[rota.funcao.replace(/^api\./, '')] = rotaParaOBack(rota, grupo);
+      const dados = lerCamposDaRota(rota, grupo);
+      const endereco = `${dados.metodo} ${dados.caminho}`;
+      const variantes = porRota.get(endereco) ?? [];
+      variantes.push({ chave: rota.funcao.replace(/^api\./, ''), dados });
+      porRota.set(endereco, variantes);
     }
   }
-  // A introdução do grupo vira a descrição da seção (tag) no Swagger. Aqui
-  // as linhas são só emendadas: as listas com "·" do grupo Aluno ficam
-  // legíveis assim, e em bloco de código não ficariam.
-  const grupos = contrato.grupos.map((g) => ({
-    nome: g.nome,
-    descricao: g.intro.map((l) => l.trim()).filter(Boolean).join(' '),
-  }));
+  return [...porRota.values()];
+}
 
-  return [
-    '// contrato.gerado.ts',
-    '// GERADO por gerar-contrato.mjs (na raiz do repositório) a partir de',
-    '// js/nucleo/api.ts. NÃO EDITE: mude o comentário da rota no api.ts e rode',
-    '// "npm run contrato" na raiz. É daqui que o @Documentar tira o texto do',
-    '// Swagger, para a documentação ser o contrato e não uma cópia dele.',
-    '',
-    'export interface Exemplo {',
-    '  rotulo: string;',
-    '  valor: unknown;',
-    '}',
-    '',
-    'export interface ErroDoContrato {',
-    '  status: number;',
-    '  codigo: string | null;',
-    '  quando: string;',
-    '}',
-    '',
-    'export interface RotaDoContrato {',
-    '  grupo: string;',
-    '  metodo: string;',
-    '  caminho: string;',
-    '  query: string[];',
-    '  chamada: string;',
-    '  corpo: { descricao: string; exemplos: Exemplo[] } | null;',
-    '  resposta: { status: number; descricao: string; exemplos: Exemplo[] };',
-    '  erros: ErroDoContrato[];',
-    '  identidade: string;',
-    '  regras: string;',
-    '  notas: string;',
-    '}',
-    '',
-    `export const GRUPOS: { nome: string; descricao: string }[] = ${JSON.stringify(grupos, null, 2)};`,
-    '',
-    `export const CONTRATO: Record<string, RotaDoContrato> = ${JSON.stringify(rotas, null, 2)};`,
-    '',
-  ].join('\n');
+// O contrato não tem um campo "resumo"; o mais próximo, sem inventar texto,
+// é o nome da chamada e o que a rota devolve.
+function resumoDaOperacao(variantes, implementada) {
+  const texto =
+    variantes.length === 1
+      ? `${nomeCurto(variantes[0].chave)}: ${variantes[0].dados.resposta.descricao}`
+      : variantes.map((v) => nomeCurto(v.chave)).join(' / ');
+  return implementada ? texto : `(ainda não implementada) ${texto}`;
+}
+
+// As mesmas seções do CONTRATO-API.md, com os mesmos títulos.
+function secoesDaRota(dados) {
+  const secoes = [`**Chamada no front:** \`${dados.chamada}\``];
+  if (dados.corpo) secoes.push(`**Corpo:** ${dados.corpo.descricao}`);
+  secoes.push(`**Resposta:** ${dados.resposta.status} ${dados.resposta.descricao}`);
+  if (dados.identidade) secoes.push(`**Identidade:**\n\n${dados.identidade}`);
+  if (dados.regras) secoes.push(`**Regras de negócio no back (a tela não calcula):**\n\n${dados.regras}`);
+  if (dados.notas) secoes.push(`**Notas:**\n\n${dados.notas}`);
+  return secoes;
+}
+
+function descricaoDaOperacao(variantes, implementada) {
+  const partes = [];
+  if (!implementada) {
+    partes.push(
+      '**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). ' +
+        'O que está abaixo é o contrato que ela vai cumprir.',
+    );
+  }
+  for (const { chave, dados } of variantes) {
+    if (variantes.length > 1) partes.push(`### ${nomeCurto(chave)}`);
+    partes.push(...secoesDaRota(dados));
+  }
+  return partes.join('\n\n');
+}
+
+// Cada ":nome" do caminho é obrigatório; a query é sempre opcional
+// (GET /turmas responde sem ela, e com ?ativa=false lista as arquivadas).
+function parametrosDaOperacao(variantes) {
+  const doCaminho = variantes[0].dados.caminho
+    .split('/')
+    .filter((trecho) => trecho.startsWith(':'))
+    .map((trecho) => ({ name: trecho.slice(1), in: 'path', required: true, schema: { type: 'string' } }));
+  const nomesDaQuery = [...new Set(variantes.flatMap((v) => v.dados.query))];
+  const daQuery = nomesDaQuery.map((nome) => ({ name: nome, in: 'query', required: false, schema: { type: 'string' } }));
+  return [...doCaminho, ...daQuery];
+}
+
+// Exemplos no formato do OpenAPI: { exemplo1: { summary, value } }. O
+// rótulo é o do contrato ("Aluno") e, com várias variantes, o nome delas.
+function exemplosDoOpenApi(variantes, listaDe) {
+  const itens = variantes.flatMap(({ chave, dados }) =>
+    listaDe(dados).map((exemplo) => ({
+      rotulo: [variantes.length > 1 ? nomeCurto(chave) : '', exemplo.rotulo].filter(Boolean).join(' — '),
+      valor: exemplo.valor,
+    })),
+  );
+  const exemplos = {};
+  itens.forEach(({ rotulo, valor }, i) => {
+    exemplos[`exemplo${i + 1}`] = { summary: rotulo || `Exemplo ${i + 1}`, value: valor };
+  });
+  return exemplos;
+}
+
+function corpoDaOperacao(variantes) {
+  const comCorpo = variantes.filter((v) => v.dados.corpo);
+  if (comCorpo.length === 0) return undefined;
+  return {
+    description: comCorpo.map((v) => v.dados.corpo.descricao).join(' | '),
+    content: {
+      'application/json': {
+        schema: { type: 'object' },
+        examples: exemplosDoOpenApi(variantes, (dados) => dados.corpo?.exemplos ?? []),
+      },
+    },
+  };
+}
+
+// "`NAO_ENCONTRADO` — não existe ou é de outra conta"
+function descreverErro(erro) {
+  const codigo = erro.codigo ? `\`${erro.codigo}\`` : '(sem código)';
+  return erro.quando ? `${codigo} — ${erro.quando}` : codigo;
+}
+
+// Uma resposta por status (o OpenAPI não aceita dois 404 na mesma rota):
+// os erros de mesmo status viram exemplos da mesma resposta. O corpo é o da
+// convenção, { mensagem, codigo }; a mensagem não está no contrato (a tela
+// não decide por ela), por isso o exemplo mostra "...".
+function respostasDaOperacao(variantes, publica) {
+  const { status } = variantes[0].dados.resposta;
+  const sucesso = { description: [...new Set(variantes.map((v) => v.dados.resposta.descricao))].join(' | ') };
+  const exemplosDeSucesso = exemplosDoOpenApi(variantes, (dados) => dados.resposta.exemplos);
+  if (Object.keys(exemplosDeSucesso).length > 0) {
+    sucesso.content = { 'application/json': { examples: exemplosDeSucesso } };
+  }
+  const respostas = { [status]: sucesso };
+
+  const erros = variantes.flatMap((v) => v.dados.erros);
+  if (!publica && !erros.some((erro) => erro.codigo === 'TOKEN_INVALIDO')) {
+    erros.push(ERRO_DE_TOKEN);
+  }
+  const porStatus = new Map();
+  for (const erro of erros) {
+    const lista = porStatus.get(erro.status) ?? [];
+    // Variantes do PATCH repetem o mesmo erro: entra uma vez só.
+    if (!lista.some((e) => e.codigo === erro.codigo && e.quando === erro.quando)) lista.push(erro);
+    porStatus.set(erro.status, lista);
+  }
+  for (const [statusDoErro, lista] of porStatus) {
+    const exemplos = {};
+    lista.forEach((erro, i) => {
+      exemplos[`exemplo${i + 1}`] = {
+        summary: erro.codigo ?? 'sem código',
+        value: { mensagem: '...', codigo: erro.codigo },
+      };
+    });
+    respostas[statusDoErro] = {
+      description: lista.map(descreverErro).join('\n\n'),
+      content: { 'application/json': { examples: exemplos } },
+    };
+  }
+  return respostas;
+}
+
+function operacaoDoOpenApi(variantes) {
+  const chaves = variantes.map((v) => v.chave);
+  const implementada = chaves.every((chave) => ROTAS_IMPLEMENTADAS.includes(chave));
+  const publica = chaves.every((chave) => ROTAS_PUBLICAS.includes(chave));
+
+  const operacao = {
+    tags: [variantes[0].dados.grupo],
+    operationId: chaves.join('_'),
+    summary: resumoDaOperacao(variantes, implementada),
+    description: descricaoDaOperacao(variantes, implementada),
+    parameters: parametrosDaOperacao(variantes),
+    requestBody: corpoDaOperacao(variantes),
+    responses: respostasDaOperacao(variantes, publica),
+  };
+  if (!publica) operacao.security = [{ bearer: [] }];
+  return operacao;
+}
+
+function escreverOpenApi(contrato) {
+  const paths = {};
+  for (const variantes of agruparPorRotaHttp(contrato)) {
+    const { metodo, caminho } = variantes[0].dados;
+    // "/turmas/:id" no contrato é "/api/turmas/{id}" no OpenAPI.
+    const caminhoOpenApi = PREFIXO_DO_BACK + caminho.replace(/:(\w+)/g, '{$1}');
+    paths[caminhoOpenApi] = { ...paths[caminhoOpenApi], [metodo.toLowerCase()]: operacaoDoOpenApi(variantes) };
+  }
+
+  const documento = {
+    openapi: '3.0.0',
+    info: {
+      title: 'TECLAR — API',
+      version: 'v7',
+      description:
+        'Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.ts), por gerar-contrato.mjs. ' +
+        'Rotas marcadas "(ainda não implementada)" ainda não existem no back.\n\n' +
+        'Para testar uma rota com cadeado: faça o POST /api/auth/login, copie o ' +
+        '"token" da resposta e cole em **Authorize** (sem a palavra Bearer).',
+    },
+    // A introdução do grupo vira a descrição da seção. As linhas são só
+    // emendadas: as listas com "·" do grupo Aluno ficam legíveis assim, e
+    // em bloco de código não ficariam.
+    tags: contrato.grupos.map((g) => ({
+      name: g.nome,
+      description: g.intro.map((l) => l.trim()).filter(Boolean).join(' '),
+    })),
+    paths,
+    components: { securitySchemes: { bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } },
+  };
+  return JSON.stringify(documento, null, 2) + '\n';
 }
 
 // ============================================================================
@@ -520,5 +677,5 @@ if (semFuncao.length) {
 writeFileSync(DESTINO, escreverMarkdown(contrato) + '\n', 'utf8');
 console.log(`${DESTINO}: ${contrato.grupos.length} grupos, ${contrato.grupos.flatMap((g) => g.rotas).length} rotas.`);
 
-writeFileSync(DESTINO_DO_BACK, escreverDocumentacaoDoBack(contrato), 'utf8');
-console.log(`${DESTINO_DO_BACK}: dados do Swagger.`);
+writeFileSync(DESTINO_DO_BACK, escreverOpenApi(contrato), 'utf8');
+console.log(`${DESTINO_DO_BACK}: OpenAPI do Swagger.`);

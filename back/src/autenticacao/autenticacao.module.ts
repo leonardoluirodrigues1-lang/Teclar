@@ -1,8 +1,8 @@
 // autenticacao.module.ts
 // Grupo "Autenticação" do CONTRATO-API.md.
 // Pronto:  POST /auth/login
-// 501:     POST /auth/cadastro, GET /auth/eu, POST /auth/logout (declaradas
-//          e no Swagger, ainda sem código)
+// Falta:   POST /auth/cadastro, GET /auth/eu, POST /auth/logout (estão no
+//          contrato e no Swagger, ainda sem código)
 //
 // Também é dono do GuardaDoToken, que as outras rotas vão usar. Exporta o
 // guard e o JwtModule (o guard precisa do JwtService) para um módulo que
