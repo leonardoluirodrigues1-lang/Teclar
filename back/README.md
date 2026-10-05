@@ -4,8 +4,34 @@ API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
-**Rotas prontas:** só `POST /auth/login`. Os outros módulos estão vazios;
-cada um diz no topo quais rotas vai receber.
+**Rotas prontas:** só `POST /auth/login`. As outras 54 já existem e estão
+no Swagger, mas respondem `501` com
+`{ "mensagem": "Rota ainda não implementada.", "codigo": "NAO_IMPLEMENTADA" }`.
+
+## Swagger
+
+Com o back no ar: **http://localhost:3000/api/docs**
+(o JSON do OpenAPI fica em http://localhost:3000/api/docs-json).
+
+Para testar uma rota com cadeado: faça o `POST /api/auth/login` pelo
+próprio Swagger, copie o `token` da resposta e cole em **Authorize**.
+
+O texto de cada rota (resumo, descrição, corpo, exemplos, erros) não é
+escrito no back: o `gerar-contrato.mjs`, na raiz, gera o
+`src/documentacao/contrato.gerado.ts` do mesmo `js/nucleo/api.ts` que gera
+o `CONTRATO-API.md`, e o decorador `@Documentar` monta o Swagger a partir
+dele. Mudou o contrato? Na raiz do repositório:
+
+```bash
+npm run contrato
+```
+
+O contrato tem 59 chamadas, e o Swagger mostra 55 rotas: o
+`PATCH /turmas/:id` serve a quatro chamadas (renomear, trocar a capa,
+arquivar, desarquivar) e o `GET /turmas` a duas (com e sem
+`?ativa=false`). Cada uma dessas aparece uma vez, com as variantes
+dentro. Na subida, o back confere se toda rota do contrato está no
+Swagger e avisa no log se faltar alguma.
 
 ## Primeira vez
 
@@ -129,7 +155,8 @@ npx prisma studio
 | `src/app.module.ts` | Junta o banco e os módulos de rota |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
 | `src/autenticacao/` | O login, o token e o guard |
-| `src/<grupo>/` | Um módulo por grupo de rotas do contrato |
+| `src/documentacao/` | O Swagger: `@Documentar`, a resposta 501 e os dados gerados do contrato |
+| `src/<grupo>/` | Um módulo e um controller por grupo de rotas do contrato |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |
 | `prisma.config.ts` | Configuração da CLI do Prisma (lê o `DATABASE_URL`) |

@@ -2,6 +2,11 @@
 // Gera o CONTRATO-API.md (na raiz) a partir dos comentários de
 // js/nucleo/api.ts. Rodar com:  node gerar-contrato.mjs
 //
+// Gera também back/src/documentacao/contrato.gerado.ts: as mesmas rotas,
+// como dados, de onde o Swagger do back tira resumo, descrição, exemplos e
+// erros. Assim a documentação do Swagger é o contrato, e não uma cópia
+// dele digitada à mão (ver o fim deste arquivo).
+//
 // Por que gerar, e não escrever o .md à mão: o api.ts é o contrato que o
 // front de fato chama. Um .md escrito à parte começaria a divergir dele na
 // primeira rota alterada; gerado, ele é sempre o que o api.ts diz. Se os
@@ -24,6 +29,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const ORIGEM = 'js/nucleo/api.ts';
 const DESTINO = 'CONTRATO-API.md';
+const DESTINO_DO_BACK = 'back/src/documentacao/contrato.gerado.ts';
 
 // Colunas de nome comum demais para valer sozinho na busca de "usada em":
 // "Status" e "Ativa" aparecem em todo canto. Para elas, a tabela tem de
@@ -332,6 +338,172 @@ function escreverMarkdown(contrato) {
 }
 
 // ============================================================================
+// Escrita dos dados do Swagger do back
+// ============================================================================
+// O back não lê este script nem o .md: lê um arquivo .ts com as rotas já
+// separadas em campos (método, caminho, exemplos como objetos, erros um a
+// um). Os textos longos (identidade, regras, notas) vão em markdown, pelo
+// mesmo paragrafo() do .md, e o Swagger mostra igual.
+
+// "POST /turmas/:id?ativa=false" -> método, caminho e os nomes da query.
+function separarRota(texto) {
+  const [metodo, endereco] = texto.split(' ');
+  const [caminho, query = ''] = endereco.split('?');
+  const nomesDaQuery = query ? query.split('&').map((par) => par.split('=')[0]) : [];
+  return { metodo, caminho, query: nomesDaQuery };
+}
+
+// O exemplo de @corpo e @resposta pode ter mais de um JSON, e alguns com
+// rótulo na frente ("Aluno: { ... }"). Percorre o texto contando chaves e
+// colchetes (fora de strings) para achar onde cada JSON começa e termina.
+// O que vem antes de um JSON, na mesma linha, é o rótulo dele.
+function separarExemplos(texto, onde) {
+  const exemplos = [];
+  let rotulo = '';
+  let inicio = -1;
+  let profundidade = 0;
+  let dentroDeString = false;
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (dentroDeString) {
+      if (c === '\\') i++; // pula o caractere escapado
+      else if (c === '"') dentroDeString = false;
+      continue;
+    }
+    if (inicio === -1) {
+      if (c === '{' || c === '[') {
+        inicio = i;
+        profundidade = 1;
+      } else if (c === '\n') {
+        rotulo = '';
+      } else {
+        rotulo += c;
+      }
+      continue;
+    }
+    if (c === '"') dentroDeString = true;
+    else if (c === '{' || c === '[') profundidade++;
+    else if (c === '}' || c === ']') profundidade--;
+
+    if (profundidade === 0) {
+      const json = texto.slice(inicio, i + 1);
+      let valor;
+      try {
+        valor = JSON.parse(json);
+      } catch {
+        // Exemplo que não é JSON válido no contrato é erro do contrato: para
+        // aqui, em vez de levar um exemplo quebrado para o Swagger.
+        throw new Error(`Exemplo que não é JSON em ${onde}:\n${json}`);
+      }
+      exemplos.push({ rotulo: rotulo.trim().replace(/:$/, ''), valor });
+      rotulo = '';
+      inicio = -1;
+    }
+  }
+  return exemplos;
+}
+
+// @corpo e @resposta: "200 Turma — a turma como ficou" e o exemplo embaixo.
+function lerDescricaoComExemplos(linhas, onde) {
+  const [descricao, ...exemplo] = linhas;
+  const texto = exemplo.map((l) => l.replace(/^\s{2}/, '')).join('\n');
+  return { descricao: descricao.trim(), exemplos: separarExemplos(texto, onde) };
+}
+
+// "404 NAO_ENCONTRADO — não existe" -> { status, codigo, quando }.
+// O código pode faltar ("409 — a conta já tem...") e a explicação também
+// ("401 TOKEN_INVALIDO").
+function lerErro(linha) {
+  const partes = /^(\d{3})\s*([A-Z_]+)?\s*(?:—\s*(.*))?$/.exec(linha.trim());
+  if (!partes) throw new Error(`Erro fora do formato "status CODIGO — quando": ${linha}`);
+  return { status: Number(partes[1]), codigo: partes[2] ?? null, quando: partes[3] ?? '' };
+}
+
+function rotaParaOBack(rota, grupo) {
+  const onde = `${rota.rota} (${rota.funcao})`;
+  const { metodo, caminho, query } = separarRota(rota.rota);
+  const resposta = lerDescricaoComExemplos(rota.marcas.resposta, onde);
+  const status = Number(resposta.descricao.slice(0, 3));
+
+  // "Nenhum." no @corpo é o mesmo que não ter corpo.
+  let corpo = null;
+  if (rota.marcas.corpo && rota.marcas.corpo[0].trim() !== 'Nenhum.') {
+    corpo = lerDescricaoComExemplos(rota.marcas.corpo, onde);
+  }
+
+  return {
+    grupo: grupo.nome,
+    metodo,
+    caminho,
+    query,
+    chamada: rota.funcao,
+    corpo,
+    resposta: { status, descricao: resposta.descricao.slice(3).trim(), exemplos: resposta.exemplos },
+    erros: (rota.marcas.erros ?? []).map(lerErro),
+    identidade: rota.marcas.identidade ? paragrafo(rota.marcas.identidade) : '',
+    regras: rota.marcas.back ? paragrafo(rota.marcas.back) : '',
+    notas: rota.marcas.nota ? paragrafo(rota.marcas.nota) : '',
+  };
+}
+
+function escreverDocumentacaoDoBack(contrato) {
+  // A chave é a chamada do front sem o "api." ("turmas.renomear"): é o
+  // único nome que não se repete (o PATCH /turmas/:id serve a quatro).
+  const rotas = {};
+  for (const grupo of contrato.grupos) {
+    for (const rota of grupo.rotas) {
+      rotas[rota.funcao.replace(/^api\./, '')] = rotaParaOBack(rota, grupo);
+    }
+  }
+  // A introdução do grupo vira a descrição da seção (tag) no Swagger. Aqui
+  // as linhas são só emendadas: as listas com "·" do grupo Aluno ficam
+  // legíveis assim, e em bloco de código não ficariam.
+  const grupos = contrato.grupos.map((g) => ({
+    nome: g.nome,
+    descricao: g.intro.map((l) => l.trim()).filter(Boolean).join(' '),
+  }));
+
+  return [
+    '// contrato.gerado.ts',
+    '// GERADO por gerar-contrato.mjs (na raiz do repositório) a partir de',
+    '// js/nucleo/api.ts. NÃO EDITE: mude o comentário da rota no api.ts e rode',
+    '// "npm run contrato" na raiz. É daqui que o @Documentar tira o texto do',
+    '// Swagger, para a documentação ser o contrato e não uma cópia dele.',
+    '',
+    'export interface Exemplo {',
+    '  rotulo: string;',
+    '  valor: unknown;',
+    '}',
+    '',
+    'export interface ErroDoContrato {',
+    '  status: number;',
+    '  codigo: string | null;',
+    '  quando: string;',
+    '}',
+    '',
+    'export interface RotaDoContrato {',
+    '  grupo: string;',
+    '  metodo: string;',
+    '  caminho: string;',
+    '  query: string[];',
+    '  chamada: string;',
+    '  corpo: { descricao: string; exemplos: Exemplo[] } | null;',
+    '  resposta: { status: number; descricao: string; exemplos: Exemplo[] };',
+    '  erros: ErroDoContrato[];',
+    '  identidade: string;',
+    '  regras: string;',
+    '  notas: string;',
+    '}',
+    '',
+    `export const GRUPOS: { nome: string; descricao: string }[] = ${JSON.stringify(grupos, null, 2)};`,
+    '',
+    `export const CONTRATO: Record<string, RotaDoContrato> = ${JSON.stringify(rotas, null, 2)};`,
+    '',
+  ].join('\n');
+}
+
+// ============================================================================
 // Execução
 // ============================================================================
 
@@ -347,3 +519,6 @@ if (semFuncao.length) {
 
 writeFileSync(DESTINO, escreverMarkdown(contrato) + '\n', 'utf8');
 console.log(`${DESTINO}: ${contrato.grupos.length} grupos, ${contrato.grupos.flatMap((g) => g.rotas).length} rotas.`);
+
+writeFileSync(DESTINO_DO_BACK, escreverDocumentacaoDoBack(contrato), 'utf8');
+console.log(`${DESTINO_DO_BACK}: dados do Swagger.`);

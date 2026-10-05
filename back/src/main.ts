@@ -6,6 +6,7 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { montarSwagger } from './documentacao/swagger.js';
 
 // O front chama CONFIG.BASE_URL = 'http://localhost:3000/api' (js/config.ts)
 // mais a rota do contrato: POST /auth/login vira /api/auth/login. Os dois
@@ -22,8 +23,11 @@ async function iniciar(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix(PREFIXO);
   app.enableCors({ origin: ORIGENS_DO_FRONT });
+  // Depois do prefixo: o Swagger lê as rotas já com o /api na frente.
+  montarSwagger(app);
   await app.listen(PORTA);
   console.log(`Back no ar em http://localhost:${PORTA}/${PREFIXO}`);
+  console.log(`Swagger em http://localhost:${PORTA}/${PREFIXO}/docs`);
 }
 
 await iniciar();
