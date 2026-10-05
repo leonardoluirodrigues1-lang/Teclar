@@ -13,7 +13,10 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    // ".." (a raiz do repositório), e não ".": o prisma/seed.ts importa as
+    // lições do front (js/nucleo/licoes.ts), para o banco e o mock usarem a
+    // mesma fonte. O build não muda: o tsconfig.build.json troca para ./src.
+    "rootDir": "..",
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,

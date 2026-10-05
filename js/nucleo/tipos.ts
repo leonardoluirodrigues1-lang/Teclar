@@ -205,7 +205,7 @@ export interface Campanha {
  *   repeticoes — quantas vezes a lição deve ser repetida (2, 5 ou 10).
  *
  * `titulo` e `dificuldade` não vinham do CSV do professor: foram gerados
- * pela mesma regra usada na carga do banco (ver montarLicao em mocks.ts),
+ * pela mesma regra usada na carga do banco (ver montarLicao em licoes.ts),
  * para os dois lados não divergirem.
  *
  * O que NÃO está aqui não está porque a tabela não tem a coluna:

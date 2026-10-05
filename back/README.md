@@ -2,8 +2,10 @@
 
 API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclarDB`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
-repositório. Por enquanto **nenhuma rota está implementada**: só a base
-(conexão com o banco, CORS, um módulo vazio por grupo do contrato).
+repositório.
+
+**Rotas prontas:** só `POST /auth/login`. Os outros módulos estão vazios;
+cada um diz no topo quais rotas vai receber.
 
 ## Primeira vez
 
@@ -14,12 +16,16 @@ Precisa de Node 20+ e do MySQL rodando com o banco já criado pelo
 cd back
 npm install
 
-# 1. Crie o .env a partir do modelo e troque SENHA pela senha do root do MySQL.
+# 1. Crie o .env a partir do modelo. Troque SENHA pela senha do root do
+#    MySQL e JWT_SEGREDO por um texto aleatório (o .env.example diz como gerar).
 cp .env.example .env
 
 # 2. Gere o schema do Prisma A PARTIR DO BANCO e, dele, o client.
 npx prisma db pull
 npx prisma generate
+
+# 3. Ponha dados de teste no banco.
+npm run seed
 ```
 
 O passo 2 é obrigatório: sem o client gerado (`src/generated/prisma`, fora
@@ -41,6 +47,48 @@ O prefixo `/api` e a porta 3000 são os que o front espera
 (`CONFIG.BASE_URL` em `js/config.ts`). O CORS libera só o Live Server:
 `http://127.0.0.1:5500` e `http://localhost:5500`.
 
+## Dados de teste (`npm run seed`)
+
+**Apaga** contas, alunos, turmas, exercícios e sessões e insere tudo de
+novo. Rodar duas vezes dá o mesmo banco. Categorias e Configuracoes não
+são tocadas (quem as semeia é o `.sql`). Os dados são os do mock do front,
+com os mesmos ids e nomes, e as 76 lições do Solo vêm do mesmo arquivo que
+o mock lê (`js/nucleo/licoes.ts`).
+
+Contas (login por e-mail):
+
+| E-mail | Senha | Para quê |
+| --- | --- | --- |
+| `prof@teclar.dev` | `senha123` | Professor: dono da turma-1, da turma-2 e de 11 exercícios |
+| `leo@teclar.dev` | `senha123` | Solo: tem a campanha `camp-1` (nível 1, 0 XP) |
+
+Alunos (login "Sou aluno", pelo RP; a senha é a mesma para os três):
+
+| RP | Senha | Situação |
+| --- | --- | --- |
+| `RP2025043` | `Aluno#2025` | Ana Pires. Ativa na turma-1 e na turma-2 |
+| `RP2025044` | `Aluno#2025` | Sem nome (a tela mostra o RP). Ativo na turma-1, **convidado** na turma-2 |
+| `RP2025049` | `Aluno#2025` | Marina Duarte Alves. Ativa na turma-1, **recusou** a turma-2 |
+
+A turma-1 tem 8 exercícios atribuídos, e a turma-2, 2. Há 9 sessões
+(6 na turma-1, 3 na turma-2), duas delas com o tempo estourado.
+
+Os três alunos não estão ligados a conta nenhuma (`Alunos.UserID` NULL, o
+caso do "aluno antigo"), e as duas contas não têm RP. O contrato prevê
+isso: `GET /conta/rp` responde `{ "rp": null }` para conta sem RP.
+
+## Login e token
+
+`POST /api/auth/login` devolve um token JWT, assinado com o `JWT_SEGREDO`
+do `.env` e válido por 8 horas. As outras rotas, quando existirem, vão
+exigir o cabeçalho `Authorization: Bearer <token>`. Quem confere é o
+`GuardaDoToken` (`src/autenticacao/guarda-do-token.ts`), que ainda não está
+aplicado em nenhuma rota.
+
+As senhas são guardadas com bcrypt (biblioteca `bcryptjs`: o mesmo
+algoritmo do `bcrypt`, escrito em JavaScript puro, sem compilar nada na
+instalação).
+
 ## O banco manda, o Prisma segue
 
 O `DB_Teclar_v7.sql` é a fonte da verdade do banco. Os models do
@@ -55,6 +103,13 @@ npx prisma generate
 Por isso este projeto não usa `prisma migrate`: as migrações ficam no
 `.sql` (seção de ALTER TABLE no fim dele).
 
+**Sem relações no schema.** No Windows o MySQL guarda os nomes de tabela
+em minúsculas (`lower_case_table_names = 1`), e com isso o `db pull` trouxe
+os models (`users`, `alunos`...) sem os campos de relação entre eles. As
+chaves estrangeiras existem no banco e funcionam (o CASCADE inclusive); só
+o Prisma não as enxerga. Na prática: não dá para usar `include` para
+buscar a turma junto com os alunos — o código faz uma consulta por tabela.
+
 Para olhar as tabelas e os dados pelo Prisma, no navegador:
 
 ```bash
@@ -68,10 +123,12 @@ npx prisma studio
 | `src/main.ts` | Ponto de entrada: porta, prefixo `/api`, CORS |
 | `src/app.module.ts` | Junta o banco e os módulos de rota |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
-| `src/<grupo>/` | Um módulo por grupo de rotas do contrato (vazios por enquanto) |
+| `src/autenticacao/` | O login, o token e o guard |
+| `src/<grupo>/` | Um módulo por grupo de rotas do contrato |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
+| `prisma/seed.ts` | Os dados de teste (`npm run seed`) |
 | `prisma.config.ts` | Configuração da CLI do Prisma (lê o `DATABASE_URL`) |
-| `.env` | A senha do banco. Fora do git; o modelo é o `.env.example` |
+| `.env` | Senha do banco e segredo do JWT. Fora do git; o modelo é o `.env.example` |
 
 Os grupos e suas pastas:
 
