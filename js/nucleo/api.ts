@@ -23,29 +23,36 @@
 // @convencao Listas que crescem sem teto vêm paginadas:
 //   { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.
 //
-// Colunas que o contrato já usa e que AINDA NÃO EXISTEM no banco. O mock
-// responde como se existissem:
-// @coluna-pendente Alunos.UserID — FK para Users.ID: liga a entrada de aluno
-//   (o RP) à conta dona. Toda conta tem exatamente uma linha em Alunos,
-//   criada no cadastro. É dela que sai o nome do aluno.
-// @coluna-pendente ClassMembers.Status — ENUM 'convidado' | 'ativo' |
-//   'recusado'. O professor convida pelo RP; só com Status = 'ativo' o
-//   aluno está na turma e conta em contador, média e relatório.
-// @coluna-pendente ClassMembers.Data_Convite — DATETIME em que o professor
-//   convidou. É o "convidadoEm" das respostas.
-// @coluna-pendente Turmas.Ativa — BOOLEAN DEFAULT TRUE. Arquivar põe FALSE,
-//   desarquivar volta a TRUE; GET /turmas devolve só as TRUE e
-//   GET /turmas?ativa=false, só as FALSE. Substitui a antiga coluna Status
-//   ('Ativa'/'Encerrada'), que não é mais pedida.
-// @coluna-pendente Turmas.CapaSemente — INT NULL: a semente do desenho da
-//   capa do cartão. NULL: a tela deriva uma do id da turma.
+// Banco: DB_Teclar_v7.sql. Toda coluna que o contrato usa existe nele —
+// Alunos.UserID, ClassMembers.Status e Data_Convite (desde a v6),
+// ClassesProf.Ativa, CapaSemente e Data_Criacao (desde a v7). Não há
+// mais coluna pendente.
 //
 // Coluna que JÁ EXISTE e muda de SIGNIFICADO na v6:
 // @coluna-redefinida ClassMembers.Data_Matricula — deixa de ser a data em
 //   que o professor matriculou o aluno e passa a ser a data em que o ALUNO
 //   ACEITOU o convite. Fica NULL enquanto Status = 'convidado' e é
 //   preenchida no aceite (POST /aluno/convites/:turmaId/aceitar). É o
-//   "entrouEm" das respostas. A data do convite é Data_Convite.
+//   "entrouEm" das respostas. A data do convite é Data_Convite. Na v7 a
+//   coluna perdeu o DEFAULT CURRENT_TIMESTAMP: o convite já nasce com NULL.
+//
+// Colunas que EXISTEM no v7 e nenhuma rota grava. Não é esquecimento: a
+// coluna está lá esperando a rota. Até ela existir, fica no valor padrão.
+// @nao-usado ExerciciosSolo.NivelMinimo — nível da campanha que desbloqueia
+//   a lição. Nenhuma rota lê: GET /solo/missoes não manda cadeado, e a tela
+//   não bloqueia nada.
+// @nao-usado ExerciciosSolo.XPConcessao — XP base da lição. Nenhuma rota
+//   lê: o XP de POST /solo/sessoes sai de uma constante do back
+//   (XP_BASE_MISSAO), igual para toda lição.
+// @nao-usado ExerciciosSolo.CategoriaID / ExerciciosProf.CategoriaID — FK
+//   para Categorias. Nenhuma rota grava nem devolve: DadosExercicio não tem
+//   categoria, e a resposta de /exercicios também não.
+// @nao-usado AtribuicoesProf.Prazo — data de entrega. As respostas já
+//   devolvem `prazo` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId),
+//   mas nenhuma rota grava: vem sempre null.
+// @nao-usado ClassesProf.Ano / ClassesProf.Semestre — de onde o back monta
+//   o texto de `periodo`. Nenhuma rota grava (POST /turmas só recebe o
+//   nome): ficam NULL, e a turma vem sem `periodo`.
 //
 // Ainda sem lugar no banco (não é coluna pedida, é decisão a tomar):
 // @pendencia Papel de administrador — POST, PATCH e DELETE /categorias e
@@ -413,8 +420,10 @@ export const api = {
     // @identidade O token (JogadorID).
     // @back Idempotente: quem já tem campanha recebe a que existe, e
     //   nenhuma segunda é criada (clique duplo, aba duplicada, F5).
-    // @nota Sem corpo porque CampanhasSolo só tem as quatro colunas: não há
-    //   nome de personagem nem avatar para mandar.
+    // @nota Sem corpo porque nenhuma das seis colunas de CampanhasSolo vem
+    //   da tela: CampanhaID, NivelAtual, XPTotal, Data_Criacao e Ativo são
+    //   do back, e JogadorID sai do token. Não há nome de personagem nem
+    //   avatar para mandar.
     criarCampanha: () => post<Campanha>('/solo/campanha'),
 
     // @rota GET /solo/campanhas/:id
@@ -444,8 +453,9 @@ export const api = {
     //      "repeticoes": 10, "tempoLimiteSegundos": 472, "tamanhoCaracteres": 59 }]
     // @erros 404 NAO_ENCONTRADO — a conta ainda não tem campanha
     // @identidade O token (precisa ter campanha). Não recebe id.
-    // @back Nenhuma lição vem bloqueada: ExerciciosSolo não tem nível
-    //   mínimo. Quem agrupa por nível é a tela.
+    // @back Nenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo existe
+    //   desde a v7, mas esta rota não o lê (ver @nao-usado no topo). Quem
+    //   agrupa por nível é a tela.
     // @nota Aceita filtros em query string (montarQuery), mas nenhuma tela
     //   manda filtro hoje. O texto fica de fora: na lista seria ~30 KB que
     //   nenhum cartão mostra.
@@ -565,8 +575,9 @@ export const api = {
     //   403 TIPO_INVALIDO — token de aluno
     // @identidade O token vira o ProfessorID. Não aceita professorId no corpo.
     // @back Nasce com Ativa = true. O período, se houver, é o back que monta.
-    // @nota A tabela Turmas não tem ano nem semestre para a tela preencher.
-    //   O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.
+    // @nota ClassesProf.Ano e Semestre existem desde a v7, mas esta rota não
+    //   os recebe (ver @nao-usado no topo): a turma nasce com os dois NULL e
+    //   sem `periodo`. O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.
     criar: (nome: string) => post<Turma>('/turmas', { nome }),
 
     // @rota GET /turmas/:id
@@ -652,7 +663,7 @@ export const api = {
     // @corpo { exercicioIds } — vários de uma vez
     //   { "exercicioIds": ["ex-prof-3", "ex-prof-4"] }
     // @resposta 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou
-    //   [{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": "2026-03-15" },
+    //   [{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null },
     //    { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null }]
     // @erros 404 NAO_ENCONTRADO — turma ou algum exercício não é da conta
     // @identidade O token: a turma E cada exercício têm de ser da conta.
@@ -1004,7 +1015,7 @@ export const api = {
       //     "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3,
       //     "lista": [{ "id": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
       //       "caracteres": 247, "tempoLimiteSegundos": 120, "atribuidoEm": "2026-02-03",
-      //       "prazo": "2026-03-15", "estado": "feito", "melhorWpm": 40, "melhorPrecisao": 95,
+      //       "prazo": null, "estado": "feito", "melhorWpm": 40, "melhorPrecisao": 95,
       //       "ultimaSessao": "2026-02-18T14:10:00.000Z" }] }
       // @erros 404 NAO_ENCONTRADO — a sala não existe ou ele não está nela
       //   403 TIPO_INVALIDO — token de conta

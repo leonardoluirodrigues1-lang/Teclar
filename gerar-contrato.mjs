@@ -10,7 +10,8 @@
 // O que ele lê (o formato está explicado no topo da seção 5 do api.ts):
 //   · no cabeçalho do arquivo, as marcas @convencao, @coluna-pendente
 //     (coluna que ainda não existe), @coluna-redefinida (coluna que existe e
-//     muda de significado) e @pendencia (decisão de banco ainda em aberto);
+//     muda de significado), @nao-usado (coluna que existe e nenhuma rota
+//     usa) e @pendencia (decisão de banco ainda em aberto);
 //   · dentro do objeto `api`, as marcas @grupo e, por rota, @rota, @corpo,
 //     @resposta, @erros, @identidade, @back e @nota.
 // Uma marca começa em "// @nome" e continua nas linhas de comentário
@@ -43,12 +44,13 @@ function classificar(linha) {
 }
 
 function lerContrato(fonte) {
-  const contrato = { convencoes: [], colunas: [], redefinidas: [], pendencias: [], grupos: [] };
+  const contrato = { convencoes: [], colunas: [], redefinidas: [], naoUsadas: [], pendencias: [], grupos: [] };
   // Cada marca do cabeçalho vai para a sua lista.
   const listaDoCabecalho = {
     convencao: contrato.convencoes,
     'coluna-pendente': contrato.colunas,
     'coluna-redefinida': contrato.redefinidas,
+    'nao-usado': contrato.naoUsadas,
     pendencia: contrato.pendencias,
   };
   // O que está sendo montado agora: uma marca do cabeçalho, uma introdução
@@ -193,6 +195,8 @@ function nomeEDescricao(item) {
 // Uma lista de colunas, cada uma com as rotas que a citam. A caixa [ ] é
 // para o Cauê marcar o que já migrou.
 function escreverListaDeColunas(titulo, intro, itens, grupos) {
+  // Lista vazia (ex.: nenhuma coluna pendente) não vira título sem itens.
+  if (!itens.length) return '';
   const linhas = [`## ${titulo}`, '', intro, ''];
   for (const item of itens) {
     const { nome, descricao } = nomeEDescricao(item);
@@ -223,13 +227,29 @@ function escreverRedefinidas(contrato) {
   );
 }
 
-function escreverPendencias(contrato) {
-  const linhas = ['## Decisões de banco em aberto', ''];
-  for (const item of contrato.pendencias) {
+// Lista sem "Usada em": nas colunas não usadas, achar o nome no texto de
+// uma rota é justamente a rota dizendo que NÃO a usa.
+function escreverListaSimples(titulo, intro, itens) {
+  if (!itens.length) return '';
+  const linhas = [`## ${titulo}`, ''];
+  if (intro) linhas.push(intro, '');
+  for (const item of itens) {
     const { nome, descricao } = nomeEDescricao(item);
     linhas.push(`- **${nome}** — ${descricao}`);
   }
   return linhas.join('\n');
+}
+
+function escreverNaoUsadas(contrato) {
+  return escreverListaSimples(
+    'Colunas que existem e nenhuma rota usa',
+    'Não é para criar nem para apagar: a coluna está no banco esperando a rota. Até ela existir, fica no valor padrão.',
+    contrato.naoUsadas,
+  );
+}
+
+function escreverPendencias(contrato) {
+  return escreverListaSimples('Decisões de banco em aberto', '', contrato.pendencias);
 }
 
 function escreverConvencoes(contrato) {
@@ -296,12 +316,13 @@ function escreverMarkdown(contrato) {
     '',
     `${total} chamadas em ${contrato.grupos.length} grupos. Os tipos citados (Turma, Sessao...) estão em \`js/nucleo/tipos.ts\`.`,
     '',
-    escreverColunas(contrato),
-    '',
-    escreverRedefinidas(contrato),
-    '',
-    escreverPendencias(contrato),
-    '',
+    // As seções do cabeçalho somem quando vazias; o filter tira o buraco.
+    ...[
+      escreverColunas(contrato),
+      escreverRedefinidas(contrato),
+      escreverNaoUsadas(contrato),
+      escreverPendencias(contrato),
+    ].filter(Boolean).flatMap((secao) => [secao, '']),
     escreverConvencoes(contrato),
     '',
     escreverIndice(contrato),

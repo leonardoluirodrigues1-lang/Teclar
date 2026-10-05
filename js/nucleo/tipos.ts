@@ -431,9 +431,10 @@ export interface Exercicio {
   /** Em quantas turmas está atribuído: COUNT em AtribuicoesProf feito pelo
    *  back, nunca pelo front. Ausente: a tela mostra "—". */
   atribuidoA?: number;
-  /** Não há tabela de categorias no banco e a biblioteca não pede isso. O
-   *  campo sobrevive, opcional, só porque o HUD do treino e o painel do
-   *  aluno ainda o leem (com fallback). */
+  /** O banco v7 tem a tabela Categorias e ExerciciosProf.CategoriaID, mas
+   *  nenhuma rota grava nem devolve a categoria (@nao-usado no api.ts), e a
+   *  biblioteca não pede isso. O campo sobrevive, opcional, só porque o HUD
+   *  do treino e o painel do aluno ainda o leem (com fallback). */
   categoria?: string;
 }
 

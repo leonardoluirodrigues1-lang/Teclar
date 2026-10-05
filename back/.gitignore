@@ -1,0 +1,13 @@
+# .gitignore do back
+
+node_modules
+dist
+# Cache do build incremental do TypeScript.
+*.tsbuildinfo
+
+# Tem a senha do banco. O modelo sem senha é o .env.example.
+.env
+
+# Gerado por "npx prisma generate" a partir do schema.prisma: quem clona
+# gera de novo, como o node_modules.
+/src/generated/prisma

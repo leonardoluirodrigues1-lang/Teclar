@@ -316,3 +316,36 @@ export const sessao = {
   definirTurma,
   atualizarUsuario,
 };
+
+// ============================================================================
+// ATALHO TEMPORARIO DE DESENVOLVIMENTO, REMOVER ANTES DA ENTREGA.
+// ============================================================================
+// Abre as telas do aluno sem passar pelo login, só para ver o visual:
+//   http://127.0.0.1:5500/pages/aluno/dashboard.html?dev=aluno
+// Com ?dev=aluno na URL, grava a sessão do aluno de teste (RP2025043, ver
+// mocks.ts) antes de qualquer tela perguntar se há alguém logado, e a
+// página segue como se o login tivesse acontecido.
+//
+// Só vale com o mock ligado E servido da própria máquina: o token abaixo só
+// existe no mock, e fora dele o atalho não pode abrir nada. Em qualquer
+// outro caso o parâmetro é ignorado.
+//
+// Tudo o que o atalho usa está neste bloco, inclusive o import (o ES
+// eleva o import para o começo do módulo de qualquer jeito): para remover,
+// apague daqui até o fim do arquivo.
+import { USUARIOS as USUARIOS_DO_MOCK } from './mocks.js';
+
+function atalhoDeDesenvolvimentoLigado(): boolean {
+  const local = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  const pediu = new URLSearchParams(location.search).get('dev') === 'aluno';
+  return CONFIG.MOCK && local && pediu;
+}
+
+if (atalhoDeDesenvolvimentoLigado()) {
+  // O mock reconhece o token pelo começo "mock-<tipo>-<id>-token-" (ver
+  // prefixoToken em mocks.ts); o resto pode ser qualquer coisa.
+  entrar({ token: 'mock-aluno-RP2025043-token-dev', usuario: USUARIOS_DO_MOCK.aluno });
+}
+// ============================================================================
+// FIM DO ATALHO TEMPORARIO DE DESENVOLVIMENTO.
+// ============================================================================

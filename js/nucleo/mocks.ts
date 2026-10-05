@@ -951,8 +951,9 @@ export const dados: BancoMock = {
     },
   ],
 
-  // Mapa turmaId -> lista de { exerciseId, atribuidoEm, prazo }. Um prazo
-  // preenchido e um null.
+  // Mapa turmaId -> lista de { exerciseId, atribuidoEm, prazo }. prazo é
+  // sempre null: nenhuma rota grava AtribuicoesProf.Prazo (@nao-usado no
+  // api.ts), então o selo "Urgente" não aparece — é o certo até ela existir.
   //
   // Espelha a tabela AtribuicoesProf, cuja chave primária é o PAR
   // (ClassID, ExerciseID): não há id de atribuição, e por isso o mapa é
@@ -961,23 +962,23 @@ export const dados: BancoMock = {
   // `prazo`, que é a data de entrega.
   atribuicoes: {
     'turma-1': [
-      { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: '2026-03-15' },
+      { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: null },
       { exerciseId: 'ex-prof-2', atribuidoEm: '2026-02-17', prazo: null },
       { exerciseId: 'ex-prof-7', atribuidoEm: '2026-03-20', prazo: null },
       { exerciseId: 'ex-prof-8', atribuidoEm: '2026-03-24', prazo: null },
-      { exerciseId: 'ex-prof-9', atribuidoEm: '2026-03-27', prazo: '2026-04-15' },
+      { exerciseId: 'ex-prof-9', atribuidoEm: '2026-03-27', prazo: null },
       { exerciseId: 'ex-prof-10', atribuidoEm: '2026-03-31', prazo: null },
       { exerciseId: 'ex-prof-11', atribuidoEm: '2026-04-03', prazo: null },
       { exerciseId: 'ex-prof-12', atribuidoEm: '2026-04-07', prazo: null },
     ],
     'turma-2': [
-      { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: '2026-03-01' },
+      { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: null },
       { exerciseId: 'ex-prof-5', atribuidoEm: '2026-03-04', prazo: null },
     ],
     'turma-3': [
       { exerciseId: 'ex-prof-1', atribuidoEm: '2025-08-20', prazo: null },
       { exerciseId: 'ex-prof-2', atribuidoEm: '2025-08-20', prazo: null },
-      { exerciseId: 'ex-prof-3', atribuidoEm: '2025-09-01', prazo: '2025-09-30' },
+      { exerciseId: 'ex-prof-3', atribuidoEm: '2025-09-01', prazo: null },
     ],
     // Vazia de propósito — ver o comentário na turma-4.
     'turma-4': [],

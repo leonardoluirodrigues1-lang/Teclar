@@ -1,0 +1,168 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = "js"
+  moduleFormat        = "esm"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model alunos {
+  ID            String    @id @db.VarChar(100)
+  UserID        String?   @db.VarChar(100)
+  Nome          String?   @db.VarChar(150)
+  SenhaHash     String    @db.VarChar(255)
+  Data_Cadastro DateTime? @default(now()) @db.Timestamp(0)
+  Ativo         Boolean?  @default(true)
+
+  @@index([UserID], map: "fk_aluno_user")
+}
+
+model atribuicoesprof {
+  ClassID         String    @db.VarChar(100)
+  ExerciseID      String    @db.VarChar(100)
+  Data_Atribuicao DateTime? @default(now()) @db.DateTime(0)
+  Prazo           DateTime? @db.DateTime(0)
+
+  @@id([ClassID, ExerciseID])
+  @@index([ExerciseID], map: "ExerciseID")
+}
+
+model campanhassolo {
+  CampanhaID   String    @id @db.VarChar(100)
+  JogadorID    String    @db.VarChar(100)
+  NivelAtual   Int?      @default(1)
+  XPTotal      Int?      @default(0)
+  Data_Criacao DateTime? @default(now()) @db.Timestamp(0)
+  Ativo        Boolean?  @default(true)
+
+  @@index([JogadorID], map: "JogadorID")
+}
+
+model categorias {
+  ID    Int     @id @default(autoincrement())
+  Nome  String  @db.VarChar(50)
+  Ativo Boolean @default(true)
+}
+
+model classesprof {
+  ClassID      String    @id @db.VarChar(100)
+  ProfessorID  String    @db.VarChar(100)
+  NomeTurma    String?   @db.VarChar(100)
+  Ano          Int?
+  Semestre     Int?
+  Ativa        Boolean   @default(true)
+  CapaSemente  Int?
+  Data_Criacao DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([ProfessorID], map: "ProfessorID")
+}
+
+model classmembers {
+  ID             String    @db.VarChar(100)
+  ClassID        String    @db.VarChar(100)
+  Status         String    @default("ativo") @db.VarChar(20)
+  Data_Convite   DateTime? @db.DateTime(0)
+  Data_Matricula DateTime? @db.DateTime(0)
+
+  @@id([ID, ClassID])
+  @@index([ClassID, Status], map: "idx_membro_status")
+}
+
+model configuracoes {
+  Chave     String  @id @db.VarChar(50)
+  Valor     String  @db.VarChar(255)
+  Descricao String? @db.VarChar(255)
+}
+
+model exerciciosprof {
+  ExerciseID            String                     @id @db.VarChar(100)
+  ProfessorID           String                     @db.VarChar(100)
+  CategoriaID           Int?
+  Titulo                String                     @db.VarChar(100)
+  Texto                 String                     @db.Text
+  Dificuldade           exerciciosprof_Dificuldade @default(facil)
+  Tempo_Limite_Segundos Int?                       @default(0)
+  Ativo                 Boolean                    @default(true)
+
+  @@index([CategoriaID], map: "CategoriaID")
+  @@index([ProfessorID], map: "ProfessorID")
+}
+
+model exerciciossolo {
+  ExerciseID            String                     @id @db.VarChar(100)
+  CategoriaID           Int?
+  Titulo                String                     @db.VarChar(100)
+  Texto                 String                     @db.Text
+  Dificuldade           exerciciossolo_Dificuldade @default(facil)
+  Tempo_Limite_Segundos Int?                       @default(0)
+  Nivel                 Int                        @default(1)
+  Repeticoes            Int                        @default(1)
+  Ordem                 Int                        @default(0)
+  NivelMinimo           Int                        @default(1)
+  XPConcessao           Int                        @default(10)
+  Ativo                 Boolean                    @default(true)
+
+  @@index([CategoriaID], map: "CategoriaID")
+  @@index([Ordem], map: "idx_solo_ordem")
+}
+
+model sessionsprof {
+  ID                   String    @id @db.VarChar(100)
+  AlunoID              String    @db.VarChar(100)
+  ExerciseID           String    @db.VarChar(100)
+  ClassID              String    @db.VarChar(100)
+  WPM                  Decimal?  @db.Decimal(5, 2)
+  Precisao             Decimal?  @db.Decimal(5, 2)
+  Acertos              Int?
+  Erros                Int?
+  Tempo_Gasto_Segundos Int?
+  Concluida            Boolean   @default(true)
+  Data_Sessao          DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([ExerciseID], map: "ExerciseID")
+  @@index([AlunoID, Data_Sessao], map: "idx_sessoes_prof_aluno")
+  @@index([ClassID, Data_Sessao], map: "idx_sessoes_prof_turma")
+}
+
+model sessionssolo {
+  ID                   String    @id @db.VarChar(100)
+  CampanhaID           String    @db.VarChar(100)
+  ExerciseID           String    @db.VarChar(100)
+  WPM                  Decimal?  @db.Decimal(5, 2)
+  Precisao             Decimal?  @db.Decimal(5, 2)
+  Acertos              Int?
+  Erros                Int?
+  Tempo_Gasto_Segundos Int?
+  Concluida            Boolean   @default(true)
+  XPGanho              Int       @default(0)
+  Data_Sessao          DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([ExerciseID], map: "ExerciseID")
+  @@index([CampanhaID, Data_Sessao], map: "idx_sessoes_solo_campanha")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  ID            String    @id @db.VarChar(100)
+  Nome          String    @db.VarChar(150)
+  Email         String    @unique(map: "Email") @db.VarChar(150)
+  GoogleID      String?   @unique(map: "GoogleID") @db.VarChar(100)
+  SenhaHash     String?   @db.VarChar(255)
+  Data_Cadastro DateTime? @default(now()) @db.Timestamp(0)
+  Ativo         Boolean?  @default(true)
+}
+
+enum exerciciossolo_Dificuldade {
+  facil
+  medio
+  dificil
+}
+
+enum exerciciosprof_Dificuldade {
+  facil
+  medio
+  dificil
+}

@@ -6,27 +6,22 @@
 
 59 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
-## Colunas que ainda não existem no banco
-
-O contrato abaixo já usa estas colunas. Até a migração, só o mock responde como se elas existissem.
-
-- [ ] **Alunos.UserID** — FK para Users.ID: liga a entrada de aluno (o RP) à conta dona. Toda conta tem exatamente uma linha em Alunos, criada no cadastro. É dela que sai o nome do aluno.
-  Usada em: `POST /auth/cadastro`, `GET /conta/rp`, `GET /turmas/:id/alunos`.
-- [ ] **ClassMembers.Status** — ENUM 'convidado' | 'ativo' | 'recusado'. O professor convida pelo RP; só com Status = 'ativo' o aluno está na turma e conta em contador, média e relatório.
-  Usada em: `GET /turmas`, `GET /turmas/:id/alunos`, `POST /turmas/:id/convites`, `GET /aluno/salas`, `GET /aluno/convites`, `POST /aluno/convites/:turmaId/aceitar`, `POST /aluno/convites/:turmaId/recusar`.
-- [ ] **ClassMembers.Data_Convite** — DATETIME em que o professor convidou. É o "convidadoEm" das respostas.
-  Usada em: `POST /turmas/:id/convites`.
-- [ ] **Turmas.Ativa** — BOOLEAN DEFAULT TRUE. Arquivar põe FALSE, desarquivar volta a TRUE; GET /turmas devolve só as TRUE e GET /turmas?ativa=false, só as FALSE. Substitui a antiga coluna Status ('Ativa'/'Encerrada'), que não é mais pedida.
-  Usada em: `GET /turmas`, `GET /turmas?ativa=false`, `PATCH /turmas/:id`, `GET /aluno/salas`.
-- [ ] **Turmas.CapaSemente** — INT NULL: a semente do desenho da capa do cartão. NULL: a tela deriva uma do id da turma.
-  Usada em: `PATCH /turmas/:id`.
-
 ## Colunas que já existem e mudam de significado
 
 Não é para criar: a coluna existe. O que muda na v6 é o que ela guarda.
 
-- [ ] **ClassMembers.Data_Matricula** — deixa de ser a data em que o professor matriculou o aluno e passa a ser a data em que o ALUNO ACEITOU o convite. Fica NULL enquanto Status = 'convidado' e é preenchida no aceite (POST /aluno/convites/:turmaId/aceitar). É o "entrouEm" das respostas. A data do convite é Data_Convite.
+- [ ] **ClassMembers.Data_Matricula** — deixa de ser a data em que o professor matriculou o aluno e passa a ser a data em que o ALUNO ACEITOU o convite. Fica NULL enquanto Status = 'convidado' e é preenchida no aceite (POST /aluno/convites/:turmaId/aceitar). É o "entrouEm" das respostas. A data do convite é Data_Convite. Na v7 a coluna perdeu o DEFAULT CURRENT_TIMESTAMP: o convite já nasce com NULL.
   Usada em: `POST /aluno/convites/:turmaId/aceitar`.
+
+## Colunas que existem e nenhuma rota usa
+
+Não é para criar nem para apagar: a coluna está no banco esperando a rota. Até ela existir, fica no valor padrão.
+
+- **ExerciciosSolo.NivelMinimo** — nível da campanha que desbloqueia a lição. Nenhuma rota lê: GET /solo/missoes não manda cadeado, e a tela não bloqueia nada.
+- **ExerciciosSolo.XPConcessao** — XP base da lição. Nenhuma rota lê: o XP de POST /solo/sessoes sai de uma constante do back (XP_BASE_MISSAO), igual para toda lição.
+- **ExerciciosSolo.CategoriaID / ExerciciosProf.CategoriaID** — FK para Categorias. Nenhuma rota grava nem devolve: DadosExercicio não tem categoria, e a resposta de /exercicios também não.
+- **AtribuicoesProf.Prazo** — data de entrega. As respostas já devolvem `prazo` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId), mas nenhuma rota grava: vem sempre null.
+- **ClassesProf.Ano / ClassesProf.Semestre** — de onde o back monta o texto de `periodo`. Nenhuma rota grava (POST /turmas só recebe o nome): ficam NULL, e a turma vem sem `periodo`.
 
 ## Decisões de banco em aberto
 
@@ -296,7 +291,7 @@ Idempotente: quem já tem campanha recebe a que existe, e nenhuma segunda é cri
 
 **Notas:**
 
-Sem corpo porque CampanhasSolo só tem as quatro colunas: não há nome de personagem nem avatar para mandar.
+Sem corpo porque nenhuma das seis colunas de CampanhasSolo vem da tela: CampanhaID, NivelAtual, XPTotal, Data_Criacao e Ativo são do back, e JogadorID sai do token. Não há nome de personagem nem avatar para mandar.
 
 ### `GET /solo/campanhas/:id`
 
@@ -374,7 +369,7 @@ O token (precisa ter campanha). Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nenhuma lição vem bloqueada: ExerciciosSolo não tem nível mínimo. Quem agrupa por nível é a tela.
+Nenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo existe desde a v7, mas esta rota não o lê (ver @nao-usado no topo). Quem agrupa por nível é a tela.
 
 **Notas:**
 
@@ -629,7 +624,7 @@ Nasce com Ativa = true. O período, se houver, é o back que monta.
 
 **Notas:**
 
-A tabela Turmas não tem ano nem semestre para a tela preencher. O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.
+ClassesProf.Ano e Semestre existem desde a v7, mas esta rota não os recebe (ver @nao-usado no topo): a turma nasce com os dois NULL e sem `periodo`. O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.
 
 ### `GET /turmas/:id`
 
@@ -847,7 +842,7 @@ Chamada no front: `api.turmas.atribuir`
 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou
 
 ```json
-[{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": "2026-03-15" },
+[{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null },
  { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null }]
 ```
 
@@ -1538,7 +1533,7 @@ Chamada no front: `api.escola.aluno.sala`
   "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3,
   "lista": [{ "id": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
     "caracteres": 247, "tempoLimiteSegundos": 120, "atribuidoEm": "2026-02-03",
-    "prazo": "2026-03-15", "estado": "feito", "melhorWpm": 40, "melhorPrecisao": 95,
+    "prazo": null, "estado": "feito", "melhorWpm": 40, "melhorPrecisao": 95,
     "ultimaSessao": "2026-02-18T14:10:00.000Z" }] }
 ```
 
