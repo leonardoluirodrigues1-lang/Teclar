@@ -1,13 +1,9 @@
 // Cadastro.tsx — pages/cadastro.html
 // Criação de conta. Uma conta é uma conta: não tem perfil, e abre Solo e
-// Professor. Não existe tela de criar aluno: toda conta ganha, na mesma
-// hora, uma entrada de aluno — um RP e uma senha de aluno, gerados pelo
-// back (uma linha da tabela Alunos ligada a esta conta pelo UserID).
+// Professor. Conta não tem entrada de aluno: o aluno nasce da lista de
+// nomes que o professor sobe na turma, e entra pelo código dela.
 //
-// Deu certo: ANTES de entrar no sistema, a tela troca para a entrada de
-// aluno (<EntradaDeAluno>, abaixo), com o RP e a senha de aluno. É o único
-// lugar do front em que essa senha aparece, e só uma vez. Só no "Anotei,
-// continuar" a sessão é gravada e a pessoa segue para a tela de modo — sem
+// Deu certo: a sessão é gravada e a pessoa segue para a tela de modo — sem
 // passar pelo login, porque o back já devolveu token e usuário.
 //
 // Conversão de js/auth/cadastro.js para React: mesmo markup, mesmas classes
@@ -30,10 +26,6 @@ import {
 import { mensagemDoErro, ehConflito } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
-import { formatarRp } from '../utils/formato.js';
-import { DadosDeEntrada } from '../componentes/DadosDeEntrada.js';
-import { BotaoCopiar } from '../componentes/BotaoCopiar.js';
-import type { RespostaCadastro } from '../nucleo/tipos.js';
 
 // O host dos toasts fica fora da raiz do React (ver cadastro.html), e o
 // toast.ts continua cuidando dele como na tela em JS.
@@ -45,10 +37,6 @@ function Cadastro() {
   const enviando = useRef(false);
   const [ocupado, setOcupado] = useState(false);
   const [erroForm, setErroForm] = useState('');
-
-  // A resposta do cadastro, com o RP e a senha de aluno. Fica só neste
-  // estado, que morre junto com a página: nada de storage, nada de módulo.
-  const [contaCriada, setContaCriada] = useState<RespostaCadastro | null>(null);
 
   const nome = useRef<HTMLInputElement>(null);
   const email = useRef<HTMLInputElement>(null);
@@ -115,9 +103,9 @@ function Cadastro() {
 
       limparSenhas();
       toasts.mostrar('Conta criada');
-      // A sessão ainda NÃO é gravada: quem entra no sistema é o "Anotei,
-      // continuar" da próxima tela. Não libera o botão: o formulário sai.
-      setContaCriada(resposta);
+      // Não libera o botão: a página está sendo substituída.
+      sessao.entrar(resposta);
+      guarda.entrar();
     } catch (excecao) {
       tratarFalha(excecao);
       enviando.current = false;
@@ -152,10 +140,6 @@ function Cadastro() {
   }
 
   // --- render ----------------------------------------------------------------
-
-  if (contaCriada) {
-    return <EntradaDeAluno resposta={contaCriada} />;
-  }
 
   return (
     <div className="painel vidro">
@@ -257,88 +241,6 @@ function Cadastro() {
           Entrar
         </a>
       </p>
-    </div>
-  );
-}
-
-// ============================================================================
-// Entrada de aluno — o RP e a senha de aluno, uma vez só
-// ============================================================================
-
-interface PropsEntradaDeAluno {
-  resposta: RespostaCadastro;
-}
-
-function EntradaDeAluno({ resposta }: PropsEntradaDeAluno) {
-  const titulo = useRef<HTMLHeadingElement>(null);
-  // Só o botão "Anotei" pode sair desta tela sem aviso. Fechar a aba ou
-  // recarregar aqui perde a senha de aluno para sempre, então o navegador
-  // pergunta antes.
-  const saindoPeloBotao = useRef(false);
-
-  useEffect(() => {
-    // O formulário que tinha o foco sumiu: o foco vai para o título, e o
-    // leitor de tela começa a ler a tela nova por ele.
-    titulo.current?.focus();
-
-    function avisarAntesDeSair(evento: BeforeUnloadEvent) {
-      if (saindoPeloBotao.current) return;
-      evento.preventDefault();
-      // Navegadores antigos só perguntam se returnValue tiver algo.
-      evento.returnValue = '';
-    }
-    window.addEventListener('beforeunload', avisarAntesDeSair);
-    return () => window.removeEventListener('beforeunload', avisarAntesDeSair);
-  }, []);
-
-  function continuar() {
-    saindoPeloBotao.current = true;
-    // Só token e usuario vão para a sessão. A senha de aluno fica de fora
-    // de propósito: o sessao.entrar() grava o que recebe no navegador.
-    sessao.entrar({ token: resposta.token, usuario: resposta.usuario });
-    guarda.entrar();
-  }
-
-  return (
-    <div className="painel vidro">
-      <p className="rotulo">Conta criada</p>
-      <h1 id="titulo-entrada" ref={titulo} tabIndex={-1}>
-        Sua entrada como aluno
-      </h1>
-      <p className="descricao">
-        Com o RP e a senha de aluno você entra no modo Aluno. É pelo RP que um professor convida você
-        para uma sala.
-      </p>
-
-      <DadosDeEntrada
-        classeBotao="btn btn-vidro vidro tecla"
-        dados={[
-          { rotulo: 'RP', exibido: formatarRp(resposta.rp), copiar: resposta.rp, rotuloCopiar: 'Copiar RP' },
-          {
-            rotulo: 'Senha de aluno',
-            exibido: resposta.senhaAluno,
-            copiar: resposta.senhaAluno,
-            rotuloCopiar: 'Copiar senha',
-          },
-        ]}
-      />
-
-      {/* Os dois de uma vez, em duas linhas, para colar num bloco de notas
-          ou mandar para si mesmo sem copiar campo por campo. */}
-      <BotaoCopiar
-        texto={`RP: ${resposta.rp}\nSenha de aluno: ${resposta.senhaAluno}`}
-        rotulo="Copiar RP e senha"
-        className="btn btn-vidro vidro tecla entrada-copiar-tudo"
-      />
-
-      <p className="entrada-aviso" role="note">
-        Anote a senha agora. <strong>Ela não aparece de novo</strong>. O RP você encontra depois no menu
-        com o seu nome, em "Minha entrada como aluno"; se perder a senha, é lá que se gera uma nova.
-      </p>
-
-      <button type="button" className="btn btn-solido tecla tecla-clara entrada-continuar" onClick={continuar}>
-        Anotei, continuar
-      </button>
     </div>
   );
 }

@@ -17,6 +17,8 @@ export const LIMITES = {
   NOME_MAX: 150,
   EMAIL_MAX: 150,
   SENHA_MIN: 8,
+  SENHA_ALUNO_MIN: 4,
+  SENHA_ALUNO_MAX: 20,
   TURMA_MIN: 3,
   TURMA_MAX: 100,
   EXERCICIO_TITULO_MIN: 3,
@@ -143,9 +145,9 @@ export function validarTempoLimite(valor: unknown): Validacao {
 // quem julga o resto é o back.
 
 // A senha do login é aparada nas pontas, a de conta e a de aluno: quem cola
-// a senha costuma trazer um espaço ou uma quebra de linha junto. A senha de
-// aluno é gerada pelo back e não tem espaço; a de conta não pode ter espaço
-// nas pontas desde o cadastro (ver validarSenha).
+// a senha costuma trazer um espaço ou uma quebra de linha junto. A de conta
+// não pode ter espaço nas pontas desde o cadastro (validarSenha); a de aluno
+// é gravada já aparada no primeiro acesso, então também nunca tem.
 
 /** Campo de senha do login: só não pode estar vazio. Só espaço conta como
  *  vazio, porque é aparado antes de ir para o back (ver Login.tsx). */
@@ -153,23 +155,37 @@ export function validarSenhaLogin(valor: unknown): Validacao {
   return String(valor ?? '').trim().length === 0 ? 'Informe a senha.' : null;
 }
 
-// --- RP (a identificação de aluno de cada conta) ---------------------------
-// O back gera o RP no cadastro: "RP" seguido de 7 dígitos, ex.: RP2025043.
-// As telas mostram com um espaço ("RP 2025043") para ler melhor, então quem
-// copia da tela pode colar com o espaço, e há quem digite "rp" minúsculo.
-// Os dois viram a forma do banco antes de validar e antes de enviar.
+/**
+ * Senha de ALUNO: de 4 a 20 caracteres, qualquer coisa serve — quem digita
+ * é criança, e não se exige letra, número nem símbolo. Conta-se depois de
+ * aparar as pontas, porque é assim que ela vai para o back e é gravada.
+ * A mensagem diz só quantos caracteres faltam. Vale no login do aluno
+ * (que no primeiro acesso grava essa senha) e em qualquer outro lugar que
+ * valide senha de aluno. A senha de CONTA continua em validarSenha.
+ */
+export function validarSenhaAluno(valor: unknown): Validacao {
+  const senha = String(valor ?? '').trim();
+  const faltam = LIMITES.SENHA_ALUNO_MIN - senha.length;
+  if (faltam > 0) return faltam === 1 ? 'Falta 1 caractere.' : `Faltam ${faltam} caracteres.`;
+  if (senha.length > LIMITES.SENHA_ALUNO_MAX) return 'A senha pode ter no máximo 20 caracteres.';
+  return null;
+}
 
-const FORMATO_RP = /^RP\d{7}$/;
+// --- Código da turma (o login do aluno) -------------------------------------
+// O back gera o código ao criar a turma: 6 caracteres de A-Z e 2-9. Quem o
+// copia da lousa digita com espaço ou minúsculo; os dois viram a forma do
+// banco antes de validar e antes de enviar. O formato não é conferido aqui
+// além do tamanho: código errado é o mesmo 401 de senha errada.
 
-/** "rp 2025043" -> "RP2025043". Tira todo espaço e põe em maiúscula. */
-export function normalizarRp(valor: unknown): string {
+/** " k7m 2qx" -> "K7M2QX". Tira todo espaço e põe em maiúscula. */
+export function normalizarCodigo(valor: unknown): string {
   return String(valor ?? '').replace(/\s+/g, '').toUpperCase();
 }
 
-/** RP: obrigatório, "RP" seguido de exatamente 7 dígitos. */
-export function validarRp(valor: unknown): Validacao {
-  const rp = normalizarRp(valor);
-  if (rp.length === 0) return 'Informe o RP.';
-  if (!FORMATO_RP.test(rp)) return 'O RP é "RP" seguido de 7 números, ex.: RP 2025043.';
+/** Código da turma: obrigatório, até 12 caracteres (o VARCHAR(12)). */
+export function validarCodigo(valor: unknown): Validacao {
+  const codigo = normalizarCodigo(valor);
+  if (codigo.length === 0) return 'Informe o código da turma.';
+  if (codigo.length > 12) return 'O código da turma tem no máximo 12 caracteres.';
   return null;
 }

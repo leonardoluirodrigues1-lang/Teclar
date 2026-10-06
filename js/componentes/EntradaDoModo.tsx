@@ -27,7 +27,7 @@ import { iniciarBuracoNegro } from './shaderBuracoNegro.js';
 
 interface PropsContaFixa {
   secoes: SecoesNav;
-  /** A linha embaixo do nome: "Professor", ou o RP no modo Aluno. */
+  /** A linha embaixo do nome: "Professor", ou a turma no modo Aluno. */
   papel: string;
 }
 

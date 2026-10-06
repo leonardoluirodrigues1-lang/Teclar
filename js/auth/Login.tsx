@@ -3,9 +3,10 @@
 // login. Um HTML só, dois formulários:
 //   Conta (padrão) -> e-mail e senha; depois cai na tela de modo (Solo ou
 //                     Professor), ou direto no último modo salvo
-//   Aluno          -> RP e senha de aluno, os dois gerados pelo back no
-//                     cadastro da conta; vai para o dashboard do aluno
-// O de aluno é alcançado pelo "Sou aluno, tenho RP e senha de aluno", ou
+//   Aluno          -> código da turma, nome (como o professor subiu na
+//                     lista) e senha; vai para o dashboard do aluno. No
+//                     primeiro acesso a senha digitada é gravada.
+// O de aluno é alcançado pelo "Sou aluno, tenho o código da turma", ou
 // abre direto com ?aluno=1 (o cartão "Aluno" da tela de modo).
 //
 // A tela não decide quem a pessoa é: o `tipo` da resposta do back (de
@@ -26,7 +27,14 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
 import type { RespostaLogin } from '../nucleo/tipos.js';
-import { validarEmail, validarSenhaLogin, validarRp, normalizarRp } from '../utils/validacao.js';
+import {
+  validarEmail,
+  validarSenhaLogin,
+  validarSenhaAluno,
+  validarNome,
+  validarCodigo,
+  normalizarCodigo,
+} from '../utils/validacao.js';
 import { mensagemDoErro, MENSAGENS } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
@@ -35,8 +43,8 @@ type Modo = 'conta' | 'aluno';
 
 interface OpcoesEnvio {
   requisicao: () => Promise<RespostaLogin>;
-  /** A frase do 401 desta tela (muda entre e-mail e RP). */
-  credenciais: string;
+  /** As frases de erro deste formulário (mudam entre conta e aluno). */
+  frases: Parameters<typeof mensagemDoErro>[1];
   /** Onde a mensagem de erro do formulário aparece. */
   mostrarErro: (mensagem: string) => void;
   aoFalhar: () => void;
@@ -61,7 +69,8 @@ function Login() {
 
   const email = useRef<HTMLInputElement>(null);
   const senha = useRef<HTMLInputElement>(null);
-  const rp = useRef<HTMLInputElement>(null);
+  const codigo = useRef<HTMLInputElement>(null);
+  const nome = useRef<HTMLInputElement>(null);
   const senhaAluno = useRef<HTMLInputElement>(null);
 
   // --- validação de campo ----------------------------------------------------
@@ -70,12 +79,15 @@ function Login() {
   const campos = useErrosDeCampo({
     email: { ref: email, checar: () => validarEmail(email.current.value) },
     senha: { ref: senha, checar: () => validarSenhaLogin(senha.current.value) },
-    rp: { ref: rp, checar: () => validarRp(rp.current.value) },
-    senhaAluno: { ref: senhaAluno, checar: () => validarSenhaLogin(senhaAluno.current.value) },
+    codigo: { ref: codigo, checar: () => validarCodigo(codigo.current.value) },
+    nome: { ref: nome, checar: () => validarNome(nome.current.value) },
+    // A regra da senha de aluno vale também no login: a tela não sabe se é
+    // o primeiro acesso, e toda senha de aluno gravada já segue a regra.
+    senhaAluno: { ref: senhaAluno, checar: () => validarSenhaAluno(senhaAluno.current.value) },
   });
-  const refs = { email, senha, rp, senhaAluno };
+  const refs = { email, senha, codigo, nome, senhaAluno };
 
-  // O cadastro é só de conta: o RP e a senha de aluno nascem junto com ela.
+  // O cadastro é só de conta: o aluno nasce da lista que o professor sobe.
   const hrefCadastro = ROTA_CADASTRO;
 
   // --- troca de modo ---------------------------------------------------------
@@ -83,7 +95,7 @@ function Login() {
   // Foco no primeiro campo do formulário que está à vista — ao abrir e a
   // cada troca de modo (o que mostrarModo() fazia no fim).
   useEffect(() => {
-    (modo === 'aluno' ? rp : email).current?.focus();
+    (modo === 'aluno' ? codigo : email).current?.focus();
   }, [modo]);
 
   function mostrarModo(novo: Modo) {
@@ -133,7 +145,7 @@ function Login() {
           // nenhuma senha certa muda com isso (ver validarSenha).
           senha: senha.current.value.trim(),
         }),
-      credenciais: MENSAGENS.CREDENCIAIS,
+      frases: { credenciais: MENSAGENS.CREDENCIAIS },
       mostrarErro: setErroConta,
       aoFalhar: () => {
         senha.current.value = '';
@@ -145,7 +157,7 @@ function Login() {
   async function entrarComoAluno() {
     if (enviando.current) return;
 
-    const comErro = campos.validar(['rp', 'senhaAluno']);
+    const comErro = campos.validar(['codigo', 'nome', 'senhaAluno']);
     if (comErro) {
       refs[comErro].current.focus();
       return;
@@ -154,14 +166,20 @@ function Login() {
     await enviar({
       requisicao: () =>
         api.auth.entrar({
-          perfil: 'Aluno',
           // Vai sem espaço e em maiúscula, a forma em que o back guarda.
-          rp: normalizarRp(rp.current.value),
-          // Aparada pelo mesmo motivo da senha de conta. A senha de aluno é
-          // gerada pelo back e não tem espaço nas pontas.
+          codigo: normalizarCodigo(codigo.current.value),
+          // Maiúscula, acento e espaço repetido o back resolve: compara
+          // como o banco ("ana pires" acha "Ana Pires").
+          nome: nome.current.value.trim(),
+          // Aparada pelo mesmo motivo da senha de conta: nenhuma senha de
+          // aluno tem espaço nas pontas (o primeiro acesso recusa).
           senha: senhaAluno.current.value.trim(),
         }),
-      credenciais: MENSAGENS.CREDENCIAIS_ALUNO,
+      frases: {
+        credenciais: MENSAGENS.CREDENCIAIS_ALUNO,
+        inativa: MENSAGENS.INATIVA_ALUNO,
+        dadosInvalidos: MENSAGENS.SENHA_PRIMEIRO_ACESSO,
+      },
       mostrarErro: setErroAluno,
       aoFalhar: () => {
         senhaAluno.current.value = '';
@@ -172,7 +190,7 @@ function Login() {
 
   // Fluxo comum aos dois formulários: trava o botão, chama a API, grava a
   // sessão e sai da tela; em erro, mostra a mensagem (nunca só no console).
-  async function enviar({ requisicao, credenciais, mostrarErro, aoFalhar }: OpcoesEnvio) {
+  async function enviar({ requisicao, frases, mostrarErro, aoFalhar }: OpcoesEnvio) {
     enviando.current = true;
     setOcupado(true);
     limparErros();
@@ -185,7 +203,7 @@ function Login() {
       guarda.entrar();
       // Não libera o botão: a página está sendo substituída.
     } catch (excecao) {
-      mostrarErro(mensagemDoErro(excecao, { credenciais }));
+      mostrarErro(mensagemDoErro(excecao, frases));
       aoFalhar?.();
       enviando.current = false;
       setOcupado(false);
@@ -264,7 +282,7 @@ function Login() {
         </form>
 
         <button type="button" className="btn-texto" id="btn-ir-aluno" onClick={irParaAluno}>
-          Sou aluno, tenho RP e senha de aluno
+          Sou aluno, tenho o código da turma
         </button>
 
         <p className="linha-rodape">
@@ -275,43 +293,64 @@ function Login() {
         </p>
       </section>
 
-      {/* ===== Aluno: RP e senha de aluno ===== */}
+      {/* ===== Aluno: código da turma, nome e senha ===== */}
       <section id="modo-aluno" aria-labelledby="titulo-aluno" hidden={modo !== 'aluno'}>
         <p className="rotulo">Aluno</p>
         <h1 id="titulo-aluno">Entrar</h1>
-        <p className="descricao">Use o RP e a senha de aluno que apareceram quando você criou a conta.</p>
+        <p className="descricao">
+          Use o código que o professor passou e o seu nome como está na lista da turma. Na primeira vez, a senha
+          que você digitar (de 4 a 20 caracteres) vira a sua senha.
+        </p>
 
         <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
           <div className="campo">
-            <label className="rotulo" htmlFor="campo-rp">
-              RP
+            <label className="rotulo" htmlFor="campo-codigo">
+              Código da turma
             </label>
-            {/* Sem inputMode numérico: o RP começa com as letras "RP". */}
             <input
               type="text"
-              name="rp"
-              id="campo-rp"
-              autoComplete="username"
+              name="codigo"
+              id="campo-codigo"
+              autoComplete="off"
               autoCapitalize="characters"
               autoCorrect="off"
               spellCheck={false}
-              maxLength={12}
-              aria-describedby="dica-rp erro-rp"
+              maxLength={16}
+              aria-describedby="dica-codigo erro-codigo"
               required
-              ref={rp}
-              onBlur={() => campos.aoSair('rp')}
-              {...atributosDeErro(campos.erros.rp)}
+              ref={codigo}
+              onBlur={() => campos.aoSair('codigo')}
+              {...atributosDeErro(campos.erros.codigo)}
             />
-            <p className="ajuda-campo" id="dica-rp">
-              "RP" seguido de 7 números, ex.: RP 2025043. Não sabe o seu? Entre na sua conta e abra o menu com
-              o seu nome: está em "Minha entrada como aluno".
+            <p className="ajuda-campo" id="dica-codigo">
+              Seis letras e números, ex.: K7M2QX. Não sabe o seu? Peça ao professor.
             </p>
-            <ErroCampo id="erro-rp" erro={campos.erros.rp} />
+            <ErroCampo id="erro-codigo" erro={campos.erros.codigo} />
+          </div>
+
+          <div className="campo">
+            <label className="rotulo" htmlFor="campo-nome-aluno">
+              Seu nome
+            </label>
+            <input
+              type="text"
+              name="username"
+              id="campo-nome-aluno"
+              autoComplete="username"
+              autoCapitalize="words"
+              maxLength={150}
+              aria-describedby="erro-nome-aluno"
+              required
+              ref={nome}
+              onBlur={() => campos.aoSair('nome')}
+              {...atributosDeErro(campos.erros.nome)}
+            />
+            <ErroCampo id="erro-nome-aluno" erro={campos.erros.nome} />
           </div>
 
           <div className="campo">
             <label className="rotulo" htmlFor="campo-senha-aluno">
-              Senha de aluno
+              Senha
             </label>
             <CampoSenha
               id="campo-senha-aluno"

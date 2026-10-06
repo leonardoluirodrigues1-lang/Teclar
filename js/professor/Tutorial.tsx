@@ -1,6 +1,6 @@
 // Tutorial.tsx — o tutorial de primeira vez do modo Professor
 // Três passos: o que o modo faz (salas e alunos), como o aluno entra (pelo
-// RP, por convite) e o que os relatórios mostram. À esquerda o texto e três
+// código da sala e pelo nome) e o que os relatórios mostram. À esquerda o texto e três
 // itens com ícone; à direita, um desenho em SVG escrito à mão.
 //
 // Este arquivo só tem o CONTEÚDO. A estrutura — passos, pontinhos, "Pular"
@@ -155,7 +155,7 @@ function DesenhoSalas() {
 }
 
 // ============================================================================
-// Desenho 2 — o convite pelo RP
+// Desenho 2 — o aluno entra pelo código da sala
 // ============================================================================
 
 const SALA_DO_CONVITE = { cx: 140, cy: 200, raio: 66 };
@@ -173,18 +173,18 @@ function DesenhoConvite() {
         SALA
       </text>
 
-      {/* a seta do convite, indo até o aluno que está fora */}
+      {/* a seta do código, indo até o aluno que está fora */}
       <line className="desenho-traco" x1="252" y1="200" x2="318" y2="200" strokeDasharray="5 7" />
       <path className="desenho-traco desenho-traco-forte" d="M312 193 L322 200 L312 207" />
 
-      {/* o aluno de fora, com o RP dele */}
+      {/* o aluno de fora, com o código da sala */}
       <Boneco x={368} y={172} escala={1.25} forte />
       <rect className="desenho-traco desenho-traco-forte" x="306" y="214" width="124" height="40" rx="11" />
       <text className="desenho-rotulo desenho-rotulo-forte" x="368" y="238" textAnchor="middle">
-        RP2025047
+        K7M2QX
       </text>
       <text className="desenho-rotulo" x="368" y="282" textAnchor="middle">
-        O CÓDIGO DELE
+        O CÓDIGO DA SALA
       </text>
     </svg>
   );
@@ -257,7 +257,7 @@ const PASSOS: PassoDoTutorial[] = [
     texto: 'Aqui você cria salas, escolhe o que cada uma vai treinar e acompanha quem está evoluindo.',
     itens: [
       { icone: <IconeSala />, texto: 'Crie quantas salas quiser, uma para cada turma.' },
-      { icone: <IconePessoa />, texto: 'Convide os alunos e veja quem já entrou.' },
+      { icone: <IconePessoa />, texto: 'Adicione os alunos e veja quem já entrou.' },
       { icone: <IconeGrafico />, texto: 'Acompanhe o desempenho de cada um.' },
     ],
     painel: <DesenhoSalas />,
@@ -268,15 +268,15 @@ const PASSOS: PassoDoTutorial[] = [
       <>
         O aluno entra
         <br />
-        pelo RP
+        pelo código
       </>
     ),
     texto:
-      'Cada conta do TECLAR tem um código próprio, o RP. Você convida usando o RP exato do aluno — um por um ou uma lista inteira de uma vez.',
+      'Cada sala tem um código. Você sobe a lista de nomes, passa o código, e cada aluno entra com ele, o próprio nome e uma senha que cria na primeira vez.',
     itens: [
-      { icone: <IconeTeclado />, texto: 'Peça o RP ao aluno: ele acha dentro da própria conta.' },
-      { icone: <IconeArquivo />, texto: 'Para uma turma inteira, suba um CSV com os RPs.' },
-      { icone: <IconeAceito />, texto: 'O aluno recebe o convite e entra se aceitar.' },
+      { icone: <IconeArquivo />, texto: 'Para uma turma inteira, suba um CSV com os nomes.' },
+      { icone: <IconeTeclado />, texto: 'Passe o código da sala: ele está no topo da turma.' },
+      { icone: <IconeAceito />, texto: 'Esqueceu a senha? Você zera, e ele cria outra.' },
     ],
     painel: <DesenhoConvite />,
   },

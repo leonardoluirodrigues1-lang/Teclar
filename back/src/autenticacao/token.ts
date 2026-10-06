@@ -3,12 +3,13 @@
 // pelos dois lados: o login, que emite o token, e o guard, que o confere.
 
 // Quem entrou e por qual tabela. "conta" é a tabela Users (entra por
-// e-mail); "aluno" é a tabela Alunos (entra pelo RP). É do token que toda
-// rota tira a identidade: nenhuma confia em id mandado pela tela.
+// e-mail); "aluno" é a tabela Alunos (entra pelo código da turma e pelo
+// nome). É do token que toda rota tira a identidade: nenhuma confia em id
+// mandado pela tela.
 export type TipoDeLogin = 'conta' | 'aluno';
 
 // O conteúdo do token. "sub" (subject) é o nome padrão do JWT para "de
-// quem é este token"; aqui é o Users.ID ou o RP.
+// quem é este token"; aqui é o Users.ID ou o Alunos.ID.
 export interface ConteudoDoToken {
   sub: string;
   tipo: TipoDeLogin;

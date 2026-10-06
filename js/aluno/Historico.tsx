@@ -94,8 +94,7 @@ function Historico({ usuario }: PropsHistorico) {
   const mostrarTurma = turmas.length > 1;
 
   const subtitulo = [
-    // O nome do aluno é o da conta dona; sem ele, nomeExibicao() cai no
-    // RP em vez de escrever "undefined".
+    // O nome do aluno é o da lista da turma.
     sessao.nomeExibicao(),
     turmas.length > 1 ? `${turmas.length} turmas` : turmas[0]?.nome,
   ]

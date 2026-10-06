@@ -5,7 +5,7 @@
 //                        fina). É uma tecla que leva ao dashboard do Solo;
 //   · canto de baixo   — o botão redondo que abre a barra lateral;
 //   · barra lateral    — Início, Configurações, Ajuda, Sobre e, separados,
-//                        Minha entrada como aluno, Ir para Professor,
+//                        Ir para Professor,
 //                        Trocar de modo e Sair.
 //
 // Quem usa: as telas de pages/solo/ (caminho, dashboard, configurações,
@@ -88,16 +88,6 @@ function IconeSobre() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5M12 8h.01" />
-    </svg>
-  );
-}
-
-// Uma chave: o RP e a senha de aluno.
-function IconeChave() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="8" cy="15" r="4" />
-      <path d="M10.8 12.2L20 3M16 7l3 3" />
     </svg>
   );
 }
@@ -279,10 +269,6 @@ function BarraLateral({ aberta, ativo, aoFechar }: PropsBarraLateral) {
       {/* Os três que moravam no menu do avatar da <Nav>. Aqui eles são o
           ÚNICO caminho para sair do Solo: o botão da pessoa, no topo, leva
           ao dashboard. A troca de modo é a mesma do guarda.ts. */}
-      {/* Direto para o bloco do RP em Configurações. */}
-      <a className="barra-lateral-item" href="configuracoes.html#entrada-aluno">
-        <IconeChave /> Minha entrada como aluno
-      </a>
       <button type="button" className="barra-lateral-item" onClick={() => guarda.trocarModo('professor')}>
         <IconeProfessor /> Ir para Professor
       </button>

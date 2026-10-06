@@ -460,26 +460,3 @@ ul { list-style: none; }
 @media (max-width: 699px) {
   .cartoes { grid-template-columns: minmax(0, 398px); }
 }
-
-/* ---------------------------------------------------------------------------
-   cadastro.html — entrada de aluno (depois de criar a conta)
-   O RP e a senha de aluno, uma vez só. Os valores são dado, então vão em
-   mono e grandes; cada um com o seu botão de copiar ao lado.
-   ------------------------------------------------------------------------- */
-.painel h1:focus { outline: none; }
-
-/* A lista do RP e da senha (.entrada-aluno) está em
-   css/componentes/entrada-aluno.css: Configurações do Solo usa a mesma. */
-
-/* Aviso sem cor de alerta: o peso vem da frase em destaque, não do vermelho. */
-.entrada-aviso {
-  margin-top: var(--e-5, 24px);
-  font-size: 13px;
-  line-height: var(--lh-normal, 1.5);
-  color: var(--cor-texto-suave, #c4c4c4);
-}
-.entrada-aviso strong { font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
-
-.entrada-continuar { margin-top: var(--e-5, 24px); }
-/* "Copiar RP e senha": logo abaixo da lista, antes do aviso. */
-.entrada-copiar-tudo { margin-top: var(--e-4, 16px); }

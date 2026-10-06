@@ -10,7 +10,7 @@
 // destinoAoEntrar() em js/nucleo/guarda.ts).
 //
 // O terceiro cartão, Aluno, NÃO é modo: aluno é outro tipo de sessão
-// (tabela Alunos, login pelo RP). Por isso ele não navega sozinho —
+// (tabela Alunos, login pelo código da turma e pelo nome). Por isso ele não navega sozinho —
 // abre um modal avisando que vai sair da conta e, confirmado, encerra a
 // sessão e manda para o login já no formulário de aluno (?aluno=1).
 //
@@ -28,7 +28,7 @@ import type { Modo } from '../nucleo/tipos.js';
 import { Modal } from '../componentes/ModalReact.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-// O login já aberto no formulário de aluno (RP e senha de aluno).
+// O login já aberto no formulário de aluno (código da turma, nome e senha).
 const ROTA_LOGIN_ALUNO = `${ROTA_LOGIN}?aluno=1`;
 
 interface ConteudoCartao {
@@ -69,7 +69,7 @@ const CARTOES: Cartao[] = [
 const CARTAO_ALUNO: ConteudoCartao = {
   nome: 'ALUNO',
   numero: '03',
-  resumo: 'Entrar com o seu RP e a senha de aluno.',
+  resumo: 'Entrar com o código da turma, o seu nome e a sua senha.',
   itens: ['As salas em que você entrou', 'Seu histórico de desempenho', 'Acompanhado pelo professor'],
   rodape: 'Entrar como aluno',
 };

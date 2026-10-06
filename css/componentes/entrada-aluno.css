@@ -1,50 +1,11 @@
 /* ============================================================================
    TECLAR — entrada-aluno.css
-   A lista "rótulo, valor e botão de copiar" da entrada de aluno, desenhada
-   por js/componentes/DadosDeEntrada.tsx, e o bloco "Sua entrada como
-   aluno" de js/componentes/EntradaComoAluno.tsx. Carregada por
-   pages/cadastro.html (o RP e a senha no fim do cadastro) e pelas
-   configurações dos dois modos (o bloco e a senha de aluno nova). Os
-   valores são dado: mono e grandes.
+   O bloco de Configurações do modo Professor (.entrada-bloco): texto à
+   esquerda, botão à direita. O nome do arquivo é de quando ele também
+   mostrava o RP e a senha de aluno da conta, que saíram com o banco v8.
+   Mesmas medidas dos cartões de Configurações do Solo.
    ========================================================================== */
 
-.entrada-aluno { margin-top: var(--e-6, 32px); }
-
-.entrada-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: var(--e-4, 16px);
-  padding: var(--e-4, 16px) 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
-}
-.entrada-item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.10); }
-
-.entrada-item .rotulo { grid-column: 1 / -1; font-size: 11px; }
-
-.entrada-valor {
-  margin-top: var(--e-2, 8px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-lg, 1.25rem);
-  letter-spacing: 0.12em;
-  color: var(--cor-texto, #fff);
-  /* A senha tem símbolo; seleção por duplo clique não pode parar nele. */
-  user-select: all;
-  overflow-wrap: anywhere;
-}
-
-/* O .btn ocupa a largura toda; aqui ele é o botão pequeno ao lado do valor. */
-.entrada-copiar {
-  width: auto;
-  margin-top: var(--e-2, 8px);
-  padding: 10px 16px;
-  font-size: 11px;
-}
-
-/* ---------------------------------------------------------------------------
-   O bloco "Sua entrada como aluno": texto à esquerda, botões à direita.
-   Mesmas medidas dos cartões de Configurações do Solo.
-   ------------------------------------------------------------------------- */
 .entrada-bloco {
   display: flex;
   align-items: center;
@@ -66,22 +27,4 @@
   font-size: 14px;
   line-height: var(--lh-normal, 1.5);
   color: var(--cor-texto-suave, #c4c4c4);
-}
-
-/* O RP: é dado, então mono e maior que o texto ao redor. */
-.entrada-rp {
-  display: block;
-  margin-top: var(--e-2, 8px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: var(--fs-lg, 1.25rem);
-  letter-spacing: 0.14em;
-  color: var(--cor-texto, #fff);
-}
-
-/* Copiar o RP e gerar a senha nova, um embaixo do outro, na mesma largura. */
-.entrada-rp-acoes {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--e-2, 8px);
 }

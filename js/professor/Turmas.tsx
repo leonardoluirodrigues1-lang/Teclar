@@ -10,8 +10,7 @@
 //
 // O que cada cartão mostra vem pronto do back (GET /turmas): nome, período,
 // semente da capa e as contagens, que são COUNT feito lá. O front não soma
-// nada por turma — a única soma daqui é a dos convites de TODAS as turmas,
-// para a tecla de Turmas.
+// nada por turma.
 //
 // Turma se ARQUIVA, não se exclui: SessionsProf aponta para a turma com ON
 // DELETE CASCADE, e excluir uma turma levaria junto o histórico de treino de
@@ -374,7 +373,7 @@ function Turmas() {
       <main>
         <Abertura />
 
-        <FuncoesDoProfessor convites={carga.estado === 'pronto' ? somarConvites(turmas) : 0} />
+        <FuncoesDoProfessor />
 
         <div className="cabecalho">
           <div className="cabecalho-texto">
@@ -451,37 +450,19 @@ function Turmas() {
   );
 }
 
-// A soma de convitesPendentes de todas as turmas. Turma que veio sem o
-// campo não entra na conta (não é zero: é não informado).
-function somarConvites(turmas: Turma[]): number {
-  let total = 0;
-  for (const turma of turmas) {
-    if (Number.isFinite(turma.convitesPendentes)) total += turma.convitesPendentes;
-  }
-  return total;
-}
-
 // ============================================================================
 // Funções
 // ============================================================================
 
 // As três teclas do professor. A de Turmas leva para a grade logo abaixo,
 // na mesma página.
-function FuncoesDoProfessor({ convites }: { convites: number }) {
+function FuncoesDoProfessor() {
   return (
     <Funcoes rotulo="Funções do professor">
       <Funcao
         href="#suas-turmas"
         nome="Turmas"
-        texto="Criar turma, convidar por RP e acompanhar quem entregou."
-        // Zero convites: a linha não aparece. "0 convites" é ruído.
-        sinal={
-          convites === 0
-            ? null
-            : convites === 1
-              ? '1 convite sem resposta'
-              : `${convites} convites sem resposta`
-        }
+        texto="Criar turma, adicionar alunos pela lista de nomes e acompanhar quem entregou."
       />
       <Funcao
         href="biblioteca.html"
@@ -491,7 +472,7 @@ function FuncoesDoProfessor({ convites }: { convites: number }) {
       <Funcao
         href="configuracoes.html"
         nome="Configurações"
-        texto="Seu RP, a senha de aluno e o tutorial do modo Professor."
+        texto="O tutorial do modo Professor."
       />
     </Funcoes>
   );

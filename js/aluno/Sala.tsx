@@ -36,7 +36,7 @@ import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
-import { contagem, formatarRp, numero, porcentagem } from '../utils/formato.js';
+import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -106,7 +106,7 @@ function Sala() {
     return (
       <TurmaNaoEncontrada
         secoes={SECOES_ALUNO}
-        papel={formatarRp(usuario.id)}
+        papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
         texto="Ela pode ter sido encerrada, ou você não está nela. Suas salas estão na tela inicial."
         link={{ href: 'dashboard.html', rotulo: 'Ver minhas salas' }}
       />
@@ -132,7 +132,7 @@ function Sala() {
   return (
     <CascaDaTurma
       secoes={SECOES_ALUNO}
-      papel={formatarRp(usuario.id)}
+      papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
       voltar={{ href: 'dashboard.html', rotulo: 'Salas' }}
       titulo={sala ? sala.nome : null}
       subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}

@@ -1,13 +1,9 @@
 // TopoAluno.tsx
 // O topo da tela de histórico do Aluno: a marca à esquerda e, à direita, o
-// botão do nome (retrato com a inicial, nome e RP), que abre o menu com o
-// RP em destaque, Convites, Meu histórico, Trocar de modo e Sair. Usado por
+// botão do nome (retrato com a inicial, nome e turma), que abre o menu com
+// a turma em destaque, Meu histórico, Trocar de modo e Sair. Usado por
 // js/aluno/Historico.tsx; o desenho está em css/aluno.css. As salas e a
 // sala usam a conta fixa no canto (componentes/EntradaDoModo.tsx).
-//
-// O AVISO VERMELHO: com convite pendente, um ponto vermelho com o número
-// aparece no retrato e de novo na linha "Convites" do menu. É o único
-// vermelho destas telas, e está aí porque precisa ser notado.
 //
 // Os hrefs são relativos a pages/aluno/, onde moram as telas.
 
@@ -16,19 +12,11 @@ import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { ROTA_LOGIN } from '../config.js';
-import { formatarRp } from '../utils/formato.js';
 import { Modal } from './ModalReact.js';
 import type { Usuario } from '../nucleo/tipos.js';
 
 interface PropsTopoAluno {
   usuario: Usuario;
-  /**
-   * Quantos convites estão pendentes, quando a TELA já sabe: a de
-   * convites passa o tamanho da lista dela, e o aviso recalcula a cada
-   * aceitar ou recusar, sem pedir de novo. null: a tela ainda está
-   * carregando. Ausente: o próprio topo pergunta ao back.
-   */
-  convites?: number | null;
 }
 
 // Trocar de modo: a sessão de aluno não abre o Solo nem o Professor, que
@@ -40,19 +28,16 @@ function sairParaConta() {
   window.location.replace(ROTA_LOGIN);
 }
 
-export function TopoAluno({ usuario, convites }: PropsTopoAluno) {
-  // O id do aluno É o RP. O nome vem da conta dona; sem nome, a tela
-  // mostra o RP no lugar dele e não repete o RP embaixo.
-  const rp = formatarRp(usuario.id);
+export function TopoAluno({ usuario }: PropsTopoAluno) {
+  // O nome é o da lista da turma; a turma é a do login (uma só, na v8).
   const nome = usuario.nome || null;
+  const turma = usuario.turmas?.[0]?.nome ?? null;
 
   const [aberto, setAberto] = useState(false);
   // Chave do modal de trocar de modo (null = fechado), como o ModalReact pede.
   const [modal, setModal] = useState<number | null>(null);
   const botao = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
-
-  const pendentes = useConvitesPendentes(convites);
 
   function fechar(devolverFoco: boolean) {
     setAberto(false);
@@ -102,24 +87,20 @@ export function TopoAluno({ usuario, convites }: PropsTopoAluno) {
       >
         <span className="aluno-inicial">
           <span aria-hidden="true">{nome ? nome[0].toUpperCase() : '—'}</span>
-          {pendentes > 0 && <AvisoDeConvites quantidade={pendentes} classe="aluno-aviso-retrato" />}
         </span>
         <span>
-          <span className="aluno-chip-nome">{nome ?? rp}</span>
-          {nome && <span className="aluno-chip-rp">{rp}</span>}
+          <span className="aluno-chip-nome">{nome ?? 'Aluno'}</span>
+          {turma && <span className="aluno-chip-rp">{turma}</span>}
         </span>
       </button>
 
       <div className="aluno-menu vidro" id="menu-aluno" ref={menu} role="menu" hidden={!aberto}>
-        <div className="aluno-menu-rp">
-          <span className="aluno-rotulo">Seu RP</span>
-          <b>{rp}</b>
-        </div>
-        {/* Os convites moram na tela de salas, antes da grade. */}
-        <a className="aluno-menu-item" href="dashboard.html#convites" role="menuitem">
-          Convites
-          {pendentes > 0 && <AvisoDeConvites quantidade={pendentes} classe="aluno-aviso-linha" />}
-        </a>
+        {turma && (
+          <div className="aluno-menu-rp">
+            <span className="aluno-rotulo">Sua turma</span>
+            <b>{turma}</b>
+          </div>
+        )}
         <a className="aluno-menu-item" href="historico.html" role="menuitem">
           Meu histórico
         </a>
@@ -165,42 +146,4 @@ export function ModalTrocarModoDoAluno({ aoFechar }: { aoFechar: () => void }) {
       </p>
     </Modal>
   );
-}
-
-// O ponto vermelho com o número. O texto escondido diz a quem ouve a tela
-// o que o número é; o número em si fica aria-hidden para não ser lido duas
-// vezes.
-function AvisoDeConvites({ quantidade, classe }: { quantidade: number; classe: string }) {
-  return (
-    <span className={`aluno-aviso ${classe}`}>
-      <span aria-hidden="true">{quantidade}</span>
-      <span className="aluno-sr">
-        {quantidade === 1 ? '1 convite pendente' : `${quantidade} convites pendentes`}
-      </span>
-    </span>
-  );
-}
-
-// Quantos convites pendentes. Quando a tela informa (ver PropsTopoAluno),
-// vale o dela; senão, pergunta ao back uma vez. Falhou: 0 — o aviso é
-// ajuda, e a tela de convites continua a um clique no menu.
-function useConvitesPendentes(daTela: number | null | undefined): number {
-  const [doBack, setDoBack] = useState(0);
-  const telaInforma = daTela !== undefined;
-
-  useEffect(() => {
-    if (telaInforma) return;
-    let cancelado = false;
-    api.escola.aluno
-      .convites()
-      .then((lista) => {
-        if (!cancelado) setDoBack(lista.length);
-      })
-      .catch(() => {});
-    return () => {
-      cancelado = true;
-    };
-  }, [telaInforma]);
-
-  return telaInforma ? (daTela ?? 0) : doBack;
 }

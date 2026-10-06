@@ -20,8 +20,13 @@
 
 export const MENSAGENS = {
   CREDENCIAIS: 'E-mail ou senha incorretos.',
-  CREDENCIAIS_ALUNO: 'RP ou senha de aluno incorretos.',
+  CREDENCIAIS_ALUNO: 'Código da turma, nome ou senha incorretos.',
   INATIVA: 'Esta conta está desativada.',
+  INATIVA_ALUNO: 'Esta turma foi arquivada ou o seu acesso foi desativado. Fale com o professor.',
+  // O 400 do login de aluno só acontece no PRIMEIRO ACESSO: a senha
+  // digitada ia ser gravada e não segue a regra. A tela já confere antes
+  // (validarSenhaAluno); isto é a rede de segurança.
+  SENHA_PRIMEIRO_ACESSO: 'A senha precisa ter de 4 a 20 caracteres.',
   CONEXAO: 'Não foi possível conectar. Tente de novo.',
 };
 
@@ -29,16 +34,22 @@ export const MENSAGENS = {
 interface ErroComStatus {
   name?: string;
   status?: number;
+  codigo?: string | null;
 }
 
 /**
  * Traduz a falha de uma chamada de autenticação.
- * `credenciais` é a frase do 401 desta tela (muda entre e-mail e RP).
+ * `credenciais` é a frase do 401 desta tela (muda entre conta e aluno);
+ * `inativa`, a do 403; `dadosInvalidos`, a do 400 (só o login de aluno tem).
  * O 409 NÃO passa por aqui: ele é erro de campo, e quem chama trata.
  */
 export function mensagemDoErro(
   excecao: unknown,
-  { credenciais = MENSAGENS.CREDENCIAIS }: { credenciais?: string } = {}
+  {
+    credenciais = MENSAGENS.CREDENCIAIS,
+    inativa = MENSAGENS.INATIVA,
+    dadosInvalidos,
+  }: { credenciais?: string; inativa?: string; dadosInvalidos?: string } = {}
 ): string {
   // Duck typing, não instanceof: o erro do mock (js/nucleo/mocks.ts) tem a
   // mesma forma do ErroApi mas não é instância dele.
@@ -46,7 +57,8 @@ export function mensagemDoErro(
   const daApi = erro?.name === 'ErroApi';
 
   if (daApi && erro.status === 401) return credenciais;
-  if (daApi && erro.status === 403) return MENSAGENS.INATIVA;
+  if (daApi && erro.status === 403) return inativa;
+  if (daApi && erro.status === 400 && erro.codigo === 'DADOS_INVALIDOS' && dadosInvalidos) return dadosInvalidos;
 
   // Erro que não veio da API (bug, resposta fora do formato) some da tela,
   // mas não do console — é lá que ele serve para alguma coisa.

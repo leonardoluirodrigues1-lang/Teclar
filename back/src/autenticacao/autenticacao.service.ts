@@ -3,23 +3,38 @@
 //
 // Um login para duas tabelas:
 //   conta (Users)  -> { email, senha }
-//   aluno (Alunos) -> { perfil: "Aluno", rp, senha }
-// Responde { token, usuario }. Credencial errada é sempre o mesmo 401
-// CREDENCIAIS, exista a conta ou não: dizer "e-mail não cadastrado"
-// entregaria quem tem conta no sistema a quem perguntasse.
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+//   aluno (Alunos) -> { codigo, nome, senha }
+// É a presença de `codigo` no corpo que diz qual tabela procurar.
+// Responde { token, usuario } e, só no primeiro acesso do aluno,
+// primeiroAcesso: true.
+//
+// Credencial errada é sempre o mesmo 401 CREDENCIAIS, exista a conta ou
+// não, e no aluno sem dizer se o errado foi o código, o nome ou a senha:
+// qualquer pista transformaria o login num jeito de descobrir quem tem
+// conta, ou quem está em qual turma.
+//
+// O aluno (banco v8) é POR TURMA: a linha de Alunos já tem o ClassID. O
+// mesmo nome em duas turmas são duas pessoas para o banco, cada uma com a
+// sua senha — o código da turma é o que diz de qual delas se trata.
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { BancoService } from '../banco/banco.service.js';
+import { problemaNaSenhaDoAluno } from './senha-do-aluno.js';
 import type { ConteudoDoToken, TipoDeLogin } from './token.js';
 
 // O corpo como chega. Tudo unknown: vem da rede, e nada garante que a tela
 // (ou quem chamar com curl) mandou texto.
 export interface CorpoDoLogin {
   email?: unknown;
-  rp?: unknown;
+  codigo?: unknown;
+  nome?: unknown;
   senha?: unknown;
-  perfil?: unknown;
 }
 
 // A resposta, campo a campo como no contrato. Nada de hash, GoogleID ou
@@ -36,21 +51,29 @@ interface UsuarioConta {
 
 interface UsuarioAluno {
   id: string;
-  nome: string | null;
+  nome: string;
   tipo: 'aluno';
+  // Uma turma só (o aluno é por turma), mas em lista: é a forma que o
+  // contrato e a tela já usam.
   turmas: { id: string; nome: string }[];
 }
 
 export interface RespostaLogin {
   token: string;
   usuario: UsuarioConta | UsuarioAluno;
+  // Só vem, e só true, quando a senha do aluno acabou de ser gravada.
+  primeiroAcesso?: true;
 }
 
+// Custo do bcrypt ao gravar a senha do primeiro acesso: o mesmo do seed.
+// O custo fica gravado dentro do hash, então comparar não depende dele.
+const CUSTO_BCRYPT = 10;
+
 // Um hash bcrypt de verdade, de uma senha que ninguém sabe. Quando o e-mail
-// ou o RP não existem, a senha é comparada com ele mesmo assim: sem isso o
-// "não existe" responderia em 1 ms e o "senha errada" em ~70 ms (o tempo do
-// bcrypt), e a demora denunciaria quem tem conta.
-const HASH_DE_NINGUEM = bcrypt.hashSync('nenhuma-senha-confere-com-este-hash', 10);
+// (ou o aluno) não existe, a senha é comparada com ele mesmo assim: sem
+// isso o "não existe" responderia em 1 ms e o "senha errada" em ~70 ms (o
+// tempo do bcrypt), e a demora denunciaria quem existe.
+const HASH_DE_NINGUEM = bcrypt.hashSync('nenhuma-senha-confere-com-este-hash', CUSTO_BCRYPT);
 
 @Injectable()
 export class AutenticacaoService {
@@ -60,16 +83,21 @@ export class AutenticacaoService {
   ) {}
 
   async entrar(corpo: CorpoDoLogin): Promise<RespostaLogin> {
-    // As pontas da senha são aparadas antes de comparar: senha colada
-    // costuma trazer espaço ou quebra de linha no fim. É seguro porque o
-    // cadastro recusa senha com espaço nas pontas (regra do contrato).
+    // As pontas da senha são aparadas antes de tudo: senha colada costuma
+    // trazer espaço ou quebra de linha no fim. É seguro porque nenhuma
+    // senha gravada tem espaço nas pontas — a de conta é recusada assim no
+    // cadastro, e a de aluno é gravada já aparada (ver entrarComoAluno).
     const senha = String(corpo?.senha ?? '').trim();
 
-    if (corpo?.perfil === 'Aluno') {
-      return this.entrarComoAluno(normalizarRp(corpo.rp), senha);
+    if (corpo?.codigo !== undefined) {
+      return this.entrarComoAluno(normalizarCodigo(corpo.codigo), normalizarNome(corpo.nome), senha);
     }
     return this.entrarComoConta(normalizarEmail(corpo?.email), senha);
   }
+
+  // ==========================================================================
+  // Conta (Users)
+  // ==========================================================================
 
   private async entrarComoConta(email: string, senha: string): Promise<RespostaLogin> {
     const conta = await this.banco.users.findUnique({
@@ -100,44 +128,93 @@ export class AutenticacaoService {
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario };
   }
 
-  private async entrarComoAluno(rp: string, senha: string): Promise<RespostaLogin> {
-    const aluno = await this.banco.alunos.findUnique({
-      where: { ID: rp },
-      include: {
-        // A conta dona (alunos -> users), de onde vem o nome.
-        users: { select: { Nome: true } },
-        // As turmas em que ele está ATIVO (aceitou o convite) e que não
-        // foram arquivadas — as mesmas que GET /aluno/salas mostra.
-        // Convidado ou recusado ainda não é aluno da turma.
-        classmembers: {
-          where: { Status: 'ativo', classesprof: { Ativa: true } },
-          orderBy: { Data_Matricula: 'asc' }, // na ordem em que ele entrou
-          include: { classesprof: { select: { ClassID: true, NomeTurma: true } } },
-        },
-      },
-    });
+  // ==========================================================================
+  // Aluno (Alunos, dentro de uma turma)
+  // ==========================================================================
 
-    const senhaCerta = await senhaConfere(senha, aluno?.SenhaHash ?? null);
-    if (!aluno || !senhaCerta) {
+  private async entrarComoAluno(codigo: string, nome: string, senha: string): Promise<RespostaLogin> {
+    const aluno = await this.procurarAluno(codigo, nome);
+
+    if (aluno === null) {
+      // Gasta o tempo de um bcrypt mesmo sem aluno, pelo mesmo motivo da
+      // conta: a demora não pode dizer se o nome está na turma.
+      await senhaConfere(senha, null);
       throw credenciaisInvalidas();
     }
-    if (aluno.Ativo === false) {
-      throw contaDesativada();
+
+    // SenhaHash NULL: o aluno nunca entrou (ou o professor zerou a senha).
+    if (aluno.SenhaHash === null) {
+      return this.primeiroAcesso(aluno, senha);
     }
 
+    const senhaCerta = await senhaConfere(senha, aluno.SenhaHash);
+    if (!senhaCerta) {
+      throw credenciaisInvalidas();
+    }
+    // Só depois da senha certa, como na conta: o 403 confirmaria que o
+    // nome está na turma.
+    exigirAlunoLiberado(aluno);
+
+    return this.respostaDoAluno(aluno);
+  }
+
+  // A linha de Alunos com esse nome, na turma desse código; null se não há.
+  //
+  // A comparação de Nome e de Codigo é a do banco: as duas colunas são
+  // utf8mb4_unicode_ci, que ignora maiúscula e acento ("ana pires" acha
+  // "Ána Pires") e espaço no fim. Comparar aqui no JavaScript daria duas
+  // regras para a mesma pergunta — e o UNIQUE (ClassID, Nome) do banco,
+  // que é quem impede dois nomes iguais na turma, usa a do banco.
+  private procurarAluno(codigo: string, nome: string) {
+    // Sem código ou sem nome não há o que procurar. Sem esta guarda,
+    // Nome = '' poderia casar com uma linha vazia que nunca deveria existir.
+    if (codigo === '' || nome === '') {
+      return Promise.resolve(null);
+    }
+    return this.banco.alunos.findFirst({
+      where: { Nome: nome, classesprof: { Codigo: codigo } },
+      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
+    });
+  }
+
+  // REGRA DO PRIMEIRO ACESSO: a senha enviada é validada e GRAVADA, e a
+  // resposta leva primeiroAcesso: true. Não há senha para conferir: quem
+  // chega primeiro com o código e o nome define a senha. É por isso que o
+  // professor tem o "zerar senha" e o "gerar código novo".
+  private async primeiroAcesso(aluno: AlunoEncontrado, senha: string): Promise<RespostaLogin> {
+    // Antes de gravar qualquer coisa: turma arquivada ou aluno desativado
+    // não ganha senha nova.
+    exigirAlunoLiberado(aluno);
+
+    const problema = problemaNaSenhaDoAluno(senha);
+    if (problema !== null) {
+      throw senhaForaDaRegra(problema);
+    }
+
+    const hash = await bcrypt.hash(senha, CUSTO_BCRYPT);
+    // updateMany com SenhaHash: null no filtro, e não um update pelo ID:
+    // se dois aparelhos fizerem o primeiro acesso do mesmo aluno ao mesmo
+    // tempo, só um grava. O outro encontra 0 linhas e cai no 401, como se
+    // tivesse digitado a senha errada — que, agora, é o que aconteceu.
+    const gravou = await this.banco.alunos.updateMany({
+      where: { ID: aluno.ID, SenhaHash: null },
+      data: { SenhaHash: hash },
+    });
+    if (gravou.count === 0) {
+      throw credenciaisInvalidas();
+    }
+
+    const resposta = await this.respostaDoAluno(aluno);
+    return { ...resposta, primeiroAcesso: true };
+  }
+
+  private async respostaDoAluno(aluno: AlunoEncontrado): Promise<RespostaLogin> {
     const usuario: UsuarioAluno = {
       id: aluno.ID,
-      // O nome é o da conta dona. Aluno antigo, sem conta ligada, usa a
-      // coluna Alunos.Nome. Sem nenhum dos dois vai null, e a tela mostra
-      // o RP — nunca um nome inventado.
-      nome: aluno.users?.Nome ?? aluno.Nome,
+      nome: aluno.Nome,
       tipo: 'aluno',
-      turmas: aluno.classmembers.map((matricula) => ({
-        id: matricula.classesprof.ClassID,
-        nome: matricula.classesprof.NomeTurma ?? '',
-      })),
+      turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],
     };
-
     return { token: await this.emitirToken(aluno.ID, 'aluno'), usuario };
   }
 
@@ -146,6 +223,9 @@ export class AutenticacaoService {
     return this.jwt.signAsync(conteudo);
   }
 }
+
+// O aluno como procurarAluno() devolve, já com a turma.
+type AlunoEncontrado = NonNullable<Awaited<ReturnType<AutenticacaoService['procurarAluno']>>>;
 
 // ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
@@ -156,15 +236,21 @@ function normalizarEmail(valor: unknown): string {
   return String(valor ?? '').trim().toLowerCase();
 }
 
-// O RP aceita espaço e minúscula ("rp 2025043"): o contrato manda o back
-// normalizar antes de procurar.
-function normalizarRp(valor: unknown): string {
-  return String(valor ?? '').replace(/\s+/g, '').toUpperCase();
+// O código como o professor escreveu na lousa: o aluno pode digitar com
+// espaço nas pontas ou minúsculo ("k7m2qx "). Maiúscula aqui só deixa o
+// valor na forma gravada; quem garante a comparação é a collation.
+function normalizarCodigo(valor: unknown): string {
+  return String(valor ?? '').trim().toUpperCase();
 }
 
-// Compara a senha com o hash. Sem hash (conta não existe, ou só entra pelo
-// Google), compara com HASH_DE_NINGUEM para gastar o mesmo tempo, e
-// responde false.
+// O nome sem espaço nas pontas e com os espaços repetidos do meio reduzidos
+// a um — a forma em que a importação grava. "Ana  Pires" acha "Ana Pires".
+function normalizarNome(valor: unknown): string {
+  return String(valor ?? '').trim().replace(/\s+/g, ' ');
+}
+
+// Compara a senha com o hash. Sem hash, compara com HASH_DE_NINGUEM para
+// gastar o mesmo tempo, e responde false.
 async function senhaConfere(senha: string, hash: string | null): Promise<boolean> {
   if (hash === null) {
     await bcrypt.compare(senha, HASH_DE_NINGUEM);
@@ -173,7 +259,18 @@ async function senhaConfere(senha: string, hash: string | null): Promise<boolean
   return bcrypt.compare(senha, hash);
 }
 
-// Os dois erros do login, no corpo que o contrato define para todo erro:
+// Aluno desativado (Alunos.Ativo) ou turma arquivada (ClassesProf.Ativa):
+// 403, com o mesmo código CONTA_INATIVA que a tela já trata.
+function exigirAlunoLiberado(aluno: AlunoEncontrado): void {
+  if (aluno.classesprof.Ativa === false) {
+    throw new ForbiddenException({ mensagem: 'Esta turma foi arquivada.', codigo: 'CONTA_INATIVA' });
+  }
+  if (aluno.Ativo === false) {
+    throw contaDesativada();
+  }
+}
+
+// Os erros do login, no corpo que o contrato define para todo erro:
 // { mensagem, codigo }. O Nest devolve o objeto passado tal como está.
 function credenciaisInvalidas(): UnauthorizedException {
   return new UnauthorizedException({ mensagem: 'Credenciais inválidas.', codigo: 'CREDENCIAIS' });
@@ -181,4 +278,8 @@ function credenciaisInvalidas(): UnauthorizedException {
 
 function contaDesativada(): ForbiddenException {
   return new ForbiddenException({ mensagem: 'Conta desativada.', codigo: 'CONTA_INATIVA' });
+}
+
+function senhaForaDaRegra(mensagem: string): BadRequestException {
+  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

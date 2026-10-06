@@ -45,25 +45,3 @@ export function formatarData(iso: string | null | undefined): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
 }
 
-// Quanto tempo passou desde a data: "hoje", "ontem", "há 5 dias", "há 2
-// meses". Conta em dias corridos de 24h a partir de agora — para dizer a
-// idade de um convite, a diferença de fuso de umas horas não importa.
-// Sem data, "—".
-export function haQuantoTempo(iso: string | null | undefined): string {
-  if (iso == null || iso === '') return '—';
-  const dias = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
-  if (!Number.isFinite(dias)) return '—';
-  if (dias <= 0) return 'hoje';
-  if (dias === 1) return 'ontem';
-  if (dias < 30) return `há ${dias} dias`;
-  const meses = Math.floor(dias / 30);
-  return meses === 1 ? 'há 1 mês' : `há ${meses} meses`;
-}
-
-// 'RP2025043' -> 'RP 2025043'. O espaço é só para ler: o valor que se copia
-// e que vai para o back é sempre o sem espaço. Fora do formato, mostra como
-// veio — esconder um RP estranho atrapalharia quem precisa reclamar dele.
-export function formatarRp(rp: string | null | undefined): string {
-  if (rp == null || rp === '') return '—';
-  return /^RP\d{7}$/.test(rp) ? `RP ${rp.slice(2)}` : rp;
-}

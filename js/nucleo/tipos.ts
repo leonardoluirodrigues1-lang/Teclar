@@ -22,7 +22,8 @@ export type Mundo = 'solo' | 'escola';
 
 /**
  * De qual tabela o login veio. NÃO é coluna do banco: o back sabe porque
- * autenticou em Users (e-mail e senha) ou em Alunos (RP e senha de aluno).
+ * autenticou em Users (e-mail e senha) ou em Alunos (código da turma, nome
+ * e senha).
  *   conta — Users. Acessa Solo E Professor.
  *   aluno — Alunos. Acessa só o mundo do aluno.
  */
@@ -39,7 +40,7 @@ export type Modo = 'solo' | 'professor';
 // 2. Usuário e sessão de login
 // ============================================================================
 
-/** Turma como aparece dentro do usuário aluno (conveniência do login). */
+/** A turma do aluno, como aparece dentro do usuário (conveniência do login). */
 export interface TurmaDoUsuario {
   id: string;
   nome: string;
@@ -50,9 +51,8 @@ export interface TurmaDoUsuario {
  * Espelha a tabela Users (ID, Nome, Email) mais campos de conveniência que
  * o back manda junto para a tela não pedir de novo logo após o login.
  *
- * nome e email são opcionais: o aluno não tem e-mail, e o nome dele é o
- * da conta dona (Alunos.UserID -> Users.Nome), que pode faltar. O id do
- * aluno é o RP. Ver sessao.nomeExibicao().
+ * email é opcional porque o aluno não tem e-mail. O id do aluno é o
+ * Alunos.ID, e o nome é o que o professor subiu na lista da turma.
  *
  * Não há campo de perfil: a tabela Users não tem essa coluna. O que existe
  * é `tipo` (de qual tabela o login veio) e, só no front, o modo (ver
@@ -60,66 +60,41 @@ export interface TurmaDoUsuario {
  */
 export interface Usuario {
   id: string;
-  /** nome null para aluno: a tabela Alunos não tem a coluna. */
   nome?: string | null;
   email?: string;
   tipo: TipoSessao;
   avatar?: string;
   /** Solo: campanha escolhida no lobby. Gravado por sessao.definirCampanha(). */
   campanhaAtiva?: string | null;
-  /** Escola: turmas em que o aluno está matriculado. */
+  /** Escola: a turma do aluno. Lista por compatibilidade: na v8 o aluno
+   *  é de UMA turma, então tem sempre um item. */
   turmas?: TurmaDoUsuario[];
   /** Escola: turma em uso. Gravado por sessao.definirTurma(). */
   turmaAtiva?: string | null;
 }
 
-/** Resposta de POST /auth/login. O cadastro devolve isto e mais a entrada
- *  de aluno (ver RespostaCadastro). */
+/** Resposta de POST /auth/login e de POST /auth/cadastro. */
 export interface RespostaLogin {
   token: string;
   usuario: Usuario;
+  /** Só no login de aluno, e só true: a senha enviada acabou de ser
+   *  gravada (Alunos.SenhaHash era NULL). A tela avisa para guardá-la. */
+  primeiroAcesso?: boolean;
 }
 
-/**
- * Resposta de POST /auth/cadastro: a sessão, como no login, mais a entrada
- * de aluno que o back gerou para a conta nova.
- *
- * senhaAluno vem em texto puro SÓ nesta resposta, nunca em outra: depois
- * dela o back guarda só o hash. A tela de cadastro mostra uma vez e não
- * grava em lugar nenhum — por isso o sessao.entrar() recebe só token e
- * usuario, nunca esta resposta inteira.
- */
-export interface RespostaCadastro extends RespostaLogin {
-  /** "RP" + 7 dígitos, ex.: RP2025043. */
-  rp: string;
-  senhaAluno: string;
-}
-
-/** Corpo de POST /auth/login. Conta entra por e-mail; aluno entra pelo RP
- *  e pela senha de aluno, e o perfil 'Aluno' diz ao back em qual tabela
- *  procurar. */
+/** Corpo de POST /auth/login. Conta entra por e-mail; aluno entra pelo
+ *  código da turma e pelo nome que o professor subiu — é a presença de
+ *  `codigo` que diz ao back em qual tabela procurar. */
 export interface CredenciaisEmail {
   email: string;
   senha: string;
 }
 export interface CredenciaisAluno {
-  perfil: 'Aluno';
-  rp: string;
+  codigo: string;
+  nome: string;
   senha: string;
 }
 export type Credenciais = CredenciaisEmail | CredenciaisAluno;
-
-/** Resposta de GET /conta/rp. null se a conta ainda não tem RP — a tela
- *  mostra "—". */
-export interface RpDaConta {
-  rp: string | null;
-}
-
-/** Resposta de POST /conta/rp/nova-senha: a senha de aluno nova, em texto
- *  puro, só nesta resposta. A antiga deixa de valer na mesma hora. */
-export interface NovaSenhaAluno {
-  senhaAluno: string;
-}
 
 /** Corpo de POST /auth/cadastro. */
 export interface DadosCadastro {
@@ -329,17 +304,15 @@ export interface EstatisticasSolo {
 
 export interface Turma {
   id: string;
+  /** ClassesProf.Codigo, gerado pelo back: o que o aluno digita no login. */
+  codigo: string;
   /** ProfessorID de ClassesProf: a conta dona. É isso que faz uma conta
    *  ser professora — não um perfil. */
   professorId: string;
   nome: string;
-  /** COUNT feito no back — o front não soma nada. Só alunos ATIVOS:
-   *  convidado que não respondeu não é aluno da turma ainda. */
+  /** COUNT feito no back — o front não soma nada. */
   totalAlunos: number;
   totalExercicios: number;
-  /** COUNT dos convites ainda sem resposta (ClassMembers com Status =
-   *  'convidado'). Opcional: só GET /turmas manda. */
-  convitesPendentes?: number;
   /** Texto pronto do back, ex.: "2026 · 1º semestre". A tela não monta. */
   periodo?: string;
   /** Semente do desenho da capa. Sem ela, a tela deriva uma do id. */
@@ -358,59 +331,38 @@ export interface TurmaDetalhe extends Turma {
 }
 
 /**
- * Linha de aluno numa turma (GET /turmas/:id/alunos). O `id` É o RP e é o
- * que identifica o aluno. Agregados vêm prontos do back; quem nunca
- * treinou tem os três últimos em null, e não em zero.
- *
- * `nome` é o da conta dona (Alunos.UserID -> Users.Nome): é a mesma
- * pessoa. Só aluno antigo, sem conta ligada, cai na coluna Nome de Alunos.
- * Sem nenhum dos dois vem null, e as telas mostram o RP.
+ * Linha de aluno numa turma (GET /turmas/:id/alunos). O `id` é o Alunos.ID,
+ * que só existe dentro desta turma: o mesmo aluno em outra turma é outra
+ * linha, com outro id. Agregados vêm prontos do back; quem nunca treinou
+ * tem os três últimos em null, e não em zero.
  */
 export interface Aluno {
   id: string;
-  nome?: string | null;
-  /** Data em que ele entrou na turma (a linha de ClassMembers). */
+  /** O nome que o professor subiu na lista. Sempre preenchido. */
+  nome: string;
+  /** Data em que o nome entrou na lista (Alunos.Data_Cadastro). */
   entrouEm: string;
+  /** false: ainda não fez o primeiro acesso, ou o professor zerou a senha
+   *  (Alunos.SenhaHash NULL). O próximo login dele grava a senha. */
+  senhaDefinida: boolean;
   totalSessoes: number;
   wpmMedio: number | null;
   precisaoMedia: number | null;
   ultimaAtividade: string | null;
 }
 
-/**
- * Estado do aluno na turma: a coluna Status de ClassMembers. 'recusado'
- * também existe no banco, mas não chega ao professor: para ele, convite
- * recusado é convite que sumiu.
- */
-export type EstadoNaTurma = 'ativo' | 'convidado';
-
-/** Linha de GET /turmas/:id/alunos de quem está na turma. */
-export interface AlunoAtivoDaTurma extends Aluno {
-  estado: 'ativo';
+/** Resposta de POST /turmas/:id/alunos/importar. Importação parcial é
+ *  permitida: cada nome da lista cai numa das três listas. */
+export interface ResultadoImportacao {
+  adicionados: Aluno[];
+  /** Nomes que já estavam na turma, na forma em que estão gravados. */
+  jaEstavam: string[];
+  falhas: { nome: string; motivo: string }[];
 }
 
-/** Linha de GET /turmas/:id/alunos de quem foi convidado e ainda não
- *  respondeu. Não traz número de desempenho nenhum: ainda não é aluno da
- *  turma, e nada dele entra em contador, média ou relatório. */
-export interface ConvidadoDaTurma {
-  estado: 'convidado';
-  /** O RP. */
-  id: string;
-  nome?: string | null;
-  convidadoEm: string;
-}
-
-/** Item de GET /turmas/:id/alunos: ativos e convidados, na mesma lista,
- *  sempre com o estado dizendo qual é qual. */
-export type LinhaDaTurma = AlunoAtivoDaTurma | ConvidadoDaTurma;
-
-/** Resposta de POST /turmas/:id/convites/importar. Importação parcial é
- *  permitida: cada RP cai numa das três listas. */
-export interface ResultadoConvites {
-  convidados: ConvidadoDaTurma[];
-  /** Já estavam na turma, ativos ou convidados: nada mudou para eles. */
-  jaEstavam: { rp: string; estado: EstadoNaTurma }[];
-  falhas: { rp: string; motivo: string }[];
+/** Resposta de POST /turmas/:id/codigo/novo. */
+export interface CodigoDaTurma {
+  codigo: string;
 }
 
 /**
@@ -599,7 +551,7 @@ export interface ResultadoSincronizacao {
 // ============================================================================
 // 10. Relatórios do professor (pages/professor/relatorios.html)
 // ============================================================================
-// Tudo aqui é AGREGADO PELO BACK, em SessionsProf com JOIN (Alunos_Turmas
+// Tudo aqui é AGREGADO PELO BACK, em SessionsProf com JOIN (Alunos
 // para saber quem é da turma, AtribuicoesProf para saber o que foi
 // atribuído, ExerciciosProf para o título). O front não calcula média de
 // nada: recebe pronto e mostra.
@@ -634,12 +586,10 @@ export interface RelatorioTurma extends DesempenhoTurma {
 /**
  * Uma linha da aba "Por aluno" (GET /turmas/:id/relatorio/alunos).
  *
- * Estende Aluno, então traz id (o RP, que É a identidade), o `nome`
- * (da conta dona, e pode faltar), totalSessoes, wpmMedio, precisaoMedia e
- * ultimaAtividade. Atenção: os agregados aqui são DA TURMA — só as sessões
- * dela entram na conta —, enquanto os de /turmas/:id/alunos são os do
- * aluno no sistema todo. São grandezas diferentes de propósito: um aluno
- * em duas turmas tem um relatório em cada uma.
+ * Estende Aluno, então traz id, nome, senhaDefinida, totalSessoes,
+ * wpmMedio, precisaoMedia e ultimaAtividade, todos DESTA turma — na v8 o
+ * aluno é de uma turma só, então são os mesmos números de
+ * /turmas/:id/alunos.
  *
  * Aluno que nunca treinou nesta turma vem com totalSessoes 0 e os demais
  * agregados em null (nunca em zero: zero afirmaria "treinou e fez 0 PPM").
@@ -675,7 +625,7 @@ export interface RelatorioExercicio extends AtribuicaoProfessor {
 
 /**
  * Uma sessão no modal de histórico do aluno
- * (GET /turmas/:id/alunos/:matricula/sessoes).
+ * (GET /turmas/:id/alunos/:alunoId/sessoes).
  *
  * É a Sessao de SessionsProf mais o título do exercício, que vem do JOIN —
  * a tela não tem a biblioteca do professor carregada para procurar o nome.
@@ -697,7 +647,7 @@ export interface SessaoDoAluno extends Sessao {
 // deve nem ter nome no contrato.
 //
 // As duas rotas (/aluno/historico e /aluno/resumo) são escopadas pelo
-// AlunoID DO TOKEN. Não recebem matrícula por parâmetro, de propósito: o
+// AlunoID DO TOKEN. Não recebem id de aluno por parâmetro, de propósito: o
 // front não tem como pedir o histórico de outra pessoa nem por engano.
 //
 // De novo, nada de tipo paralelo — os dois estendem o que já existia:
@@ -708,9 +658,9 @@ export interface SessaoDoAluno extends Sessao {
  * Uma linha da tabela do histórico.
  *
  * É a SessaoDoAluno do relatório do professor (sessão + título do
- * exercício, vindo do JOIN) mais o nome da turma — que ali não fazia
- * sentido, porque aquela rota já era de UMA turma, e aqui faz: o aluno vê
- * as sessões dele em todas as turmas em que está.
+ * exercício, vindo do JOIN) mais o nome da turma. Na v8 o aluno é de uma
+ * turma só, então o nome é sempre o mesmo; o campo fica para a forma da
+ * linha não mudar.
  */
 export interface SessaoDoHistorico extends SessaoDoAluno {
   /** Nome da turma da sessão. null: sessão sem turma (ou turma removida).
@@ -749,11 +699,11 @@ export interface ResumoDoAluno extends IndicadoresEscola {
 // 12. As salas do aluno (pages/aluno/dashboard.html e sala.html)
 // ============================================================================
 // "Sala" é a turma vista pelo aluno. Todas as rotas daqui saem do TOKEN,
-// como as da seção 11: nenhuma recebe RP ou id de aluno (ver o grupo
+// como as da seção 11: nenhuma recebe id de aluno (ver o grupo
 // escola.aluno em api.ts).
 
 /**
- * Item de GET /aluno/salas: uma turma em que ele está ATIVO, já com o
+ * Item de GET /aluno/salas: a turma dele, já com o
  * progresso DELE. Tudo pronto do back — a tela não conta nada.
  *
  * `professor` é o nome da conta dona da turma; null se não veio (a tela
@@ -765,7 +715,7 @@ export interface SalaDoAluno {
   nome: string;
   professor: string | null;
   capaSemente?: number;
-  /** Alunos ATIVOS da sala, ele incluído. COUNT do back. */
+  /** Alunos da sala, ele incluído. COUNT do back. */
   totalAlunos: number;
   /** Exercícios atribuídos que ele já fez (concluído ou tempo esgotado). */
   exerciciosFeitos: number;
@@ -849,20 +799,4 @@ export interface LinhaDoRanking {
   ritmo: number | null;
   diasSeguidos: number;
   pontos: number;
-}
-
-/**
- * Item de GET /aluno/convites: uma sala que convidou este aluno pelo RP e
- * ainda espera resposta (ClassMembers com Status = 'convidado'). Traz o
- * bastante para ele saber o que está aceitando.
- */
-export interface ConviteDoAluno {
-  turmaId: string;
-  nome: string;
-  /** Nome da conta dona da turma; null se não veio. */
-  professor: string | null;
-  /** Alunos ATIVOS da sala: quem só foi convidado não conta. */
-  totalAlunos: number;
-  totalExercicios: number;
-  convidadoEm: string | null;
 }

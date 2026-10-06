@@ -1,15 +1,16 @@
 // Alunos.tsx — pages/professor/alunos.html
-// Convidar alunos para uma turma, pelo RP: um por um ou importando um CSV
-// de RPs. A turma vem por ?turma=<id>; sem ela, painel de erro.
+// Adicionar alunos a uma turma, pelo NOME: um por um ou importando um CSV
+// de nomes. A turma vem por ?turma=<id>; sem ela, painel de erro.
 //
-// O professor não cria conta de ninguém e não vê senha de aluno. Toda
-// conta já nasce com um RP e uma senha de aluno (o dono vê o RP dele em
-// "Minha entrada como aluno", no menu). O professor convida o RP; o convite chega para
-// o aluno, que aceita ou recusa, e só depois de aceitar ele está na turma.
+// É a única porta de entrada do aluno (banco v8): cada nome vira uma linha
+// de Alunos dentro da turma, sem senha. O aluno entra com o código da
+// turma, o próprio nome e uma senha que ele cria no primeiro acesso. O
+// professor nunca vê nem define senha.
 //
-// Na importação o front lê o arquivo, parseia (js/utils/csv.ts, que não
-// mudou), confere linha a linha e manda o lote inteiro NUMA requisição.
-// Quem decide se cada RP existe e se já está na turma é o back.
+// Os dois caminhos usam a MESMA rota (POST /turmas/:id/alunos/importar):
+// um por um é uma lista de um nome. Na importação o front lê o arquivo,
+// parseia (js/utils/csv.ts), confere linha a linha e manda o lote inteiro
+// NUMA requisição. Quem decide se o nome já está na turma é o back.
 
 import {
   useEffect,
@@ -23,17 +24,15 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { ErroDaApi, ResultadoConvites } from '../nucleo/tipos.js';
+import type { ErroDaApi, ResultadoImportacao } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
-import { normalizarRp, validarRp } from '../utils/validacao.js';
-import { formatarRp } from '../utils/formato.js';
 import { parsearCsv, separarCabecalho, gerarCsv } from '../utils/csv.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
-// Limite do arquivo. 1 MB de RPs dá mais de 90 mil linhas — uma turma não
+// Limite do arquivo. 1 MB de nomes dá dezenas de milhares de linhas — uma turma não
 // tem isso; um arquivo maior é engano de arquivo.
 const TAMANHO_MAXIMO = 1024 * 1024;
 
@@ -42,7 +41,7 @@ const LINHAS_NA_PREVIA = 10;
 
 // O nome que a coluna pode ter no cabeçalho (é por ele que
 // separarCabecalho decide). Tudo o mais na primeira linha é dado.
-const COLUNAS_CONHECIDAS = ['rp'];
+const COLUNAS_CONHECIDAS = ['nome'];
 
 // Como o CSV SAI daqui: ";", igual ao export do relatório — o Excel em
 // português abre vírgula tudo numa coluna só. BOM só no ARQUIVO baixado
@@ -58,36 +57,6 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// Os erros do convite um por um, pelo CÓDIGO que o back manda (ver
-// api.alunos.convidar), nunca pelo texto dele.
-const ERRO_DO_CONVITE: Record<string, string> = {
-  RP_NAO_ENCONTRADO: 'Nenhuma conta com esse RP',
-  JA_NA_TURMA: 'Este RP já está na sua turma',
-  JA_CONVIDADO: 'Este RP já foi convidado e ainda não respondeu',
-  CONVITE_PROPRIO: 'Você não pode convidar a si mesmo',
-};
-
-// O RP da própria conta, para barrar o autoconvite na hora, sem ida ao
-// servidor. Quem barra de verdade é o back (CONVITE_PROPRIO); aqui é só
-// para a mensagem aparecer antes. Fica só no estado da tela: some ao sair.
-// null enquanto carrega ou se a rota falhar — aí o back responde.
-function useMeuRp(): string | null {
-  const [meuRp, setMeuRp] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelado = false;
-    api.conta
-      .rp()
-      .then((resposta) => {
-        if (!cancelado) setMeuRp(resposta?.rp ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-  return meuRp;
-}
-
 // O &nbsp; que o HTML original deixava no subtítulo: ele já tem a altura
 // certa antes de a turma chegar, e nada pula quando o nome aparece.
 const NBSP = String.fromCharCode(0xa0);
@@ -102,22 +71,23 @@ type Aba = 'um' | 'csv';
 interface LinhaConferida {
   numero: number;
   celulas: string[];
-  /** O RP já normalizado (sem espaço, em maiúscula). */
-  rp: string;
+  /** O nome já normalizado (pontas aparadas, um espaço só entre palavras). */
+  nome: string;
   motivo: string | null;
 }
 
-// Convite feito nesta visita. `seq` é só para a key da lista.
+// Nome mandado nesta visita, e o que o back disse dele. `seq` é só para a
+// key da lista.
 interface Recente {
   seq: number;
-  rp: string;
-  nome: string | null;
+  nome: string;
+  situacao: string;
 }
 
 type Passo = 'escolher' | 'conferir' | 'resultado';
 
 interface Resultado {
-  resposta: ResultadoConvites;
+  resposta: ResultadoImportacao;
   // Linhas que a conferência já tinha marcado e não foram enviadas.
   puladas: LinhaConferida[];
 }
@@ -135,16 +105,16 @@ function abaDaUrl(): Aba {
 
 function Alunos() {
   // Turma — só o nome, para o subtítulo. Turma inexistente derruba a tela
-  // inteira: não dá para convidar para lugar nenhum.
+  // inteira: não dá para adicionar a lugar nenhum.
   const [semTurma, setSemTurma] = useState<string | null>(
-    turmaId ? null : 'Esta página precisa de uma turma. Abra o convite a partir da turma.'
+    turmaId ? null : 'Esta página precisa de uma turma. Abra a lista de alunos a partir da turma.'
   );
   const [nomeTurma, setNomeTurma] = useState(NBSP);
+  const [codigo, setCodigo] = useState<string | null>(null);
   const [abaAtual, setAbaAtual] = useState<Aba>(abaDaUrl);
 
   const abaUm = useRef<HTMLButtonElement>(null);
   const abaCsv = useRef<HTMLButtonElement>(null);
-  const meuRp = useMeuRp();
 
   useEffect(() => {
     if (!turmaId) return;
@@ -155,7 +125,8 @@ function Alunos() {
         const turma = await api.turmas.obter(turmaId);
         if (cancelado) return;
         setNomeTurma(turma?.nome ?? 'Turma sem nome');
-        document.title = `Teclar — Convidar para ${turma?.nome ?? 'turma'}`;
+        setCodigo(turma?.codigo ?? null);
+        document.title = `Teclar — Alunos de ${turma?.nome ?? 'turma'}`;
       } catch (excecao) {
         if (cancelado) return;
         if (ehErroApi(excecao) && excecao.status === 404) {
@@ -196,7 +167,7 @@ function Alunos() {
   }
 
   // Substitui o corpo inteiro: sem turma, nem formulário nem importação
-  // têm para onde mandar o convite.
+  // têm para onde mandar o nome.
   if (semTurma) {
     return (
       <>
@@ -226,7 +197,7 @@ function Alunos() {
 
         <div className="cabecalho">
           <div className="cabecalho-texto">
-            <h1 className="titulo">Convidar alunos</h1>
+            <h1 className="titulo">Adicionar alunos</h1>
             <p className="subtitulo" id="nome-turma">
               {nomeTurma}
             </p>
@@ -234,13 +205,19 @@ function Alunos() {
         </div>
 
         {/* Antes das abas, e não no rodapé: é a dúvida que o professor tem
-            antes de convidar — de onde vem o RP e quando o aluno entra. */}
+            antes de adicionar — como o aluno entra depois. */}
         <p className="aviso-convite">
-          Peça o RP a cada aluno: ele fica na conta dele, em "Minha entrada como aluno". O aluno recebe o
-          convite e só entra na turma quando aceitar.
+          Escreva o nome como o aluno vai digitar no login. Ele entra com o código da turma
+          {codigo ? (
+            <>
+              {' '}
+              <strong className="col-mono">{codigo}</strong>
+            </>
+          ) : null}
+          , o próprio nome e uma senha que ele mesmo cria na primeira vez.
         </p>
 
-        <div className="abas" role="tablist" aria-label="Formas de convidar">
+        <div className="abas" role="tablist" aria-label="Formas de adicionar">
           <button
             type="button"
             className="aba tecla"
@@ -275,10 +252,10 @@ function Alunos() {
             O que foi digitado ou importado numa aba sobrevive à troca. */}
         <div id="conteudo" role="tabpanel" aria-labelledby={abaAtual === 'um' ? 'aba-um' : 'aba-csv'}>
           <section id="painel-um" hidden={abaAtual !== 'um'}>
-            <UmPorUm meuRp={meuRp} />
+            <UmPorUm />
           </section>
           <section id="painel-csv" hidden={abaAtual !== 'csv'}>
-            <ImportarCsv meuRp={meuRp} />
+            <ImportarCsv />
           </section>
         </div>
       </main>
@@ -290,24 +267,23 @@ function Alunos() {
 // Aba 1 — um por um
 // ============================================================================
 
-function UmPorUm({ meuRp }: { meuRp: string | null }) {
+function UmPorUm() {
   const campo = useRef<HTMLInputElement>(null);
-  const [rp, setRp] = useState('');
+  const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   // Uma requisição por vez: segura o clique repetido e o Enter repetido.
   // O ref é a trava síncrona; o estado é o que o botão mostra.
   const enviando = useRef(false);
   const [ocupado, setOcupado] = useState(false);
   // Mais recente no topo. Só em memória: some ao sair da página. Quem
-  // quer a lista de verdade vê na turma, com o estado de cada um.
+  // quer a lista de verdade vê na turma.
   const [recentes, setRecentes] = useState<Recente[]>([]);
   const proximoSeq = useRef(0);
 
-  async function convidar() {
+  async function adicionar() {
     if (enviando.current) return;
 
-    let invalido = validarRp(rp);
-    if (!invalido && normalizarRp(rp) === meuRp) invalido = ERRO_DO_CONVITE.CONVITE_PROPRIO;
+    const invalido = validarNomeDoAluno(nome);
     if (invalido) {
       setErro(invalido);
       campo.current?.focus();
@@ -319,20 +295,25 @@ function UmPorUm({ meuRp }: { meuRp: string | null }) {
     setErro(null);
 
     try {
-      const convidado = await api.alunos.convidar(turmaId, normalizarRp(rp));
-      setRecentes((lista) => [
-        { seq: proximoSeq.current++, rp: convidado.id, nome: convidado.nome ?? null },
-        ...lista,
-      ]);
-      toasts.mostrar('Convite enviado');
-      // Campo limpo e foco nele: o próximo RP entra sem tocar no mouse.
-      setRp('');
+      // A mesma rota da importação, com uma lista de um nome.
+      const resposta = await api.alunos.importar(turmaId, [normalizarNome(nome)]);
+      const [adicionado] = resposta.adicionados ?? [];
+      const [falha] = resposta.falhas ?? [];
+      if (falha) {
+        setErro(falha.motivo);
+        campo.current?.focus();
+        return;
+      }
+      const recente: Recente = adicionado
+        ? { seq: proximoSeq.current++, nome: adicionado.nome, situacao: 'Adicionado, ainda sem senha' }
+        : { seq: proximoSeq.current++, nome: resposta.jaEstavam?.[0] ?? nome, situacao: 'Já estava na turma' };
+      setRecentes((lista) => [recente, ...lista]);
+      toasts.mostrar(adicionado ? 'Aluno adicionado' : 'Já estava na turma');
+      // Campo limpo e foco nele: o próximo nome entra sem tocar no mouse.
+      setNome('');
       campo.current?.focus();
     } catch (excecao) {
-      // Os três erros esperados vão no campo, com o texto certo, e não
-      // num toast genérico.
-      const porCodigo = ehErroApi(excecao) ? ERRO_DO_CONVITE[excecao.codigo ?? ''] : undefined;
-      setErro(porCodigo ?? mensagemDaFalha(excecao));
+      setErro(mensagemDaFalha(excecao));
       campo.current?.focus();
     } finally {
       enviando.current = false;
@@ -348,70 +329,62 @@ function UmPorUm({ meuRp }: { meuRp: string | null }) {
         noValidate
         onSubmit={(evento) => {
           evento.preventDefault();
-          convidar();
+          adicionar();
         }}
       >
         <div className="campo-form">
-          <label htmlFor="campo-rp">RP do aluno</label>
+          <label htmlFor="campo-nome">Nome do aluno</label>
           <div className="linha-campo">
-            {/* Sem inputMode numérico: o RP começa com as letras "RP". */}
             <input
               type="text"
-              id="campo-rp"
-              name="rp"
+              id="campo-nome"
+              name="nome"
               ref={campo}
               autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              maxLength={12}
-              aria-describedby="erro-rp ajuda-rp"
+              autoCapitalize="words"
+              maxLength={150}
+              aria-describedby="erro-nome ajuda-nome"
               aria-invalid={Boolean(erro)}
               className={erro ? 'invalido' : undefined}
-              value={rp}
-              onChange={(evento) => setRp(evento.target.value)}
+              value={nome}
+              onChange={(evento) => setNome(evento.target.value)}
               // Validação no blur e no envio — nunca a cada tecla. Campo em
               // branco no blur não é erro ainda: a pessoa pode só ter
               // passado por ele com Tab.
               onBlur={() => {
-                if (rp === '') return;
-                setErro(validarRp(rp));
+                if (nome === '') return;
+                setErro(validarNomeDoAluno(nome));
               }}
             />
-            <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-convidar" disabled={ocupado}>
-              {ocupado ? 'Convidando…' : 'Convidar'}
+            <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-adicionar" disabled={ocupado}>
+              {ocupado ? 'Adicionando…' : 'Adicionar'}
             </button>
           </div>
-          <p className="erro-campo" id="erro-rp" aria-live="polite">
+          <p className="erro-campo" id="erro-nome" aria-live="polite">
             {erro}
           </p>
         </div>
-        <p className="ajuda-campo" id="ajuda-rp">
-          "RP" seguido de 7 números, ex.: RP 2025043. Espaço e letra minúscula não importam.
+        <p className="ajuda-campo" id="ajuda-nome">
+          Nome e sobrenome, de 2 a 150 caracteres. Maiúscula e acento não diferenciam dois nomes.
         </p>
       </form>
 
-      {/* Convites feitos nesta visita, mais recente no topo. */}
+      {/* Nomes mandados nesta visita, mais recente no topo. */}
       <section className="recentes" id="recentes" hidden={recentes.length === 0} aria-labelledby="recentes-titulo">
         <h2 className="secao-rotulo" id="recentes-titulo">
-          Convidados agora
+          Adicionados agora
         </h2>
-        <p className="ajuda-campo">Esta lista some ao sair da página. A turma mostra todos, com o estado.</p>
+        <p className="ajuda-campo">Esta lista some ao sair da página. A turma mostra todos.</p>
         <ul className="lista-convidados" id="lista-recentes">
           {recentes.map((recente) => (
             <li className="item-convidado" key={recente.seq}>
               <div>
-                <span className="item-convidado-rotulo">RP</span>
-                <span className="item-convidado-valor">{formatarRp(recente.rp)}</span>
+                <span className="item-convidado-rotulo">Nome</span>
+                <span className="item-convidado-valor item-convidado-nome">{recente.nome}</span>
               </div>
-              {recente.nome && (
-                <div>
-                  <span className="item-convidado-rotulo">Nome</span>
-                  <span className="item-convidado-valor item-convidado-nome">{recente.nome}</span>
-                </div>
-              )}
               <div>
-                <span className="item-convidado-rotulo">Estado</span>
-                <span className="item-convidado-valor">Convidado, aguardando resposta</span>
+                <span className="item-convidado-rotulo">Situação</span>
+                <span className="item-convidado-valor">{recente.situacao}</span>
               </div>
             </li>
           ))}
@@ -467,7 +440,7 @@ function CampoCopia({ copia }: { copia: Copia }) {
 // Aba 2 — importar CSV. Três passos na mesma página.
 // ============================================================================
 
-function ImportarCsv({ meuRp }: { meuRp: string | null }) {
+function ImportarCsv() {
   const arquivo = useRef<HTMLInputElement>(null);
   const btnImportar = useRef<HTMLButtonElement>(null);
   const tituloResultado = useRef<HTMLHeadingElement>(null);
@@ -510,9 +483,9 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
     // arquivo cru nunca vai para o back.
     const leitor = new FileReader();
     leitor.addEventListener('load', () => {
-      const conferidas = conferir(String(leitor.result ?? ''), meuRp);
+      const conferidas = conferir(String(leitor.result ?? ''));
       if (conferidas.length === 0) {
-        setErroArquivo('O arquivo não tem nenhuma linha de RP.');
+        setErroArquivo('O arquivo não tem nenhum nome.');
         arquivo.current.value = '';
         return;
       }
@@ -579,9 +552,9 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
     try {
       // O lote inteiro numa requisição só. Uma por linha travaria a tela
       // e deixaria a turma pela metade se a rede caísse no meio.
-      const resposta = await api.alunos.convidarVarios(
+      const resposta = await api.alunos.importar(
         turmaId,
-        validas.map((l) => l.rp)
+        validas.map((l) => l.nome)
       );
       mostrarResultado(resposta, linhas.filter((l) => l.motivo));
       toasts.mostrar('Importação concluída');
@@ -602,7 +575,7 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
 
   // --- passo 3: resultado ---------------------------------------------------
 
-  function mostrarResultado(resposta: ResultadoConvites, puladas: LinhaConferida[]) {
+  function mostrarResultado(resposta: ResultadoImportacao, puladas: LinhaConferida[]) {
     // flushSync: o passo 3 precisa estar à vista ANTES de o título ganhar foco.
     flushSync(() => {
       setResultado({ resposta, puladas });
@@ -620,10 +593,10 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
 
   // O botão diz o que vai acontecer. Sem linha boa não há o que mandar.
   const rotuloImportar = ocupado
-    ? 'Convidando…'
+    ? 'Adicionando…'
     : validas.length === 0
-      ? 'Nada para convidar'
-      : `Convidar ${validas.length} ${validas.length === 1 ? 'aluno' : 'alunos'}`;
+      ? 'Nada para adicionar'
+      : `Adicionar ${validas.length} ${validas.length === 1 ? 'aluno' : 'alunos'}`;
 
   return (
     <>
@@ -650,7 +623,7 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
               ref={arquivo}
               className="sr-only"
               accept=".csv,text/csv"
-              aria-label="Arquivo CSV de RPs"
+              aria-label="Arquivo CSV de nomes"
               aria-describedby="soltar-ajuda"
               disabled={travado}
               onChange={() => {
@@ -670,7 +643,7 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
               Escolher arquivo
             </button>
             <p className="soltar-ajuda" id="soltar-ajuda">
-              Uma coluna só, <code>rp</code>. Até 1 MB.
+              Uma coluna só, <code>nome</code>. Até 1 MB.
             </p>
             <p className="erro-campo" id="erro-arquivo" aria-live="polite">
               {erroArquivo}
@@ -766,12 +739,13 @@ function ImportarCsv({ meuRp }: { meuRp: string | null }) {
 }
 
 // Texto do arquivo -> linhas conferidas. A regra de cada linha:
-//   · uma coluna só, o RP (célula vazia sobrando no fim é tolerada — o
+//   · uma coluna só, o nome (célula vazia sobrando no fim é tolerada — o
 //     Excel costuma deixar um ";" a mais);
-//   · RP no formato, depois de tirar espaço e passar para maiúscula;
-//   · não repetido dentro do arquivo (o primeiro vale, os outros não).
-// Se o RP existe e se já está na turma, quem diz é o back.
-function conferir(texto: string, meuRp: string | null): LinhaConferida[] {
+//   · de 2 a 150 caracteres, depois de aparar e juntar os espaços;
+//   · não repetido dentro do arquivo, sem diferenciar maiúscula nem acento
+//     (o primeiro vale, os outros não) — é como o banco compara.
+// Se o nome já está na turma, quem diz é o back.
+function conferir(texto: string): LinhaConferida[] {
   const { linhas: brutas } = parsearCsv(texto);
   // primeiraLinha: número da linha de dados[0] como a planilha numera —
   // já descontando cabeçalho e linhas em branco antes dele.
@@ -786,19 +760,20 @@ function conferir(texto: string, meuRp: string | null): LinhaConferida[] {
     // registro: some, mas conta na numeração, que é a da planilha.
     if (celulas.every((c) => c === '')) return;
 
-    const rp = normalizarRp(celulas[0]);
+    const nome = normalizarNome(celulas[0]);
+    const chave = chaveDoNome(nome);
     let motivo: string | null = null;
 
     // "Vazio" é a linha que tem conteúdo, mas não na primeira coluna.
-    if (rp === '') motivo = 'RP vazio';
-    // Uma segunda coluna preenchida (o nome ao lado, por exemplo) também
-    // é formato errado: o arquivo é de uma coluna só.
-    else if (celulas.length > 1 || validarRp(rp)) motivo = 'RP fora do formato';
-    else if (rp === meuRp) motivo = 'É o seu próprio RP';
-    else if (vistos.has(rp)) motivo = `RP repetido no arquivo (igual à linha ${vistos.get(rp)})`;
-    else vistos.set(rp, numero);
+    if (nome === '') motivo = 'Nome vazio';
+    // Uma segunda coluna preenchida (sobrenome separado, turma ao lado)
+    // também é formato errado: o arquivo é de uma coluna só.
+    else if (celulas.length > 1) motivo = 'Mais de uma coluna';
+    else if (validarNomeDoAluno(nome)) motivo = validarNomeDoAluno(nome);
+    else if (vistos.has(chave)) motivo = `Nome repetido no arquivo (igual à linha ${vistos.get(chave)})`;
+    else vistos.set(chave, numero);
 
-    conferidas.push({ numero, celulas, rp, motivo });
+    conferidas.push({ numero, celulas, nome, motivo });
   });
   return conferidas;
 }
@@ -812,11 +787,10 @@ function semVaziasNoFim(celulas: string[]): string[] {
 const colunasPrevia: ColunaTabela<LinhaConferida>[] = [
   { rotulo: 'Linha', classe: 'col-numero', celula: (linha) => String(linha.numero) },
   {
-    rotulo: 'RP',
-    classe: 'col-mono',
+    rotulo: 'Nome',
     // Linha ruim mostra o que veio, não o que a tela entendeu: é isso
     // que a pessoa vai procurar na planilha.
-    celula: (linha) => (linha.motivo ? linha.celulas.join(' | ') || '(vazio)' : formatarRp(linha.rp)),
+    celula: (linha) => (linha.motivo ? linha.celulas.join(' | ') || '(vazio)' : linha.nome),
   },
   {
     rotulo: 'Situação',
@@ -839,7 +813,7 @@ function ResultadoImportado({
   resultado: Resultado;
   aoImportarOutro: () => void;
 }) {
-  const { convidados = [], jaEstavam = [], falhas = [] } = resposta ?? {};
+  const { adicionados = [], jaEstavam = [], falhas = [] } = resposta ?? {};
   const [copia, setCopia] = useState<Copia | null>(null);
   const vez = useRef(0);
 
@@ -849,29 +823,23 @@ function ResultadoImportado({
     <div>
       {/* Três números no mesmo painel das métricas da turma. */}
       <div className="metricas-turma vidro">
-        <MetricaResultado rotulo="Convidados" valor={convidados.length} />
+        <MetricaResultado rotulo="Adicionados" valor={adicionados.length} />
         <MetricaResultado rotulo="Já estavam" valor={jaEstavam.length} />
         <MetricaResultado rotulo="Falharam" valor={totalFalhas} />
       </div>
 
-      {convidados.length > 0 && (
-        <Grupo titulo="Convidados" texto="O convite chegou para eles. Cada um entra na turma quando aceitar.">
-          <p className="item-falha-id">{convidados.map((c) => formatarRp(c.id)).join(', ')}</p>
+      {adicionados.length > 0 && (
+        <Grupo
+          titulo="Adicionados"
+          texto="Já estão na turma. Cada um cria a própria senha no primeiro acesso, com o código da turma e o nome."
+        >
+          <p className="item-falha-id">{adicionados.map((a) => a.nome).join(', ')}</p>
         </Grupo>
       )}
 
       {jaEstavam.length > 0 && (
-        <Grupo titulo="Já estavam" texto="Já estavam na turma, ou já tinham um convite esperando resposta. Nada mudou para eles.">
-          <ul className="lista-falhas">
-            {jaEstavam.map((j) => (
-              <li className="item-falha" key={j.rp}>
-                <span className="item-falha-id">{formatarRp(j.rp)}</span>
-                <span className="item-convidado-estado">
-                  {j.estado === 'ativo' ? 'Já está na turma' : 'Já convidado, sem resposta'}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <Grupo titulo="Já estavam" texto="Já estavam na turma. Nada mudou para eles.">
+          <p className="item-falha-id">{jaEstavam.join(', ')}</p>
         </Grupo>
       )}
 
@@ -879,7 +847,7 @@ function ResultadoImportado({
         <Grupo titulo="Falharam" texto="Corrija na planilha e importe só estas de novo.">
           <ul className="lista-falhas">
             {falhas.map((f, i) => (
-              <ItemFalha key={`back-${i}`} id={formatarRp(f.rp)} motivo={f.motivo} />
+              <ItemFalha key={`back-${i}`} id={f.nome || '(vazio)'} motivo={f.motivo} />
             ))}
             {puladas.map((l) => (
               <ItemFalha
@@ -900,9 +868,9 @@ function ResultadoImportado({
             className="btn btn-vidro vidro tecla"
             onClick={() => {
               // CSV pronto para reimportar: cabeçalho e as linhas como vieram
-              // (as do back, pelo RP; as puladas, com as células brutas).
+              // (as do back, pelo nome; as puladas, com as células brutas).
               const csv = gerarCsv(
-                [['rp'], ...falhas.map((f) => [f.rp]), ...puladas.map((l) => l.celulas)],
+                [['nome'], ...falhas.map((f) => [f.nome]), ...puladas.map((l) => l.celulas)],
                 CSV_COPIA
               );
               copiarTexto(csv, setCopia, ++vez.current);
@@ -957,14 +925,14 @@ function MetricaResultado({ rotulo, valor }: { rotulo: string; valor: number }) 
 // --- modelo -----------------------------------------------------------------
 
 // Gerado aqui, com Blob: não há o que pedir ao back para um arquivo de
-// três linhas. O cabeçalho e dois RPs de exemplo.
+// três linhas. O cabeçalho e dois nomes de exemplo.
 function baixarModelo() {
-  const csv = gerarCsv([['rp'], ['RP2025001'], ['RP2025002']], CSV_ARQUIVO);
+  const csv = gerarCsv([['nome'], ['Ana Pires'], ['Bruno Sato']], CSV_ARQUIVO);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'modelo-convites.csv';
+  a.download = 'modelo-alunos.csv';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -975,6 +943,26 @@ function baixarModelo() {
 // ============================================================================
 // Apoio
 // ============================================================================
+
+// Como o back grava o nome: pontas aparadas, um espaço só entre palavras.
+function normalizarNome(valor: unknown): string {
+  return String(valor ?? '').trim().replace(/\s+/g, ' ');
+}
+
+// Como o banco COMPARA nomes (sem maiúscula nem acento): "ana pires" e
+// "Ána Pires" são o mesmo aluno.
+function chaveDoNome(valor: unknown): string {
+  return normalizarNome(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// Os limites do VARCHAR(150) de Alunos.Nome, como o back confere.
+function validarNomeDoAluno(valor: unknown): string | null {
+  const nome = normalizarNome(valor);
+  if (nome.length === 0) return 'Informe o nome do aluno.';
+  if (nome.length < 2) return 'O nome precisa de pelo menos 2 caracteres.';
+  if (nome.length > 150) return 'O nome pode ter no máximo 150 caracteres.';
+  return null;
+}
 
 function formatarTamanho(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;

@@ -35,7 +35,7 @@ export interface SecoesNav {
    *  entrada de aluno, que não abre Solo nem Professor. */
   outroModo: { rotulo: string; modo: Modo } | null;
   itens: ItemNav[];
-  /** 'aluno': a sessão é a entrada de aluno (RP + senha de aluno), e o
+  /** 'aluno': a sessão é a entrada de aluno (código da turma, nome e senha), e o
    *  menu muda — ver MenuDaConta. */
   sessao: 'conta' | 'aluno';
 }
@@ -110,7 +110,7 @@ export function Nav({ secoes, ativo }: PropsNav) {
 // O avatar com o menu da conta, sem a barra. A Nav usa no canto dela; a
 // tela de turmas, que não tem barra no topo, usa sozinho, fixo no canto.
 export function MenuDaConta({ secoes }: { secoes: SecoesNav }) {
-  // Conta: o nome da tabela Users. Aluno sem nome: o RP (ver sessao.nomeExibicao).
+  // Conta: o nome da tabela Users. Aluno: o nome da lista da turma.
   const nome = sessao.nomeExibicao();
 
   const [aberto, setAberto] = useState(false);
@@ -227,8 +227,8 @@ export function MenuDaConta({ secoes }: { secoes: SecoesNav }) {
   );
 }
 
-// Os itens da CONTA (Professor): o atalho para o outro modo, a tela dos
-// três cartões e o RP. O href é relativo às páginas que montam o menu,
+// Os itens da CONTA (Professor): o atalho para o outro modo e a tela dos
+// três cartões. O href é relativo às páginas que montam o menu,
 // todas em pages/<mundo>/.
 function ItensDaConta({ secoes, aoEscolher }: { secoes: SecoesNav; aoEscolher: () => void }) {
   return (
@@ -254,10 +254,6 @@ function ItensDaConta({ secoes, aoEscolher }: { secoes: SecoesNav; aoEscolher: (
           aqui que a conta chega à entrada de aluno sem sair. */}
       <a className="menu-item" href="../modo.html" role="menuitem" onClick={aoEscolher}>
         Trocar de modo
-      </a>
-      {/* O bloco do RP, em Configurações do modo. */}
-      <a className="menu-item" href="configuracoes.html#entrada-aluno" role="menuitem" onClick={aoEscolher}>
-        Minha entrada como aluno
       </a>
     </>
   );

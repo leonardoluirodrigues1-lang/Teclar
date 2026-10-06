@@ -3,21 +3,21 @@
 // painel de relatório) é a mesma do aluno e mora em
 // ../componentes/TelaDaTurma.tsx; aqui fica só o que muda para o professor:
 //
-//   · o cabeçalho tem as ações (Convidar alunos, Atribuir exercício) e o
-//     painel de métricas da turma;
+//   · o cabeçalho tem as ações (Adicionar alunos, Atribuir exercício) e o
+//     painel de métricas da turma, com o CÓDIGO que os alunos digitam no
+//     login e o "Gerar novo" para quando ele vazar;
 //   EXERCÍCIOS     a trilha na visão da turma — cada pedra diz quantos
 //                  alunos concluíram — e, embaixo, a tabela de atribuições
 //                  com o "Remover atribuição";
-//   PARTICIPANTES  a lista inteira, ativos e convidados, com nome e RP. O
+//   PARTICIPANTES  a lista inteira, com quem já criou senha e quem ainda
+//                  não entrou, o "Zerar senha" (o aluno não tem e-mail: quem
+//                  esqueceu a senha só volta por aqui) e o "Remover". O
 //                  professor não tem anonimização: a turma é dele.
 //   RELATÓRIO      os números da turma inteira (GET /turmas/:id/relatorio),
 //                  com PDF, CSV e o link para o relatório completo.
 //
 // Sem ?turma=, ou com um id que o back não conhece, a tela mostra "Turma
 // não encontrada" — nunca fica em branco.
-//
-// Convidado não é aluno da turma ainda: aparece apagado, com a data do
-// convite e sem número nenhum, e fica de fora do contador e da média.
 
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -25,11 +25,10 @@ import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
-  AlunoAtivoDaTurma,
+  Aluno,
   AtribuicaoProfessor,
   ErroDaApi,
   Exercicio,
-  LinhaDaTurma,
   RelatorioTurma,
   TurmaDetalhe,
 } from '../nucleo/tipos.js';
@@ -46,7 +45,7 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { contagem, formatarData, formatarDataHora, formatarRp, numero, porcentagem } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
@@ -76,10 +75,12 @@ type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
   | { estado: 'nao-encontrada' }
-  | { estado: 'pronto'; turma: TurmaDetalhe; alunos: LinhaDaTurma[]; atribuicoes: AtribuicaoProfessor[] };
+  | { estado: 'pronto'; turma: TurmaDetalhe; alunos: Aluno[]; atribuicoes: AtribuicaoProfessor[] };
 
 type ConfigModal =
-  | { chave: number; tipo: 'remover-aluno'; aluno: LinhaDaTurma }
+  | { chave: number; tipo: 'remover-aluno'; aluno: Aluno }
+  | { chave: number; tipo: 'zerar-senha'; aluno: Aluno }
+  | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
   | { chave: number; tipo: 'atribuir'; opener: HTMLElement };
 
@@ -144,15 +145,13 @@ function Turma() {
 
   const turma = carga.estado === 'pronto' ? carga.turma : null;
   const alunos = carga.estado === 'pronto' ? carga.alunos : [];
-  // Só os ativos contam: no número de alunos e na média de PPM.
-  const ativos = alunos.filter((a): a is AlunoAtivoDaTurma => a.estado === 'ativo');
   const atribuicoes = carga.estado === 'pronto' ? carga.atribuicoes : [];
 
   useEffect(() => {
     if (turma) document.title = `Teclar — ${turma.nome ?? 'Turma'}`;
   }, [turma]);
 
-  function atualizarAlunos(transformar: (lista: LinhaDaTurma[]) => LinhaDaTurma[]) {
+  function atualizarAlunos(transformar: (lista: Aluno[]) => Aluno[]) {
     setCarga((atual) =>
       atual.estado === 'pronto' ? { ...atual, alunos: transformar(atual.alunos) } : atual
     );
@@ -227,10 +226,10 @@ function Turma() {
       return (
         <PainelEstado
           titulo="Nenhum aluno ainda"
-          texto="Convide alunos pelo RP para acompanhar sessões, PPM e precisão deles nesta turma."
+          texto="Adicione os nomes dos alunos. Eles entram com o código da turma e criam a própria senha."
         >
           <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
-            Convidar alunos
+            Adicionar alunos
           </a>
         </PainelEstado>
       );
@@ -241,73 +240,64 @@ function Turma() {
         colunas={colunasAlunos}
         linhas={ordenar(alunos, ordenacaoAlunos, valorOrdenavelAluno)}
         chave={(aluno) => aluno.id}
-        // Convidado, ou ativo que nunca treinou: a linha fica mais apagada,
-        // para o olho ir direto a quem já tem alguma coisa para mostrar.
-        classeLinha={(aluno) =>
-          aluno.estado === 'convidado' || aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined
-        }
+        // Quem nunca treinou: a linha fica mais apagada, para o olho ir
+        // direto a quem já tem alguma coisa para mostrar.
+        classeLinha={(aluno) => (aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined)}
         ordenacao={ordenacaoAlunos}
         aoOrdenar={setOrdenacaoAlunos}
       />
     );
   }
 
-  // Colunas das duas tabelas. O RP É a identidade do aluno; o nome é o da
-  // conta dele, e pode faltar. Veio nome: nome em cima, RP embaixo (mesma
-  // célula dos relatórios). Não veio: só o RP, nunca um nome inventado.
-  // Convidado não tem número nenhum: as colunas de desempenho ficam "—".
-  const colunasAlunos: ColunaTabela<LinhaDaTurma>[] = [
+  // Colunas das duas tabelas. O aluno é o nome da lista da turma; o id dele
+  // não aparece (só existe dentro desta turma e não diz nada a ninguém).
+  const colunasAlunos: ColunaTabela<Aluno>[] = [
     {
       rotulo: 'Aluno',
-      campo: 'rp',
-      celula: (a) =>
-        a.nome ? (
-          <span className="celula-aluno">
-            <span className="celula-aluno-nome">{a.nome}</span>
-            <span className="celula-aluno-matricula">{formatarRp(a.id)}</span>
-          </span>
-        ) : (
-          <span className="celula-aluno-matricula celula-aluno-so-matricula">{formatarRp(a.id)}</span>
-        ),
+      campo: 'nome',
+      celula: (a) => <span className="celula-aluno-nome">{a.nome}</span>,
     },
     {
-      rotulo: 'Estado',
-      celula: (a) =>
-        a.estado === 'ativo' ? 'Ativo' : `Convidado em ${formatarData(a.convidadoEm)}`,
+      rotulo: 'Acesso',
+      celula: (a) => (a.senhaDefinida ? 'Senha criada' : 'Ainda não entrou'),
     },
-    { rotulo: 'Entrou em', celula: (a) => (a.estado === 'ativo' ? formatarData(a.entrouEm) : '—') },
-    {
-      rotulo: 'Sessões',
-      classe: 'col-numero',
-      celula: (a) => (a.estado === 'ativo' ? contagem(a.totalSessoes) : '—'),
-    },
-    {
-      rotulo: 'PPM médio',
-      campo: 'ppm',
-      classe: 'col-numero',
-      celula: (a) => (a.estado === 'ativo' ? contagem(a.wpmMedio) : '—'),
-    },
+    { rotulo: 'Na lista desde', celula: (a) => formatarData(a.entrouEm) },
+    { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
+    { rotulo: 'PPM médio', campo: 'ppm', classe: 'col-numero', celula: (a) => contagem(a.wpmMedio) },
     {
       rotulo: 'Precisão média',
       classe: 'col-numero',
-      celula: (a) => (a.estado === 'ativo' && Number.isFinite(a.precisaoMedia) ? `${a.precisaoMedia}%` : '—'),
+      celula: (a) => (Number.isFinite(a.precisaoMedia) ? `${a.precisaoMedia}%` : '—'),
     },
     {
       rotulo: 'Última atividade',
       campo: 'ultimaAtividade',
-      celula: (a) => (a.estado === 'ativo' && a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : '—'),
+      celula: (a) => (a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : '—'),
     },
     {
       rotulo: 'Ação',
       celula: (aluno) => (
-        <button
-          type="button"
-          className="tabela-acao"
-          aria-label={`Remover ${formatarRp(aluno.id)} da turma`}
-          onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno })}
-        >
-          Remover da turma
-        </button>
+        <>
+          {/* Sem senha não há o que zerar: o próximo login já é o primeiro. */}
+          {aluno.senhaDefinida && (
+            <button
+              type="button"
+              className="tabela-acao"
+              aria-label={`Zerar a senha de ${aluno.nome}`}
+              onClick={() => setModal({ chave: ++proximaChave, tipo: 'zerar-senha', aluno })}
+            >
+              Zerar senha
+            </button>
+          )}
+          <button
+            type="button"
+            className="tabela-acao"
+            aria-label={`Remover ${aluno.nome} da turma`}
+            onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno })}
+          >
+            Remover da turma
+          </button>
+        </>
       ),
     },
   ];
@@ -348,30 +338,73 @@ function Turma() {
 
     if (modal.tipo === 'remover-aluno') {
       const { aluno } = modal;
-      const convidado = aluno.estado === 'convidado';
       return (
         <ModalRemover
           key={modal.chave}
           eyebrow="Remover aluno"
           titulo="Remover da turma?"
           texto={
-            convidado
-              ? `${formatarRp(aluno.id)} foi convidado e ainda não respondeu. O convite será cancelado e ` +
-                'some da lista dele.'
-              : `Remover ${formatarRp(aluno.id)} desta turma apaga também o histórico de sessões dele ` +
-                'aqui. Essa ação não pode ser desfeita.'
+            `Remover ${aluno.nome} desta turma apaga também o histórico de sessões dele aqui, e ele deixa ` +
+            'de conseguir entrar. Essa ação não pode ser desfeita.'
           }
-          rotuloAcao={convidado ? 'Cancelar convite' : 'Remover da turma'}
-          // Convidado não está na turma ainda: o que se desfaz é o convite.
-          enviar={() =>
-            convidado ? api.alunos.cancelarConvite(turmaId, aluno.id) : api.alunos.remover(turmaId, aluno.id)
-          }
+          rotuloAcao="Remover da turma"
+          enviar={() => api.alunos.remover(turmaId, aluno.id)}
           aoConcluir={() => {
             atualizarAlunos((lista) => lista.filter((a) => a.id !== aluno.id));
-            toasts.mostrar(convidado ? 'Convite cancelado' : 'Aluno removido da turma');
+            toasts.mostrar('Aluno removido da turma');
             // A linha (e o botão que a pessoa clicou) acabou de sumir do DOM;
             // a aba é o próximo lugar estável para o foco pousar.
             focarAba('participantes');
+          }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'zerar-senha') {
+      const { aluno } = modal;
+      return (
+        <ModalRemover
+          key={modal.chave}
+          eyebrow={aluno.nome}
+          titulo="Zerar a senha?"
+          texto={
+            'A senha atual deixa de valer. No próximo login, com o código da turma e o nome, a senha que ' +
+            'ele digitar vira a nova. Até lá, qualquer pessoa com o código e o nome dele pode criar essa ' +
+            'senha: zere com o aluno por perto. O histórico não muda.'
+          }
+          rotuloAcao="Zerar senha"
+          rotuloOcupado="Zerando…"
+          enviar={() => api.alunos.zerarSenha(turmaId, aluno.id)}
+          aoConcluir={() => {
+            atualizarAlunos((lista) => lista.map((a) => (a.id === aluno.id ? { ...a, senhaDefinida: false } : a)));
+            toasts.mostrar('Senha zerada');
+            focarAba('participantes');
+          }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'novo-codigo') {
+      return (
+        <ModalRemover
+          key={modal.chave}
+          eyebrow="Código da turma"
+          titulo="Gerar um código novo?"
+          texto={
+            `O código ${turma?.codigo ?? ''} deixa de valer na hora. Os alunos que já criaram senha entram ` +
+            'com o código novo e a mesma senha. Use quando o código vazar para quem não é da turma.'
+          }
+          rotuloAcao="Gerar código novo"
+          rotuloOcupado="Gerando…"
+          enviar={() => api.turmas.novoCodigo(turmaId)}
+          aoConcluir={(resposta) => {
+            const { codigo } = resposta as { codigo: string };
+            setCarga((atual) =>
+              atual.estado === 'pronto' ? { ...atual, turma: { ...atual.turma, codigo } } : atual
+            );
+            toasts.mostrar(`Código novo: ${codigo}`);
           }}
           aoFechar={fechar}
         />
@@ -420,10 +453,10 @@ function Turma() {
     <>
       <a
         className="btn btn-vidro vidro tecla"
-        id="btn-convidar"
+        id="btn-adicionar-alunos"
         href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
       >
-        Convidar alunos
+        Adicionar alunos
       </a>
       <button
         type="button"
@@ -443,7 +476,7 @@ function Turma() {
     <div className="metricas-turma vidro" id="metricas">
       <div className="metrica-item">
         <span className="metrica-rotulo">Alunos</span>
-        <span className="metrica-valor">{turma ? contagem(ativos.length) : '—'}</span>
+        <span className="metrica-valor">{turma ? contagem(alunos.length) : '—'}</span>
       </div>
       <div className="metrica-item">
         <span className="metrica-rotulo">Exercícios atribuídos</span>
@@ -451,7 +484,21 @@ function Turma() {
       </div>
       <div className="metrica-item">
         <span className="metrica-rotulo">PPM médio da turma</span>
-        <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(ativos)) : '—'}</span>
+        <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(alunos)) : '—'}</span>
+      </div>
+      {/* O que o aluno digita no login, junto com o nome. */}
+      <div className="metrica-item">
+        <span className="metrica-rotulo">Código de entrada</span>
+        <span className="metrica-valor col-mono">{turma?.codigo ?? '—'}</span>
+        {turma && (
+          <button
+            type="button"
+            className="tabela-acao"
+            onClick={() => setModal({ chave: ++proximaChave, tipo: 'novo-codigo' })}
+          >
+            Gerar novo
+          </button>
+        )}
       </div>
     </div>
   );
@@ -580,7 +627,7 @@ function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[
 // (nem para cima, nem para baixo). Uma casa decimal, igual ao que o mock
 // devolve em /turmas/:id: um recálculo local que não bate com o formato
 // do servidor seria pior que não recalcular nada.
-function calcularPpmMedio(lista: AlunoAtivoDaTurma[]): number | null {
+function calcularPpmMedio(lista: Aluno[]): number | null {
   const validos = lista.filter((a) => a.totalSessoes > 0 && Number.isFinite(a.wpmMedio));
   if (validos.length === 0) return null;
   const soma = validos.reduce((total, a) => total + a.wpmMedio, 0);
@@ -589,18 +636,16 @@ function calcularPpmMedio(lista: AlunoAtivoDaTurma[]): number | null {
 
 // contagem (zero é 0, travessão é "sem dado") e ordenar (nulo por último
 // nas duas direções) vêm de utils/. A tabela só diz o que cada campo vale.
-// Convidado não tem número: nas colunas de desempenho ele é nulo, e vai
-// para o fim nas duas direções.
-function valorOrdenavelAluno(aluno: LinhaDaTurma, campo: string): string | number | null {
-  if (campo === 'rp') return aluno.id;
-  if (aluno.estado === 'convidado') return null;
+function valorOrdenavelAluno(aluno: Aluno, campo: string): string | number | null {
+  if (campo === 'nome') return aluno.nome;
   if (campo === 'ppm') return aluno.wpmMedio;
   if (campo === 'ultimaAtividade') return aluno.ultimaAtividade;
   return null;
 }
 
 // ============================================================================
-// Modal de confirmação — remover aluno e remover atribuição
+// Modal de confirmação — remover aluno, zerar senha, código novo e remover
+// atribuição
 // ============================================================================
 
 interface PropsModalRemover {
@@ -608,12 +653,24 @@ interface PropsModalRemover {
   titulo: string;
   texto: string;
   rotuloAcao: string;
+  /** O que o botão diz enquanto envia. Padrão: "Removendo…". */
+  rotuloOcupado?: string;
   enviar: () => Promise<unknown>;
-  aoConcluir: () => void;
+  /** Recebe o que enviar() devolveu (o código novo, por exemplo). */
+  aoConcluir: (resposta: unknown) => void;
   aoFechar: () => void;
 }
 
-function ModalRemover({ eyebrow, titulo, texto, rotuloAcao, enviar, aoConcluir, aoFechar }: PropsModalRemover) {
+function ModalRemover({
+  eyebrow,
+  titulo,
+  texto,
+  rotuloAcao,
+  rotuloOcupado = 'Removendo…',
+  enviar,
+  aoConcluir,
+  aoFechar,
+}: PropsModalRemover) {
   const modal = useRef<ModalHandle>(null);
   const [erro, setErro] = useState<string | null>(null);
   const enviando = useRef(false);
@@ -625,9 +682,9 @@ function ModalRemover({ eyebrow, titulo, texto, rotuloAcao, enviar, aoConcluir, 
     setOcupado(true);
 
     try {
-      await enviar();
+      const resposta = await enviar();
       modal.current?.fechar();
-      aoConcluir();
+      aoConcluir(resposta);
     } catch (excecao) {
       setErro(mensagemDaFalha(excecao));
       enviando.current = false;
@@ -642,7 +699,7 @@ function ModalRemover({ eyebrow, titulo, texto, rotuloAcao, enviar, aoConcluir, 
       titulo={titulo}
       acoes={[
         {
-          rotulo: ocupado ? 'Removendo…' : rotuloAcao,
+          rotulo: ocupado ? rotuloOcupado : rotuloAcao,
           principal: true,
           fecha: false,
           aoClicar: confirmar,

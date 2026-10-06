@@ -39,7 +39,7 @@ dentro.
 ## Primeira vez
 
 Precisa de Node 20+ e do MySQL rodando com o banco já criado pelo
-`DB_Teclar_v7.sql` (na raiz do repositório).
+`DB_Teclar_v8.sql` (na raiz do repositório).
 
 ```bash
 cd back
@@ -91,20 +91,28 @@ Contas (login por e-mail):
 | `prof@teclar.dev` | `senha123` | Professor: dono da turma-1, da turma-2 e de 11 exercícios |
 | `leo@teclar.dev` | `senha123` | Solo: tem a campanha `camp-1` (nível 1, 0 XP) |
 
-Alunos (login "Sou aluno", pelo RP; a senha é a mesma para os três):
+Alunos (login "Sou aluno": código da turma + nome + senha). O aluno é
+**por turma** (banco v8): não tem RP nem conta, e o mesmo nome em duas
+turmas são duas pessoas, cada uma com a sua senha e o seu histórico. Código
+e nome não diferenciam maiúscula nem acento ("ana pires" entra).
 
-| RP | Senha | Situação |
-| --- | --- | --- |
-| `RP2025043` | `Aluno#2025` | Ana Pires. Ativa na turma-1 e na turma-2 |
-| `RP2025044` | `Aluno#2025` | Sem nome (a tela mostra o RP). Ativo na turma-1, **convidado** na turma-2 |
-| `RP2025049` | `Aluno#2025` | Marina Duarte Alves. Ativa na turma-1, **recusou** a turma-2 |
+| Código | Nome | Senha | Situação |
+| --- | --- | --- | --- |
+| `R8VD3K` | Ana Pires | `aluno2026` | Turma-2: o aluno de teste (3 sessões) |
+| `K7M2QX` | Ana Pires | `aluno2026` | Turma-1: **outra** Ana, outro histórico (2 sessões) |
+| `D6YG2S` | Ana Pires | `aluno2026` | Turma-5 (de leo): a terceira Ana |
+| `K7M2QX` | Davi Moreira | qualquer, de 4 a 20 caracteres | **Primeiro acesso**: SenhaHash NULL, a senha digitada é gravada |
+| `H3ZT6B` | Júlia Campos | qualquer, de 4 a 20 caracteres | **Primeiro acesso** |
 
-A turma-1 tem 8 exercícios atribuídos, e a turma-2, 2. Há 9 sessões
-(6 na turma-1, 3 na turma-2), duas delas com o tempo estourado.
+Os outros alunos (Caio, Marina, Helena, os colegas do ranking da turma-2,
+Igor) também entram com `aluno2026`. A turma-8 (`P4WN8R`) está arquivada e
+não tem alunos. Para ver o 403 de turma arquivada:
+`UPDATE ClassesProf SET Ativa = FALSE WHERE Codigo = 'D6YG2S';` e rode o
+seed de novo para voltar.
 
-Os três alunos não estão ligados a conta nenhuma (`Alunos.UserID` NULL, o
-caso do "aluno antigo"), e as duas contas não têm RP. O contrato prevê
-isso: `GET /conta/rp` responde `{ "rp": null }` para conta sem RP.
+Os códigos, nomes e senhas são os do mock (`js/nucleo/mocks.ts`). As
+sessões são 9 (as do mock até a ses-10); o mock tem mais, para o histórico
+e o ranking, que o seed ainda não copia.
 
 ## Login e token
 
@@ -120,7 +128,7 @@ instalação).
 
 ## O banco manda, o Prisma segue
 
-O `DB_Teclar_v7.sql` é a fonte da verdade do banco. Os models do
+O `DB_Teclar_v8.sql` é a fonte da verdade do banco. Os models do
 `prisma/schema.prisma` **não são escritos à mão**: saem do `db pull`.
 Mudou o banco? Muda o `.sql`, roda no MySQL e repete:
 
@@ -138,7 +146,7 @@ Windows o MySQL guarda nomes de banco e de tabela em minúsculas
 estrangeira com o nome da `DATABASE_URL` diferenciando caixa. Com
 `teclarDB` na URL, o `db pull` achava que as 15 FKs eram de "outro banco"
 e trazia o schema sem nenhuma relação. Com `teclardb`, vêm as 15, e as
-rotas podem usar `include` (ex.: o aluno junto com as turmas dele).
+rotas podem usar `include` (ex.: o aluno junto com a turma dele).
 Os models também vêm em minúsculas (`users`, `alunos`...) pelo mesmo motivo.
 
 Se um dia o `db pull` voltar sem `@relation` no schema, confira a caixa do

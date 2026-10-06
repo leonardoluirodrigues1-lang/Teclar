@@ -11,16 +11,15 @@ datasource db {
 
 model alunos {
   ID            String         @id @db.VarChar(100)
-  UserID        String?        @db.VarChar(100)
-  Nome          String?        @db.VarChar(150)
-  SenhaHash     String         @db.VarChar(255)
+  ClassID       String         @db.VarChar(100)
+  Nome          String         @db.VarChar(150)
+  SenhaHash     String?        @db.VarChar(255)
   Data_Cadastro DateTime?      @default(now()) @db.Timestamp(0)
   Ativo         Boolean?       @default(true)
-  users         users?         @relation(fields: [UserID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "fk_aluno_user")
-  classmembers  classmembers[]
+  classesprof   classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "fk_aluno_turma")
   sessionsprof  sessionsprof[]
 
-  @@index([UserID], map: "fk_aluno_user")
+  @@unique([ClassID, Nome], map: "uq_aluno_turma_nome")
 }
 
 model atribuicoesprof {
@@ -58,6 +57,7 @@ model categorias {
 
 model classesprof {
   ClassID         String            @id @db.VarChar(100)
+  Codigo          String            @unique(map: "Codigo") @db.VarChar(12)
   ProfessorID     String            @db.VarChar(100)
   NomeTurma       String?           @db.VarChar(100)
   Ano             Int?
@@ -65,25 +65,12 @@ model classesprof {
   Ativa           Boolean           @default(true)
   CapaSemente     Int?
   Data_Criacao    DateTime?         @default(now()) @db.Timestamp(0)
+  alunos          alunos[]
   atribuicoesprof atribuicoesprof[]
   users           users             @relation(fields: [ProfessorID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "classesprof_ibfk_1")
-  classmembers    classmembers[]
   sessionsprof    sessionsprof[]
 
   @@index([ProfessorID], map: "ProfessorID")
-}
-
-model classmembers {
-  ID             String      @db.VarChar(100)
-  ClassID        String      @db.VarChar(100)
-  Status         String      @default("ativo") @db.VarChar(20)
-  Data_Convite   DateTime?   @db.DateTime(0)
-  Data_Matricula DateTime?   @db.DateTime(0)
-  alunos         alunos      @relation(fields: [ID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "classmembers_ibfk_1")
-  classesprof    classesprof @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "classmembers_ibfk_2")
-
-  @@id([ID, ClassID])
-  @@index([ClassID, Status], map: "idx_membro_status")
 }
 
 model configuracoes {
@@ -179,7 +166,6 @@ model users {
   SenhaHash      String?          @db.VarChar(255)
   Data_Cadastro  DateTime?        @default(now()) @db.Timestamp(0)
   Ativo          Boolean?         @default(true)
-  alunos         alunos[]
   campanhassolo  campanhassolo[]
   classesprof    classesprof[]
   exerciciosprof exerciciosprof[]

@@ -10,17 +10,12 @@
 //     treino (js/treino/Treino.tsx), que a tela lê ao abrir;
 //   · rever o tutorial — apaga a marca de "já visto" da conta
 //     (sessao.esquecerTutorial('solo')) e leva ao caminho, onde ele aparece.
-//
-// E um bloco que não é configuração, mas mora aqui por ser da conta: "Sua
-// entrada como aluno" (componentes/EntradaComoAluno.tsx). O item "Minha
-// entrada como aluno" da barra lateral traz direto para ele.
 
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
-import { EntradaComoAluno } from '../componentes/EntradaComoAluno.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinho desta em pages/solo/: é lá que o tutorial aparece.
@@ -103,8 +98,6 @@ function Configuracoes() {
             Rever
           </button>
         </section>
-
-        <EntradaComoAluno classeBotao="tutorial-botao tecla" />
       </main>
     </MolduraSolo>
   );

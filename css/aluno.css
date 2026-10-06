@@ -7,9 +7,6 @@
 
    Não se repete aqui: a receita do vidro (.vidro, componentes/vidro.css),
    o relevo e o afundar da tecla (.tecla, base/luz.css).
-
-   O único vermelho daqui é o do convite pendente (.aluno-aviso): precisa
-   ser notado.
    ========================================================================== */
 
 /* O rótulo mono miúdo do desenho, em cima dos títulos e das seções. */
@@ -112,32 +109,6 @@
   background: rgba(255, 255, 255, 0.07);
   color: var(--cor-texto, #fff);
 }
-
-/* O ponto vermelho do convite pendente, com o número. */
-.aluno-aviso {
-  display: grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: var(--raio-total, 9999px);
-  background: var(--cor-erro, #ff5a5a);
-  color: var(--cor-texto, #fff);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
-  line-height: 1;
-}
-/* No retrato: pendurado na quina de cima, com um contorno escuro para se
-   separar do círculo. */
-.aluno-aviso-retrato {
-  position: absolute;
-  top: -5px;
-  right: -7px;
-  border: 2px solid var(--cor-fundo, #000);
-  box-shadow: 0 0 14px rgba(255, 90, 90, 0.65);
-}
-/* Na linha "Convites" do menu: encostado à direita. */
-.aluno-aviso-linha { margin-left: auto; min-width: 22px; height: 22px; }
 
 /* Texto só para leitor de tela. */
 .aluno-sr {

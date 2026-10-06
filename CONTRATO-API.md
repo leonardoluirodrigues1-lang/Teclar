@@ -4,14 +4,7 @@
 > mude o comentário da rota no api.ts e rode `node gerar-contrato.mjs` de novo.
 > Se este arquivo e o api.ts divergirem, vale o api.ts.
 
-59 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
-
-## Colunas que já existem e mudam de significado
-
-Não é para criar: a coluna existe. O que muda na v6 é o que ela guarda.
-
-- [ ] **ClassMembers.Data_Matricula** — deixa de ser a data em que o professor matriculou o aluno e passa a ser a data em que o ALUNO ACEITOU o convite. Fica NULL enquanto Status = 'convidado' e é preenchida no aceite (POST /aluno/convites/:turmaId/aceitar). É o "entrouEm" das respostas. A data do convite é Data_Convite. Na v7 a coluna perdeu o DEFAULT CURRENT_TIMESTAMP: o convite já nasce com NULL.
-  Usada em: `POST /aluno/convites/:turmaId/aceitar`.
+54 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -32,26 +25,25 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - Toda rota, menos as três públicas de /auth (login, cadastro e logout), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
 - Corpo de erro: { "mensagem": "...", "codigo": "NAO_ENCONTRADO" }. A tela decide pelo status e pelo código, nunca pelo texto da mensagem.
 - A identidade SEMPRE sai do token. Recurso de outra conta responde 404, igual ao que não existe — 403 confirmaria que ele existe. 403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de aluno, aluno numa rota de conta).
-- Sucesso sem corpo (DELETE, recusar convite, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").
+- Sucesso sem corpo (DELETE, zerar senha, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").
 - Média que o back não pôde calcular (sem amostra) vem null, nunca 0: zero é informação diferente. A tela mostra "—".
 - Listas que crescem sem teto vêm paginadas: { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.
 
 ## Índice
 
 - **Autenticação**: `POST /auth/login`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
-- **Conta**: `GET /conta/rp`, `POST /conta/rp/nova-senha`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
-- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
-- **Alunos e convites (professor)**: `GET /turmas/:id/alunos`, `DELETE /turmas/:id/alunos/:rp`, `POST /turmas/:id/convites`, `POST /turmas/:id/convites/importar`, `DELETE /turmas/:id/convites/:rp`, `GET /turmas/:id/alunos/:rp/desempenho`
-- **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:rp/sessoes`
+- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
+- **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/zerar-senha`, `GET /turmas/:id/alunos/:alunoId/desempenho`
+- **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/convites`, `POST /aluno/convites/:turmaId/aceitar`, `POST /aluno/convites/:turmaId/recusar`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
 
-Um login para as duas tabelas: Users entra por e-mail; Alunos entra pelo RP e pela senha de aluno. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
+Um login para as duas tabelas: Users entra por e-mail; Alunos entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
 
 ### `POST /auth/login`
 
@@ -59,29 +51,31 @@ Chamada no front: `api.auth.entrar`
 
 **Corpo:**
 
-Conta: { email, senha }. Aluno: { perfil: "Aluno", rp, senha } (Credenciais)
+Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)
 
 ```json
 { "email": "prof@teclar.dev", "senha": "senha123" }
-{ "perfil": "Aluno", "rp": "RP2025043", "senha": "Aluno#2025" }
+{ "codigo": "K7M2QX", "nome": "Ana Pires", "senha": "aninha2026" }
 ```
 
 **Resposta:**
 
-200 RespostaLogin
+200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha
 
 ```json
 { "token": "eyJhbGciOi...",
   "usuario": { "id": "u-2", "nome": "Henrique Lima", "email": "prof@teclar.dev",
                "tipo": "conta", "campanhaAtiva": "camp-2" } }
-Aluno: { "token": "...", "usuario": { "id": "RP2025043", "nome": "Ana Pires", "tipo": "aluno",
+Aluno: { "token": "...", "primeiroAcesso": true,
+         "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
          "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }
 ```
 
 **Erros:**
 
-- 401 CREDENCIAIS — e-mail/RP ou senha errados (mesma mensagem para os dois, existindo a conta ou não)
-- 403 CONTA_INATIVA — a conta existe e está desativada
+- 400 DADOS_INVALIDOS — primeiro acesso de aluno com senha fora de 4 a 20 caracteres
+- 401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
+- 403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada
 
 **Identidade:**
 
@@ -89,11 +83,11 @@ Pública. O token devolvido carrega o id e o tipo de quem entrou.
 
 **Regras de negócio no back (a tela não calcula):**
 
-O `tipo` é a tabela em que o back autenticou ('conta' = Users, 'aluno' = Alunos), nunca o que a tela mandou. O RP aceita espaço e minúscula ("rp 2025043"): o back normaliza antes de procurar. A tela apara as pontas da senha (de conta e de aluno) antes de enviar; o back faz o mesmo antes de comparar o hash.
+O `tipo` é a tabela em que o back autenticou ('conta' = Users, 'aluno' = Alunos), nunca o que a tela mandou: corpo com `codigo` vai em Alunos, corpo com `email` vai em Users. Aluno: o código é aparado e posto em maiúscula ("k7m2qx " = K7M2QX); o nome é aparado e tem os espaços repetidos do meio reduzidos a um, e a comparação ignora maiúscula e acento (é a collation do banco: "ana pires" acha "Ana Pires"). Procura a linha de Alunos com esse ClassID e esse Nome. REGRA DO PRIMEIRO ACESSO: Alunos.SenhaHash NULL quer dizer que o aluno ainda não entrou. Nesse caso a senha enviada é aparada e validada — de 4 a 20 caracteres, qualquer coisa serve, sem exigir letra nem número (quem digita é criança) —, o hash é GRAVADO e a resposta vem com primeiroAcesso: true. Com SenhaHash preenchido, a senha é CONFERIDA, como em qualquer login. Os dois casos entram na mesma hora. A tela apara as pontas da senha (de conta e de aluno) antes de enviar; o back faz o mesmo antes de comparar o hash.
 
 **Notas:**
 
-Senha colada costuma trazer um espaço ou uma quebra de linha no fim, e isso virava "senha incorreta". Aparar no login só é seguro porque nenhuma senha válida tem espaço nas pontas: ver a regra no POST /auth/cadastro e no POST /conta/rp/nova-senha.
+Código, nome ou senha errados dão o mesmo 401, para o login não virar um jeito de descobrir quem está em qual turma. O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor, em POST /turmas/:id/alunos/:alunoId/zerar-senha, e o próximo login do aluno vira primeiro acesso de novo. A regra forte (8+, letra e número) é só da senha de CONTA, no POST /auth/cadastro. Senha colada costuma trazer um espaço ou uma quebra de linha no fim, e isso virava "senha incorreta". Aparar no login só é seguro porque nenhuma senha válida tem espaço nas pontas: ver a regra no POST /auth/cadastro e a do primeiro acesso, acima.
 
 ### `POST /auth/cadastro`
 
@@ -109,12 +103,11 @@ DadosCadastro
 
 **Resposta:**
 
-200 RespostaCadastro — a sessão, como no login, mais a entrada de aluno
+200 RespostaLogin — a sessão, como no login
 
 ```json
 { "token": "...", "usuario": { "id": "u-9", "nome": "Henrique Lima",
-  "email": "prof@teclar.dev", "tipo": "conta" },
-  "rp": "RP2026117", "senhaAluno": "Kx7#pq2M" }
+  "email": "prof@teclar.dev", "tipo": "conta" } }
 ```
 
 **Erros:**
@@ -128,7 +121,7 @@ Pública.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cria a linha em Users E a linha em Alunos (com Alunos.UserID apontando para a conta nova), gerando o RP e a senha de aluno. senhaAluno sai em texto puro SÓ nesta resposta; depois o back guarda apenas o hash. Recusa senha que comece ou termine com espaço (no meio pode), e grava a senha como veio, sem aparar. A senha de aluno gerada também nunca tem espaço nas pontas.
+Cria só a linha em Users: conta não tem entrada de aluno (aluno nasce da lista que o professor sobe na turma). Recusa senha que comece ou termine com espaço (no meio pode), e grava a senha como veio, sem aparar.
 
 **Notas:**
 
@@ -173,63 +166,6 @@ O token, que deixa de valer. Marcada como pública: um 401 aqui não pode derrub
 **Notas:**
 
 Pode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que não depende desta resposta.
-
-## Conta
-
-A conta logada, fora de qualquer mundo. Token de aluno nestas rotas é 403: são da conta (Users), não da entrada de aluno.
-
-### `GET /conta/rp`
-
-Chamada no front: `api.conta.rp`
-
-**Corpo:** nenhum.
-
-**Resposta:**
-
-200 RpDaConta
-
-```json
-{ "rp": "RP2025043" }
-```
-
-**Erros:**
-
-- 403 TIPO_INVALIDO — token de aluno
-
-**Identidade:**
-
-O token. Sem parâmetro: é sempre o RP da própria conta.
-
-**Regras de negócio no back (a tela não calcula):**
-
-O RP é a linha de Alunos ligada à conta por Alunos.UserID. Conta sem linha em Alunos: { "rp": null }.
-
-### `POST /conta/rp/nova-senha`
-
-Chamada no front: `api.conta.novaSenhaAluno`
-
-**Corpo:** nenhum.
-
-**Resposta:**
-
-200 NovaSenhaAluno — a senha nova, uma vez
-
-```json
-{ "senhaAluno": "Q2w#e4Rt" }
-```
-
-**Erros:**
-
-- 403 TIPO_INVALIDO — token de aluno
-- 404 NAO_ENCONTRADO — a conta não tem RP
-
-**Identidade:**
-
-O token. Sem parâmetro: troca sempre a senha da própria conta.
-
-**Regras de negócio no back (a tela não calcula):**
-
-Gera a senha, grava só o hash e invalida a antiga na mesma hora. Não existe rota de LEITURA da senha de aluno. A senha gerada nunca tem espaço nas pontas: o login apara antes de enviar.
 
 ## Solo
 
@@ -539,8 +475,8 @@ Chamada no front: `api.turmas.listar`
 200 Turma[] — só as com ativa = true, array puro (lista curta)
 
 ```json
-[{ "id": "turma-1", "professorId": "u-2", "nome": "9º Ano A — Manhã",
-   "totalAlunos": 4, "totalExercicios": 3, "convitesPendentes": 0,
+[{ "id": "turma-1", "codigo": "K7M2QX", "professorId": "u-2", "nome": "9º Ano A — Manhã",
+   "totalAlunos": 4, "totalExercicios": 3,
    "periodo": "2026 · 1º semestre", "capaSemente": 7001, "ativa": true,
    "dataCriacao": "2026-02-01" }]
 ```
@@ -555,7 +491,7 @@ O token: WHERE ProfessorID = conta do token.
 
 **Regras de negócio no back (a tela não calcula):**
 
-totalAlunos (COUNT em ClassMembers com Status = 'ativo'), totalExercicios (COUNT em AtribuicoesProf) e convitesPendentes (COUNT com Status = 'convidado'). O filtro é Turmas.Ativa. O texto de `periodo` vem pronto. A tela não soma nada por turma.
+totalAlunos (COUNT em Alunos com ClassID = turma e Ativo = TRUE) e totalExercicios (COUNT em AtribuicoesProf). O filtro é Turmas.Ativa. O texto de `periodo` vem pronto. A tela não soma nada por turma. `codigo` é ClassesProf.Codigo: o que o professor passa aos alunos.
 
 ### `GET /turmas?ativa=false`
 
@@ -568,8 +504,8 @@ Chamada no front: `api.turmas.listarArquivadas`
 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas
 
 ```json
-[{ "id": "turma-8", "professorId": "u-2", "nome": "8º Ano B — 2025",
-   "totalAlunos": 0, "totalExercicios": 0, "convitesPendentes": 0,
+[{ "id": "turma-8", "codigo": "P4WN8R", "professorId": "u-2", "nome": "8º Ano B — 2025",
+   "totalAlunos": 0, "totalExercicios": 0,
    "periodo": "2025 · 2º semestre", "capaSemente": 7823, "ativa": false,
    "dataCriacao": "2025-08-04" }]
 ```
@@ -603,8 +539,8 @@ Chamada no front: `api.turmas.criar`
 200 Turma — já na forma de um item de GET /turmas
 
 ```json
-{ "id": "turma-9", "professorId": "u-2", "nome": "7º Ano C — Tarde",
-  "totalAlunos": 0, "totalExercicios": 0, "convitesPendentes": 0,
+{ "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
+  "totalAlunos": 0, "totalExercicios": 0,
   "ativa": true, "dataCriacao": "2026-10-03" }
 ```
 
@@ -620,7 +556,7 @@ O token vira o ProfessorID. Não aceita professorId no corpo.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nasce com Ativa = true. O período, se houver, é o back que monta.
+Nasce com Ativa = true e com o código já gerado: 6 caracteres de A-Z e 2-9, sem os que se confundem ao ditar (I, O, 0, 1), único no sistema todo (ClassesProf.Codigo é UNIQUE). O período, se houver, é o back que monta.
 
 **Notas:**
 
@@ -637,7 +573,7 @@ Chamada no front: `api.turmas.obter`
 200 TurmaDetalhe — a turma mais o PPM médio
 
 ```json
-{ "id": "turma-1", "professorId": "u-2", "nome": "9º Ano A — Manhã",
+{ "id": "turma-1", "codigo": "K7M2QX", "professorId": "u-2", "nome": "9º Ano A — Manhã",
   "totalAlunos": 4, "totalExercicios": 3, "periodo": "2026 · 1º semestre",
   "capaSemente": 7001, "ativa": true, "dataCriacao": "2026-02-01", "ppmMedio": 33.3 }
 ```
@@ -672,7 +608,7 @@ Chamada no front: `api.turmas.renomear`
 200 Turma — a turma como ficou
 
 ```json
-{ "id": "turma-1", "professorId": "u-2", "nome": "9º Ano A — Manhã (2026)",
+{ "id": "turma-1", "codigo": "K7M2QX", "professorId": "u-2", "nome": "9º Ano A — Manhã (2026)",
   "totalAlunos": 4, "totalExercicios": 3, "periodo": "2026 · 1º semestre",
   "capaSemente": 7001, "ativa": true, "dataCriacao": "2026-02-01" }
 ```
@@ -794,6 +730,39 @@ O token: a turma tem de ser da conta.
 
 Grava Turmas.Ativa = true: a turma volta a GET /turmas como estava.
 
+### `POST /turmas/:id/codigo/novo`
+
+Chamada no front: `api.turmas.novoCodigo`
+
+**Corpo:**
+
+Nenhum.
+
+**Resposta:**
+
+200 CodigoDaTurma — o código novo
+
+```json
+{ "codigo": "R8VD3K" }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — não existe ou é de outra conta
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Gera outro código (mesma regra do POST /turmas) e grava em ClassesProf.Codigo. O antigo deixa de valer na mesma hora: quem tentar entrar com ele toma 401 CREDENCIAIS. Quem já está logado continua logado, e os alunos que já criaram senha entram com o código novo e a MESMA senha — o código só diz qual é a turma.
+
+**Notas:**
+
+Existe para o caso de o código vazar (foto da lousa no grupo errado): sem ele, qualquer um com o código e um nome da lista poderia fazer o primeiro acesso no lugar do aluno.
+
 ### `GET /turmas/:id/atribuicoes`
 
 Chamada no front: `api.turmas.atribuicoes`
@@ -819,7 +788,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-concluidoPor = alunos ATIVOS da turma com sessão concluída no exercício; totalAlunos = alunos ativos. A tela não conta.
+concluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.
 
 **Notas:**
 
@@ -884,9 +853,9 @@ O token: a turma tem de ser da conta.
 
 A atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.
 
-## Alunos e convites (professor)
+## Alunos (professor)
 
-O professor administrando o quadro de UMA turma dele. A turma sai do token (tem de ser da conta: senão 404); o aluno-alvo vai na URL pelo RP, porque é sobre ELE que a ação é — não é a identidade de quem pede. RP na URL aqui é decisão, não descuido: a identidade continua saindo do token, e o aluno só é alcançável dentro de uma turma da conta.
+O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha de Alunos, porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.  O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar).
 
 ### `GET /turmas/:id/alunos`
 
@@ -896,14 +865,15 @@ Chamada no front: `api.alunos.daTurma`
 
 **Resposta:**
 
-200 LinhaDaTurma[] — ativos primeiro, depois os convidados, cada um com o estado
+200 Aluno[] — os alunos da turma, na ordem alfabética do nome
 
 ```json
-[{ "estado": "ativo", "id": "RP2025043", "nome": "Ana Pires", "entrouEm": "2026-02-01",
-   "totalSessoes": 12, "wpmMedio": 39, "precisaoMedia": 91,
+[{ "id": "al-9f3k2", "nome": "Ana Pires", "entrouEm": "2026-02-01",
+   "senhaDefinida": true, "totalSessoes": 12, "wpmMedio": 39, "precisaoMedia": 91,
    "ultimaAtividade": "2026-10-03T12:00:00.000Z" },
- { "estado": "convidado", "id": "RP2025047", "nome": null,
-   "convidadoEm": "2026-10-01T12:00:00.000Z" }]
+ { "id": "al-2m8qd", "nome": "Davi Moreira", "entrouEm": "2026-02-24",
+   "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null, "precisaoMedia": null,
+   "ultimaAtividade": null }]
 ```
 
 **Erros:**
@@ -916,9 +886,51 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Junta ClassMembers com Status = 'ativo' e 'convidado' (o 'recusado' não aparece). O nome é o da conta dona do RP (Alunos.UserID -> Users.Nome). Os agregados (totalSessoes, médias, última atividade) são do aluno no sistema todo e vêm prontos; quem nunca treinou vem com null, nunca 0. Convidado não traz número.
+Alunos com ClassID = turma e Ativo = TRUE. entrouEm = Alunos.Data_Cadastro (o dia em que o nome entrou na lista); senhaDefinida = SenhaHash IS NOT NULL (false: ainda não fez o primeiro acesso, ou o professor zerou a senha). Os agregados (totalSessoes, médias, última atividade) são das sessões dele — que, na v8, são todas desta turma — e vêm prontos; quem nunca treinou vem com null, nunca 0. A senha nunca sai daqui.
 
-### `DELETE /turmas/:id/alunos/:rp`
+### `POST /turmas/:id/alunos/importar`
+
+Chamada no front: `api.alunos.importar`
+
+**Corpo:**
+
+{ nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes
+
+```json
+{ "nomes": ["Ana Pires", "Bruno Sato", "ana  pires", "", "Carla Nunes"] }
+```
+
+**Resposta:**
+
+200 ResultadoImportacao — cada nome cai numa das três listas
+
+```json
+{ "adicionados": [{ "id": "al-7c1pz", "nome": "Bruno Sato", "entrouEm": "2026-10-05",
+    "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null,
+    "precisaoMedia": null, "ultimaAtividade": null }],
+  "jaEstavam": ["Ana Pires"],
+  "falhas": [{ "nome": "ana  pires", "motivo": "Nome repetido na lista." },
+             { "nome": "", "motivo": "Nome vazio." }] }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — `nomes` não é uma lista, ou tem mais de 500 itens
+- 404 NAO_ENCONTRADO — turma inexistente ou de outra conta
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Cada nome é aparado e tem os espaços repetidos do meio reduzidos a um (é a forma gravada e a que o aluno vai digitar). Depois: vazio, ou com menos de 2 ou mais de 150 caracteres -> falha; igual a um nome anterior da MESMA lista -> falha ("Nome repetido na lista."); igual a um aluno que já está na turma -> jaEstavam, e nada muda para ele; senão, vira uma linha nova de Alunos com ClassID = turma e SenhaHash NULL. "Igual" ignora maiúscula e acento, como o UNIQUE (ClassID, Nome) do banco. Importação parcial é permitida: uma falha não desfaz os outros. Pode ser chamada de novo com a lista completa: quem já está cai em jaEstavam.
+
+**Notas:**
+
+É a ÚNICA porta de entrada do aluno na turma, e por isso é obrigatória: sem o nome na lista, o login responde 401. Aluno removido por engano volta por aqui, mas como linha nova: sem a senha e sem o histórico antigos.
+
+### `DELETE /turmas/:id/alunos/:alunoId`
 
 Chamada no front: `api.alunos.remover`
 
@@ -930,94 +942,23 @@ Chamada no front: `api.alunos.remover`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — turma de outra conta, ou o RP não está ativo nela
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma
 
 **Identidade:**
 
-O token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.
+O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Tira o aluno ativo da turma, e o histórico de sessões dele nesta turma vai junto. Para quem só foi convidado, é DELETE .../convites/:rp.
+Apaga a linha de Alunos; as sessões dele vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.
 
-### `POST /turmas/:id/convites`
+### `POST /turmas/:id/alunos/:alunoId/zerar-senha`
 
-Chamada no front: `api.alunos.convidar`
+Chamada no front: `api.alunos.zerarSenha`
 
 **Corpo:**
 
-{ rp } — de uma conta que já existe
-
-```json
-{ "rp": "RP2025001" }
-```
-
-**Resposta:**
-
-200 ConvidadoDaTurma
-
-```json
-{ "estado": "convidado", "id": "RP2025001", "nome": "Leonardo",
-  "convidadoEm": "2026-10-03T14:02:00.000Z" }
-```
-
-**Erros:**
-
-- 400 RP_INVALIDO — fora do formato RP + 7 dígitos
-- 400 CONVITE_PROPRIO — o RP é o da própria conta do token
-- 404 RP_NAO_ENCONTRADO — nenhuma conta com esse RP
-- 409 JA_NA_TURMA — o RP já está ativo na turma
-- 409 JA_CONVIDADO — já foi convidado e ainda não respondeu
-- 404 NAO_ENCONTRADO — turma inexistente ou de outra conta
-
-**Identidade:**
-
-O token: a turma tem de ser da conta.
-
-**Regras de negócio no back (a tela não calcula):**
-
-Normaliza o RP (sem espaço, maiúsculo) e grava ClassMembers com Status = 'convidado' e Data_Convite = agora. Ninguém entra na turma sem aceitar: o professor não cria aluno nem vê senha.
-
-### `POST /turmas/:id/convites/importar`
-
-Chamada no front: `api.alunos.convidarVarios`
-
-**Corpo:**
-
-{ rps } — o lote inteiro numa requisição
-
-```json
-{ "rps": ["RP2025001", "RP2025002", "RP2025043", "RP9999999"] }
-```
-
-**Resposta:**
-
-200 ResultadoConvites — cada RP cai numa das três listas
-
-```json
-{ "convidados": [{ "estado": "convidado", "id": "RP2025001", "nome": "Leonardo",
-                   "convidadoEm": "2026-10-03T14:02:00.000Z" }],
-  "jaEstavam": [{ "rp": "RP2025043", "estado": "ativo" }],
-  "falhas": [{ "rp": "RP9999999", "motivo": "Nenhuma conta com esse RP." }] }
-```
-
-**Erros:**
-
-- 404 NAO_ENCONTRADO — turma inexistente ou de outra conta
-
-**Identidade:**
-
-O token: a turma tem de ser da conta.
-
-**Regras de negócio no back (a tela não calcula):**
-
-Importação parcial é permitida. RP repetido na lista vira falha ("RP repetido na lista"); os outros motivos são os do convite um por um.
-
-### `DELETE /turmas/:id/convites/:rp`
-
-Chamada no front: `api.alunos.cancelarConvite`
-
-**Corpo:** nenhum.
+Nenhum.
 
 **Resposta:**
 
@@ -1025,17 +966,21 @@ Chamada no front: `api.alunos.cancelarConvite`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — turma de outra conta, ou não há convite pendente para esse RP
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma
 
 **Identidade:**
 
-O token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.
+O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Apaga o convite ainda não respondido; ele some da lista do aluno.
+Grava Alunos.SenhaHash = NULL. O próximo login com esse nome nesta turma é PRIMEIRO ACESSO: a senha enviada vira a nova (ver POST /auth/login). O histórico fica intacto. Zerar quem já está com SenhaHash NULL não é erro: responde 204 do mesmo jeito.
 
-### `GET /turmas/:id/alunos/:rp/desempenho`
+**Notas:**
+
+O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor. Até o aluno entrar de novo, qualquer um com o código e o nome dele pode criar a senha no lugar dele — por isso a tela avisa para zerar só com o aluno por perto.
+
+### `GET /turmas/:id/alunos/:alunoId/desempenho`
 
 Chamada no front: `api.alunos.desempenho`
 
@@ -1043,30 +988,30 @@ Chamada no front: `api.alunos.desempenho`
 
 **Resposta:**
 
-200 DesempenhoAluno — os agregados e as sessões do aluno NESTA turma
+200 DesempenhoAluno — os agregados e as sessões do aluno
 
 ```json
-{ "alunoId": "RP2025043", "totalSessoes": 2, "wpmMedio": 38, "precisaoMedia": 94,
-  "sessoes": [{ "id": "ses-1", "exerciseId": "ex-prof-1", "alunoId": "RP2025043",
+{ "alunoId": "al-9f3k2", "totalSessoes": 2, "wpmMedio": 38, "precisaoMedia": 94,
+  "sessoes": [{ "id": "ses-1", "exerciseId": "ex-prof-1", "alunoId": "al-9f3k2",
     "wpm": 40, "precisao": 95, "tempoSegundos": 58, "acertos": 76, "erros": 4,
     "concluida": true, "data": "2026-02-18T14:10:00.000Z" }] }
 ```
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — turma de outra conta, ou o RP não está ativo nela
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma
 
 **Identidade:**
 
-O token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.
+O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Só as sessões DESTA turma (e os agregados sobre elas): as das outras turmas do aluno são de outros professores, e este não pode vê-las.
+As sessões do aluno, que na v8 são todas desta turma, e os agregados sobre elas.
 
 **Notas:**
 
-Nenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:rp/sessoes).
+Nenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:alunoId/sessoes).
 
 ## Relatórios (professor)
 
@@ -1107,11 +1052,11 @@ Chamada no front: `api.relatorios.porAluno`
 
 **Resposta:**
 
-200 RelatorioAluno[] — uma linha por aluno ATIVO, inclusive quem nunca treinou
+200 RelatorioAluno[] — uma linha por aluno da turma, inclusive quem nunca treinou
 
 ```json
-[{ "id": "RP2025049", "nome": "Marina Duarte Alves", "entrouEm": "2026-02-05",
-   "totalSessoes": 2, "wpmMedio": 32, "precisaoMedia": 78,
+[{ "id": "al-4hx7r", "nome": "Marina Duarte Alves", "entrouEm": "2026-02-05",
+   "senhaDefinida": true, "totalSessoes": 2, "wpmMedio": 32, "precisaoMedia": 78,
    "ultimaAtividade": "2026-10-01T12:00:00.000Z",
    "exerciciosConcluidos": 2, "exerciciosAtribuidos": 3 }]
 ```
@@ -1126,7 +1071,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Agregados DESTA turma (só as sessões dela), diferentes dos de GET /turmas/:id/alunos, que são do sistema todo. Quem nunca treinou: totalSessoes 0 e médias null. exerciciosConcluidos = exercícios DISTINTOS concluídos.
+Alunos com ClassID = turma e Ativo = TRUE. Agregados das sessões de exercícios atribuídos à turma. Quem nunca treinou: totalSessoes 0 e médias null. exerciciosConcluidos = exercícios DISTINTOS concluídos.
 
 ### `GET /turmas/:id/relatorio/exercicios`
 
@@ -1156,7 +1101,7 @@ O token: a turma tem de ser da conta.
 
 Médias da turma no exercício (null enquanto ninguém concluiu); estouraramTempo = sessões não concluídas, e 0 sempre que o exercício não tem tempo limite.
 
-### `GET /turmas/:id/alunos/:rp/sessoes`
+### `GET /turmas/:id/alunos/:alunoId/sessoes`
 
 Chamada no front: `api.relatorios.sessoesDoAluno`
 
@@ -1164,22 +1109,22 @@ Chamada no front: `api.relatorios.sessoesDoAluno`
 
 **Resposta:**
 
-200 Paginado<SessaoDoAluno> — as sessões do aluno NESTA turma, da mais recente para a mais antiga
+200 Paginado<SessaoDoAluno> — as sessões do aluno, da mais recente para a mais antiga
 
 ```json
 { "total": 2, "pagina": 1, "itens": [
-  { "id": "ses-2", "exerciseId": "ex-prof-2", "alunoId": "RP2025043", "wpm": 36,
+  { "id": "ses-2", "exerciseId": "ex-prof-2", "alunoId": "al-9f3k2", "wpm": 36,
     "precisao": 92, "tempoSegundos": 61, "acertos": 80, "erros": 7, "concluida": true,
     "data": "2026-02-19T09:30:00.000Z", "tituloExercicio": "Números do cotidiano" } ] }
 ```
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — turma de outra conta, ou o RP não está ativo nela (não lista vazia)
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma (não lista vazia)
 
 **Identidade:**
 
-O token: a turma tem de ser da conta (senão 404). O RP na URL é o aluno-ALVO — sobre quem a ação é —, e não quem pede: a identidade nunca sai dele. Por isso o RP na URL aqui é de propósito.
+O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.
 
 **Regras de negócio no back (a tela não calcula):**
 
@@ -1238,7 +1183,7 @@ Chamada no front: `api.exercicios.obter`
 
 **Identidade:**
 
-Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, e o exercício tem de estar atribuído a ela E ele tem de estar ativo nela.
+Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.
 
 **Notas:**
 
@@ -1353,7 +1298,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 200 RespostaSessaoEscola — a sessão gravada mais o recorde
 
 ```json
-{ "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "RP2025043",
+{ "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
   "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
   "acertos": 141, "erros": 9, "concluida": true,
   "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }
@@ -1362,11 +1307,11 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 **Erros:**
 
 - 403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
-- 404 NAO_ENCONTRADO — exercício não atribuído à turma, ou o aluno não está ativo nela
+- 404 NAO_ENCONTRADO — exercício não atribuído à turma, ou turma_id não é a turma do aluno
 
 **Identidade:**
 
-O token: o AlunoID sai dele, nunca do corpo.
+O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.
 
 **Regras de negócio no back (a tela não calcula):**
 
@@ -1383,7 +1328,7 @@ Chamada no front: `api.sessoes.obter`
 200 Sessao | SessaoSolo — a sessão gravada, com acertos e tempo
 
 ```json
-Escola: { "id": "ses-17", "exerciseId": "ex-prof-3", "alunoId": "RP2025043",
+Escola: { "id": "ses-17", "exerciseId": "ex-prof-3", "alunoId": "al-9f3k2",
   "turmaId": "turma-2", "wpm": 49, "precisao": 96, "tempoSegundos": 126,
   "acertos": 144, "erros": 6, "concluida": true, "data": "2026-10-03T12:00:00.000Z" }
 Solo: { "id": "hs-10", "exerciseId": "solo-015", "wpm": 41, "precisao": 92,
@@ -1409,26 +1354,18 @@ Procura em SessionsProf e depois em SessionsSolo.
 
 ## Aluno
 
-O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo "Alunos e convites", que é o PROFESSOR administrando a turma dele.  Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe RP ou id de
+O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo "Alunos", que é o PROFESSOR administrando a turma dele.  Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe id de aluno
 
 ```
-aluno na URL: não existe caminho — nem por URL editada à mão — para
-um aluno pedir o histórico, a sala ou o relatório de outro.
+na URL: não existe caminho — nem por URL editada à mão — para um
+aluno pedir o histórico, a sala ou o relatório de outro.
 ```
 
-· Token de conta é 403 TIPO_INVALIDO. · Turma da qual ele não participa responde 404, e não 403: o 403
+· Token de conta é 403 TIPO_INVALIDO. · Na v8 o aluno está em UMA turma só (Alunos.ClassID): as listas daqui
 
 ```
-diria "essa turma existe, só não é sua".
-```
-
-· Aceitar o convite grava ClassMembers.Status = 'ativo' e preenche
-
-```
-Data_Matricula com a data do aceite (o significado novo da v6:
-antes era a data em que o professor matriculava); recusar grava
-Status = 'recusado' (a linha fica, para o professor ver que o
-convite foi respondido).
+têm no máximo uma sala, e :turmaId que não é a dele responde 404, e
+não 403 — o 403 diria "essa turma existe, só não é sua".
 ```
 
  `escola.aluno`, e não só `aluno`: é o aluno do mundo Escola. O Solo é da conta, e mora em `solo`.
@@ -1445,7 +1382,7 @@ Chamada no front: `api.escola.aluno.historico`
 
 ```json
 { "total": 12, "pagina": 1, "itens": [
-  { "id": "ses-17", "exerciseId": "ex-prof-3", "alunoId": "RP2025043",
+  { "id": "ses-17", "exerciseId": "ex-prof-3", "alunoId": "al-9f3k2",
     "turmaId": "turma-2", "wpm": 49, "precisao": 96, "tempoSegundos": 126,
     "acertos": 144, "erros": 6, "concluida": true,
     "data": "2026-10-03T12:00:00.000Z",
@@ -1499,7 +1436,7 @@ Chamada no front: `api.escola.aluno.salas`
 
 **Resposta:**
 
-200 SalaDoAluno[] — as turmas em que ele está ATIVO, com o progresso dele
+200 SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele
 
 ```json
 [{ "id": "turma-1", "nome": "9º Ano A — Manhã", "professor": "Henrique Lima",
@@ -1516,7 +1453,11 @@ O token. Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Só turmas com ClassMembers.Status = 'ativo' para ele e Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos ativos; professor = nome da conta dona.
+A turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.
+
+**Notas:**
+
+Continua lista para a tela não mudar de forma; com um aluno por turma, nunca passa de um item.
 
 ### `GET /aluno/salas/:turmaId`
 
@@ -1550,88 +1491,6 @@ O token. O :turmaId é da SALA, nunca de aluno.
 
 O estado de cada exercício para ele (nao_feito, feito, tempo_esgotado), a melhor marca dele e a contagem de caracteres (o texto não vem). Na ordem em que o professor atribuiu. Nenhum número de colega.
 
-### `GET /aluno/convites`
-
-Chamada no front: `api.escola.aluno.convites`
-
-**Corpo:** nenhum.
-
-**Resposta:**
-
-200 ConviteDoAluno[] — os que esperam resposta dele, o mais recente primeiro
-
-```json
-[{ "turmaId": "turma-4", "nome": "7º Ano C — Tarde", "professor": "Henrique Lima",
-   "totalAlunos": 2, "totalExercicios": 0, "convidadoEm": "2026-10-01T12:00:00.000Z" }]
-```
-
-**Erros:**
-
-- 403 TIPO_INVALIDO — token de conta
-
-**Identidade:**
-
-O token. Não recebe id.
-
-**Regras de negócio no back (a tela não calcula):**
-
-ClassMembers com Status = 'convidado' para o RP dele, só de turmas ativas; totalAlunos conta só os ativos.
-
-### `POST /aluno/convites/:turmaId/aceitar`
-
-Chamada no front: `api.escola.aluno.aceitarConvite`
-
-**Corpo:**
-
-Nenhum.
-
-**Resposta:**
-
-200 SalaDoAluno — a sala, pronta para entrar na grade
-
-```json
-{ "id": "turma-4", "nome": "7º Ano C — Tarde", "professor": "Henrique Lima",
-  "capaSemente": 7412, "totalAlunos": 3, "exerciciosFeitos": 0, "exerciciosTotal": 0 }
-```
-
-**Erros:**
-
-- 404 NAO_ENCONTRADO — não há convite pendente dele para a turma (cancelado, já respondido, nunca existiu)
-- 403 TIPO_INVALIDO — token de conta
-
-**Identidade:**
-
-O token: só vale o convite que é DELE.
-
-**Regras de negócio no back (a tela não calcula):**
-
-Grava ClassMembers.Status = 'ativo' e preenche ClassMembers.Data_Matricula com a data de agora: na v6 ela é a data em que o ALUNO aceitou, e era NULL até aqui.
-
-### `POST /aluno/convites/:turmaId/recusar`
-
-Chamada no front: `api.escola.aluno.recusarConvite`
-
-**Corpo:**
-
-Nenhum.
-
-**Resposta:**
-
-204 (sem corpo)
-
-**Erros:**
-
-- 404 NAO_ENCONTRADO — não há convite pendente dele para a turma
-- 403 TIPO_INVALIDO — token de conta
-
-**Identidade:**
-
-O token: só vale o convite que é DELE.
-
-**Regras de negócio no back (a tela não calcula):**
-
-Grava ClassMembers.Status = 'recusado'. Não tem volta pelo lado dele: só o professor pode mandar outro convite.
-
 ### `GET /turmas/:turmaId/meu-desempenho`
 
 Chamada no front: `api.escola.aluno.desempenhoNaTurma`
@@ -1661,7 +1520,7 @@ O token. O :turmaId é da turma, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Tudo sobre as sessões DESTA turma: sessoesConcluidas; licoes (exercícios distintos concluídos); diasSeguidos; minhaMedia (PPM e precisão médios dele, inteiros) e mediaSala (das sessões concluídas de todos os alunos ativos). Com menos de 3 sessões concluídas, as duas médias vêm null. A tela não calcula média.
+Tudo sobre as sessões DESTA turma: sessoesConcluidas; licoes (exercícios distintos concluídos); diasSeguidos; minhaMedia (PPM e precisão médios dele, inteiros) e mediaSala (das sessões concluídas de todos os alunos da turma). Com menos de 3 sessões concluídas, as duas médias vêm null. A tela não calcula média.
 
 ### `GET /turmas/:turmaId/ranking`
 
@@ -1693,7 +1552,7 @@ O token marca a linha `voce`. O :turmaId é da turma.
 
 **Regras de negócio no back (a tela não calcula):**
 
-A ANONIMIZAÇÃO É DO BACK: do 4º lugar em diante, nome = null — menos na linha dele, que vem sempre com o nome. O nome dos colegas não pode chegar ao navegador, nem escondido. Sem nome no cadastro, vai o RP; nunca um nome inventado. Para cada aluno ATIVO, só com as sessões DESTA turma (SessionsProf):
+A ANONIMIZAÇÃO É DO BACK: do 4º lugar em diante, nome = null — menos na linha dele, que vem sempre com o nome. O nome dos colegas não pode chegar ao navegador, nem escondido. Para cada aluno da turma (Ativo = TRUE), só com as sessões DESTA turma (SessionsProf):
 
 ```
 licoes        exercícios DIFERENTES com sessão concluída

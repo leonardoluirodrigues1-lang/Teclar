@@ -29,13 +29,9 @@ let cacheUsuario: Usuario | null | undefined;
 
 // Grava a sessão do login OU do cadastro:
 //   { token, usuario: { id, nome?, email?, tipo } }
-// Do cadastro, a tela passa só esses dois campos: a resposta dele traz
-// também a senha de aluno, que não pode ser guardada em lugar nenhum.
 // `tipo` diz de qual tabela o login veio ('conta' = Users, 'aluno' =
 // Alunos); não é coluna do banco, o back sabe porque autenticou num lugar
-// ou no outro. nome e email são opcionais de propósito: o aluno não tem
-// e-mail, e o nome dele é o da conta dona — que pode faltar (aluno antigo
-// sem conta ligada e sem nome em Alunos). Ver nomeExibicao().
+// ou no outro. email é opcional de propósito: o aluno não tem e-mail.
 function entrar(resposta: RespostaLogin): Usuario {
   const token = resposta?.token;
   const usuario = resposta?.usuario;
@@ -121,8 +117,8 @@ function tipo(): TipoSessao | null {
   return usuario()?.tipo ?? null;
 }
 
-// O que a tela escreve quando precisa chamar a pessoa por algo. Aluno sem
-// nome cai no RP (o próprio id). Nunca devolve
+// O que a tela escreve quando precisa chamar a pessoa por algo. Sem nome,
+// cai no id. Nunca devolve
 // undefined — string vazia é o pior caso, e string vazia não aparece.
 function nomeExibicao(): string {
   const atual = usuario();
@@ -256,9 +252,9 @@ function definirCampanha(id: string): Usuario | null {
 }
 
 // --- Modo Escola: turma em uso --------------------------------------------
-// Um aluno pode estar matriculado em várias turmas; a tela precisa saber
-// qual está aberta. Sem escolha explícita, cai na primeira da lista de
-// turmas do usuário.
+// Na v8 o aluno é de uma turma só (a do código com que entrou), e ela é a
+// primeira — e única — da lista de turmas do usuário. definirTurma() fica
+// para a tela que abre a sala gravar qual está em uso.
 
 function turmaAtiva(): string | null {
   return usuario()?.turmaAtiva ?? usuario()?.turmas?.[0]?.id ?? null;
@@ -322,7 +318,7 @@ export const sessao = {
 // ============================================================================
 // Abre as telas do aluno sem passar pelo login, só para ver o visual:
 //   http://127.0.0.1:5500/pages/aluno/dashboard.html?dev=aluno
-// Com ?dev=aluno na URL, grava a sessão do aluno de teste (RP2025043, ver
+// Com ?dev=aluno na URL, grava a sessão do aluno de teste (al-43, ver
 // mocks.ts) antes de qualquer tela perguntar se há alguém logado, e a
 // página segue como se o login tivesse acontecido.
 //
@@ -344,7 +340,7 @@ function atalhoDeDesenvolvimentoLigado(): boolean {
 if (atalhoDeDesenvolvimentoLigado()) {
   // O mock reconhece o token pelo começo "mock-<tipo>-<id>-token-" (ver
   // prefixoToken em mocks.ts); o resto pode ser qualquer coisa.
-  entrar({ token: 'mock-aluno-RP2025043-token-dev', usuario: USUARIOS_DO_MOCK.aluno });
+  entrar({ token: 'mock-aluno-al-43-token-dev', usuario: USUARIOS_DO_MOCK.aluno });
 }
 // ============================================================================
 // FIM DO ATALHO TEMPORARIO DE DESENVOLVIMENTO.
