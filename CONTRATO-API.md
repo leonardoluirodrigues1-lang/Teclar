@@ -83,11 +83,11 @@ Pública. O token devolvido carrega o id e o tipo de quem entrou.
 
 **Regras de negócio no back (a tela não calcula):**
 
-O `tipo` é a tabela em que o back autenticou ('conta' = Users, 'aluno' = Alunos), nunca o que a tela mandou: corpo com `codigo` vai em Alunos, corpo com `email` vai em Users. Aluno: o código é aparado e posto em maiúscula ("k7m2qx " = K7M2QX); o nome é aparado e tem os espaços repetidos do meio reduzidos a um, e a comparação ignora maiúscula e acento (é a collation do banco: "ana pires" acha "Ana Pires"). Procura a linha de Alunos com esse ClassID e esse Nome. REGRA DO PRIMEIRO ACESSO: Alunos.SenhaHash NULL quer dizer que o aluno ainda não entrou. Nesse caso a senha enviada é aparada e validada — de 4 a 20 caracteres, qualquer coisa serve, sem exigir letra nem número (quem digita é criança) —, o hash é GRAVADO e a resposta vem com primeiroAcesso: true. Com SenhaHash preenchido, a senha é CONFERIDA, como em qualquer login. Os dois casos entram na mesma hora. A tela apara as pontas da senha (de conta e de aluno) antes de enviar; o back faz o mesmo antes de comparar o hash.
+`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.
 
 **Notas:**
 
-Código, nome ou senha errados dão o mesmo 401, para o login não virar um jeito de descobrir quem está em qual turma. O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor, em POST /turmas/:id/alunos/:alunoId/zerar-senha, e o próximo login do aluno vira primeiro acesso de novo. A regra forte (8+, letra e número) é só da senha de CONTA, no POST /auth/cadastro. Senha colada costuma trazer um espaço ou uma quebra de linha no fim, e isso virava "senha incorreta". Aparar no login só é seguro porque nenhuma senha válida tem espaço nas pontas: ver a regra no POST /auth/cadastro e a do primeiro acesso, acima.
+Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash.
 
 ### `POST /auth/cadastro`
 
@@ -121,11 +121,11 @@ Pública.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cria só a linha em Users: conta não tem entrada de aluno (aluno nasce da lista que o professor sobe na turma). Recusa senha que comece ou termine com espaço (no meio pode), e grava a senha como veio, sem aparar.
+Cria só a linha em Users. Recusa senha com espaço nas pontas e grava a senha sem aparar.
 
 **Notas:**
 
-Quem acabou de se cadastrar não passa pelo login de novo. A regra do espaço existe porque o login apara as pontas da senha: uma conta criada com "abc12345 " nunca mais entraria. A tela já barra antes de enviar, mas o back precisa barrar também.
+Quem acabou de se cadastrar não passa pelo login de novo.
 
 ### `GET /auth/eu`
 
@@ -195,7 +195,7 @@ O token (JogadorID). Não recebe id.
 
 **Notas:**
 
-null é ESTADO, não falha: é a primeira vez dele no Solo, e o lobby mostra o convite de começar. 404 obrigaria a tela a tratar isso dentro de um catch.
+null é estado (primeira vez no Solo), não falha.
 
 ### `POST /solo/campanha`
 
@@ -223,11 +223,11 @@ O token (JogadorID).
 
 **Regras de negócio no back (a tela não calcula):**
 
-Idempotente: quem já tem campanha recebe a que existe, e nenhuma segunda é criada (clique duplo, aba duplicada, F5).
+Idempotente: quem já tem campanha recebe a que existe, sem criar outra.
 
 **Notas:**
 
-Sem corpo porque nenhuma das seis colunas de CampanhasSolo vem da tela: CampanhaID, NivelAtual, XPTotal, Data_Criacao e Ativo são do back, e JogadorID sai do token. Não há nome de personagem nem avatar para mandar.
+Sem corpo: todas as colunas de CampanhasSolo vêm do back ou do token.
 
 ### `GET /solo/campanhas/:id`
 
@@ -305,11 +305,11 @@ O token (precisa ter campanha). Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo existe desde a v7, mas esta rota não o lê (ver @nao-usado no topo). Quem agrupa por nível é a tela.
+Nenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.
 
 **Notas:**
 
-Aceita filtros em query string (montarQuery), mas nenhuma tela manda filtro hoje. O texto fica de fora: na lista seria ~30 KB que nenhum cartão mostra.
+Aceita filtros em query string, mas nenhuma tela manda. O texto da lição não vem na lista.
 
 ### `GET /solo/missoes/:id`
 
@@ -491,7 +491,7 @@ O token: WHERE ProfessorID = conta do token.
 
 **Regras de negócio no back (a tela não calcula):**
 
-totalAlunos (COUNT em Alunos com ClassID = turma e Ativo = TRUE) e totalExercicios (COUNT em AtribuicoesProf). O filtro é Turmas.Ativa. O texto de `periodo` vem pronto. A tela não soma nada por turma. `codigo` é ClassesProf.Codigo: o que o professor passa aos alunos.
+totalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.
 
 ### `GET /turmas?ativa=false`
 
@@ -556,11 +556,11 @@ O token vira o ProfessorID. Não aceita professorId no corpo.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nasce com Ativa = true e com o código já gerado: 6 caracteres de A-Z e 2-9, sem os que se confundem ao ditar (I, O, 0, 1), único no sistema todo (ClassesProf.Codigo é UNIQUE). O período, se houver, é o back que monta.
+Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). O período é montado pelo back.
 
 **Notas:**
 
-ClassesProf.Ano e Semestre existem desde a v7, mas esta rota não os recebe (ver @nao-usado no topo): a turma nasce com os dois NULL e sem `periodo`. O mock ainda não valida o nome no POST (só no PATCH); a tela valida antes.
+Não recebe ClassesProf.Ano nem Semestre: a turma nasce com os dois NULL e sem `periodo`.
 
 ### `GET /turmas/:id`
 
@@ -658,7 +658,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Grava em Turmas.CapaSemente. Sem semente gravada, a tela deriva uma do id — por isso a coluna aceita NULL.
+Grava em Turmas.CapaSemente, que aceita NULL (a tela deriva uma do id).
 
 ### `PATCH /turmas/:id` (arquivar)
 
@@ -695,7 +695,7 @@ Grava Turmas.Ativa = false. A turma some de GET /turmas e o histórico de sessõ
 
 **Notas:**
 
-Arquivar, e NÃO excluir: SessionsProf aponta para a turma com ON DELETE CASCADE, e apagar a turma apagaria o histórico de treino de todos os alunos dela. Por isso não existe DELETE /turmas/:id.
+Não existe DELETE /turmas/:id: arquivar preserva o histórico de treino.
 
 ### `PATCH /turmas/:id` (desarquivar)
 
@@ -757,11 +757,11 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Gera outro código (mesma regra do POST /turmas) e grava em ClassesProf.Codigo. O antigo deixa de valer na mesma hora: quem tentar entrar com ele toma 401 CREDENCIAIS. Quem já está logado continua logado, e os alunos que já criaram senha entram com o código novo e a MESMA senha — o código só diz qual é a turma.
+Gera outro código (mesma regra do POST /turmas) em ClassesProf.Codigo; o antigo passa a dar 401 CREDENCIAIS na hora. Quem está logado continua, e as senhas dos alunos não mudam.
 
 **Notas:**
 
-Existe para o caso de o código vazar (foto da lousa no grupo errado): sem ele, qualquer um com o código e um nome da lista poderia fazer o primeiro acesso no lugar do aluno.
+Serve para quando o código vaza.
 
 ### `GET /turmas/:id/atribuicoes`
 
@@ -792,7 +792,7 @@ concluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão conclu
 
 **Notas:**
 
-A visão do ALUNO sobre a mesma tabela é GET /aluno/salas/:id, e não traz contagem da turma: seria entregar o desempenho dos colegas.
+A visão do aluno é GET /aluno/salas/:id, sem contagem da turma.
 
 ### `POST /turmas/:id/atribuicoes`
 
@@ -825,7 +825,7 @@ O token: a turma E cada exercício têm de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Confere todos os ids ANTES de gravar qualquer um (metade atribuída é pior que nada). Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).
+Confere todos os ids antes de gravar qualquer um. Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).
 
 **Notas:**
 
@@ -886,7 +886,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Alunos com ClassID = turma e Ativo = TRUE. entrouEm = Alunos.Data_Cadastro (o dia em que o nome entrou na lista); senhaDefinida = SenhaHash IS NOT NULL (false: ainda não fez o primeiro acesso, ou o professor zerou a senha). Os agregados (totalSessoes, médias, última atividade) são das sessões dele — que, na v8, são todas desta turma — e vêm prontos; quem nunca treinou vem com null, nunca 0. A senha nunca sai daqui.
+Alunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.
 
 ### `POST /turmas/:id/alunos/importar`
 
@@ -924,11 +924,11 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada nome é aparado e tem os espaços repetidos do meio reduzidos a um (é a forma gravada e a que o aluno vai digitar). Depois: vazio, ou com menos de 2 ou mais de 150 caracteres -> falha; igual a um nome anterior da MESMA lista -> falha ("Nome repetido na lista."); igual a um aluno que já está na turma -> jaEstavam, e nada muda para ele; senão, vira uma linha nova de Alunos com ClassID = turma e SenhaHash NULL. "Igual" ignora maiúscula e acento, como o UNIQUE (ClassID, Nome) do banco. Importação parcial é permitida: uma falha não desfaz os outros. Pode ser chamada de novo com a lista completa: quem já está cai em jaEstavam.
+Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, fora de 2 a 150 caracteres, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
 
 **Notas:**
 
-É a ÚNICA porta de entrada do aluno na turma, e por isso é obrigatória: sem o nome na lista, o login responde 401. Aluno removido por engano volta por aqui, mas como linha nova: sem a senha e sem o histórico antigos.
+É a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.
 
 ### `DELETE /turmas/:id/alunos/:alunoId`
 
@@ -974,11 +974,11 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, c
 
 **Regras de negócio no back (a tela não calcula):**
 
-Grava Alunos.SenhaHash = NULL. O próximo login com esse nome nesta turma é PRIMEIRO ACESSO: a senha enviada vira a nova (ver POST /auth/login). O histórico fica intacto. Zerar quem já está com SenhaHash NULL não é erro: responde 204 do mesmo jeito.
+Grava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.
 
 **Notas:**
 
-O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor. Até o aluno entrar de novo, qualquer um com o código e o nome dele pode criar a senha no lugar dele — por isso a tela avisa para zerar só com o aluno por perto.
+Até o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.
 
 ### `GET /turmas/:id/alunos/:alunoId/desempenho`
 
@@ -1007,7 +1007,7 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, c
 
 **Regras de negócio no back (a tela não calcula):**
 
-As sessões do aluno, que na v8 são todas desta turma, e os agregados sobre elas.
+As sessões do aluno nesta turma e os agregados sobre elas.
 
 **Notas:**
 
@@ -1071,7 +1071,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Alunos com ClassID = turma e Ativo = TRUE. Agregados das sessões de exercícios atribuídos à turma. Quem nunca treinou: totalSessoes 0 e médias null. exerciciosConcluidos = exercícios DISTINTOS concluídos.
+Alunos com ClassID = turma e Ativo = TRUE, com agregados das sessões nos exercícios atribuídos. Quem nunca treinou: totalSessoes 0 e médias null; exerciciosConcluidos conta exercícios distintos.
 
 ### `GET /turmas/:id/relatorio/exercicios`
 
@@ -1350,7 +1350,7 @@ Procura em SessionsProf e depois em SessionsSolo.
 
 **Notas:**
 
-É o que a tela de resultado lê num F5. Os acertos voltam aqui para ela mostrar o mesmo número de antes, sem cálculo nenhum.
+É o que a tela de resultado lê num F5.
 
 ## Aluno
 
@@ -1399,7 +1399,7 @@ O token. Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-O JOIN com o título do exercício e o nome da turma; a ordem é parte do contrato. Sem filtro por exercício: a tela filtra a própria lista.
+JOIN com o título do exercício e o nome da turma; a ordem é parte do contrato. Sem filtro por exercício.
 
 ### `GET /aluno/resumo`
 
@@ -1426,7 +1426,7 @@ O token. Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Médias só das concluídas (null sem nenhuma); melhores marcas de todas as sessões; diasSeguidos terminando hoje ou ontem (senão 0). Nenhuma média de turma: o aluno não recebe número de colega.
+Médias só das concluídas (null sem nenhuma), melhores marcas de todas e diasSeguidos terminando hoje ou ontem (senão 0). Sem média de turma.
 
 ### `GET /aluno/salas`
 
@@ -1457,7 +1457,7 @@ A turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuído
 
 **Notas:**
 
-Continua lista para a tela não mudar de forma; com um aluno por turma, nunca passa de um item.
+Lista com no máximo um item.
 
 ### `GET /aluno/salas/:turmaId`
 
@@ -1489,7 +1489,7 @@ O token. O :turmaId é da SALA, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-O estado de cada exercício para ele (nao_feito, feito, tempo_esgotado), a melhor marca dele e a contagem de caracteres (o texto não vem). Na ordem em que o professor atribuiu. Nenhum número de colega.
+Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega.
 
 ### `GET /turmas/:turmaId/meu-desempenho`
 
@@ -1520,7 +1520,7 @@ O token. O :turmaId é da turma, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Tudo sobre as sessões DESTA turma: sessoesConcluidas; licoes (exercícios distintos concluídos); diasSeguidos; minhaMedia (PPM e precisão médios dele, inteiros) e mediaSala (das sessões concluídas de todos os alunos da turma). Com menos de 3 sessões concluídas, as duas médias vêm null. A tela não calcula média.
+Só sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null.
 
 ### `GET /turmas/:turmaId/ranking`
 
@@ -1552,22 +1552,14 @@ O token marca a linha `voce`. O :turmaId é da turma.
 
 **Regras de negócio no back (a tela não calcula):**
 
-A ANONIMIZAÇÃO É DO BACK: do 4º lugar em diante, nome = null — menos na linha dele, que vem sempre com o nome. O nome dos colegas não pode chegar ao navegador, nem escondido. Para cada aluno da turma (Ativo = TRUE), só com as sessões DESTA turma (SessionsProf):
+Do 4º lugar em diante, nome = null, menos na linha do próprio aluno. Ordem: pontos desc, depois mais lições, depois mais dias; posicao começa em 1.
 
 ```
-licoes        exercícios DIFERENTES com sessão concluída
-              (COUNT DISTINCT ExercicioID WHERE concluida = 1)
+licoes        exercícios distintos concluídos nesta turma (Ativo = TRUE)
 ritmo         PPM médio das concluídas, inteiro; null sem nenhuma
-diasSeguidos  dias de calendário seguidos com sessão (concluída
-              ou não), terminando HOJE ou ONTEM; senão 0
+diasSeguidos  dias seguidos com sessão, terminando hoje ou ontem; senão 0
 pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5
 ```
-
-Ordem: pontos desc; empate, mais lições; depois mais dias. posicao começa em 1.
-
-**Notas:**
-
-Lição pesa mais que tudo: quem fez mais exercícios fica na frente de quem só digita rápido; o ritmo entra a 1 ponto por PPM e cada dia seguido vale 5, para a constância contar. Nunca é velocidade pura.
 
 ## Administração
 

@@ -158,6 +158,81 @@ Para olhar as tabelas e os dados pelo Prisma, no navegador:
 npx prisma studio
 ```
 
+## Decisões de implementação
+
+O Swagger diz só a regra de cada rota. O porquê fica aqui.
+
+**Login e senha**
+
+- `tipo` vem da tabela em que o back autenticou, nunca do que a tela
+  mandou.
+- Código, nome ou senha errados dão o mesmo 401 para o login não virar um
+  jeito de descobrir quem está em qual turma.
+- A comparação do nome sem maiúscula e acento é a collation do banco
+  ("ana pires" acha "Ana Pires"), a mesma do UNIQUE (ClassID, Nome).
+- A senha do aluno vai de 4 a 20 caracteres, sem exigir letra nem número,
+  porque quem digita é criança. A regra forte (8+, letra e número) é só da
+  senha de conta, no `POST /auth/cadastro`.
+- O login apara as pontas da senha porque senha colada costuma trazer um
+  espaço ou uma quebra de linha no fim. Isso só é seguro porque nenhuma
+  senha válida tem espaço nas pontas: por isso o cadastro recusa esse caso
+  (a tela barra antes, mas o back também precisa barrar). Uma conta criada
+  com `"abc12345 "` nunca mais entraria.
+- Conta não tem entrada de aluno: o aluno nasce da lista que o professor
+  sobe na turma.
+
+**Aluno, turma e código**
+
+- O aluno não tem e-mail, então não existe "esqueci minha senha"
+  automático. Quem desbloqueia é o professor, em
+  `POST /turmas/:id/alunos/:alunoId/zerar-senha`. Até o aluno entrar de
+  novo, qualquer um com o código e o nome dele pode criar a senha: a tela
+  avisa para zerar só com o aluno por perto.
+- `POST /turmas/:id/codigo/novo` existe para o código que vaza (foto da
+  lousa no grupo errado): sem ele, qualquer um com o código e um nome da
+  lista faria o primeiro acesso no lugar do aluno. O código só diz qual é a
+  turma, por isso as senhas continuam valendo.
+- O código da turma não usa I, O, 0 e 1 porque eles se confundem ao ditar.
+- Turma é arquivada, nunca excluída: SessionsProf aponta para a turma com
+  ON DELETE CASCADE, e apagar a turma apagaria o histórico de treino de
+  todos os alunos dela.
+- A importação é a única porta de entrada do aluno, por isso é obrigatória:
+  sem o nome na lista, o login responde 401. Aluno removido por engano volta
+  como linha nova, sem a senha e sem o histórico antigos.
+- Na v8 cada aluno é de uma turma só, então "as sessões dele" e "as sessões
+  dele nesta turma" são a mesma coisa. `GET /aluno/salas` continua lista
+  para a tela não mudar de forma.
+- A atribuição confere todos os ids antes de gravar porque metade atribuída
+  é pior que nada.
+- A visão do aluno sobre as atribuições não traz contagem da turma: seria
+  entregar o desempenho dos colegas.
+
+**Ranking**
+
+- O nome dos colegas não pode chegar ao navegador, nem escondido: por isso
+  a anonimização do 4º lugar em diante é do back.
+- Lição pesa mais que tudo (20 pontos): quem fez mais exercícios fica na
+  frente de quem só digita rápido. O ritmo entra a 1 ponto por PPM, e cada
+  dia seguido vale 5, para a constância contar. Nunca é velocidade pura.
+
+**Solo**
+
+- `GET /solo/campanha` sem campanha responde null, e não 404: é a primeira
+  vez do jogador, e o lobby mostra o convite de começar. Um 404 obrigaria a
+  tela a tratar isso dentro de um catch.
+- `POST /solo/campanha` é idempotente por causa de clique duplo, aba
+  duplicada e F5. Não tem corpo porque CampanhaID, NivelAtual, XPTotal,
+  Data_Criacao e Ativo são do back, e JogadorID sai do token.
+- `GET /solo/missoes` não traz o texto das lições: seriam uns 30 KB que
+  nenhum cartão mostra. ExerciciosSolo.NivelMinimo e ClassesProf.Ano e
+  Semestre existem desde a v7, mas nenhuma rota os usa ainda (ver
+  `@nao-usado` no topo do `api.ts`).
+
+**Pendência do mock**
+
+- O mock ainda não valida o nome no `POST /turmas` (só no PATCH); a tela
+  valida antes.
+
 ## Onde fica cada coisa
 
 | Caminho | O que é |
