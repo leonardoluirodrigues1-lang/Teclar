@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "TECLAR — API",
-    "version": "v7",
+    "version": "1.0",
     "description": "Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.ts), por gerar-contrato.mjs. Rotas marcadas \"(ainda não implementada)\" ainda não existem no back.\n\nPara testar uma rota com cadeado: faça o POST /api/auth/login, copie o \"token\" da resposta e cole em **Authorize** (sem a palavra Bearer)."
   },
   "tags": [

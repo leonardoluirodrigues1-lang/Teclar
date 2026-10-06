@@ -640,7 +640,8 @@ function escreverOpenApi(contrato) {
     openapi: '3.0.0',
     info: {
       title: 'TECLAR — API',
-      version: 'v7',
+      // Versão da API, independente da versão do schema do banco (DB_Teclar_vN.sql).
+      version: '1.0',
       description:
         'Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.ts), por gerar-contrato.mjs. ' +
         'Rotas marcadas "(ainda não implementada)" ainda não existem no back.\n\n' +
