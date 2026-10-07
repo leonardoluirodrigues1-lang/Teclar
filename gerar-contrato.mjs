@@ -1,32 +1,25 @@
 // gerar-contrato.mjs
-// Gera o CONTRATO-API.md (na raiz) a partir dos comentários de
-// js/nucleo/api.ts. Rodar com:  node gerar-contrato.mjs
+// Gera o CONTRATO-API.md (na raiz) a partir de js/nucleo/api.contrato.ts.
+// Rodar com:  npm run contrato
 //
 // Gera também back/openapi.json: as mesmas rotas no formato OpenAPI, que o
 // back serve no Swagger (/api/docs). Assim a documentação do Swagger é o
 // contrato, e não uma cópia dele digitada à mão (ver o fim deste arquivo).
 //
-// Por que gerar, e não escrever o .md à mão: o api.ts é o contrato que o
-// front de fato chama. Um .md escrito à parte começaria a divergir dele na
-// primeira rota alterada; gerado, ele é sempre o que o api.ts diz. Se os
-// dois discordarem, vale o api.ts — basta rodar este script de novo.
+// Por que gerar, e não escrever o .md à mão: um .md escrito à parte
+// começaria a divergir na primeira rota alterada; gerado, ele é sempre o
+// que o api.contrato.ts diz. Se os dois discordarem, vale o api.contrato.ts.
 //
-// O que ele lê (o formato está explicado no topo da seção 5 do api.ts):
-//   · no cabeçalho do arquivo, as marcas @convencao, @coluna-pendente
-//     (coluna que ainda não existe), @coluna-redefinida (coluna que existe e
-//     muda de significado), @nao-usado (coluna que existe e nenhuma rota
-//     usa) e @pendencia (decisão de banco ainda em aberto);
-//   · dentro do objeto `api`, as marcas @grupo e, por rota, @rota, @corpo,
-//     @resposta, @erros, @identidade, @back e @nota.
-// Uma marca começa em "// @nome" e continua nas linhas de comentário
-// seguintes que começam com espaço ("//   ..."). Linha de comentário sem
-// recuo, dentro de uma rota, também continua a marca atual.
+// O formato dos dados está explicado no topo do api.contrato.ts. A chave de
+// cada rota ('auth.entrar') é o caminho da função em `api` (api.ts); o
+// gerador confere que ela existe lá.
 //
-// Sem dependência nenhuma: só o Node.
+// Sem dependência nenhuma: só o Node (que lê o .ts direto, sem compilar).
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import * as fonteDoContrato from './js/nucleo/api.contrato.ts';
 
-const ORIGEM = 'js/nucleo/api.ts';
+const FUNCOES = 'js/nucleo/api.ts';
 const DESTINO = 'CONTRATO-API.md';
 const DESTINO_DO_BACK = 'back/openapi.json';
 
@@ -36,91 +29,32 @@ const DESTINO_DO_BACK = 'back/openapi.json';
 const COLUNAS_DE_NOME_COMUM = ['Status', 'Ativa'];
 
 // ============================================================================
-// Leitura do api.ts
+// Leitura do api.contrato.ts
 // ============================================================================
 
-// Uma linha do arquivo vira { tipo, ... }: marca, comentário ou código.
-function classificar(linha) {
-  const marca = /^\s*\/\/ @([a-z-]+)\s?(.*)$/.exec(linha);
-  if (marca) return { tipo: 'marca', nome: marca[1], texto: marca[2] };
-  const comentario = /^\s*\/\/ ?(.*)$/.exec(linha);
-  if (comentario) return { tipo: 'comentario', texto: comentario[1] };
-  return { tipo: 'codigo', texto: linha };
-}
+// Cada texto do api.contrato.ts é uma template string; o resto do gerador
+// trabalha com a lista de linhas. Texto vazio é lista vazia (grupo sem
+// introdução).
+const emLinhas = (texto) => (texto === '' ? [] : texto.split('\n'));
+const itens = (lista) => lista.map((texto) => ({ texto: emLinhas(texto) }));
 
 function lerContrato(fonte) {
-  const contrato = { convencoes: [], colunas: [], redefinidas: [], naoUsadas: [], pendencias: [], grupos: [] };
-  // Cada marca do cabeçalho vai para a sua lista.
-  const listaDoCabecalho = {
-    convencao: contrato.convencoes,
-    'coluna-pendente': contrato.colunas,
-    'coluna-redefinida': contrato.redefinidas,
-    'nao-usado': contrato.naoUsadas,
-    pendencia: contrato.pendencias,
+  return {
+    convencoes: itens(fonte.convencoes),
+    colunas: itens(fonte.colunasPendentes),
+    redefinidas: itens(fonte.colunasRedefinidas),
+    naoUsadas: itens(fonte.naoUsadas),
+    pendencias: itens(fonte.pendencias),
+    grupos: fonte.grupos.map((g) => ({
+      nome: g.nome,
+      intro: emLinhas(g.intro),
+      rotas: Object.entries(g.rotas).map(([chave, { rota, ...marcas }]) => ({
+        rota,
+        funcao: `api.${chave}`,
+        marcas: Object.fromEntries(Object.entries(marcas).map(([m, t]) => [m, emLinhas(t)])),
+      })),
+    })),
   };
-  // O que está sendo montado agora: uma marca do cabeçalho, uma introdução
-  // de grupo ou uma rota. Só um por vez.
-  let marcaDoCabecalho = null;
-  let grupo = null;
-  let lendoIntro = false;
-  let rota = null;
-  let marcaDaRota = null;
-  // As chaves dos objetos abertos, para montar "api.escola.aluno.salas".
-  const caminho = [];
-
-  for (const bruta of fonte.split(/\r?\n/)) {
-    const linha = classificar(bruta);
-
-    if (linha.tipo === 'marca') {
-      marcaDoCabecalho = null;
-      if (listaDoCabecalho[linha.nome]) {
-        marcaDoCabecalho = { texto: [linha.texto] };
-        listaDoCabecalho[linha.nome].push(marcaDoCabecalho);
-      } else if (linha.nome === 'grupo') {
-        grupo = { nome: linha.texto, intro: [], rotas: [] };
-        contrato.grupos.push(grupo);
-        lendoIntro = true;
-      } else if (linha.nome === 'rota') {
-        rota = { rota: linha.texto, marcas: {}, funcao: null };
-        grupo.rotas.push(rota);
-        lendoIntro = false;
-        marcaDaRota = null;
-      } else if (rota) {
-        marcaDaRota = linha.nome;
-        rota.marcas[marcaDaRota] = [linha.texto];
-      }
-      continue;
-    }
-
-    if (linha.tipo === 'comentario') {
-      const recuada = /^\s/.test(linha.texto);
-      if (marcaDoCabecalho && recuada) {
-        marcaDoCabecalho.texto.push(linha.texto);
-      } else if (rota && marcaDaRota) {
-        rota.marcas[marcaDaRota].push(linha.texto);
-      } else if (lendoIntro && grupo) {
-        grupo.intro.push(linha.texto);
-      }
-      if (!recuada) marcaDoCabecalho = null;
-      continue;
-    }
-
-    // Código: fecha a rota (a primeira linha de código depois dela é o
-    // método do objeto api) e acompanha a abertura e o fechamento de objetos.
-    marcaDoCabecalho = null;
-    lendoIntro = false;
-    const chave = /^\s*(\w+):/.exec(linha.texto);
-    if (rota && chave) {
-      rota.funcao = ['api', ...caminho, chave[1]].join('.');
-      rota = null;
-      marcaDaRota = null;
-    }
-    const abre = /^\s*(\w+): \{\s*$/.exec(linha.texto);
-    if (abre) caminho.push(abre[1]);
-    else if (/^\s*\},?\s*$/.test(linha.texto)) caminho.pop();
-  }
-
-  return contrato;
 }
 
 // ============================================================================
@@ -315,9 +249,9 @@ function escreverMarkdown(contrato) {
   return [
     '# Contrato da API — TECLAR',
     '',
-    `> Gerado de \`${ORIGEM}\` por \`gerar-contrato.mjs\`. **Não edite este arquivo:**`,
-    '> mude o comentário da rota no api.ts e rode `node gerar-contrato.mjs` de novo.',
-    '> Se este arquivo e o api.ts divergirem, vale o api.ts.',
+    '> Gerado de `js/nucleo/api.contrato.ts` por `gerar-contrato.mjs`. **Não edite este arquivo:**',
+    '> mude a rota no api.contrato.ts e rode `npm run contrato` de novo.',
+    '> Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.',
     '',
     `${total} chamadas em ${contrato.grupos.length} grupos. Os tipos citados (Turma, Sessao...) estão em \`js/nucleo/tipos.ts\`.`,
     '',
@@ -643,7 +577,7 @@ function escreverOpenApi(contrato) {
       // Versão da API, independente da versão do schema do banco (DB_Teclar_vN.sql).
       version: '1.0',
       description:
-        'Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.ts), por gerar-contrato.mjs. ' +
+        'Gerada do mesmo contrato que o CONTRATO-API.md (js/nucleo/api.contrato.ts), por gerar-contrato.mjs. ' +
         'Rotas marcadas "(ainda não implementada)" ainda não existem no back.\n\n' +
         'Para testar uma rota com cadeado: faça o POST /api/auth/login, copie o ' +
         '"token" da resposta e cole em **Authorize** (sem a palavra Bearer).',
@@ -665,13 +599,17 @@ function escreverOpenApi(contrato) {
 // Execução
 // ============================================================================
 
-const contrato = lerContrato(readFileSync(ORIGEM, 'utf8'));
+const contrato = lerContrato(fonteDoContrato);
 
-// Uma rota sem método no api.ts é sinal de comentário fora do lugar:
-// melhor parar do que gerar um contrato com buraco.
-const semFuncao = contrato.grupos.flatMap((g) => g.rotas).filter((r) => !r.funcao);
+// Uma chave sem método com esse nome no api.ts é rota renomeada de um lado
+// só: melhor parar do que gerar um contrato que aponta para o nada.
+// ponytail: confere só o último nome da chave ('entrar' de 'auth.entrar'), não o caminho inteiro.
+const funcoes = readFileSync(FUNCOES, 'utf8');
+const semFuncao = contrato.grupos
+  .flatMap((g) => g.rotas)
+  .filter((r) => !new RegExp(`\\b${r.funcao.split('.').pop()}:`).test(funcoes));
 if (semFuncao.length) {
-  console.error('Rotas sem método logo abaixo do comentário:', semFuncao.map((r) => r.rota));
+  console.error(`Chaves do contrato sem método no ${FUNCOES}:`, semFuncao.map((r) => r.funcao));
   process.exit(1);
 }
 

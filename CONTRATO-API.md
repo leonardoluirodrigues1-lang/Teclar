@@ -1,8 +1,8 @@
 # Contrato da API — TECLAR
 
-> Gerado de `js/nucleo/api.ts` por `gerar-contrato.mjs`. **Não edite este arquivo:**
-> mude o comentário da rota no api.ts e rode `node gerar-contrato.mjs` de novo.
-> Se este arquivo e o api.ts divergirem, vale o api.ts.
+> Gerado de `js/nucleo/api.contrato.ts` por `gerar-contrato.mjs`. **Não edite este arquivo:**
+> mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
+> Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
 54 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
