@@ -14,7 +14,6 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **ExerciciosSolo.XPConcessao** — XP base da lição. Nenhuma rota lê: o XP de POST /solo/sessoes sai de uma constante do back (XP_BASE_MISSAO), igual para toda lição.
 - **ExerciciosSolo.CategoriaID / ExerciciosProf.CategoriaID** — FK para Categorias. Nenhuma rota grava nem devolve: DadosExercicio não tem categoria, e a resposta de /exercicios também não.
 - **AtribuicoesProf.Prazo** — data de entrega. As respostas já devolvem `prazo` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId), mas nenhuma rota grava: vem sempre null.
-- **ClassesProf.Ano / ClassesProf.Semestre** — de onde o back monta o texto de `periodo`. Nenhuma rota grava (POST /turmas só recebe o nome): ficam NULL, e a turma vem sem `periodo`.
 
 ## Decisões de banco em aberto
 
@@ -528,10 +527,10 @@ Chamada no front: `api.turmas.criar`
 
 **Corpo:**
 
-{ nome } — 3 a 100 caracteres
+{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais
 
 ```json
-{ "nome": "7º Ano C — Tarde" }
+{ "nome": "7º Ano C — Tarde", "ano": 2026, "semestre": 1 }
 ```
 
 **Resposta:**
@@ -540,13 +539,13 @@ Chamada no front: `api.turmas.criar`
 
 ```json
 { "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
-  "totalAlunos": 0, "totalExercicios": 0,
+  "totalAlunos": 0, "totalExercicios": 0, "periodo": "2026 · 1º semestre",
   "ativa": true, "dataCriacao": "2026-10-03" }
 ```
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
+- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2
 - 409 — a conta já tem uma turma com esse nome
 - 403 TIPO_INVALIDO — token de aluno
 
@@ -556,11 +555,11 @@ O token vira o ProfessorID. Não aceita professorId no corpo.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). O período é montado pelo back.
+Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.
 
 **Notas:**
 
-Não recebe ClassesProf.Ano nem Semestre: a turma nasce com os dois NULL e sem `periodo`.
+Sem ano e semestre, a turma vem sem `periodo`.
 
 ### `GET /turmas/:id`
 
@@ -1306,6 +1305,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 
 **Erros:**
 
+- 400 DADOS_INVALIDOS — o corpo traz usuario_id (o aluno sai do token)
 - 403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
 - 404 NAO_ENCONTRADO — exercício não atribuído à turma, ou turma_id não é a turma do aluno
 
@@ -1316,6 +1316,10 @@ O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma
 **Regras de negócio no back (a tela não calcula):**
 
 recordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram.
+
+**Notas:**
+
+usuario_id no corpo é recusado com 400, nunca ignorado.
 
 ### `GET /sessoes/:id`
 

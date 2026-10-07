@@ -93,9 +93,6 @@ export const naoUsadas: Texto[] = [
   `AtribuicoesProf.Prazo — data de entrega. As respostas já
   devolvem \`prazo\` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId),
   mas nenhuma rota grava: vem sempre null.`,
-  `ClassesProf.Ano / ClassesProf.Semestre — de onde o back monta
-  o texto de \`periodo\`. Nenhuma rota grava (POST /turmas só recebe o
-  nome): ficam NULL, e a turma vem sem \`periodo\`.`,
 ];
 
 // Ainda sem lugar no banco (não é coluna pedida, é decisão a tomar):
@@ -328,20 +325,20 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
       },
       'turmas.criar': {
         rota: 'POST /turmas',
-        corpo: `{ nome } — 3 a 100 caracteres
-  { "nome": "7º Ano C — Tarde" }`,
+        corpo: `{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais
+  { "nome": "7º Ano C — Tarde", "ano": 2026, "semestre": 1 }`,
         resposta: `200 Turma — já na forma de um item de GET /turmas
   { "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
-    "totalAlunos": 0, "totalExercicios": 0,
+    "totalAlunos": 0, "totalExercicios": 0, "periodo": "2026 · 1º semestre",
     "ativa": true, "dataCriacao": "2026-10-03" }`,
-        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
+        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2
   409 — a conta já tem uma turma com esse nome
   403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token vira o ProfessorID. Não aceita professorId no corpo.`,
         back: `Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0
-  e 1, único (ClassesProf.Codigo é UNIQUE). O período é montado pelo back.`,
-        nota: `Não recebe ClassesProf.Ano nem Semestre: a turma nasce com os dois NULL e
-  sem \`periodo\`.`,
+  e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em
+  ClassesProf.Ano e Semestre (NULL quando não vêm) e monta \`periodo\` com eles.`,
+        nota: `Sem ano e semestre, a turma vem sem \`periodo\`.`,
       },
       'turmas.obter': {
         rota: 'GET /turmas/:id',
@@ -680,7 +677,8 @@ grupo "Aluno", em /aluno/.`,
     "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
     "acertos": 141, "erros": 9, "concluida": true,
     "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }`,
-        erros: `403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
+        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id (o aluno sai do token)
+  403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
   404 NAO_ENCONTRADO — exercício não atribuído à turma, ou turma_id não é a turma do aluno`,
         identidade: `O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID
   recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.`,
@@ -688,6 +686,7 @@ grupo "Aluno", em /aluno/.`,
   exercício) e os agregados do aluno, que passam a contar esta sessão.
   PPM, precisão, acertos e erros vêm do motor da tela e são gravados
   como chegaram.`,
+        nota: `usuario_id no corpo é recusado com 400, nunca ignorado.`,
       },
       'sessoes.obter': {
         rota: 'GET /sessoes/:id',

@@ -2585,6 +2585,11 @@ const rotas: [string, RegExp, Handler][] = [
       // e aparece no relatório de um exercício que o professor nunca deu.
       // Os nomes camelCase antigos seguem aceitos como fallback.
       const alunoId = alunoDoToken(token).id;
+      // usuario_id é recusado, não ignorado: ignorado, quem o mandou acharia
+      // que escolheu o aluno, e a sessão iria para o dono do token.
+      if (corpo?.usuario_id !== undefined) {
+        throw erro(400, 'O aluno sai do token: não mande usuario_id.', 'DADOS_INVALIDOS');
+      }
       const turmaId: string | null = corpo?.turma_id ?? corpo?.turmaId ?? null;
       const exerciseId = exercicioAtribuidoAoAluno(
         corpo?.exercicio_id ?? corpo?.exerciseId ?? '',

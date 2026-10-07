@@ -1232,10 +1232,10 @@
         ],
         "operationId": "turmas.criar",
         "summary": "(ainda não implementada) criar: Turma — já na forma de um item de GET /turmas",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome } — 3 a 100 caracteres\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. Não aceita professorId no corpo.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). O período é montado pelo back.\n\n**Notas:**\n\nNão recebe ClassesProf.Ano nem Semestre: a turma nasce com os dois NULL e sem `periodo`.",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. Não aceita professorId no corpo.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.\n\n**Notas:**\n\nSem ano e semestre, a turma vem sem `periodo`.",
         "parameters": [],
         "requestBody": {
-          "description": "{ nome } — 3 a 100 caracteres",
+          "description": "{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais",
           "content": {
             "application/json": {
               "schema": {
@@ -1245,7 +1245,9 @@
                 "exemplo1": {
                   "summary": "Exemplo 1",
                   "value": {
-                    "nome": "7º Ano C — Tarde"
+                    "nome": "7º Ano C — Tarde",
+                    "ano": 2026,
+                    "semestre": 1
                   }
                 }
               }
@@ -1267,6 +1269,7 @@
                       "nome": "7º Ano C — Tarde",
                       "totalAlunos": 0,
                       "totalExercicios": 0,
+                      "periodo": "2026 · 1º semestre",
                       "ativa": true,
                       "dataCriacao": "2026-10-03"
                     }
@@ -1276,7 +1279,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres",
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2",
             "content": {
               "application/json": {
                 "examples": {
@@ -3216,7 +3219,7 @@
         ],
         "operationId": "sessoes.registrar",
         "summary": "(ainda não implementada) registrar: RespostaSessaoEscola — a sessão gravada mais o recorde",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.sessoes.registrar`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma\n\n**Resposta:** 200 RespostaSessaoEscola — a sessão gravada mais o recorde\n\n**Identidade:**\n\nO token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.\n\n**Regras de negócio no back (a tela não calcula):**\n\nrecordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram.",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.sessoes.registrar`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma\n\n**Resposta:** 200 RespostaSessaoEscola — a sessão gravada mais o recorde\n\n**Identidade:**\n\nO token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.\n\n**Regras de negócio no back (a tela não calcula):**\n\nrecordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram.\n\n**Notas:**\n\nusuario_id no corpo é recusado com 400, nunca ignorado.",
         "parameters": [],
         "requestBody": {
           "description": "DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma",
@@ -3264,6 +3267,22 @@
                       "concluida": true,
                       "data": "2026-10-03T14:20:00.000Z",
                       "recordePessoal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — o corpo traz usuario_id (o aluno sai do token)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
                     }
                   }
                 }

@@ -224,9 +224,18 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   duplicada e F5. Não tem corpo porque CampanhaID, NivelAtual, XPTotal,
   Data_Criacao e Ativo são do back, e JogadorID sai do token.
 - `GET /solo/missoes` não traz o texto das lições: seriam uns 30 KB que
-  nenhum cartão mostra. ExerciciosSolo.NivelMinimo e ClassesProf.Ano e
-  Semestre existem desde a v7, mas nenhuma rota os usa ainda (ver
-  `@nao-usado` no topo do `api.ts`).
+  nenhum cartão mostra. ExerciciosSolo.NivelMinimo existe desde a v7, mas
+  nenhuma rota o usa ainda (ver `naoUsadas` no `api.contrato.ts`).
+
+**Sessões**
+
+- `POST /sessoes` recusa com 400 um corpo que traga `usuario_id`, em vez
+  de ignorar o campo. Ignorar em silêncio faria quem o mandou achar que
+  escolheu o aluno, e a sessão seria gravada no dono do token.
+- O campo do tempo é `tempo_gasto_segundos`, e não `tempo_segundos` como
+  no guia do professor. O nome vem da coluna `Tempo_Gasto_Segundos` do
+  banco, e usar o mesmo nome no banco, no back e no front evita tradução
+  entre as camadas.
 
 **Pendência do mock**
 
