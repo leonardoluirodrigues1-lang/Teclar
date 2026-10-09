@@ -178,8 +178,8 @@
           "Autenticação"
         ],
         "operationId": "auth.cadastrar",
-        "summary": "(ainda não implementada) cadastrar: RespostaLogin — a sessão, como no login",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.cadastrar`\n\n**Corpo:** DadosCadastro\n\n**Resposta:** 200 RespostaLogin — a sessão, como no login\n\n**Identidade:**\n\nPública.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCria só a linha em Users. Recusa senha com espaço nas pontas e grava a senha sem aparar.\n\n**Notas:**\n\nQuem acabou de se cadastrar não passa pelo login de novo.",
+        "summary": "cadastrar: RespostaLogin — a sessão, como no login",
+        "description": "**Chamada no front:** `api.auth.cadastrar`\n\n**Corpo:** DadosCadastro\n\n**Resposta:** 200 RespostaLogin — a sessão, como no login\n\n**Identidade:**\n\nPública.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCria só a linha em Users. Nome: aparado, espaços internos reduzidos a um, de 2 a 150 caracteres. E-mail: aparado e minúsculo, formato algo@algo.algo, até 150 caracteres. Senha de CONTA: pelo menos 8 caracteres, ao menos uma letra e um número, sem espaço no começo nem no fim; é gravada sem aparar. Mesma regra do front (validacao.ts) e do back (regras-do-cadastro.ts).\n\n**Notas:**\n\nQuem acabou de se cadastrar não passa pelo login de novo.",
         "parameters": [],
         "requestBody": {
           "description": "DadosCadastro",
@@ -224,7 +224,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — a senha começa ou termina com espaço",
+            "description": "`DADOS_INVALIDOS` — nome, e-mail ou senha fora da regra (a mensagem diz qual)",
             "content": {
               "application/json": {
                 "examples": {
@@ -264,8 +264,8 @@
           "Autenticação"
         ],
         "operationId": "auth.eu",
-        "summary": "(ainda não implementada) eu: Usuario — o dono do token, na forma do login",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.eu`\n\n**Resposta:** 200 Usuario — o dono do token, na forma do login\n\n**Identidade:**\n\nO token. Não recebe id: é sempre \"quem sou eu\".",
+        "summary": "eu: Usuario — o dono do token, na forma do login",
+        "description": "**Chamada no front:** `api.auth.eu`\n\n**Resposta:** 200 Usuario — o dono do token, na forma do login\n\n**Identidade:**\n\nO token. Não recebe id: é sempre \"quem sou eu\".",
         "parameters": [],
         "responses": {
           "200": {
@@ -316,8 +316,8 @@
           "Autenticação"
         ],
         "operationId": "auth.sair",
-        "summary": "(ainda não implementada) sair: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.sair`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que deixa de valer. Marcada como pública: um 401 aqui não pode derrubar a tela no meio da saída.\n\n**Notas:**\n\nPode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que não depende desta resposta.",
+        "summary": "sair: (sem corpo)",
+        "description": "**Chamada no front:** `api.auth.sair`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que deixa de valer. Marcada como pública: um 401 aqui não pode derrubar a tela no meio da saída.\n\n**Notas:**\n\nPode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que não depende desta resposta.",
         "parameters": [],
         "responses": {
           "204": {

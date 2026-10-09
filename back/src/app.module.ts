@@ -1,7 +1,7 @@
 // app.module.ts
 // O módulo raiz: junta o banco e os módulos que têm rota implementada.
 //
-// Hoje só a autenticação (POST /auth/login). As outras rotas do contrato
+// Hoje só a autenticação (login, cadastro, eu, logout). As outras rotas do contrato
 // ainda não têm código: estão documentadas no CONTRATO-API.md e no Swagger
 // (back/openapi.json), e ganham um módulo aqui quando forem implementadas.
 import { Module } from '@nestjs/common';

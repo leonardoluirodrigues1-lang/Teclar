@@ -1,5 +1,7 @@
 // autenticacao.service.ts
-// A regra do POST /auth/login (ver CONTRATO-API.md, grupo Autenticação).
+// A regra do grupo Autenticação (ver CONTRATO-API.md): o POST /auth/login,
+// o POST /auth/cadastro e o GET /auth/eu. O logout não tem regra (ver o
+// controller). Abaixo, o que vale para o login:
 //
 // Um login para duas tabelas:
 //   conta (Users)  -> { email, senha }
@@ -16,8 +18,10 @@
 // O aluno (banco v8) é POR TURMA: a linha de Alunos já tem o ClassID. O
 // mesmo nome em duas turmas são duas pessoas para o banco, cada uma com a
 // sua senha — o código da turma é o que diz de qual delas se trata.
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
@@ -25,8 +29,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { BancoService } from '../banco/banco.service.js';
+import { Prisma } from '../generated/prisma/client.js';
+import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regras-do-cadastro.js';
 import { problemaNaSenhaDoAluno } from './senha-do-aluno.js';
-import type { ConteudoDoToken, TipoDeLogin } from './token.js';
+import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 
 // O corpo como chega. Tudo unknown: vem da rede, e nada garante que a tela
 // (ou quem chamar com curl) mandou texto.
@@ -34,6 +40,14 @@ export interface CorpoDoLogin {
   email?: unknown;
   codigo?: unknown;
   nome?: unknown;
+  senha?: unknown;
+}
+
+// O corpo do cadastro como chega (DadosCadastro no contrato). Tudo
+// unknown, pelo mesmo motivo do CorpoDoLogin.
+export interface CorpoDoCadastro {
+  nome?: unknown;
+  email?: unknown;
   senha?: unknown;
 }
 
@@ -58,9 +72,11 @@ interface UsuarioAluno {
   turmas: { id: string; nome: string }[];
 }
 
+export type Usuario = UsuarioConta | UsuarioAluno;
+
 export interface RespostaLogin {
   token: string;
-  usuario: UsuarioConta | UsuarioAluno;
+  usuario: Usuario;
   // Só vem, e só true, quando a senha do aluno acabou de ser gravada.
   primeiroAcesso?: true;
 }
@@ -119,13 +135,92 @@ export class AutenticacaoService {
       throw contaDesativada();
     }
 
-    const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta' };
-    const campanha = conta.campanhassolo[0];
-    if (campanha) {
-      usuario.campanhaAtiva = campanha.CampanhaID;
+    return { token: await this.emitirToken(conta.ID, 'conta'), usuario: usuarioDaConta(conta) };
+  }
+
+  // ==========================================================================
+  // Cadastro (só conta: aluno não se cadastra, é importado pelo professor)
+  // ==========================================================================
+
+  async cadastrar(corpo: CorpoDoCadastro): Promise<RespostaLogin> {
+    // Nome e e-mail são aparados (espaço nas pontas é sempre engano de
+    // digitação). A senha NÃO: ver problemaNaSenhaDaConta.
+    const nome = normalizarNome(corpo?.nome);
+    const email = normalizarEmail(corpo?.email);
+    const senha = String(corpo?.senha ?? '');
+
+    const problema = problemaNoNome(nome) ?? problemaNoEmail(email) ?? problemaNaSenhaDaConta(senha);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
     }
 
+    const hash = await bcrypt.hash(senha, CUSTO_BCRYPT);
+
+    // O e-mail repetido é descoberto pelo próprio INSERT (Users.Email é
+    // UNIQUE), e não por um findUnique antes: entre o "não existe" e o
+    // INSERT, outra requisição poderia cadastrar o mesmo e-mail. Só o
+    // banco responde isso sem essa janela.
+    //
+    // Cria só a linha em Users, como o contrato diz: a campanha do Solo
+    // nasce quando a pessoa aperta o botão do lobby (POST /solo/campanha).
+    let conta;
+    try {
+      conta = await this.banco.users.create({
+        data: { ID: randomUUID(), Nome: nome, Email: email, SenhaHash: hash },
+      });
+    } catch (erro) {
+      // P2002 é o código do Prisma para "violou um UNIQUE".
+      if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
+        throw emailEmUso();
+      }
+      throw erro;
+    }
+
+    // Conta recém-criada não tem campanha: o usuario sai sem campanhaAtiva.
+    const usuario = usuarioDaConta({ ...conta, campanhassolo: [] });
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario };
+  }
+
+  // ==========================================================================
+  // Quem sou eu (GET /auth/eu)
+  // ==========================================================================
+
+  // O dono do token, lido de novo do banco, na mesma forma do login. Lê do
+  // banco, e não só do token, porque o token guarda só id e tipo — e
+  // porque a conta pode ter sido desativada depois do login.
+  quemSouEu(identidade: Identidade): Promise<Usuario> {
+    if (identidade.tipo === 'aluno') {
+      return this.alunoDoToken(identidade.id);
+    }
+    return this.contaDoToken(identidade.id);
+  }
+
+  private async contaDoToken(id: string): Promise<UsuarioConta> {
+    const conta = await this.banco.users.findUnique({
+      where: { ID: id },
+      include: { campanhassolo: { select: { CampanhaID: true }, take: 1 } },
+    });
+    // Conta apagada ou desativada depois do login: a assinatura do token
+    // ainda confere, mas a sessão acabou. É o mesmo 401 do token vencido,
+    // para a tela voltar ao login — e lá a pessoa recebe o motivo de
+    // verdade (403 CONTA_INATIVA).
+    if (!conta || conta.Ativo === false) {
+      throw tokenInvalido();
+    }
+    return usuarioDaConta(conta);
+  }
+
+  private async alunoDoToken(id: string): Promise<UsuarioAluno> {
+    const aluno = await this.banco.alunos.findUnique({
+      where: { ID: id },
+      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
+    });
+    // Mesmo raciocínio da conta: aluno removido, desativado, ou com a
+    // turma arquivada depois do login perde a sessão.
+    if (!aluno || aluno.Ativo === false || aluno.classesprof.Ativa === false) {
+      throw tokenInvalido();
+    }
+    return usuarioDoAluno(aluno);
   }
 
   // ==========================================================================
@@ -209,13 +304,7 @@ export class AutenticacaoService {
   }
 
   private async respostaDoAluno(aluno: AlunoEncontrado): Promise<RespostaLogin> {
-    const usuario: UsuarioAluno = {
-      id: aluno.ID,
-      nome: aluno.Nome,
-      tipo: 'aluno',
-      turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],
-    };
-    return { token: await this.emitirToken(aluno.ID, 'aluno'), usuario };
+    return { token: await this.emitirToken(aluno.ID, 'aluno'), usuario: usuarioDoAluno(aluno) };
   }
 
   private emitirToken(id: string, tipo: TipoDeLogin): Promise<string> {
@@ -226,6 +315,35 @@ export class AutenticacaoService {
 
 // O aluno como procurarAluno() devolve, já com a turma.
 type AlunoEncontrado = NonNullable<Awaited<ReturnType<AutenticacaoService['procurarAluno']>>>;
+
+// O mínimo de Users que a resposta precisa, com a campanha (se houver).
+interface ContaComCampanha {
+  ID: string;
+  Nome: string;
+  Email: string;
+  campanhassolo: { CampanhaID: string }[];
+}
+
+// O `usuario` de conta. Um lugar só monta, para o login, o cadastro e o
+// /auth/eu não divergirem no formato.
+function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
+  const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta' };
+  const campanha = conta.campanhassolo[0];
+  if (campanha) {
+    usuario.campanhaAtiva = campanha.CampanhaID;
+  }
+  return usuario;
+}
+
+// O `usuario` de aluno, igual no login e no /auth/eu.
+function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
+  return {
+    id: aluno.ID,
+    nome: aluno.Nome,
+    tipo: 'aluno',
+    turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],
+  };
+}
 
 // ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
@@ -281,5 +399,19 @@ function contaDesativada(): ForbiddenException {
 }
 
 function senhaForaDaRegra(mensagem: string): BadRequestException {
+  return dadosInvalidos(mensagem);
+}
+
+function dadosInvalidos(mensagem: string): BadRequestException {
   return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
+}
+
+function emailEmUso(): ConflictException {
+  return new ConflictException({ mensagem: 'Este e-mail já tem conta.', codigo: 'EMAIL_EM_USO' });
+}
+
+// O mesmo corpo do 401 do GuardaDoToken: para a tela, conta que sumiu
+// depois do login é igual a token vencido.
+function tokenInvalido(): UnauthorizedException {
+  return new UnauthorizedException({ mensagem: 'Token inválido ou expirado.', codigo: 'TOKEN_INVALIDO' });
 }

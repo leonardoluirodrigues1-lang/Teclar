@@ -3,7 +3,8 @@
 //   Authorization: Bearer <token>
 // e, se ele vale, põe a identidade (id e tipo) em request.identidade.
 //
-// AINDA NÃO ESTÁ APLICADO EM ROTA NENHUMA. Quando estiver, uma rota usa assim:
+// A primeira rota que o usa é o GET /auth/eu (autenticacao.controller.ts).
+// Uma rota de outro módulo usa assim:
 //   @UseGuards(GuardaDoToken)
 //   @Get('rp')
 //   lerRp(@Req() req: RequisicaoComIdentidade) { ... req.identidade.id ... }

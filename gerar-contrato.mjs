@@ -383,7 +383,7 @@ function lerCamposDaRota(rota, grupo) {
 // As rotas que o back JÁ implementa, pela chamada do front sem o "api.".
 // As outras saem com "(ainda não implementada)" no resumo. Implementou uma
 // rota no back? Ponha a chave aqui e rode "npm run contrato".
-const ROTAS_IMPLEMENTADAS = ['auth.entrar'];
+const ROTAS_IMPLEMENTADAS = ['auth.entrar', 'auth.cadastrar', 'auth.eu', 'auth.sair'];
 
 // As três rotas públicas da primeira @convencao do contrato. Todas as
 // outras exigem "Authorization: Bearer <token>" e ganham o cadeado.

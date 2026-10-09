@@ -111,7 +111,7 @@ DadosCadastro
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — a senha começa ou termina com espaço
+- 400 DADOS_INVALIDOS — nome, e-mail ou senha fora da regra (a mensagem diz qual)
 - 409 EMAIL_EM_USO — o e-mail já tem conta
 
 **Identidade:**
@@ -120,7 +120,7 @@ Pública.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cria só a linha em Users. Recusa senha com espaço nas pontas e grava a senha sem aparar.
+Cria só a linha em Users. Nome: aparado, espaços internos reduzidos a um, de 2 a 150 caracteres. E-mail: aparado e minúsculo, formato algo@algo.algo, até 150 caracteres. Senha de CONTA: pelo menos 8 caracteres, ao menos uma letra e um número, sem espaço no começo nem no fim; é gravada sem aparar. Mesma regra do front (validacao.ts) e do back (regras-do-cadastro.ts).
 
 **Notas:**
 

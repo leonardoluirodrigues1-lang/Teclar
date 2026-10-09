@@ -15,6 +15,14 @@ O seed não tem aluno em turma arquivada. Para o último cenário, a turma-1
 foi arquivada (`ClassesProf.Ativa = false`) só durante o teste. No fim, o
 seed rodou de novo e devolveu o banco ao estado inicial.
 
+As linhas de `POST /auth/cadastro`, `GET /auth/eu` e `POST /auth/logout`
+foram rodadas em 09/10/2026, do mesmo jeito (HTTP, sem navegador), pelo
+script `back/test/testar-auth.mjs` (`npm run test:auth` em `back/`, com o
+back no ar e o seed aplicado). Os tokens "assinatura errada", "vencido" e
+"conta inexistente" são forjados pelo script com o `JWT_SEGREDO` do
+`back/.env`. Cada execução cria uma conta `teste-<horário>@teclar.dev`,
+apagada depois do teste.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -28,6 +36,27 @@ seed rodou de novo e devolveu o banco ao estado inicial.
 | POST /auth/login | Primeiro acesso com senha de 3 caracteres ("Júlia Campos", `H3ZT6B`) | 400 DADOS_INVALIDOS; nada é gravado | 400 DADOS_INVALIDOS, "Falta 1 caractere." | Conforme |
 | POST /auth/login | Primeiro acesso com senha de 21 caracteres (mesma aluna) | 400 DADOS_INVALIDOS; nada é gravado | 400 DADOS_INVALIDOS, "A senha pode ter no máximo 20 caracteres."; `SenhaHash` continuou NULL depois dos dois testes | Conforme |
 | POST /auth/login | Aluno de turma arquivada ("Ana Pires", `K7M2QX`, com a turma-1 arquivada) | 403 CONTA_INATIVA | 403 CONTA_INATIVA, "Esta turma foi arquivada." | Conforme |
+| POST /auth/cadastro | Nome, e-mail e senha válidos, com nome "  Teste  Silva " e e-mail em maiúscula com espaço nas pontas | 200, token, `usuario` no formato do login, nome e e-mail normalizados, sem `campanhaAtiva` | 200, token, `tipo: "conta"`, nome "Teste Silva", e-mail minúsculo e aparado, sem `campanhaAtiva` | Conforme |
+| POST /auth/cadastro | Login com a conta recém-criada | 200: a senha foi gravada como enviada | 200, token | Conforme |
+| POST /auth/cadastro | E-mail que já tem conta | 409 EMAIL_EM_USO | 409 EMAIL_EM_USO, "Este e-mail já tem conta." | Conforme |
+| POST /auth/cadastro | Senha " abc12345" (espaço no começo) | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "A senha não pode começar nem terminar com espaço." | Conforme |
+| POST /auth/cadastro | Senha "abc12345 " (espaço no fim) | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "A senha não pode começar nem terminar com espaço." | Conforme |
+| POST /auth/cadastro | Senha "abc123" (6 caracteres) | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "A senha precisa de pelo menos 8 caracteres." | Conforme |
+| POST /auth/cadastro | Senha "abcdefgh" (sem número) | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "A senha precisa ter pelo menos uma letra e um número." | Conforme |
+| POST /auth/cadastro | Senha "12345678" (sem letra) | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "A senha precisa ter pelo menos uma letra e um número." | Conforme |
+| POST /auth/cadastro | Senha vazia | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "Informe uma senha." | Conforme |
+| POST /auth/cadastro | E-mail sem formato ("sem-arroba") | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "Digite um e-mail válido." | Conforme |
+| POST /auth/cadastro | Nome de 1 caractere ("X") | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS, "O nome precisa de pelo menos 2 caracteres." | Conforme |
+| GET /auth/eu | Sem o cabeçalho Authorization | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO, "Token inválido ou expirado." | Conforme |
+| GET /auth/eu | Token que não é JWT ("lixo.que.nao-e-jwt") | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO | Conforme |
+| GET /auth/eu | JWT assinado com outro segredo | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO | Conforme |
+| GET /auth/eu | JWT certo, vencido há 1 minuto | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO | Conforme |
+| GET /auth/eu | JWT certo e no prazo, de uma conta que não existe | 401 TOKEN_INVALIDO: sem dono, não há sessão | 401 TOKEN_INVALIDO | Conforme |
+| GET /auth/eu | Token devolvido pelo cadastro | 200, a conta recém-criada | 200, mesmo id e e-mail do cadastro | Conforme |
+| GET /auth/eu | Token de conta (login de `prof@teclar.dev`) | 200, idêntico ao `usuario` do login | 200, `{ id: "u-2", nome: "Henrique Lima", email, tipo: "conta", campanhaAtiva: "camp-2" }`, igual ao do login | Conforme |
+| GET /auth/eu | Token de aluno (login de "Ana Pires", `K7M2QX`) | 200, idêntico ao `usuario` do login | 200, `{ id: "al-43-t1", nome: "Ana Pires", tipo: "aluno", turmas: [{ id: "turma-1", nome: "9º Ano A — Manhã" }] }`, igual ao do login | Conforme |
+| POST /auth/logout | Sem token | 204 sem corpo: a rota é pública | 204, corpo vazio | Conforme |
+| POST /auth/logout | Com token de conta | 204 sem corpo | 204, corpo vazio | Conforme |
 | As 53 chamadas não implementadas (49 operações HTTP) | Chamar cada uma delas, uma requisição por operação | 404: estão documentadas no Swagger como "(ainda não implementada)" | 404 nas 49 operações | Conforme |
 
 As 53 chamadas cabem em 49 operações porque `PATCH /turmas/:id` serve a
@@ -36,35 +65,35 @@ quatro chamadas (renomear, trocar capa, arquivar, desarquivar) e
 
 ## 2. Lista de pendências
 
-### Rotas não implementadas (53)
+### Rotas não implementadas (50)
 
-Só `POST /auth/login` está implementada. Faltam, por módulo:
+O grupo Autenticação está implementado inteiro (login, cadastro, eu,
+logout). Faltam, por módulo:
 
-1. **Autenticação (3):** `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`.
-2. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
+1. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
    `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`,
    `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`,
    `GET /solo/indicadores`, `GET /solo/estatisticas`.
-3. **Turmas, do professor (12):** `GET /turmas`, `GET /turmas?ativa=false`,
+2. **Turmas, do professor (12):** `GET /turmas`, `GET /turmas?ativa=false`,
    `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear, trocar capa,
    arquivar, desarquivar), `POST /turmas/:id/codigo/novo`,
    `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`,
    `DELETE /turmas/:id/atribuicoes/:exercicioId`.
-4. **Alunos, do professor (5):** `GET /turmas/:id/alunos`,
+3. **Alunos, do professor (5):** `GET /turmas/:id/alunos`,
    `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`,
    `POST /turmas/:id/alunos/:alunoId/zerar-senha`,
    `GET /turmas/:id/alunos/:alunoId/desempenho`.
-5. **Relatórios, do professor (4):** `GET /turmas/:id/relatorio`,
+4. **Relatórios, do professor (4):** `GET /turmas/:id/relatorio`,
    `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`,
    `GET /turmas/:id/alunos/:alunoId/sessoes`.
-6. **Biblioteca de exercícios, do professor (5):** `GET /exercicios`,
+5. **Biblioteca de exercícios, do professor (5):** `GET /exercicios`,
    `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`,
    `DELETE /exercicios/:id`.
-7. **Sessões (2):** `POST /sessoes`, `GET /sessoes/:id`.
-8. **Aluno (6):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
+6. **Sessões (2):** `POST /sessoes`, `GET /sessoes/:id`.
+7. **Aluno (6):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
    `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`,
    `GET /turmas/:turmaId/ranking`.
-9. **Administração (6):** `GET /categorias`, `POST /categorias`,
+8. **Administração (6):** `GET /categorias`, `POST /categorias`,
    `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`,
    `PUT /parametros`.
 
