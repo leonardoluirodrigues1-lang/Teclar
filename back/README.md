@@ -4,9 +4,12 @@ API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
-**Rotas prontas:** só `POST /auth/login`. As outras 54 estão no contrato
-e no Swagger, marcadas "(ainda não implementada)", e ainda não existem no
-back (respondem 404).
+**Rotas prontas:** as quatro de `/auth` (login, cadastro, eu, logout) e,
+de turmas, `GET /turmas` (com e sem `?ativa=false`), `POST /turmas`,
+`PATCH /turmas/:id` e `POST /turmas/:id/codigo/novo`. As outras estão no
+contrato e no Swagger, marcadas "(ainda não implementada)", e ainda não
+existem no back (respondem 404). Testes de fumaça: `npm run test:auth` e
+`npm run test:turmas` (back no ar, seed aplicado).
 
 ## Swagger
 
@@ -251,6 +254,7 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 | `src/swagger.ts` | Serve o `openapi.json` em `/api/docs` |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
 | `src/autenticacao/` | O login, o token e o guard |
+| `src/turmas/` | As rotas de turma do professor (listar, criar, PATCH, código novo) |
 | `openapi.json` | O Swagger, gerado do contrato — não editar à mão |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |

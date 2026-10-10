@@ -335,14 +335,17 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
   { "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
     "totalAlunos": 0, "totalExercicios": 0, "periodo": "2026 · 1º semestre",
     "ativa": true, "dataCriacao": "2026-10-03" }`,
-        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2
-  409 — a conta já tem uma turma com esse nome
+        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+  409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
   403 TIPO_INVALIDO — token de aluno`,
-        identidade: `O token vira o ProfessorID. Não aceita professorId no corpo.`,
+        identidade: `O token vira o ProfessorID. professorId no corpo é recusado com 400,
+  nunca ignorado: ignorar faria quem mandou achar que escolheu o professor.`,
         back: `Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0
   e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em
   ClassesProf.Ano e Semestre (NULL quando não vêm) e monta \`periodo\` com eles.`,
-        nota: `Sem ano e semestre, a turma vem sem \`periodo\`.`,
+        nota: `Sem ano e semestre, a turma vem sem \`periodo\`. O nome só é único entre as
+  turmas ATIVAS da conta (a mesma regra de Categorias): turma arquivada não
+  bloqueia o nome, e o professor recria "9º Ano A — Manhã" no ano seguinte.`,
       },
       'turmas.obter': {
         rota: 'GET /turmas/:id',
@@ -365,7 +368,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
     "totalAlunos": 4, "totalExercicios": 3, "periodo": "2026 · 1º semestre",
     "capaSemente": 7001, "ativa": true, "dataCriacao": "2026-02-01" }`,
         erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
-  409 — a conta já tem uma turma com esse nome
+  409 TURMA_DUPLICADA — a turma está ativa e a conta já tem OUTRA turma ativa com esse nome
   404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         nota: `PATCH porque só o campo enviado muda. A tela mantém as
@@ -402,9 +405,11 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         resposta: `200 Turma — a turma como ficou
   { "id": "turma-8", "nome": "8º Ano B — 2025", "ativa": true }`,
         erros: `400 DADOS_INVALIDOS — ativa não é booleano
+  409 TURMA_DUPLICADA — já existe outra turma ativa com o nome desta (renomeie uma das duas antes)
   404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
-        back: `Grava Turmas.Ativa = true: a turma volta a GET /turmas como estava.`,
+        back: `Grava Turmas.Ativa = true: a turma volta a GET /turmas como estava. Como
+  o nome só é único entre as ativas, desarquivar confere o nome de novo.`,
       },
       'turmas.novoCodigo': {
         rota: 'POST /turmas/:id/codigo/novo',

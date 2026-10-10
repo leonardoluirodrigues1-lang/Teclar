@@ -23,6 +23,13 @@ back no ar e o seed aplicado). Os tokens "assinatura errada", "vencido" e
 `back/.env`. Cada execução cria uma conta `teste-<horário>@teclar.dev`,
 apagada depois do teste.
 
+As linhas de `GET /turmas`, `POST /turmas`, `PATCH /turmas/:id` e
+`POST /turmas/:id/codigo/novo` foram rodadas em 10/10/2026, do mesmo jeito,
+pelo script `back/test/testar-turmas.mjs` (`npm run test:turmas` em
+`back/`, com o back no ar e o seed aplicado). O script só arquiva e troca o
+código das turmas que ele mesmo cria; cada execução cria três turmas
+"Teste <horário>" na conta `prof@teclar.dev`, apagadas pelo seed.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -57,6 +64,26 @@ apagada depois do teste.
 | GET /auth/eu | Token de aluno (login de "Ana Pires", `K7M2QX`) | 200, idêntico ao `usuario` do login | 200, `{ id: "al-43-t1", nome: "Ana Pires", tipo: "aluno", turmas: [{ id: "turma-1", nome: "9º Ano A — Manhã" }] }`, igual ao do login | Conforme |
 | POST /auth/logout | Sem token | 204 sem corpo: a rota é pública | 204, corpo vazio | Conforme |
 | POST /auth/logout | Com token de conta | 204 sem corpo | 204, corpo vazio | Conforme |
+| GET /turmas, POST /turmas, PATCH /turmas/:id, POST /turmas/:id/codigo/novo | Sem o cabeçalho Authorization | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO nas quatro | Conforme |
+| GET /turmas, POST /turmas, PATCH /turmas/:id, POST /turmas/:id/codigo/novo | Token de aluno ("Ana Pires", `K7M2QX`) | 403 TIPO_INVALIDO | 403 TIPO_INVALIDO nas quatro | Conforme |
+| GET /turmas | Token de `prof@teclar.dev` (u-2) | 200, só as turmas ativas de u-2, com as contagens feitas no back | 200, todas de u-2 e ativas; sem a turma-5 (de u-1) nem a turma-8 (arquivada); turma-1 com `codigo` K7M2QX, 4 alunos, 8 exercícios, `periodo` "2026 · 1º semestre", `capaSemente` 7001, `dataCriacao` "2026-02-01" | Conforme |
+| GET /turmas | Turma sem ano, semestre e capa (turma-7) | Sem `periodo` e sem `capaSemente` | Os dois campos ausentes | Conforme |
+| GET /turmas?ativa=false | Token de u-2 | 200, só as arquivadas de u-2 | 200, todas com `ativa: false`; traz a turma-8 | Conforme |
+| POST /turmas | `professorId` no corpo, de outra conta (`"u-1"`) e da própria (`"u-2"`) | 400 DADOS_INVALIDOS: recusado, nunca ignorado (como o `usuario_id` de POST /sessoes) | 400 DADOS_INVALIDOS nos dois; nenhuma turma criada | Conforme |
+| POST /turmas | Nome com espaços sobrando, `ano: 2026`, `semestre: 1` | 200 na forma de um item de GET /turmas; nome normalizado; `professorId` do token | 200, nome aparado, `professorId` u-2, código de 6 caracteres sem I, O, 0 e 1, `capaSemente` sorteada, `periodo` "2026 · 1º semestre", 0 alunos e 0 exercícios, `ativa: true`; o item em GET /turmas é idêntico à resposta | Conforme |
+| POST /turmas | Só o nome | 200 sem `periodo` | 200 sem `periodo` | Conforme |
+| POST /turmas | Nome de uma turma ativa da conta, em maiúscula | 409 TURMA_DUPLICADA | 409 TURMA_DUPLICADA | Conforme |
+| POST /turmas | Nome de uma turma ARQUIVADA da conta | 200: o nome só é único entre ativas (a regra de Categorias) | 200, turma nova com o mesmo nome | Conforme |
+| PATCH /turmas/:id (desarquivar) | Turma arquivada cujo nome já foi usado por uma ativa | 409 TURMA_DUPLICADA: desarquivar deixaria duas ativas com o mesmo nome | 409 TURMA_DUPLICADA; depois de arquivar a outra, o mesmo PATCH deu 200 | Conforme |
+| POST /turmas | Nome de 2 e de 101 caracteres, sem nome, `ano: "2026"`, `ano: 2026.5`, `semestre: 3` | 400 DADOS_INVALIDOS | 400 DADOS_INVALIDOS nos seis | Conforme |
+| PATCH /turmas/:id (renomear) | Nome novo; depois o mesmo nome de novo | 200 com o nome novo; renomear para o próprio nome não é conflito | 200 nos dois, código igual | Conforme |
+| PATCH /turmas/:id (renomear) | Nome de outra turma ativa da conta; nome de 2 caracteres | 409 TURMA_DUPLICADA; 400 DADOS_INVALIDOS | 409 TURMA_DUPLICADA; 400 DADOS_INVALIDOS | Conforme |
+| PATCH /turmas/:id (trocarCapa) | `capaSemente: 418207`; depois `"abc"` | 200 com a semente nova; 400 DADOS_INVALIDOS | 200 com 418207; 400 DADOS_INVALIDOS | Conforme |
+| PATCH /turmas/:id | Nome válido junto com `capaSemente: 1.5` | 400 e nenhum campo muda | 400 DADOS_INVALIDOS; o nome continuou o anterior | Conforme |
+| PATCH /turmas/:id (arquivar) | `ativa: false`; depois `ativa: "sim"` | 200, some de GET /turmas e aparece em ?ativa=false; 400 DADOS_INVALIDOS | Como esperado | Conforme |
+| PATCH /turmas/:id (desarquivar) | `ativa: true` | 200, volta a GET /turmas | 200, volta a GET /turmas | Conforme |
+| POST /turmas/:id/codigo/novo | Turma criada pelo teste | 200 com outro código na mesma regra | 200, código novo diferente do antigo, já visto em GET /turmas | Conforme |
+| PATCH /turmas/:id e POST /turmas/:id/codigo/novo | turma-5 (de u-1) e um id que não existe, com token de u-2 | 404 NAO_ENCONTRADO nos dois casos | 404 NAO_ENCONTRADO nos quatro; a turma-5 continuou intacta para u-1 | Conforme |
 | As 53 chamadas não implementadas (49 operações HTTP) | Chamar cada uma delas, uma requisição por operação | 404: estão documentadas no Swagger como "(ainda não implementada)" | 404 nas 49 operações | Conforme |
 
 As 53 chamadas cabem em 49 operações porque `PATCH /turmas/:id` serve a
@@ -65,18 +92,18 @@ quatro chamadas (renomear, trocar capa, arquivar, desarquivar) e
 
 ## 2. Lista de pendências
 
-### Rotas não implementadas (50)
+### Rotas não implementadas (42)
 
 O grupo Autenticação está implementado inteiro (login, cadastro, eu,
-logout). Faltam, por módulo:
+logout). Do grupo Turmas, estão prontas `GET /turmas` (ativas e
+arquivadas), `POST /turmas`, `PATCH /turmas/:id` (as quatro operações) e
+`POST /turmas/:id/codigo/novo`. Faltam, por módulo:
 
 1. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
    `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`,
    `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`,
    `GET /solo/indicadores`, `GET /solo/estatisticas`.
-2. **Turmas, do professor (12):** `GET /turmas`, `GET /turmas?ativa=false`,
-   `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear, trocar capa,
-   arquivar, desarquivar), `POST /turmas/:id/codigo/novo`,
+2. **Turmas, do professor (4):** `GET /turmas/:id`,
    `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`,
    `DELETE /turmas/:id/atribuicoes/:exercicioId`.
 3. **Alunos, do professor (5):** `GET /turmas/:id/alunos`,
@@ -129,7 +156,7 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     O back monta `periodo` a partir deles. Ano que não é inteiro, ou semestre
     diferente de 1 e 2, responde 400 DADOS_INVALIDOS. Status continua fora do
     corpo: a turma nasce ativa e é arquivada depois, por `PATCH /turmas/:id`.
-    Falta implementar a rota.
+    Implementada em 10/10/2026.
 
 14. **`POST /api/alunos`, cadastro de um aluno** (guia), não existe no
     contrato. O aluno só entra pela importação, sempre dentro de uma turma.

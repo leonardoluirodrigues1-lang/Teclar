@@ -545,13 +545,13 @@ Chamada no front: `api.turmas.criar`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2
-- 409 — a conta já tem uma turma com esse nome
+- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+- 409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
 - 403 TIPO_INVALIDO — token de aluno
 
 **Identidade:**
 
-O token vira o ProfessorID. Não aceita professorId no corpo.
+O token vira o ProfessorID. professorId no corpo é recusado com 400, nunca ignorado: ignorar faria quem mandou achar que escolheu o professor.
 
 **Regras de negócio no back (a tela não calcula):**
 
@@ -559,7 +559,7 @@ Nasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, 
 
 **Notas:**
 
-Sem ano e semestre, a turma vem sem `periodo`.
+Sem ano e semestre, a turma vem sem `periodo`. O nome só é único entre as turmas ATIVAS da conta (a mesma regra de Categorias): turma arquivada não bloqueia o nome, e o professor recria "9º Ano A — Manhã" no ano seguinte.
 
 ### `GET /turmas/:id`
 
@@ -615,7 +615,7 @@ Chamada no front: `api.turmas.renomear`
 **Erros:**
 
 - 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
-- 409 — a conta já tem uma turma com esse nome
+- 409 TURMA_DUPLICADA — a turma está ativa e a conta já tem OUTRA turma ativa com esse nome
 - 404 NAO_ENCONTRADO — não existe ou é de outra conta
 
 **Identidade:**
@@ -719,6 +719,7 @@ Chamada no front: `api.turmas.desarquivar`
 **Erros:**
 
 - 400 DADOS_INVALIDOS — ativa não é booleano
+- 409 TURMA_DUPLICADA — já existe outra turma ativa com o nome desta (renomeie uma das duas antes)
 - 404 NAO_ENCONTRADO — não existe ou é de outra conta
 
 **Identidade:**
@@ -727,7 +728,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Grava Turmas.Ativa = true: a turma volta a GET /turmas como estava.
+Grava Turmas.Ativa = true: a turma volta a GET /turmas como estava. Como o nome só é único entre as ativas, desarquivar confere o nome de novo.
 
 ### `POST /turmas/:id/codigo/novo`
 

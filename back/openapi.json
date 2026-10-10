@@ -1131,8 +1131,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.listar_turmas.listarArquivadas",
-        "summary": "(ainda não implementada) listar / listarArquivadas",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n### listar\n\n**Chamada no front:** `api.turmas.listar`\n\n**Resposta:** 200 Turma[] — só as com ativa = true, array puro (lista curta)\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\ntotalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.\n\n### listarArquivadas\n\n**Chamada no front:** `api.turmas.listarArquivadas`\n\n**Resposta:** 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas\n\n**Identidade:**\n\nO token, como em GET /turmas.\n\n**Notas:**\n\nÉ a mesma rota de listar(); só o filtro muda. Serve ao \"Mostrar arquivadas\" da tela de turmas.",
+        "summary": "listar / listarArquivadas",
+        "description": "### listar\n\n**Chamada no front:** `api.turmas.listar`\n\n**Resposta:** 200 Turma[] — só as com ativa = true, array puro (lista curta)\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\ntotalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.\n\n### listarArquivadas\n\n**Chamada no front:** `api.turmas.listarArquivadas`\n\n**Resposta:** 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas\n\n**Identidade:**\n\nO token, como em GET /turmas.\n\n**Notas:**\n\nÉ a mesma rota de listar(); só o filtro muda. Serve ao \"Mostrar arquivadas\" da tela de turmas.",
         "parameters": [
           {
             "name": "ativa",
@@ -1231,8 +1231,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.criar",
-        "summary": "(ainda não implementada) criar: Turma — já na forma de um item de GET /turmas",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. Não aceita professorId no corpo.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.\n\n**Notas:**\n\nSem ano e semestre, a turma vem sem `periodo`.",
+        "summary": "criar: Turma — já na forma de um item de GET /turmas",
+        "description": "**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. professorId no corpo é recusado com 400, nunca ignorado: ignorar faria quem mandou achar que escolheu o professor.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.\n\n**Notas:**\n\nSem ano e semestre, a turma vem sem `periodo`. O nome só é único entre as turmas ATIVAS da conta (a mesma regra de Categorias): turma arquivada não bloqueia o nome, e o professor recria \"9º Ano A — Manhã\" no ano seguinte.",
         "parameters": [],
         "requestBody": {
           "description": "{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais",
@@ -1279,7 +1279,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres, ano que não é inteiro, ou semestre diferente de 1 e 2",
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1327,15 +1327,15 @@
             }
           },
           "409": {
-            "description": "(sem código) — a conta já tem uma turma com esse nome",
+            "description": "`TURMA_DUPLICADA` — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)",
             "content": {
               "application/json": {
                 "examples": {
                   "exemplo1": {
-                    "summary": "sem código",
+                    "summary": "TURMA_DUPLICADA",
                     "value": {
                       "mensagem": "...",
-                      "codigo": null
+                      "codigo": "TURMA_DUPLICADA"
                     }
                   }
                 }
@@ -1454,8 +1454,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.renomear_turmas.trocarCapa_turmas.arquivar_turmas.desarquivar",
-        "summary": "(ainda não implementada) renomear / trocarCapa / arquivar / desarquivar",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n### renomear\n\n**Chamada no front:** `api.turmas.renomear`\n\n**Corpo:** { nome } — renomear; só o campo enviado muda\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nPATCH porque só o campo enviado muda. A tela mantém as contagens que já tinha: o PATCH não as recalcula.\n\n### trocarCapa\n\n**Chamada no front:** `api.turmas.trocarCapa`\n\n**Corpo:** { capaSemente } — inteiro; troca o desenho da capa\n\n**Resposta:** 200 Turma — a turma como ficou (mesma forma do renomear)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava em Turmas.CapaSemente, que aceita NULL (a tela deriva uma do id).\n\n### arquivar\n\n**Chamada no front:** `api.turmas.arquivar`\n\n**Corpo:** { ativa: false } — arquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = false. A turma some de GET /turmas e o histórico de sessões fica intacto.\n\n**Notas:**\n\nNão existe DELETE /turmas/:id: arquivar preserva o histórico de treino.\n\n### desarquivar\n\n**Chamada no front:** `api.turmas.desarquivar`\n\n**Corpo:** { ativa: true } — desarquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = true: a turma volta a GET /turmas como estava.",
+        "summary": "renomear / trocarCapa / arquivar / desarquivar",
+        "description": "### renomear\n\n**Chamada no front:** `api.turmas.renomear`\n\n**Corpo:** { nome } — renomear; só o campo enviado muda\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nPATCH porque só o campo enviado muda. A tela mantém as contagens que já tinha: o PATCH não as recalcula.\n\n### trocarCapa\n\n**Chamada no front:** `api.turmas.trocarCapa`\n\n**Corpo:** { capaSemente } — inteiro; troca o desenho da capa\n\n**Resposta:** 200 Turma — a turma como ficou (mesma forma do renomear)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava em Turmas.CapaSemente, que aceita NULL (a tela deriva uma do id).\n\n### arquivar\n\n**Chamada no front:** `api.turmas.arquivar`\n\n**Corpo:** { ativa: false } — arquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = false. A turma some de GET /turmas e o histórico de sessões fica intacto.\n\n**Notas:**\n\nNão existe DELETE /turmas/:id: arquivar preserva o histórico de treino.\n\n### desarquivar\n\n**Chamada no front:** `api.turmas.desarquivar`\n\n**Corpo:** { ativa: true } — desarquivar\n\n**Resposta:** 200 Turma — a turma como ficou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Turmas.Ativa = true: a turma volta a GET /turmas como estava. Como o nome só é único entre as ativas, desarquivar confere o nome de novo.",
         "parameters": [
           {
             "name": "id",
@@ -1615,15 +1615,22 @@
             }
           },
           "409": {
-            "description": "(sem código) — a conta já tem uma turma com esse nome",
+            "description": "`TURMA_DUPLICADA` — a turma está ativa e a conta já tem OUTRA turma ativa com esse nome\n\n`TURMA_DUPLICADA` — já existe outra turma ativa com o nome desta (renomeie uma das duas antes)",
             "content": {
               "application/json": {
                 "examples": {
                   "exemplo1": {
-                    "summary": "sem código",
+                    "summary": "TURMA_DUPLICADA",
                     "value": {
                       "mensagem": "...",
-                      "codigo": null
+                      "codigo": "TURMA_DUPLICADA"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "TURMA_DUPLICADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TURMA_DUPLICADA"
                     }
                   }
                 }
@@ -1644,8 +1651,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.novoCodigo",
-        "summary": "(ainda não implementada) novoCodigo: CodigoDaTurma — o código novo",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.novoCodigo`\n\n**Resposta:** 200 CodigoDaTurma — o código novo\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGera outro código (mesma regra do POST /turmas) em ClassesProf.Codigo; o antigo passa a dar 401 CREDENCIAIS na hora. Quem está logado continua, e as senhas dos alunos não mudam.\n\n**Notas:**\n\nServe para quando o código vaza.",
+        "summary": "novoCodigo: CodigoDaTurma — o código novo",
+        "description": "**Chamada no front:** `api.turmas.novoCodigo`\n\n**Resposta:** 200 CodigoDaTurma — o código novo\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGera outro código (mesma regra do POST /turmas) em ClassesProf.Codigo; o antigo passa a dar 401 CREDENCIAIS na hora. Quem está logado continua, e as senhas dos alunos não mudam.\n\n**Notas:**\n\nServe para quando o código vaza.",
         "parameters": [
           {
             "name": "id",
