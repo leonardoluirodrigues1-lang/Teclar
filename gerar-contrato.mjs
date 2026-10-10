@@ -409,6 +409,13 @@ const ROTAS_IMPLEMENTADAS = [
   'exercicios.criar',
   'exercicios.atualizar',
   'exercicios.excluir',
+  'sessoes.registrar',
+  'sessoes.obter',
+  'relatorios.turma',
+  'relatorios.porAluno',
+  'relatorios.porExercicio',
+  'relatorios.sessoesDoAluno',
+  'escola.aluno.rankingDaTurma',
 ];
 
 // As três rotas públicas da primeira @convencao do contrato. Todas as

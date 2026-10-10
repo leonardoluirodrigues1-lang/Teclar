@@ -25,7 +25,10 @@
     "test:turmas": "node test/testar-turmas.mjs",
     "test:alunos": "node test/testar-alunos.mjs",
     "test:exercicios": "node test/testar-exercicios.mjs",
-    "test:atribuicoes": "node test/testar-atribuicoes.mjs"
+    "test:atribuicoes": "node test/testar-atribuicoes.mjs",
+    "test:sessoes": "node test/testar-sessoes.mjs",
+    "test:relatorios": "node test/testar-relatorios.mjs",
+    "test:ranking": "node test/testar-ranking.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

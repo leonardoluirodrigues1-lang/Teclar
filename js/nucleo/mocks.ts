@@ -1148,6 +1148,15 @@ function turmaDaConta(id: string, token: string | null | undefined): Turma {
   return turma;
 }
 
+// professorId no corpo é RECUSADO com 400, como no back
+// (recusarProfessorIdNoCorpo): ignorado, quem mandou acharia que escolheu
+// o professor. Vale nas rotas do professor que recebem corpo.
+function recusarProfessorId(corpo: { professorId?: unknown } | null | undefined): void {
+  if (corpo?.professorId !== undefined) {
+    throw erro(400, 'O professor sai do login: não mande professorId.', 'DADOS_INVALIDOS');
+  }
+}
+
 function exercicioDaConta(id: string, token: string | null | undefined): ExercicioMock {
   const dono = contaDoToken(token).id;
   const ex = dados.exercicios.find((e) => e.id === id && e.professorId === dono && !e.arquivado);
@@ -1253,17 +1262,13 @@ function exerciciosDaTurma(turmaId: string): Set<string> {
 }
 
 // As sessões de UM aluno nesta turma, na ordem em que foram gravadas.
-// Exercício arquivado já não está em AtribuicoesProf, mas as sessões nele
-// continuam valendo: arquivar não muda histórico nem relatório.
+// TODAS as dele, como no back (SessionsProf.ClassID): inclusive as de
+// exercício arquivado ou que o professor tirou da turma — o que o aluno fez
+// não some do histórico nem do relatório por uma ação do professor. Na v8
+// o id do aluno já é da turma (al-43 e al-43-t1 são linhas diferentes),
+// então o alunoId basta; o turmaId é só para as sessões que o trazem.
 function sessoesDoAlunoNaTurma(turmaId: string, alunoId: string): Sessao[] {
-  const exercicios = exerciciosDaTurma(turmaId);
-  return dados.sessoes.filter(
-    (s) => s.alunoId === alunoId && (exercicios.has(s.exerciseId) || exercicioArquivado(s.exerciseId))
-  );
-}
-
-function exercicioArquivado(exercicioId: string | null): boolean {
-  return dados.exercicios.some((e) => e.id === exercicioId && e.arquivado);
+  return dados.sessoes.filter((s) => s.alunoId === alunoId && (!s.turmaId || s.turmaId === turmaId));
 }
 
 // A data mais recente de uma lista de sessões. ISO ordena como texto, então
@@ -2049,10 +2054,12 @@ const rotas: [string, RegExp, Handler][] = [
     'POST',
     montarRegex('/turmas'),
     (params, corpo, token) => {
+      const professorId = contaDoToken(token).id;
+      recusarProfessorId(corpo);
       const nova: Turma = {
         id: gerarId('turma'),
         codigo: gerarCodigo(),
-        professorId: contaDoToken(token).id,
+        professorId,
         nome: corpo?.nome ?? 'Nova turma',
           totalAlunos: 0,
         totalExercicios: 0,
@@ -2151,6 +2158,7 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/turmas/:turmaId/alunos/importar'),
     (params, corpo, token): ResultadoImportacao => {
       const turma = turmaDaConta(params[0], token);
+      recusarProfessorId(corpo);
       const nomes = corpo?.nomes;
       if (!Array.isArray(nomes) || nomes.length > 500) {
         throw erro(400, 'Mande de 0 a 500 nomes numa lista.', 'DADOS_INVALIDOS');
@@ -2243,9 +2251,11 @@ const rotas: [string, RegExp, Handler][] = [
     'POST',
     montarRegex('/exercicios'),
     (params, corpo, token) => {
+      const professorId = contaDoToken(token).id;
+      recusarProfessorId(corpo);
       const novo: Exercicio = {
         id: gerarId('ex-prof'),
-        professorId: contaDoToken(token).id,
+        professorId,
         titulo: corpo?.titulo ?? 'Sem título',
         texto: corpo?.texto ?? '',
         dificuldade: corpo?.dificuldade ?? 'facil',
@@ -2266,6 +2276,7 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/exercicios/:id'),
     (params, corpo, token) => {
       const ex = exercicioDaConta(params[0], token);
+      recusarProfessorId(corpo);
       ex.titulo = corpo?.titulo ?? ex.titulo;
       ex.texto = corpo?.texto ?? ex.texto;
       ex.dificuldade = corpo?.dificuldade ?? ex.dificuldade;
@@ -2332,6 +2343,7 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token) => {
       const [turmaId] = params;
       const turma = turmaDaConta(turmaId, token);
+      recusarProfessorId(corpo);
       const lista = (dados.atribuicoes[turmaId] ??= []);
       const ids = corpo?.exercicioIds ?? [];
 
@@ -2385,11 +2397,11 @@ const rotas: [string, RegExp, Handler][] = [
       );
       const comSessao = linhas.filter((l) => l.totalSessoes > 0);
 
-      // Filtra o null ANTES de somar: um null viraria 0 na soma e puxaria a
-      // média da turma para baixo — o aluno que só tem sessão inacabada
-      // simplesmente não entra na média, como quem nunca treinou.
-      const ppms = comSessao.map((l) => l.wpmMedio).filter((n) => n != null);
-      const precisoes = comSessao.map((l) => l.precisaoMedia).filter((n) => n != null);
+      // Médias sobre as SESSÕES concluídas da turma, como o contrato diz (e
+      // o back faz) — não a média das médias de cada aluno.
+      const concluidas = (dados.alunos[turmaId] ?? [])
+        .flatMap((a) => sessoesDoAlunoNaTurma(turmaId, a.id))
+        .filter((s) => s.concluida);
 
       return {
         turmaId,
@@ -2400,8 +2412,8 @@ const rotas: [string, RegExp, Handler][] = [
         alunosAtivos: linhas.filter((l) =>
           treinouNosUltimosDias(l.ultimaAtividade, DIAS_ATIVO)
         ).length,
-        wpmMedio: media(ppms),
-        precisaoMedia: media(precisoes),
+        wpmMedio: media(concluidas.map((s) => s.wpm)),
+        precisaoMedia: media(concluidas.map((s) => s.precisao)),
         // COUNT, não média: zero aqui é zero mesmo — a turma tem exercício
         // atribuído e ninguém terminou nenhum.
         exerciciosConcluidos: linhas.reduce((total, l) => total + l.exerciciosConcluidos, 0),
@@ -2600,8 +2612,11 @@ const rotas: [string, RegExp, Handler][] = [
       const alunoId = alunoDoToken(token).id;
       // usuario_id é recusado, não ignorado: ignorado, quem o mandou acharia
       // que escolheu o aluno, e a sessão iria para o dono do token.
-      if (corpo?.usuario_id !== undefined) {
-        throw erro(400, 'O aluno sai do token: não mande usuario_id.', 'DADOS_INVALIDOS');
+      // alunoId e professorId também, como no back.
+      for (const campo of ['usuario_id', 'alunoId', 'professorId']) {
+        if (corpo?.[campo] !== undefined) {
+          throw erro(400, `O aluno sai do token: não mande ${campo}.`, 'DADOS_INVALIDOS');
+        }
       }
       const turmaId: string | null = corpo?.turma_id ?? corpo?.turmaId ?? null;
       const exerciseId = exercicioAtribuidoAoAluno(

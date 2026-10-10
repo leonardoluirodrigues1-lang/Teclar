@@ -554,7 +554,10 @@ dele (importar).`,
     intro: `pages/professor/relatorios.html e a aba Relatório da turma. Tudo sai de
 SessionsProf com JOIN e chega PRONTO: nenhuma média é calculada na
 tela, e toda média pode vir null — que vira "—", nunca 0. A turma tem
-de ser da conta do token (senão 404); token de aluno é 403.`,
+de ser da conta do token (senão 404); token de aluno é 403. Contam TODAS
+as sessões da turma (SessionsProf.ClassID) dos alunos ativos dela,
+inclusive as de exercício arquivado ou que o professor tirou da turma: o
+que o aluno já fez não some do relatório por uma ação do professor.`,
     rotas: {
       'relatorios.turma': {
         rota: 'GET /turmas/:id/relatorio',
@@ -577,9 +580,11 @@ de ser da conta do token (senão 404); token de aluno é 403.`,
      "exerciciosConcluidos": 2, "exerciciosAtribuidos": 3 }]`,
         erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
-        back: `Alunos com ClassID = turma e Ativo = TRUE, com agregados das sessões nos
-  exercícios atribuídos. Quem nunca treinou: totalSessoes 0 e médias null;
-  exerciciosConcluidos conta exercícios distintos.`,
+        back: `Alunos com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos
+  (agregados de todas as sessões dele na turma) mais exerciciosConcluidos
+  (exercícios distintos concluídos, inclusive arquivados ou tirados da
+  turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca
+  treinou: totalSessoes 0 e médias null.`,
       },
       'relatorios.porExercicio': {
         rota: 'GET /turmas/:id/relatorio/exercicios',
@@ -604,7 +609,9 @@ de ser da conta do token (senão 404); token de aluno é 403.`,
         identidade: `O token: a turma tem de ser da conta (senão 404). O
   :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.`,
         back: `A ordem (mais recente primeiro) é parte do contrato. O título
-  vem do JOIN com ExerciciosProf; exercício excluído: null.`,
+  vem do JOIN com ExerciciosProf; exercício arquivado mantém o título
+  (a linha dele fica no banco).`,
+        nota: `Sem tamanho de página definido: vem tudo, com pagina = 1.`,
       },
     },
   },
@@ -701,16 +708,21 @@ grupo "Aluno", em /aluno/.`,
     "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
     "acertos": 141, "erros": 9, "concluida": true,
     "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }`,
-        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id (o aluno sai do token)
+        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano
+  401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
   403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
-  404 NAO_ENCONTRADO — exercício não atribuído à turma, ou turma_id não é a turma do aluno`,
+  404 NAO_ENCONTRADO — exercício não atribuído à turma (ou arquivado), ou turma_id não é a turma do aluno`,
         identidade: `O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID
   recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.`,
         back: `recordePessoal (PPM maior que o melhor anterior dele no
   exercício) e os agregados do aluno, que passam a contar esta sessão.
   PPM, precisão, acertos e erros vêm do motor da tela e são gravados
-  como chegaram.`,
-        nota: `usuario_id no corpo é recusado com 400, nunca ignorado.`,
+  como chegaram; o back só confere que cabem nas colunas (WPM e Precisao
+  são DECIMAL(5,2), o resto INT). Na primeira sessão do aluno no
+  exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão
+  nova, mas as antigas nele ficam.`,
+        nota: `usuario_id, alunoId e professorId no corpo são recusados com 400,
+  nunca ignorados.`,
       },
       'sessoes.obter': {
         rota: 'GET /sessoes/:id',
@@ -835,7 +847,12 @@ da conta, e mora em \`solo\`.`,
     licoes        exercícios distintos concluídos nesta turma (Ativo = TRUE)
     ritmo         PPM médio das concluídas, inteiro; null sem nenhuma
     diasSeguidos  dias seguidos com sessão, terminando hoje ou ontem; senão 0
-    pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5`,
+    pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5
+  O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos
+  (quem nunca treinou fica com zero). Lição de exercício arquivado continua
+  contando. O dia de "hoje ou ontem" é a data UTC, a mesma conta do
+  sequenciaDeDias do front. Empate em pontos, lições e dias: ordem
+  alfabética do nome, só para a ordem não variar entre uma chamada e outra.`,
       },
     },
   },

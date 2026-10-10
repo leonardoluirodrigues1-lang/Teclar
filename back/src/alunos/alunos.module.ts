@@ -17,5 +17,7 @@ import { AlunosService } from './alunos.service.js';
   imports: [BancoModule, AutenticacaoModule],
   controllers: [AlunosController],
   providers: [AlunosService],
+  // Exportado para o RelatoriosModule reaproveitar a linha do aluno.
+  exports: [AlunosService],
 })
 export class AlunosModule {}

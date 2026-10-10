@@ -16,5 +16,7 @@ import { AtribuicoesService } from './atribuicoes.service.js';
   imports: [BancoModule, AutenticacaoModule],
   controllers: [AtribuicoesController],
   providers: [AtribuicoesService],
+  // Exportado para o RelatoriosModule reaproveitar a linha da atribuição.
+  exports: [AtribuicoesService],
 })
 export class AtribuicoesModule {}

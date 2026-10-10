@@ -16,6 +16,8 @@ import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/pro
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
+import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
 // O corpo do importar como chega: tudo unknown, vem da rede.
@@ -41,20 +43,6 @@ export interface ResultadoImportacao {
   adicionados: Aluno[];
   jaEstavam: string[];
   falhas: { nome: string; motivo: string }[];
-}
-
-// Uma sessão do mundo Escola, na forma do tipo Sessao do front.
-export interface Sessao {
-  id: string;
-  exerciseId: string;
-  alunoId: string;
-  wpm: number;
-  precisao: number;
-  tempoSegundos: number;
-  acertos: number;
-  erros: number;
-  concluida: boolean;
-  data: string;
 }
 
 export interface DesempenhoAluno {
@@ -267,7 +255,6 @@ export class AlunosService {
 // ============================================================================
 
 type LinhaDeAluno = { ID: string; Nome: string; SenhaHash: string | null; Data_Cadastro: Date | null };
-type LinhaDeSessao = Prisma.sessionsprofGetPayload<object>;
 
 function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
   return {
@@ -278,37 +265,6 @@ function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
     senhaDefinida: aluno.SenhaHash !== null,
     ...agregados,
   };
-}
-
-function sessaoNaForma(linha: LinhaDeSessao): Sessao {
-  // WPM e Precisao são DECIMAL no banco (o Prisma devolve Decimal): Number
-  // para a resposta sair como número no JSON, e não como texto.
-  return {
-    id: linha.ID,
-    exerciseId: linha.ExerciseID,
-    alunoId: linha.AlunoID,
-    wpm: Number(linha.WPM ?? 0),
-    precisao: Number(linha.Precisao ?? 0),
-    tempoSegundos: linha.Tempo_Gasto_Segundos ?? 0,
-    acertos: linha.Acertos ?? 0,
-    erros: linha.Erros ?? 0,
-    concluida: linha.Concluida,
-    data: linha.Data_Sessao?.toISOString() ?? '',
-  };
-}
-
-// Média inteira, ou null sem amostra.
-function mediaInteira(numeros: number[]): number | null {
-  if (numeros.length === 0) {
-    return null;
-  }
-  const soma = numeros.reduce((total, numero) => total + numero, 0);
-  return Math.round(soma / numeros.length);
-}
-
-// O _avg do Prisma: Decimal, ou null quando não há linha para a média.
-function arredondarOuNull(valor: Prisma.Decimal | null | undefined): number | null {
-  return valor === null || valor === undefined ? null : Math.round(Number(valor));
 }
 
 // Pontas aparadas e espaço repetido do meio reduzido a um: a forma em que

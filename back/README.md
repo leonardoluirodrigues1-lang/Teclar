@@ -6,12 +6,14 @@ repositório.
 
 **Rotas prontas:** as quatro de `/auth`; as de turmas, menos
 `GET /turmas/:id` (listar, criar, PATCH, código novo e as três de
-atribuições); as cinco de alunos da turma; e as cinco da biblioteca de
-exercícios (o `DELETE /exercicios/:id` arquiva, não apaga). As outras estão
+atribuições); as cinco de alunos da turma; as cinco da biblioteca de
+exercícios (o `DELETE /exercicios/:id` arquiva, não apaga); as duas de
+sessões; as quatro de relatórios; e o ranking da turma. As outras estão
 no contrato e no Swagger, marcadas "(ainda não implementada)", e ainda não
 existem no back (respondem 404). Testes de fumaça, com o back no ar e o
 seed aplicado: `npm run test:auth`, `test:turmas`, `test:atribuicoes`,
-`test:alunos` e `test:exercicios`.
+`test:alunos`, `test:exercicios`, `test:sessoes`, `test:relatorios` e
+`test:ranking`.
 
 ## Swagger
 
@@ -260,6 +262,9 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 | `src/atribuicoes/` | Qual exercício foi dado a qual turma (`/turmas/:id/atribuicoes`) |
 | `src/alunos/` | A lista de alunos de uma turma: importar, remover, zerar senha, desempenho |
 | `src/exercicios/` | A biblioteca de exercícios do professor |
+| `src/sessoes/` | Gravar e reler sessão; e a forma da sessão e as médias que as outras rotas reaproveitam (`sessao-escola.ts`) |
+| `src/relatorios/` | Os quatro relatórios do professor |
+| `src/ranking/` | O ranking da turma, visto pelo aluno (anonimizado aqui, no back) |
 | `openapi.json` | O Swagger, gerado do contrato — não editar à mão |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |

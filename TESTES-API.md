@@ -42,6 +42,19 @@ direto no banco (pelo `BancoService` do `dist/`) e leem o banco para
 conferir o CASCADE do remover aluno e que arquivar exercício mantém as
 sessões. O seed apaga tudo o que eles criam.
 
+As linhas de `POST /sessoes`, `GET /sessoes/:id`, dos relatórios
+(`/turmas/:id/relatorio...` e `/turmas/:id/alunos/:alunoId/sessoes`) e do
+ranking (`/turmas/:id/ranking`) foram rodadas em 10/10/2026, do mesmo
+jeito, pelos scripts `back/test/testar-sessoes.mjs`, `testar-relatorios.mjs`
+e `testar-ranking.mjs` (`npm run test:sessoes`, `test:relatorios` e
+`test:ranking` em `back/`, com o back no ar e o seed aplicado). Cada script
+cria a própria turma, os próprios exercícios e os próprios alunos (que
+fazem o primeiro acesso para ter token). O de sessões grava pela rota; os
+de relatórios e ranking gravam sessões direto no banco, com datas no
+passado, porque a rota só grava com a data de agora e a janela de 7 dias e
+os dias seguidos precisam de dias anteriores. O seed não tem sessão do
+Solo: o teste de sessões grava uma em cada campanha, direto no banco.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -127,6 +140,32 @@ sessões. O seed apaga tudo o que eles criam.
 | GET, PATCH e DELETE de /exercicios/:id | `ex-prof-6` (de u-1) e id que não existe, com token de u-2 | 404 NAO_ENCONTRADO | 404 em todos; o `ex-prof-6` continuou intacto para u-1 | Conforme |
 | DELETE /exercicios/:id | Exercício atribuído a 2 turmas, com 1 sessão de aluno | 204; ARQUIVA: some da biblioteca e das duas turmas; a linha fica com `Ativo = false`; a sessão e o histórico do aluno ficam | 204 sem corpo; GET /exercicios e as atribuições das duas turmas sem ele; no banco, `Ativo = false`, 0 atribuições, sessão presente; o desempenho do aluno ainda mostra a sessão | Conforme |
 | GET, PATCH, DELETE de /exercicios/:id e POST /turmas/:id/atribuicoes | O exercício arquivado | 404 NAO_ENCONTRADO: arquivado é como inexistente | 404 nos quatro | Conforme |
+| POST /sessoes e GET /sessoes/:id | Sem token | 401 TOKEN_INVALIDO | 401 nas duas | Conforme |
+| POST /sessoes | Token de conta (`prof@teclar.dev`) | 403 TIPO_INVALIDO | 403 TIPO_INVALIDO | Conforme |
+| POST /sessoes | `usuario_id`, `alunoId` ou `professorId` no corpo; sem `exercicio_id`; sem `turma_id`; `wpm` -1, 1000 e "30"; `precisao` 100,5; `acertos` 1,5; `erros` -1; `tempo_gasto_segundos` "58"; `concluida` "sim" | 400 DADOS_INVALIDOS | 400 nos treze casos | Conforme |
+| POST /sessoes | `turma_id` de outra turma da conta e de turma do seed; exercício da conta não atribuído; exercício de outro professor; exercício que não existe | 404 NAO_ENCONTRADO, nada gravado | 404 nos cinco; 0 sessões do aluno no banco | Conforme |
+| POST /sessoes | Corpo válido, primeira sessão do aluno no exercício | 200; `alunoId` do token, `turmaId` da turma dele, medidas como chegaram; `recordePessoal: true` | Como esperado (`precisao` 94,5 voltou 94,5) | Conforme |
+| POST /sessoes | PPM 25, depois 30,5, depois 30,5 de novo | `recordePessoal` false, true, false | Como esperado | Conforme |
+| POST /sessoes | Sessão com `concluida: false` | 200, gravada | 200 | Conforme |
+| POST /sessoes | GET /turmas/:id/alunos depois das 5 sessões | Agregados contam as sessões: 5 sessões, média das 4 concluídas | `totalSessoes` 5, `wpmMedio` 29 | Conforme |
+| POST /sessoes | Primeira sessão de OUTRO aluno no mesmo exercício | O recorde é por aluno: `true` | `true` | Conforme |
+| POST /sessoes | Exercício arquivado depois de ter sessões | 404 para sessão nova; as antigas continuam no histórico do professor e o dono ainda as relê | 404; histórico com as 5; GET /sessoes/:id 200 | Conforme |
+| POST /sessoes | Turma do aluno arquivada depois do login (token ainda no prazo) | 401 TOKEN_INVALIDO, como no GET /auth/eu | 401 TOKEN_INVALIDO | Conforme |
+| GET /sessoes/:id | O dono lê a sessão que gravou | 200, igual à resposta do POST sem o `recordePessoal` | Igual | Conforme |
+| GET /sessoes/:id | Sessão de outro aluno (nos dois sentidos); sessão da Escola com token de conta (até a do professor da turma); id que não existe | 404 NAO_ENCONTRADO | 404 em todos | Conforme |
+| GET /sessoes/:id | Conta lê a sessão do Solo da própria campanha; outra conta tenta ler a mesma; aluno tenta ler uma do Solo | 200 com `xpGanho` e sem `alunoId`; 404; 404 | Como esperado | Conforme |
+| As quatro rotas de relatório | Sem token; token de aluno | 401 TOKEN_INVALIDO; 403 TIPO_INVALIDO | 401 e 403 nas quatro | Conforme |
+| GET /turmas/:id/relatorio | Turma de teste com 3 alunos: Ana com 5 sessões (2 concluídas hoje no ex1, 1 não concluída há 10 dias, 1 concluída num exercício tirado da turma e 1 num arquivado, as duas há 20 dias); Beto com 1 não concluída há 10 dias; Caio sem sessão | `totalAlunos` 3, `alunosComSessao` 2, `alunosAtivos` 1 (janela de 7 dias), médias das SESSÕES concluídas 35 / 85, `exerciciosConcluidos` 3 (pares, contando o tirado e o arquivado) | Como esperado | Conforme |
+| GET /turmas/:id/relatorio/alunos | A mesma turma | Uma linha por aluno; Ana 5 sessões, 35 / 85, 3 concluídos; `exerciciosAtribuidos` 2 em todas; Beto médias null e 0 concluídos; Caio 0 sessões e `ultimaAtividade` null; a linha é a de GET /turmas/:id/alunos mais as duas contagens | Como esperado | Conforme |
+| GET /turmas/:id/relatorio/exercicios | A mesma turma | Só ex1 e ex2 (os atribuídos agora); ex1: `concluidoPor` 1 de 3, médias 45 / 95, `estouraramTempo` 1 (tem limite); ex2: sem limite, `estouraramTempo` 0 mesmo com sessão não concluída, médias null | Como esperado | Conforme |
+| GET /turmas/:id/alunos/:alunoId/sessoes | Ana; Caio | Paginado com as 5, `pagina` 1, da mais recente para a mais antiga, título também do exercício arquivado e do tirado da turma; Caio lista vazia | Como esperado | Conforme |
+| As quatro rotas de relatório | turma-5 (de u-1), turma que não existe, e `al-44` (da turma-1, mesma conta) na URL da turma de teste | 404 NAO_ENCONTRADO, e não lista vazia | 404 em todos | Conforme |
+| GET /turmas/:id/relatorio | turma-1 do seed (só leitura) | 200 | 200, `totalAlunos` 4 | Conforme |
+| GET /turmas/:id/ranking | Sem token; token de conta (a do professor da turma); aluno pedindo turma que não é a dele, turma que não existe, e aluno do seed pedindo a turma de teste | 401; 403 TIPO_INVALIDO; 404 NAO_ENCONTRADO | Como esperado | Conforme |
+| GET /turmas/:id/ranking | Turma de teste com 6 alunos e sessões em dias escolhidos | Pontos = lições×20 + ritmo + dias×5, na ordem pontos > lições > dias: Rita 115, Sara 100, Xavier 52, Tito 52 (empata com Xavier e fica atrás por ter menos lições), Ugo 5 (1 dia, sessão não concluída), Vera 0 | Como esperado | Conforme |
+| GET /turmas/:id/ranking | Visto pela Vera (6ª), pelo Ugo (5º) e pela Rita (1ª) | Nome só no pódio e na própria linha; null nos outros; só uma linha `voce`; o nome dos anônimos nem aparece no TEXTO da resposta | Como esperado; "Tito" e "Ugo" não aparecem no texto da resposta da Vera | Conforme |
+| GET /turmas/:id/ranking | Exercício arquivado depois das sessões | A lição continua contando | Rita com 3 lições e 115 | Conforme |
+| GET /turmas/:id/ranking | Sara desativada (`Alunos.Ativo = false`, direto no banco) | Sai do ranking | 5 linhas, sem "Sara" no texto | Conforme |
 | As 53 chamadas não implementadas (49 operações HTTP) | Chamar cada uma delas, uma requisição por operação | 404: estão documentadas no Swagger como "(ainda não implementada)" | 404 nas 49 operações | Conforme |
 
 As 53 chamadas cabem em 49 operações porque `PATCH /turmas/:id` serve a
@@ -135,26 +174,23 @@ quatro chamadas (renomear, trocar capa, arquivar, desarquivar) e
 
 ## 2. Lista de pendências
 
-### Rotas não implementadas (29)
+### Rotas não implementadas (22)
 
 Estão implementados inteiros os grupos Autenticação (login, cadastro, eu,
-logout), Alunos (listar, importar, remover, zerar senha, desempenho) e
-Biblioteca de exercícios (listar, obter, criar, atualizar, arquivar). Do
-grupo Turmas, só falta `GET /turmas/:id`. Faltam, por módulo:
+logout), Alunos (listar, importar, remover, zerar senha, desempenho),
+Relatórios (topo, por aluno, por exercício, sessões do aluno), Biblioteca
+de exercícios (listar, obter, criar, atualizar, arquivar) e Sessões
+(registrar, obter). Do grupo Turmas, só falta `GET /turmas/:id`; do grupo
+Aluno, só o ranking está pronto. Faltam, por módulo:
 
 1. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
    `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`,
    `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`,
    `GET /solo/indicadores`, `GET /solo/estatisticas`.
 2. **Turmas, do professor (1):** `GET /turmas/:id`.
-3. **Relatórios, do professor (4):** `GET /turmas/:id/relatorio`,
-   `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`,
-   `GET /turmas/:id/alunos/:alunoId/sessoes`.
-4. **Sessões (2):** `POST /sessoes`, `GET /sessoes/:id`.
-5. **Aluno (6):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
-   `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`,
-   `GET /turmas/:turmaId/ranking`.
-6. **Administração (6):** `GET /categorias`, `POST /categorias`,
+3. **Aluno (5):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
+   `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`.
+4. **Administração (6):** `GET /categorias`, `POST /categorias`,
    `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`,
    `PUT /parametros`.
 
