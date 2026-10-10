@@ -28,7 +28,7 @@
     },
     {
       "name": "Biblioteca de exercícios (professor)",
-      "description": "ExerciciosProf. A listagem devolve só os do professor do token; busca e filtro de dificuldade são no cliente. Exercício de outra conta responde 404, como o que não existe."
+      "description": "ExerciciosProf. A listagem devolve só os do professor do token; busca e filtro de dificuldade são no cliente. Exercício de outra conta responde 404, como o que não existe. Exercício ARQUIVADO (DELETE /exercicios/:id, que grava ExerciciosProf.Ativo = false) também é 404 em todas as rotas: parou de ser usado, mas a linha fica para as sessões já feitas."
     },
     {
       "name": "Sessões",
@@ -1741,8 +1741,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.atribuicoes",
-        "summary": "(ainda não implementada) atribuicoes: AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
+        "summary": "atribuicoes: AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
+        "description": "**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
         "parameters": [
           {
             "name": "id",
@@ -1820,8 +1820,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.atribuir",
-        "summary": "(ainda não implementada) atribuir: Atribuicao[] — a lista crua de atribuições da turma, como ficou",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.atribuir`\n\n**Corpo:** { exercicioIds } — vários de uma vez\n\n**Resposta:** 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou\n\n**Identidade:**\n\nO token: a turma E cada exercício têm de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere todos os ids antes de gravar qualquer um. Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).\n\n**Notas:**\n\nA resposta não traz título nem concluidoPor: a tela relê GET /turmas/:id/atribuicoes depois.",
+        "summary": "atribuir: Atribuicao[] — a lista crua de atribuições da turma, como ficou",
+        "description": "**Chamada no front:** `api.turmas.atribuir`\n\n**Corpo:** { exercicioIds } — vários de uma vez\n\n**Resposta:** 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou\n\n**Identidade:**\n\nO token: a turma E cada exercício têm de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere todos os ids antes de gravar qualquer um. Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).\n\n**Notas:**\n\nA resposta não traz título nem concluidoPor: a tela relê GET /turmas/:id/atribuicoes depois.",
         "parameters": [
           {
             "name": "id",
@@ -1878,6 +1878,22 @@
               }
             }
           },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — exercicioIds vazio, que não é lista de ids, ou o corpo traz professorId",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
             "content": {
@@ -1895,7 +1911,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — turma ou algum exercício não é da conta",
+            "description": "`NAO_ENCONTRADO` — turma ou algum exercício não é da conta (ou está arquivado)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1924,8 +1940,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.removerAtribuicao",
-        "summary": "(ainda não implementada) removerAtribuicao: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.removerAtribuicao`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nA atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.",
+        "summary": "removerAtribuicao: (sem corpo)",
+        "description": "**Chamada no front:** `api.turmas.removerAtribuicao`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nA atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.",
         "parameters": [
           {
             "name": "id",
@@ -1994,8 +2010,8 @@
           "Alunos (professor)"
         ],
         "operationId": "alunos.daTurma",
-        "summary": "(ainda não implementada) daTurma: Aluno[] — os alunos da turma, na ordem alfabética do nome",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAlunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
+        "summary": "daTurma: Aluno[] — os alunos da turma, na ordem alfabética do nome",
+        "description": "**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAlunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
         "parameters": [
           {
             "name": "id",
@@ -2087,8 +2103,8 @@
           "Alunos (professor)"
         ],
         "operationId": "alunos.importar",
-        "summary": "(ainda não implementada) importar: ResultadoImportacao — cada nome cai numa das três listas",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, fora de 2 a 150 caracteres, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
+        "summary": "importar: ResultadoImportacao — cada nome cai numa das três listas",
+        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
         "parameters": [
           {
             "name": "id",
@@ -2164,7 +2180,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — `nomes` não é uma lista, ou tem mais de 500 itens",
+            "description": "`DADOS_INVALIDOS` — `nomes` não é uma lista, tem mais de 500 itens, ou o corpo traz professorId",
             "content": {
               "application/json": {
                 "examples": {
@@ -2225,8 +2241,8 @@
           "Alunos (professor)"
         ],
         "operationId": "alunos.remover",
-        "summary": "(ainda não implementada) remover: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.remover`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga a linha de Alunos; as sessões dele vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.",
+        "summary": "remover: (sem corpo)",
+        "description": "**Chamada no front:** `api.alunos.remover`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga a linha de Alunos; as sessões dele vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.",
         "parameters": [
           {
             "name": "id",
@@ -2295,8 +2311,8 @@
           "Alunos (professor)"
         ],
         "operationId": "alunos.zerarSenha",
-        "summary": "(ainda não implementada) zerarSenha: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.zerarSenha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.\n\n**Notas:**\n\nAté o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.",
+        "summary": "zerarSenha: (sem corpo)",
+        "description": "**Chamada no front:** `api.alunos.zerarSenha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.\n\n**Notas:**\n\nAté o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.",
         "parameters": [
           {
             "name": "id",
@@ -2365,8 +2381,8 @@
           "Alunos (professor)"
         ],
         "operationId": "alunos.desempenho",
-        "summary": "(ainda não implementada) desempenho: DesempenhoAluno — os agregados e as sessões do aluno",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.alunos.desempenho`\n\n**Resposta:** 200 DesempenhoAluno — os agregados e as sessões do aluno\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAs sessões do aluno nesta turma e os agregados sobre elas.\n\n**Notas:**\n\nNenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:alunoId/sessoes).",
+        "summary": "desempenho: DesempenhoAluno — os agregados e as sessões do aluno",
+        "description": "**Chamada no front:** `api.alunos.desempenho`\n\n**Resposta:** 200 DesempenhoAluno — os agregados e as sessões do aluno\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAs sessões do aluno nesta turma e os agregados sobre elas.\n\n**Notas:**\n\nNenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:alunoId/sessoes).",
         "parameters": [
           {
             "name": "id",
@@ -2811,8 +2827,8 @@
           "Biblioteca de exercícios (professor)"
         ],
         "operationId": "exercicios.listar",
-        "summary": "(ainda não implementada) listar: Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.listar`\n\n**Resposta:** 200 Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\natribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.",
+        "summary": "listar: Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()",
+        "description": "**Chamada no front:** `api.exercicios.listar`\n\n**Resposta:** 200 Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.\n\n**Notas:**\n\nSem tamanho de página definido: vem tudo, com pagina = 1.",
         "parameters": [],
         "responses": {
           "200": {
@@ -2886,8 +2902,8 @@
           "Biblioteca de exercícios (professor)"
         ],
         "operationId": "exercicios.criar",
-        "summary": "(ainda não implementada) criar: Exercicio",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.criar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio\n\n**Identidade:**\n\nO token vira o ProfessorID.\n\n**Notas:**\n\ntempoLimiteSegundos 0 = sem limite. A contagem de caracteres não tem coluna: a tela conta do texto.",
+        "summary": "criar: Exercicio",
+        "description": "**Chamada no front:** `api.exercicios.criar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio\n\n**Identidade:**\n\nO token vira o ProfessorID. professorId no corpo é recusado com 400.\n\n**Regras de negócio no back (a tela não calcula):**\n\nOs limites são os do front (LIMITES em js/utils/validacao.ts). Quebra de linha no texto vira espaço antes de contar e gravar, como a tela faz.\n\n**Notas:**\n\ntempoLimiteSegundos 0 = sem limite. A contagem de caracteres não tem coluna: a tela conta do texto.",
         "parameters": [],
         "requestBody": {
           "description": "DadosExercicio — o formulário inteiro",
@@ -2926,6 +2942,22 @@
                       "dificuldade": "facil",
                       "tempoLimiteSegundos": 0,
                       "atribuidoA": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
                     }
                   }
                 }
@@ -2978,8 +3010,8 @@
           "Biblioteca de exercícios (professor)"
         ],
         "operationId": "exercicios.obter",
-        "summary": "(ainda não implementada) obter: ExercicioDetalhe — mesma forma de um item da listagem",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.obter`\n\n**Resposta:** 200 ExercicioDetalhe — mesma forma de um item da listagem\n\n**Identidade:**\n\nConta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.\n\n**Notas:**\n\nA mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.",
+        "summary": "obter: ExercicioDetalhe — mesma forma de um item da listagem",
+        "description": "**Chamada no front:** `api.exercicios.obter`\n\n**Resposta:** 200 ExercicioDetalhe — mesma forma de um item da listagem\n\n**Identidade:**\n\nConta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.\n\n**Notas:**\n\nA mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.",
         "parameters": [
           {
             "name": "id",
@@ -3037,7 +3069,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — não existe, é de outra conta, ou (aluno) não está atribuído à turma dele",
+            "description": "`NAO_ENCONTRADO` — não existe, é de outra conta, está arquivado, ou (aluno) não está atribuído à turma dele",
             "content": {
               "application/json": {
                 "examples": {
@@ -3064,8 +3096,8 @@
           "Biblioteca de exercícios (professor)"
         ],
         "operationId": "exercicios.atualizar",
-        "summary": "(ainda não implementada) atualizar: Exercicio — como ficou",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.atualizar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio — como ficou\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta.",
+        "summary": "atualizar: Exercicio — como ficou",
+        "description": "**Chamada no front:** `api.exercicios.atualizar`\n\n**Corpo:** DadosExercicio — o formulário inteiro\n\n**Resposta:** 200 Exercicio — como ficou\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta. professorId no corpo é recusado com 400.",
         "parameters": [
           {
             "name": "id",
@@ -3119,6 +3151,22 @@
               }
             }
           },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — as mesmas regras do POST /exercicios; os quatro campos são obrigatórios",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
             "content": {
@@ -3136,7 +3184,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "description": "`NAO_ENCONTRADO` — não existe, é de outra conta ou está arquivado",
             "content": {
               "application/json": {
                 "examples": {
@@ -3163,8 +3211,8 @@
           "Biblioteca de exercícios (professor)"
         ],
         "operationId": "exercicios.excluir",
-        "summary": "(ainda não implementada) excluir: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.exercicios.excluir`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nDELETE de verdade: SessionsProf e AtribuicoesProf têm ON DELETE CASCADE, então ele sai de todas as turmas e leva junto as sessões dos alunos nele. A tela avisa antes de confirmar.",
+        "summary": "excluir: (sem corpo)",
+        "description": "**Chamada no front:** `api.exercicios.excluir`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: o exercício tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nARQUIVA, não apaga: grava ExerciciosProf.Ativo = false e apaga as linhas de AtribuicoesProf dele, numa transação. Ele some da biblioteca e de todas as turmas; a linha de ExerciciosProf e as sessões já feitas continuam, então histórico e relatórios não mudam.\n\n**Notas:**\n\nNão é um DELETE de verdade porque o ON DELETE CASCADE de SessionsProf levaria as sessões dos alunos, que são o trabalho deles, não do professor. Não há rota para desarquivar. A tela avisa antes de confirmar.",
         "parameters": [
           {
             "name": "id",
@@ -3196,7 +3244,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — não existe ou é de outra conta",
+            "description": "`NAO_ENCONTRADO` — não existe, é de outra conta ou já está arquivado",
             "content": {
               "application/json": {
                 "examples": {

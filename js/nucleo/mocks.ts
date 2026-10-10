@@ -250,11 +250,17 @@ interface BancoMock {
   missoes: MissaoDetalhe[];
   turmas: Turma[];
   alunos: Record<string, AlunoMock[]>;
-  exercicios: Exercicio[];
+  exercicios: ExercicioMock[];
   atribuicoes: Record<string, Atribuicao[]>;
   sessoes: Sessao[];
   historicoSolo: Record<string, SessaoSolo[]>;
 }
+
+// Uma linha de ExerciciosProf. `arquivado` é o Ativo = false do banco: o
+// DELETE /exercicios/:id arquiva em vez de apagar, para as sessões dos
+// alunos nele não sumirem. Arquivado é 404 em toda rota, mas continua aqui
+// para o histórico achar o exercício das sessões antigas.
+type ExercicioMock = Exercicio & { arquivado?: true };
 
 // Uma linha da tabela Alunos (v8): o aluno DENTRO de uma turma. Só o que
 // a tabela guarda — os agregados (sessões, médias) saem das sessões na hora
@@ -1142,9 +1148,9 @@ function turmaDaConta(id: string, token: string | null | undefined): Turma {
   return turma;
 }
 
-function exercicioDaConta(id: string, token: string | null | undefined): Exercicio {
+function exercicioDaConta(id: string, token: string | null | undefined): ExercicioMock {
   const dono = contaDoToken(token).id;
-  const ex = dados.exercicios.find((e) => e.id === id && e.professorId === dono);
+  const ex = dados.exercicios.find((e) => e.id === id && e.professorId === dono && !e.arquivado);
   if (!ex) throw erro(404, 'Exercício não encontrado.', 'NAO_ENCONTRADO');
   return ex;
 }
@@ -1160,7 +1166,7 @@ function exercicioAtribuidoAoAluno(
   alunoId: string,
   turmaId: string | null | undefined
 ): Exercicio {
-  const ex = dados.exercicios.find((e) => e.id === exercicioId);
+  const ex = dados.exercicios.find((e) => e.id === exercicioId && !e.arquivado);
   const atribuido =
     !!turmaId && matriculasDaTurma(turmaId).has(alunoId) && exerciciosDaTurma(turmaId).has(exercicioId);
   if (!ex || !atribuido) throw erro(404, 'Exercício não encontrado.', 'NAO_ENCONTRADO');
@@ -1247,9 +1253,17 @@ function exerciciosDaTurma(turmaId: string): Set<string> {
 }
 
 // As sessões de UM aluno nesta turma, na ordem em que foram gravadas.
+// Exercício arquivado já não está em AtribuicoesProf, mas as sessões nele
+// continuam valendo: arquivar não muda histórico nem relatório.
 function sessoesDoAlunoNaTurma(turmaId: string, alunoId: string): Sessao[] {
   const exercicios = exerciciosDaTurma(turmaId);
-  return dados.sessoes.filter((s) => s.alunoId === alunoId && exercicios.has(s.exerciseId));
+  return dados.sessoes.filter(
+    (s) => s.alunoId === alunoId && (exercicios.has(s.exerciseId) || exercicioArquivado(s.exerciseId))
+  );
+}
+
+function exercicioArquivado(exercicioId: string | null): boolean {
+  return dados.exercicios.some((e) => e.id === exercicioId && e.arquivado);
 }
 
 // A data mais recente de uma lista de sessões. ISO ordena como texto, então
@@ -2222,7 +2236,7 @@ const rotas: [string, RegExp, Handler][] = [
     montarRegex('/exercicios'),
     (params, corpo, token) => {
       const dono = contaDoToken(token).id;
-      return paginado(dados.exercicios.filter((e) => e.professorId === dono).map(comAtribuidoA));
+      return paginado(dados.exercicios.filter((e) => e.professorId === dono && !e.arquivado).map(comAtribuidoA));
     },
   ],
   [
@@ -2260,15 +2274,15 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   [
-    // DELETE de verdade, espelhando o ON DELETE CASCADE do banco: some da
-    // biblioteca, sai de todas as turmas (AtribuicoesProf) e leva junto as
-    // sessões dos alunos nele (SessionsProf). É por isso que a tela avisa
-    // quantas turmas vão perder o exercício antes de confirmar.
+    // ARQUIVA, como o back (Ativo = false): some da biblioteca e sai de
+    // todas as turmas (AtribuicoesProf), mas o exercício e as sessões dos
+    // alunos nele ficam — um DELETE de verdade, pelo CASCADE do banco,
+    // levaria o trabalho dos alunos. A tela avisa antes de confirmar.
     'DELETE',
     montarRegex('/exercicios/:id'),
     (params, corpo, token) => {
       const ex = exercicioDaConta(params[0], token);
-      dados.exercicios.splice(dados.exercicios.indexOf(ex), 1);
+      ex.arquivado = true;
       for (const [turmaId, lista] of Object.entries(dados.atribuicoes)) {
         const restantes = lista.filter((a) => a.exerciseId !== ex.id);
         if (restantes.length === lista.length) continue;
@@ -2276,7 +2290,6 @@ const rotas: [string, RegExp, Handler][] = [
         const turma = dados.turmas.find((t) => t.id === turmaId);
         if (turma) turma.totalExercicios = restantes.length;
       }
-      dados.sessoes = dados.sessoes.filter((se) => se.exerciseId !== ex.id);
       return null;
     },
   ],

@@ -396,6 +396,19 @@ const ROTAS_IMPLEMENTADAS = [
   'turmas.arquivar',
   'turmas.desarquivar',
   'turmas.novoCodigo',
+  'turmas.atribuicoes',
+  'turmas.atribuir',
+  'turmas.removerAtribuicao',
+  'alunos.daTurma',
+  'alunos.importar',
+  'alunos.remover',
+  'alunos.zerarSenha',
+  'alunos.desempenho',
+  'exercicios.listar',
+  'exercicios.obter',
+  'exercicios.criar',
+  'exercicios.atualizar',
+  'exercicios.excluir',
 ];
 
 // As três rotas públicas da primeira @convencao do contrato. Todas as

@@ -4,12 +4,14 @@ API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
-**Rotas prontas:** as quatro de `/auth` (login, cadastro, eu, logout) e,
-de turmas, `GET /turmas` (com e sem `?ativa=false`), `POST /turmas`,
-`PATCH /turmas/:id` e `POST /turmas/:id/codigo/novo`. As outras estão no
-contrato e no Swagger, marcadas "(ainda não implementada)", e ainda não
-existem no back (respondem 404). Testes de fumaça: `npm run test:auth` e
-`npm run test:turmas` (back no ar, seed aplicado).
+**Rotas prontas:** as quatro de `/auth`; as de turmas, menos
+`GET /turmas/:id` (listar, criar, PATCH, código novo e as três de
+atribuições); as cinco de alunos da turma; e as cinco da biblioteca de
+exercícios (o `DELETE /exercicios/:id` arquiva, não apaga). As outras estão
+no contrato e no Swagger, marcadas "(ainda não implementada)", e ainda não
+existem no back (respondem 404). Testes de fumaça, com o back no ar e o
+seed aplicado: `npm run test:auth`, `test:turmas`, `test:atribuicoes`,
+`test:alunos` e `test:exercicios`.
 
 ## Swagger
 
@@ -253,8 +255,11 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 | `src/app.module.ts` | Junta o banco e os módulos que têm rota implementada |
 | `src/swagger.ts` | Serve o `openapi.json` em `/api/docs` |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
-| `src/autenticacao/` | O login, o token e o guard |
-| `src/turmas/` | As rotas de turma do professor (listar, criar, PATCH, código novo) |
+| `src/autenticacao/` | O login, o token, o guard e as regras de identidade do professor (`professor-do-token.ts`) |
+| `src/turmas/` | As rotas de turma do professor (listar, criar, PATCH, código novo) e o `turmaDaConta` que alunos e atribuições usam |
+| `src/atribuicoes/` | Qual exercício foi dado a qual turma (`/turmas/:id/atribuicoes`) |
+| `src/alunos/` | A lista de alunos de uma turma: importar, remover, zerar senha, desempenho |
+| `src/exercicios/` | A biblioteca de exercícios do professor |
 | `openapi.json` | O Swagger, gerado do contrato — não editar à mão |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |

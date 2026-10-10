@@ -53,7 +53,8 @@ export const convencoes: Texto[] = [
   `A identidade SEMPRE sai do token. Recurso de outra conta
   responde 404, igual ao que não existe — 403 confirmaria que ele existe.
   403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de
-  aluno, aluno numa rota de conta).`,
+  aluno, aluno numa rota de conta). professorId no corpo de uma rota do
+  professor é recusado com 400 DADOS_INVALIDOS, nunca ignorado.`,
   `Sucesso sem corpo (DELETE, zerar senha, logout): 204.
   Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").`,
   `Média que o back não pôde calcular (sem amostra) vem null, nunca
@@ -442,7 +443,8 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         resposta: `200 Atribuicao[] — a lista crua de atribuições da turma, como ficou
   [{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null },
    { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null }]`,
-        erros: `404 NAO_ENCONTRADO — turma ou algum exercício não é da conta`,
+        erros: `400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, ou o corpo traz professorId
+  404 NAO_ENCONTRADO — turma ou algum exercício não é da conta (ou está arquivado)`,
         identidade: `O token: a turma E cada exercício têm de ser da conta.`,
         back: `Confere todos os ids antes de gravar qualquer um. Repetir um já atribuído
   não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).`,
@@ -498,11 +500,12 @@ dele (importar).`,
     "jaEstavam": ["Ana Pires"],
     "falhas": [{ "nome": "ana  pires", "motivo": "Nome repetido na lista." },
                { "nome": "", "motivo": "Nome vazio." }] }`,
-        erros: `400 DADOS_INVALIDOS — \`nomes\` não é uma lista, ou tem mais de 500 itens
+        erros: `400 DADOS_INVALIDOS — \`nomes\` não é uma lista, tem mais de 500 itens, ou o corpo traz professorId
   404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas
-  (vazio, fora de 2 a 150 caracteres, ou "Nome repetido na lista."), em
+  (vazio, item que não é texto, fora de 2 a 150 caracteres, ou "Nome
+  repetido na lista."), em
   jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha
   nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a
   rota pode ser chamada de novo com a lista completa.`,
@@ -609,7 +612,10 @@ de ser da conta do token (senão 404); token de aluno é 403.`,
     nome: 'Biblioteca de exercícios (professor)',
     intro: `ExerciciosProf. A listagem devolve só os do professor do token; busca
 e filtro de dificuldade são no cliente. Exercício de outra conta
-responde 404, como o que não existe.`,
+responde 404, como o que não existe. Exercício ARQUIVADO (DELETE
+/exercicios/:id, que grava ExerciciosProf.Ativo = false) também é 404 em
+todas as rotas: parou de ser usado, mas a linha fica para as sessões já
+feitas.`,
     rotas: {
       'exercicios.listar': {
         rota: 'GET /exercicios',
@@ -619,15 +625,16 @@ responde 404, como o que não existe.`,
       "texto": "...", "dificuldade": "medio", "tempoLimiteSegundos": 120, "atribuidoA": 2 } ] }`,
         erros: `403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token: WHERE ProfessorID = conta do token.`,
-        back: `atribuidoA = em quantas turmas está atribuído (COUNT em
-  AtribuicoesProf). A tela não conta.`,
+        back: `Só os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está
+  atribuído (COUNT em AtribuicoesProf). A tela não conta.`,
+        nota: `Sem tamanho de página definido: vem tudo, com pagina = 1.`,
       },
       'exercicios.obter': {
         rota: 'GET /exercicios/:id?turma=:turmaId',
         resposta: `200 ExercicioDetalhe — mesma forma de um item da listagem
   { "id": "ex-prof-1", "professorId": "u-2", "titulo": "Acentuação em foco",
     "texto": "...", "dificuldade": "medio", "tempoLimiteSegundos": 120, "atribuidoA": 2 }`,
-        erros: `404 NAO_ENCONTRADO — não existe, é de outra conta, ou (aluno) não está atribuído à turma dele`,
+        erros: `404 NAO_ENCONTRADO — não existe, é de outra conta, está arquivado, ou (aluno) não está atribuído à turma dele`,
         identidade: `Conta: o exercício tem de ser dela; ?turma= é ignorado.
   Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a
   dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.`,
@@ -643,8 +650,11 @@ responde 404, como o que não existe.`,
   { "id": "ex-prof-8", "professorId": "u-2", "titulo": "Pontuação e ritmo",
     "texto": "Vírgula, ponto; dois-pontos: ...", "dificuldade": "facil",
     "tempoLimiteSegundos": 0, "atribuidoA": 0 }`,
-        erros: `403 TIPO_INVALIDO — token de aluno`,
-        identidade: `O token vira o ProfessorID.`,
+        erros: `400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token vira o ProfessorID. professorId no corpo é recusado com 400.`,
+        back: `Os limites são os do front (LIMITES em js/utils/validacao.ts). Quebra de
+  linha no texto vira espaço antes de contar e gravar, como a tela faz.`,
         nota: `tempoLimiteSegundos 0 = sem limite. A contagem de caracteres
   não tem coluna: a tela conta do texto.`,
       },
@@ -656,17 +666,22 @@ responde 404, como o que não existe.`,
         resposta: `200 Exercicio — como ficou
   { "id": "ex-prof-2", "professorId": "u-2", "titulo": "Pontuação e ritmo",
     "texto": "...", "dificuldade": "medio", "tempoLimiteSegundos": 90, "atribuidoA": 2 }`,
-        erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta`,
-        identidade: `O token: o exercício tem de ser da conta.`,
+        erros: `400 DADOS_INVALIDOS — as mesmas regras do POST /exercicios; os quatro campos são obrigatórios
+  404 NAO_ENCONTRADO — não existe, é de outra conta ou está arquivado`,
+        identidade: `O token: o exercício tem de ser da conta. professorId no corpo é recusado com 400.`,
       },
       'exercicios.excluir': {
         rota: 'DELETE /exercicios/:id',
         resposta: `204 (sem corpo)`,
-        erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta`,
+        erros: `404 NAO_ENCONTRADO — não existe, é de outra conta ou já está arquivado`,
         identidade: `O token: o exercício tem de ser da conta.`,
-        back: `DELETE de verdade: SessionsProf e AtribuicoesProf têm ON DELETE
-  CASCADE, então ele sai de todas as turmas e leva junto as sessões
-  dos alunos nele. A tela avisa antes de confirmar.`,
+        back: `ARQUIVA, não apaga: grava ExerciciosProf.Ativo = false e apaga as linhas de
+  AtribuicoesProf dele, numa transação. Ele some da biblioteca e de todas
+  as turmas; a linha de ExerciciosProf e as sessões já feitas continuam,
+  então histórico e relatórios não mudam.`,
+        nota: `Não é um DELETE de verdade porque o ON DELETE CASCADE de SessionsProf
+  levaria as sessões dos alunos, que são o trabalho deles, não do
+  professor. Não há rota para desarquivar. A tela avisa antes de confirmar.`,
       },
     },
   },

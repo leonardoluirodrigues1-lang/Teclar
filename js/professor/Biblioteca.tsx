@@ -198,10 +198,10 @@ function Biblioteca() {
           <button
             type="button"
             className="tabela-acao"
-            aria-label={`Excluir "${ex.titulo}"`}
+            aria-label={`Arquivar "${ex.titulo}"`}
             onClick={() => abrirExcluir(ex)}
           >
-            Excluir
+            Arquivar
           </button>
         </span>
       ),
@@ -279,7 +279,7 @@ function Biblioteca() {
           exercicio={exercicio}
           aoConcluir={() => {
             atualizarExercicios((lista) => lista.filter((e) => e.id !== exercicio.id));
-            toasts.mostrar('Exercício excluído');
+            toasts.mostrar('Exercício arquivado');
             // A linha (e o botão que a pessoa clicou) acabou de sumir; o
             // botão do cabeçalho existe sempre.
             btnNovo.current?.focus();
@@ -670,11 +670,13 @@ function ModalExercicio({ exercicio, aoConcluir, aoFechar }: PropsModalExercicio
 }
 
 // ============================================================================
-// Modal de excluir
+// Modal de arquivar (a chamada continua sendo api.exercicios.excluir, o
+// DELETE /exercicios/:id)
 // ============================================================================
-// O texto muda com o atribuidoA: exercício em turma some delas e leva as
-// sessões dos alunos junto (SessionsProf tem ON DELETE CASCADE). Contagem
-// desconhecida (o back não mandou) recebe o aviso completo por precaução.
+// O DELETE arquiva: o exercício some da biblioteca e de todas as turmas,
+// mas as sessões que os alunos já fizeram nele ficam. O texto muda com o
+// atribuidoA; contagem desconhecida (o back não mandou) recebe o aviso das
+// turmas por precaução.
 
 interface PropsModalExcluir {
   exercicio: Exercicio;
@@ -692,9 +694,10 @@ function textoDaExclusao(exercicio: Exercicio): string {
     ? `está atribuído a ${turmas} ${turmas === 1 ? 'turma' : 'turmas'}`
     : 'pode estar atribuído a turmas';
   return (
-    `${titulo} ${onde}. Excluir tira o exercício ` +
+    `${titulo} ${onde}. Arquivar tira o exercício da sua biblioteca e ` +
     (Number.isFinite(turmas) && turmas === 1 ? 'dessa turma' : 'dessas turmas') +
-    ' e apaga também as sessões que os alunos já fizeram nele. Essa ação não pode ser desfeita.'
+    '. As sessões que os alunos já fizeram nele continuam no histórico e nos relatórios. ' +
+    'Essa ação não pode ser desfeita.'
   );
 }
 
@@ -723,11 +726,11 @@ function ModalExcluir({ exercicio, aoConcluir, aoFechar }: PropsModalExcluir) {
   return (
     <Modal
       ref={modal}
-      eyebrow="Excluir exercício"
-      titulo="Excluir este exercício?"
+      eyebrow="Arquivar exercício"
+      titulo="Arquivar este exercício?"
       acoes={[
         {
-          rotulo: ocupado ? 'Excluindo…' : 'Excluir',
+          rotulo: ocupado ? 'Arquivando…' : 'Arquivar',
           principal: true,
           fecha: false,
           aoClicar: confirmar,

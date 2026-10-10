@@ -13,20 +13,16 @@
 //   - Não existe excluir turma, só arquivar (Ativa = false): o histórico de
 //     treino dos alunos continua.
 import { randomInt, randomUUID } from 'node:crypto';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
+import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
-import type { Identidade } from '../autenticacao/token.js';
+import { turmaDaConta } from './turma-da-conta.js';
 
 // O corpo do POST /turmas como chega. Tudo unknown: vem da rede, e um curl
 // pode mandar qualquer coisa. professorId está aqui só para ser RECUSADO
-// (ver criar).
+// (ver recusarProfessorIdNoCorpo).
 export interface CorpoDaTurmaNova {
   nome?: unknown;
   ano?: unknown;
@@ -106,11 +102,7 @@ export class TurmasService {
   // POST /turmas. Nasce ativa, com código e capa sorteados pelo back.
   async criar(identidade: Identidade, corpo: CorpoDaTurmaNova): Promise<Turma> {
     const professorId = professorDoToken(identidade);
-    // Recusado, e não ignorado (como o usuario_id do POST /sessoes):
-    // ignorar em silêncio faria quem mandou achar que escolheu o professor.
-    if (corpo?.professorId !== undefined) {
-      throw dadosInvalidos('O professor sai do login: não mande professorId.');
-    }
+    recusarProfessorIdNoCorpo(corpo);
     // Tudo validado antes de tocar no banco.
     const nome = nomeDaTurma(corpo?.nome);
     const ano = anoDaTurma(corpo?.ano);
@@ -138,7 +130,7 @@ export class TurmasService {
   // de gravar qualquer um, para não ficar meia alteração feita.
   async alterar(identidade: Identidade, id: string, corpo: CorpoDaAlteracao): Promise<Turma> {
     const professorId = professorDoToken(identidade);
-    const atual = await this.turmaDaConta(professorId, id);
+    const atual = await turmaDaConta(this.banco, professorId, id);
 
     const dados: Prisma.classesprofUpdateInput = {};
     if (corpo?.nome !== undefined) {
@@ -172,24 +164,12 @@ export class TurmasService {
   // mais lá. As senhas dos alunos ficam em Alunos e nem são tocadas.
   async novoCodigo(identidade: Identidade, id: string): Promise<CodigoDaTurma> {
     const professorId = professorDoToken(identidade);
-    await this.turmaDaConta(professorId, id);
+    await turmaDaConta(this.banco, professorId, id);
 
     const turma = await comCodigoNovo((codigo) =>
       this.banco.classesprof.update({ where: { ClassID: id }, data: { Codigo: codigo } }),
     );
     return { codigo: turma.Codigo };
-  }
-
-  // A turma, se for desta conta. Se não existe ou é de outra conta, o
-  // mesmo 404 (ver o topo do arquivo).
-  private async turmaDaConta(professorId: string, id: string) {
-    const turma = await this.banco.classesprof.findFirst({
-      where: { ClassID: id, ProfessorID: professorId },
-    });
-    if (!turma) {
-      throw naoEncontrada();
-    }
-    return turma;
   }
 
   // 409 se a conta já tem outra turma ATIVA com esse nome. Arquivada não
@@ -216,14 +196,6 @@ export class TurmasService {
 // ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
 // ============================================================================
-
-// O id da conta do token, ou 403 se o token é de aluno.
-function professorDoToken(identidade: Identidade): string {
-  if (identidade.tipo !== 'conta') {
-    throw new ForbiddenException({ mensagem: 'Rota só para professores.', codigo: 'TIPO_INVALIDO' });
-  }
-  return identidade.id;
-}
 
 // Da linha do banco para a forma do contrato. Um lugar só monta, para as
 // quatro rotas devolverem a mesma Turma.
@@ -353,10 +325,6 @@ function cabeNoInt(valor: unknown): valor is number {
 // Os erros, no corpo que o contrato define para todo erro: { mensagem, codigo }.
 function dadosInvalidos(mensagem: string): BadRequestException {
   return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
-}
-
-function naoEncontrada(): NotFoundException {
-  return new NotFoundException({ mensagem: 'Turma não encontrada.', codigo: 'NAO_ENCONTRADO' });
 }
 
 // O contrato só diz "409"; o código segue o padrão de CATEGORIA_DUPLICADA.

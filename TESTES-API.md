@@ -30,6 +30,18 @@ pelo script `back/test/testar-turmas.mjs` (`npm run test:turmas` em
 código das turmas que ele mesmo cria; cada execução cria três turmas
 "Teste <horário>" na conta `prof@teclar.dev`, apagadas pelo seed.
 
+As linhas das atribuições (`/turmas/:id/atribuicoes`), dos alunos da turma
+(`/turmas/:id/alunos...`) e da biblioteca (`/exercicios...`) foram rodadas
+em 10/10/2026, do mesmo jeito, pelos scripts `back/test/testar-atribuicoes.mjs`,
+`testar-alunos.mjs` e `testar-exercicios.mjs` (`npm run test:atribuicoes`,
+`test:alunos` e `test:exercicios` em `back/`, com o back no ar e o seed
+aplicado). Os scripts só leem as turmas, os alunos e os exercícios do seed:
+importam, zeram, removem, atribuem e arquivam só o que eles mesmos criam.
+Como ainda não existe rota de sessão do mundo Escola, eles gravam sessões
+direto no banco (pelo `BancoService` do `dist/`) e leem o banco para
+conferir o CASCADE do remover aluno e que arquivar exercício mantém as
+sessões. O seed apaga tudo o que eles criam.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -84,6 +96,37 @@ código das turmas que ele mesmo cria; cada execução cria três turmas
 | PATCH /turmas/:id (desarquivar) | `ativa: true` | 200, volta a GET /turmas | 200, volta a GET /turmas | Conforme |
 | POST /turmas/:id/codigo/novo | Turma criada pelo teste | 200 com outro código na mesma regra | 200, código novo diferente do antigo, já visto em GET /turmas | Conforme |
 | PATCH /turmas/:id e POST /turmas/:id/codigo/novo | turma-5 (de u-1) e um id que não existe, com token de u-2 | 404 NAO_ENCONTRADO nos dois casos | 404 NAO_ENCONTRADO nos quatro; a turma-5 continuou intacta para u-1 | Conforme |
+| GET, POST e DELETE de /turmas/:id/atribuicoes | Sem token; token de aluno ("Ana Pires", `K7M2QX`) | 401 TOKEN_INVALIDO; 403 TIPO_INVALIDO | 401 e 403 nas três | Conforme |
+| GET /turmas/:id/atribuicoes | turma-1 do seed | 200, as 8 atribuições na ordem de atribuição, com título, data, `concluidoPor` e `totalAlunos` do back | 200, 8 itens, a primeira `ex-prof-1` em "2026-02-03", `totalAlunos` 4 em todas | Conforme |
+| GET /turmas/:id/atribuicoes | Turma de teste com 2 alunos: Lia concluiu o exercício A duas vezes, Rui estourou o tempo nele | `totalAlunos` 2; `concluidoPor` 1 no A (alunos distintos, só concluídas) e 0 no B | Como esperado | Conforme |
+| POST /turmas/:id/atribuicoes | `[A, B, A]` numa turma vazia | 200, a lista crua com 2 itens, `prazo: null` | 200, 2 itens, datas "AAAA-MM-DD", `prazo: null` | Conforme |
+| POST /turmas/:id/atribuicoes | Repetir `[A]` | Não duplica nem muda a data da primeira vez | 200, 2 itens, mesma data | Conforme |
+| POST /turmas/:id/atribuicoes | `[C, "ex-prof-6"]` (de u-1) e `[C, "nao-existe"]` | 404 NAO_ENCONTRADO, e nem o C é gravado | 404 nos dois; a turma continuou com 2 atribuições | Conforme |
+| POST /turmas/:id/atribuicoes | Lista vazia, `exercicioIds` que não é lista, sem `exercicioIds`, id numérico, `professorId` no corpo | 400 DADOS_INVALIDOS | 400 nos cinco | Conforme |
+| DELETE /turmas/:id/atribuicoes/:exercicioId | Tirar o A da turma | 204; some da lista; as 3 sessões no A ficam; o A continua na biblioteca | Como esperado | Conforme |
+| DELETE /turmas/:id/atribuicoes/:exercicioId | O A de novo; o C, nunca atribuído | 404 NAO_ENCONTRADO | 404 nos dois | Conforme |
+| GET, POST e DELETE de /turmas/:id/atribuicoes | turma-5 (de u-1) e turma que não existe, com token de u-2 | 404 NAO_ENCONTRADO | 404 nos quatro casos; a turma-5 continuou só com o `ex-prof-6` | Conforme |
+| As cinco rotas de /turmas/:id/alunos | Sem token; token de aluno | 401 TOKEN_INVALIDO; 403 TIPO_INVALIDO | 401 e 403 nas cinco | Conforme |
+| POST /turmas/:id/alunos/importar | `["Ana Pires", "  Bruno   Sato ", "ana  pires", "ÁNA PÍRES", "", "X", 123, "Carla Nunes"]` numa turma vazia | 3 adicionados, normalizados, sem senha e com agregados null; repetidos na lista (sem maiúscula nem acento), vazio, curto e não-texto em falhas | 3 adicionados (Ana Pires, Bruno Sato, Carla Nunes), `SenhaHash` NULL no banco; 5 falhas com o motivo de cada uma | Conforme |
+| POST /turmas/:id/alunos/importar | `["ANA PIRES", "brúno sato", "Débora Lima"]` na mesma turma | Os dois primeiros em `jaEstavam`, na forma gravada; só Débora adicionada | `jaEstavam: ["Ana Pires", "Bruno Sato"]`, 1 adicionado | Conforme |
+| POST /turmas/:id/alunos/importar | `nomes` que não é lista; 501 nomes; `professorId` no corpo | 400 DADOS_INVALIDOS, nada gravado | 400 nos três; a turma continuou com 4 alunos | Conforme |
+| GET /turmas/:id/alunos | Turma de teste; turma-1 do seed | Ordem alfabética, senha nunca sai; agregados prontos para quem treinou | Ordem alfabética, sem campo de senha; Ana Pires (turma-1) com `totalSessoes`, `wpmMedio` inteiro e `ultimaAtividade` | Conforme |
+| GET /turmas/:id/alunos/:alunoId/desempenho | Ana Pires da turma-1; aluno que nunca treinou | `totalSessoes` = sessões da lista, `wpmMedio` = média das concluídas, igual à linha da lista; null para quem nunca treinou | Como esperado | Conforme |
+| POST /turmas/:id/alunos/:alunoId/zerar-senha | Bruno fez o primeiro acesso ("bruno123"); o professor zera; Bruno faz login com "nova4567" | 204; o login seguinte é primeiro acesso, com a senha nova; a antiga deixa de valer | 204 sem corpo; login 200 com `primeiroAcesso: true`; "bruno123" deu 401 CREDENCIAIS | Conforme |
+| POST /turmas/:id/alunos/:alunoId/zerar-senha | Zerar quem já está sem senha | 204 igual | 204 | Conforme |
+| DELETE /turmas/:id/alunos/:alunoId | Carla, com 1 sessão gravada no banco | 204; some da lista; a sessão dela some (CASCADE); o login dela para de entrar | 204; sessões dela no banco: 0; login 401 CREDENCIAIS; de novo, 404 | Conforme |
+| POST /turmas/:id/alunos/importar | Carla importada de novo depois de removida | Linha nova, com outro id | Outro id | Conforme |
+| As cinco rotas de /turmas/:id/alunos | turma-5 (de u-1), turma que não existe, e `al-44` (da turma-1, mesma conta) na URL da turma de teste | 404 NAO_ENCONTRADO | 404 em todos; `al-44` e `al-43-t5` continuaram com senha | Conforme |
+| GET, POST, PATCH e DELETE de /exercicios | Sem token; token de aluno | 401 TOKEN_INVALIDO; 403 TIPO_INVALIDO | 401 e 403 nas quatro; GET /exercicios/:id sem token também 401 | Conforme |
+| POST /exercicios | Formulário válido com quebra de linha no texto | 200 na forma da listagem, `professorId` do token, `atribuidoA: 0`, quebra de linha virando espaço | Como esperado | Conforme |
+| POST /exercicios | Título de 2 e de 101, texto de 19 e de 2001, dificuldade fora da lista, tempo 3601, -1 e "60", sem título, `professorId` no corpo | 400 DADOS_INVALIDOS (limites do front) | 400 nos dez | Conforme |
+| GET /exercicios | Token de u-2 | 200 paginado com tudo (`pagina: 1`, `total` = itens), só os de u-2, com `atribuidoA` | Como esperado; sem o `ex-prof-6` (de u-1) | Conforme |
+| GET /exercicios/:id | Professor: o dele, e com `?turma=` de outra conta | 200; o `?turma=` é ignorado | 200 nos dois | Conforme |
+| GET /exercicios/:id | Aluno (Ana, turma-1): `ex-prof-1?turma=turma-1`; sem `?turma=`; `?turma=turma-2`; exercício não atribuído à turma dele | 200 no primeiro; 404 nos outros | Como esperado | Conforme |
+| PATCH /exercicios/:id | Formulário inteiro; só o título; com `professorId` | 200 como ficou; 400; 400 | Como esperado | Conforme |
+| GET, PATCH e DELETE de /exercicios/:id | `ex-prof-6` (de u-1) e id que não existe, com token de u-2 | 404 NAO_ENCONTRADO | 404 em todos; o `ex-prof-6` continuou intacto para u-1 | Conforme |
+| DELETE /exercicios/:id | Exercício atribuído a 2 turmas, com 1 sessão de aluno | 204; ARQUIVA: some da biblioteca e das duas turmas; a linha fica com `Ativo = false`; a sessão e o histórico do aluno ficam | 204 sem corpo; GET /exercicios e as atribuições das duas turmas sem ele; no banco, `Ativo = false`, 0 atribuições, sessão presente; o desempenho do aluno ainda mostra a sessão | Conforme |
+| GET, PATCH, DELETE de /exercicios/:id e POST /turmas/:id/atribuicoes | O exercício arquivado | 404 NAO_ENCONTRADO: arquivado é como inexistente | 404 nos quatro | Conforme |
 | As 53 chamadas não implementadas (49 operações HTTP) | Chamar cada uma delas, uma requisição por operação | 404: estão documentadas no Swagger como "(ainda não implementada)" | 404 nas 49 operações | Conforme |
 
 As 53 chamadas cabem em 49 operações porque `PATCH /turmas/:id` serve a
@@ -92,35 +135,26 @@ quatro chamadas (renomear, trocar capa, arquivar, desarquivar) e
 
 ## 2. Lista de pendências
 
-### Rotas não implementadas (42)
+### Rotas não implementadas (29)
 
-O grupo Autenticação está implementado inteiro (login, cadastro, eu,
-logout). Do grupo Turmas, estão prontas `GET /turmas` (ativas e
-arquivadas), `POST /turmas`, `PATCH /turmas/:id` (as quatro operações) e
-`POST /turmas/:id/codigo/novo`. Faltam, por módulo:
+Estão implementados inteiros os grupos Autenticação (login, cadastro, eu,
+logout), Alunos (listar, importar, remover, zerar senha, desempenho) e
+Biblioteca de exercícios (listar, obter, criar, atualizar, arquivar). Do
+grupo Turmas, só falta `GET /turmas/:id`. Faltam, por módulo:
 
 1. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
    `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`,
    `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`,
    `GET /solo/indicadores`, `GET /solo/estatisticas`.
-2. **Turmas, do professor (4):** `GET /turmas/:id`,
-   `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`,
-   `DELETE /turmas/:id/atribuicoes/:exercicioId`.
-3. **Alunos, do professor (5):** `GET /turmas/:id/alunos`,
-   `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`,
-   `POST /turmas/:id/alunos/:alunoId/zerar-senha`,
-   `GET /turmas/:id/alunos/:alunoId/desempenho`.
-4. **Relatórios, do professor (4):** `GET /turmas/:id/relatorio`,
+2. **Turmas, do professor (1):** `GET /turmas/:id`.
+3. **Relatórios, do professor (4):** `GET /turmas/:id/relatorio`,
    `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`,
    `GET /turmas/:id/alunos/:alunoId/sessoes`.
-5. **Biblioteca de exercícios, do professor (5):** `GET /exercicios`,
-   `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`,
-   `DELETE /exercicios/:id`.
-6. **Sessões (2):** `POST /sessoes`, `GET /sessoes/:id`.
-7. **Aluno (6):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
+4. **Sessões (2):** `POST /sessoes`, `GET /sessoes/:id`.
+5. **Aluno (6):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
    `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`,
    `GET /turmas/:turmaId/ranking`.
-8. **Administração (6):** `GET /categorias`, `POST /categorias`,
+6. **Administração (6):** `GET /categorias`, `POST /categorias`,
    `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`,
    `PUT /parametros`.
 

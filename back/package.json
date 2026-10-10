@@ -22,7 +22,10 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "test:auth": "node test/testar-auth.mjs",
-    "test:turmas": "node test/testar-turmas.mjs"
+    "test:turmas": "node test/testar-turmas.mjs",
+    "test:alunos": "node test/testar-alunos.mjs",
+    "test:exercicios": "node test/testar-exercicios.mjs",
+    "test:atribuicoes": "node test/testar-atribuicoes.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

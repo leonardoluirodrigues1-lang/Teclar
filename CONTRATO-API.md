@@ -23,7 +23,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 - Toda rota, menos as três públicas de /auth (login, cadastro e logout), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
 - Corpo de erro: { "mensagem": "...", "codigo": "NAO_ENCONTRADO" }. A tela decide pelo status e pelo código, nunca pelo texto da mensagem.
-- A identidade SEMPRE sai do token. Recurso de outra conta responde 404, igual ao que não existe — 403 confirmaria que ele existe. 403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de aluno, aluno numa rota de conta).
+- A identidade SEMPRE sai do token. Recurso de outra conta responde 404, igual ao que não existe — 403 confirmaria que ele existe. 403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de aluno, aluno numa rota de conta). professorId no corpo de uma rota do professor é recusado com 400 DADOS_INVALIDOS, nunca ignorado.
 - Sucesso sem corpo (DELETE, zerar senha, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").
 - Média que o back não pôde calcular (sem amostra) vem null, nunca 0: zero é informação diferente. A tela mostra "—".
 - Listas que crescem sem teto vêm paginadas: { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.
@@ -817,7 +817,8 @@ Chamada no front: `api.turmas.atribuir`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — turma ou algum exercício não é da conta
+- 400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, ou o corpo traz professorId
+- 404 NAO_ENCONTRADO — turma ou algum exercício não é da conta (ou está arquivado)
 
 **Identidade:**
 
@@ -915,7 +916,7 @@ Chamada no front: `api.alunos.importar`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — `nomes` não é uma lista, ou tem mais de 500 itens
+- 400 DADOS_INVALIDOS — `nomes` não é uma lista, tem mais de 500 itens, ou o corpo traz professorId
 - 404 NAO_ENCONTRADO — turma inexistente ou de outra conta
 
 **Identidade:**
@@ -924,7 +925,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, fora de 2 a 150 caracteres, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
+Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
 
 **Notas:**
 
@@ -1132,7 +1133,7 @@ A ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com 
 
 ## Biblioteca de exercícios (professor)
 
-ExerciciosProf. A listagem devolve só os do professor do token; busca e filtro de dificuldade são no cliente. Exercício de outra conta responde 404, como o que não existe.
+ExerciciosProf. A listagem devolve só os do professor do token; busca e filtro de dificuldade são no cliente. Exercício de outra conta responde 404, como o que não existe. Exercício ARQUIVADO (DELETE /exercicios/:id, que grava ExerciciosProf.Ativo = false) também é 404 em todas as rotas: parou de ser usado, mas a linha fica para as sessões já feitas.
 
 ### `GET /exercicios`
 
@@ -1160,7 +1161,11 @@ O token: WHERE ProfessorID = conta do token.
 
 **Regras de negócio no back (a tela não calcula):**
 
-atribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.
+Só os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.
+
+**Notas:**
+
+Sem tamanho de página definido: vem tudo, com pagina = 1.
 
 ### `GET /exercicios/:id?turma=:turmaId`
 
@@ -1179,7 +1184,7 @@ Chamada no front: `api.exercicios.obter`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — não existe, é de outra conta, ou (aluno) não está atribuído à turma dele
+- 404 NAO_ENCONTRADO — não existe, é de outra conta, está arquivado, ou (aluno) não está atribuído à turma dele
 
 **Identidade:**
 
@@ -1214,11 +1219,16 @@ DadosExercicio — o formulário inteiro
 
 **Erros:**
 
+- 400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
 - 403 TIPO_INVALIDO — token de aluno
 
 **Identidade:**
 
-O token vira o ProfessorID.
+O token vira o ProfessorID. professorId no corpo é recusado com 400.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Os limites são os do front (LIMITES em js/utils/validacao.ts). Quebra de linha no texto vira espaço antes de contar e gravar, como a tela faz.
 
 **Notas:**
 
@@ -1248,11 +1258,12 @@ DadosExercicio — o formulário inteiro
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — não existe ou é de outra conta
+- 400 DADOS_INVALIDOS — as mesmas regras do POST /exercicios; os quatro campos são obrigatórios
+- 404 NAO_ENCONTRADO — não existe, é de outra conta ou está arquivado
 
 **Identidade:**
 
-O token: o exercício tem de ser da conta.
+O token: o exercício tem de ser da conta. professorId no corpo é recusado com 400.
 
 ### `DELETE /exercicios/:id`
 
@@ -1266,7 +1277,7 @@ Chamada no front: `api.exercicios.excluir`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — não existe ou é de outra conta
+- 404 NAO_ENCONTRADO — não existe, é de outra conta ou já está arquivado
 
 **Identidade:**
 
@@ -1274,7 +1285,11 @@ O token: o exercício tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-DELETE de verdade: SessionsProf e AtribuicoesProf têm ON DELETE CASCADE, então ele sai de todas as turmas e leva junto as sessões dos alunos nele. A tela avisa antes de confirmar.
+ARQUIVA, não apaga: grava ExerciciosProf.Ativo = false e apaga as linhas de AtribuicoesProf dele, numa transação. Ele some da biblioteca e de todas as turmas; a linha de ExerciciosProf e as sessões já feitas continuam, então histórico e relatórios não mudam.
+
+**Notas:**
+
+Não é um DELETE de verdade porque o ON DELETE CASCADE de SessionsProf levaria as sessões dos alunos, que são o trabalho deles, não do professor. Não há rota para desarquivar. A tela avisa antes de confirmar.
 
 ## Sessões
 
