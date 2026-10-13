@@ -8,7 +8,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query,
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { TurmasService } from './turmas.service.js';
-import type { CodigoDaTurma, CorpoDaAlteracao, CorpoDaTurmaNova, Turma } from './turmas.service.js';
+import type { CodigoDaTurma, CorpoDaAlteracao, CorpoDaTurmaNova, Turma, TurmaDetalhe } from './turmas.service.js';
 
 @Controller('turmas')
 @UseGuards(GuardaDoToken)
@@ -26,6 +26,11 @@ export class TurmasController {
   @HttpCode(HttpStatus.OK)
   criar(@Req() requisicao: RequisicaoComIdentidade, @Body() corpo: CorpoDaTurmaNova): Promise<Turma> {
     return this.turmas.criar(requisicao.identidade, corpo);
+  }
+
+  @Get(':id')
+  obter(@Req() requisicao: RequisicaoComIdentidade, @Param('id') id: string): Promise<TurmaDetalhe> {
+    return this.turmas.obter(requisicao.identidade, id);
   }
 
   // Renomear, trocar a capa, arquivar e desarquivar: o corpo diz qual.

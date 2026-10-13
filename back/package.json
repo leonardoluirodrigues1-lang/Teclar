@@ -28,7 +28,10 @@
     "test:atribuicoes": "node test/testar-atribuicoes.mjs",
     "test:sessoes": "node test/testar-sessoes.mjs",
     "test:relatorios": "node test/testar-relatorios.mjs",
-    "test:ranking": "node test/testar-ranking.mjs"
+    "test:ranking": "node test/testar-ranking.mjs",
+    "test:solo": "node test/testar-solo.mjs",
+    "test:aluno": "node test/testar-aluno.mjs",
+    "test:administracao": "node test/testar-administracao.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

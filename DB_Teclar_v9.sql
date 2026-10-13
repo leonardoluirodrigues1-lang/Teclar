@@ -1,9 +1,29 @@
 -- ==========================================
--- TECLAR - DB_Teclar_v8.sql
--- Base: v7 inteiro. O historico das versoes anteriores (o que entrou na
--- v6 e na v7, e por que) esta no cabecalho do DB_Teclar_v7.sql.
+-- TECLAR - DB_Teclar_v9.sql
+-- Base: v8 inteiro, com duas mudancas pequenas (a v9 abaixo). O que a v8
+-- trouxe continua descrito logo depois. O historico das versoes anteriores
+-- (o que entrou na v6 e na v7, e por que) esta no cabecalho do
+-- DB_Teclar_v7.sql.
 --
--- O que mudou em relacao a v7: o FLUXO DE ENTRADA DO ALUNO.
+-- O que mudou em relacao a v8:
+--   1. Users.Administrador (BOOLEAN, FALSE por padrao). POST, PATCH e
+--      DELETE /categorias e PUT /parametros sao so de administrador, e a
+--      tabela Users nao tinha como dizer quem e. Coluna, e nao tabela a
+--      parte: e um sim/nao por conta, sem nada mais para guardar. Quem
+--      marca e o banco (UPDATE na mao ou o seed): nenhuma rota promove
+--      ninguem a administrador.
+--   2. Configuracoes.xp_por_nivel passa de 100 para 200, o valor que o
+--      front (CONFIG.SOLO.XP_POR_NIVEL), o mock e o contrato ja usavam.
+--      Com 100, o back calcularia outro nivel para o mesmo XP (669 XP:
+--      nivel 7 em vez de 4).
+--   3. UNIQUE em CampanhasSolo.JogadorID (uq_campanha_jogador). "Um
+--      jogador, uma campanha" era so regra do back: ele consultava antes de
+--      criar, e dois POST /solo/campanha no mesmo instante passavam os dois
+--      pela consulta e criavam duas. Agora quem garante e o banco.
+-- Para atualizar um banco que ja esta na v8, veja a secao "Se o banco ja
+-- esta na v8", no fim.
+--
+-- O que mudou da v7 para a v8: o FLUXO DE ENTRADA DO ALUNO.
 --
 -- Antes (v6/v7): toda conta (Users) ganhava um RP e uma senha de aluno
 -- gerada pelo sistema. O professor convidava pelo RP, o aluno aceitava ou
@@ -60,6 +80,8 @@ USE teclardb;
 -- Conta unica. NAO existe coluna de perfil: o universo (Solo ou Professor)
 -- e escolhido depois do login e pode mudar a qualquer momento.
 -- A mesma conta pode ter campanha no Solo E turmas como professor.
+-- v9: Administrador nao e perfil, e permissao: so ele mexe em categorias
+-- e parametros. Qualquer conta, administradora ou nao, joga e da aula.
 -- v8: o aluno NAO tem conta aqui. Ele mora em Alunos, dentro da turma.
 CREATE TABLE Users (
     ID VARCHAR(100) PRIMARY KEY,
@@ -69,6 +91,7 @@ CREATE TABLE Users (
     SenhaHash VARCHAR(255) NULL,               -- NULL = entrou por Google
     Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Ativo BOOLEAN DEFAULT TRUE,
+    Administrador BOOLEAN NOT NULL DEFAULT FALSE,  -- v9: pode mexer em categorias e parametros
 
     -- garante que a conta tem pelo menos uma forma de entrar
     CONSTRAINT chk_users_login CHECK (GoogleID IS NOT NULL OR SenhaHash IS NOT NULL)
@@ -98,6 +121,8 @@ CREATE TABLE Configuracoes (
 
 -- Gerencia o "Save" e a gamificacao do jogador adulto
 -- v7: Data_Criacao e Ativo.
+-- v9: UNIQUE em JogadorID. Um jogador tem UMA campanha, e e o banco que
+-- garante: duas criacoes ao mesmo tempo nao viram duas linhas.
 CREATE TABLE CampanhasSolo (
     CampanhaID VARCHAR(100) PRIMARY KEY,
     JogadorID VARCHAR(100) NOT NULL,
@@ -105,6 +130,7 @@ CREATE TABLE CampanhasSolo (
     XPTotal INT DEFAULT 0,
     Data_Criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Ativo BOOLEAN DEFAULT TRUE,
+    CONSTRAINT uq_campanha_jogador UNIQUE (JogadorID),
     FOREIGN KEY (JogadorID) REFERENCES Users(ID) ON DELETE CASCADE
 );
 
@@ -268,11 +294,32 @@ INSERT INTO Configuracoes (Chave, Valor, Descricao) VALUES
     ('wpm_meta_padrao',              '40',  'Meta de palavras por minuto'),
     ('precisao_minima',              '90',  'Precisao minima em porcentagem'),
     ('tempo_limite_padrao_segundos', '60',  'Tempo limite padrao de um exercicio'),
-    ('xp_por_nivel',                 '100', 'XP necessario para subir de nivel');
+    ('xp_por_nivel',                 '200', 'XP necessario para subir de nivel');
+
+
+-- ==========================================
+-- Se o banco ja esta na v8, use isto em vez de recriar.
+-- Nao apaga nada: acrescenta a coluna, corrige um valor e cria o UNIQUE.
+-- ==========================================
+-- USE teclardb;
+-- ALTER TABLE Users ADD Administrador BOOLEAN NOT NULL DEFAULT FALSE AFTER Ativo;
+-- UPDATE Configuracoes SET Valor = '200' WHERE Chave = 'xp_por_nivel';
+-- ALTER TABLE CampanhasSolo ADD CONSTRAINT uq_campanha_jogador UNIQUE (JogadorID);
+--
+-- Atencao: o ALTER do UNIQUE falha se algum jogador ja tiver duas
+-- campanhas (a corrida que o UNIQUE veio impedir). Ache-os antes com:
+--   SELECT JogadorID, COUNT(*) FROM CampanhasSolo
+--   GROUP BY JogadorID HAVING COUNT(*) > 1;
+-- e apague a mais nova de cada um (o back sempre usou a mais antiga).
+--
+-- Depois, no back: npx prisma db pull && npx prisma generate.
+-- O nivel ja gravado nas campanhas (CampanhasSolo.NivelAtual) nao e
+-- recalculado aqui: o back recalcula na proxima sessao do Solo.
 
 
 -- ==========================================
 -- Se o banco ja esta na v7, use isto em vez de recriar.
+-- (Depois, aplique tambem a secao da v8, acima.)
 -- (De versoes anteriores: aplique antes a secao de ALTER do v7.)
 -- Rode na ordem. Faca backup antes: os passos 2 e 3 apagam dados.
 -- ==========================================

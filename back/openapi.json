@@ -12,7 +12,7 @@
     },
     {
       "name": "Solo",
-      "description": "O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha."
+      "description": "O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO, menos em GET /solo/missoes/:id, que serve qualquer token. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha. O progresso nunca regride: cada treino é uma linha nova, o XP só soma, e \"lição concluída\" e \"melhor marca\" olham todas as sessões — refazer uma lição pior não as desfaz."
     },
     {
       "name": "Turmas (professor)",
@@ -40,7 +40,7 @@
     },
     {
       "name": "Administração",
-      "description": "Categorias e parâmetros globais (tabela Configuracoes)."
+      "description": "Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco."
     }
   ],
   "paths": {
@@ -332,8 +332,8 @@
           "Solo"
         ],
         "operationId": "solo.campanhaAtual",
-        "summary": "(ainda não implementada) campanhaAtual: Campanha | null — null quando o jogador ainda não começou",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.campanhaAtual`\n\n**Resposta:** 200 Campanha | null — null quando o jogador ainda não começou\n\n**Identidade:**\n\nO token (JogadorID). Não recebe id.\n\n**Notas:**\n\nnull é estado (primeira vez no Solo), não falha.",
+        "summary": "campanhaAtual: Campanha | null — null quando o jogador ainda não começou",
+        "description": "**Chamada no front:** `api.solo.campanhaAtual`\n\n**Resposta:** 200 Campanha | null — null quando o jogador ainda não começou\n\n**Identidade:**\n\nO token (JogadorID). Não recebe id.\n\n**Notas:**\n\nnull é estado (primeira vez no Solo), não falha.",
         "parameters": [],
         "responses": {
           "200": {
@@ -398,8 +398,8 @@
           "Solo"
         ],
         "operationId": "solo.criarCampanha",
-        "summary": "(ainda não implementada) criarCampanha: Campanha — a nova (nível 1, 0 XP) ou a que já existia",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.criarCampanha`\n\n**Resposta:** 200 Campanha — a nova (nível 1, 0 XP) ou a que já existia\n\n**Identidade:**\n\nO token (JogadorID).\n\n**Regras de negócio no back (a tela não calcula):**\n\nIdempotente: quem já tem campanha recebe a que existe, sem criar outra.\n\n**Notas:**\n\nSem corpo: todas as colunas de CampanhasSolo vêm do back ou do token.",
+        "summary": "criarCampanha: Campanha — a nova (nível 1, 0 XP) ou a que já existia",
+        "description": "**Chamada no front:** `api.solo.criarCampanha`\n\n**Resposta:** 200 Campanha — a nova (nível 1, 0 XP) ou a que já existia\n\n**Identidade:**\n\nO token (JogadorID).\n\n**Regras de negócio no back (a tela não calcula):**\n\nIdempotente: quem já tem campanha recebe a que existe, sem criar outra.\n\n**Notas:**\n\nSem corpo: todas as colunas de CampanhasSolo vêm do back ou do token.",
         "parameters": [],
         "responses": {
           "200": {
@@ -466,8 +466,8 @@
           "Solo"
         ],
         "operationId": "solo.campanha",
-        "summary": "(ainda não implementada) campanha: Campanha",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.campanha`\n\n**Resposta:** 200 Campanha\n\n**Identidade:**\n\nO token. Só o dono lê: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa: as telas pedem a campanha do token em GET /solo/campanha, sem id.",
+        "summary": "campanha: Campanha",
+        "description": "**Chamada no front:** `api.solo.campanha`\n\n**Resposta:** 200 Campanha\n\n**Identidade:**\n\nO token. Só o dono lê: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa: as telas pedem a campanha do token em GET /solo/campanha, sem id.",
         "parameters": [
           {
             "name": "id",
@@ -557,8 +557,8 @@
           "Solo"
         ],
         "operationId": "solo.apagarCampanha",
-        "summary": "(ainda não implementada) apagarCampanha: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.apagarCampanha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só o dono apaga: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa.",
+        "summary": "apagarCampanha: (sem corpo)",
+        "description": "**Chamada no front:** `api.solo.apagarCampanha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só o dono apaga: campanha cujo JogadorID não é a conta do token responde 404, nunca 403.\n\n**Notas:**\n\nNenhuma tela usa.",
         "parameters": [
           {
             "name": "id",
@@ -635,8 +635,8 @@
           "Solo"
         ],
         "operationId": "solo.missoes",
-        "summary": "(ainda não implementada) missoes: Missao[] — as 76 lições, na ordem do percurso, SEM o texto",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.missoes`\n\n**Resposta:** 200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto\n\n**Identidade:**\n\nO token (precisa ter campanha). Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.\n\n**Notas:**\n\nAceita filtros em query string, mas nenhuma tela manda. O texto da lição não vem na lista.",
+        "summary": "missoes: Missao[] — as 76 lições, na ordem do percurso, SEM o texto",
+        "description": "**Chamada no front:** `api.solo.missoes`\n\n**Resposta:** 200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto\n\n**Identidade:**\n\nO token (precisa ter campanha). Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.\n\n**Notas:**\n\nAceita filtros em query string, mas nenhuma tela manda. O texto da lição não vem na lista.",
         "parameters": [],
         "responses": {
           "200": {
@@ -709,8 +709,8 @@
           "Solo"
         ],
         "operationId": "solo.missao",
-        "summary": "(ainda não implementada) missao: MissaoDetalhe — a lição com o texto",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.missao`\n\n**Resposta:** 200 MissaoDetalhe — a lição com o texto\n\n**Identidade:**\n\nQualquer token válido. As lições são conteúdo semeado, iguais para todos: não há recurso \"de outra conta\" aqui.",
+        "summary": "missao: MissaoDetalhe — a lição com o texto",
+        "description": "**Chamada no front:** `api.solo.missao`\n\n**Resposta:** 200 MissaoDetalhe — a lição com o texto\n\n**Identidade:**\n\nQualquer token válido. As lições são conteúdo semeado, iguais para todos: não há recurso \"de outra conta\" aqui.",
         "parameters": [
           {
             "name": "id",
@@ -791,8 +791,8 @@
           "Solo"
         ],
         "operationId": "solo.registrarSessao",
-        "summary": "(ainda não implementada) registrarSessao: RespostaSessaoSolo — o id abre a tela de resultado",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.registrarSessao`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais a lição\n\n**Resposta:** 200 RespostaSessaoSolo — o id abre a tela de resultado\n\n**Identidade:**\n\nO token: a sessão vai para a campanha DO TOKEN. Não aceita campanha_id no corpo — com ele, dava para gravar XP na campanha de outro jogador.\n\n**Regras de negócio no back (a tela não calcula):**\n\nXP ganho (concluída: XP_BASE_MISSAO + bônus proporcional à precisão; não concluída: 30% do base), o novo XPTotal, o nível (recalculado do XP), subiuDeNivel e recordePessoal (PPM maior que o melhor anterior NESTA lição). A tela não calcula XP nem nível.",
+        "summary": "registrarSessao: RespostaSessaoSolo — o id abre a tela de resultado",
+        "description": "**Chamada no front:** `api.solo.registrarSessao`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais a lição\n\n**Resposta:** 200 RespostaSessaoSolo — o id abre a tela de resultado\n\n**Identidade:**\n\nO token: a sessão vai para a campanha DO TOKEN. campanha_id no corpo é recusado com 400, nunca ignorado — com ele, dava para gravar XP na campanha de outro jogador.\n\n**Regras de negócio no back (a tela não calcula):**\n\nXP ganho (concluída: XP_BASE_MISSAO + bônus proporcional à precisão; não concluída: 30% do base), o novo XPTotal, o nível (recalculado do XP), subiuDeNivel e recordePessoal (PPM maior que o melhor anterior NESTA lição). A tela não calcula XP nem nível.\n\n```\nxpGanho     concluída: 50 + round(50 × precisao/100 × 0,5); senão round(50 × 0,3) = 15\nnivelAtual  floor(XPTotal / xp_por_nivel) + 1   (xp_por_nivel de Configuracoes: 200)\n```\n\nA sessão e o XP são gravados juntos, numa transação.",
         "parameters": [],
         "requestBody": {
           "description": "DadosSessaoTreino — o que o motor mediu, mais a lição",
@@ -833,6 +833,22 @@
                       "nivelAtual": 4,
                       "subiuDeNivel": false,
                       "recordePessoal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
                     }
                   }
                 }
@@ -901,8 +917,8 @@
           "Solo"
         ],
         "operationId": "solo.historico",
-        "summary": "(ainda não implementada) historico: Paginado<SessaoSolo> — as sessões da campanha",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.historico`\n\n**Resposta:** 200 Paginado<SessaoSolo> — as sessões da campanha\n\n**Identidade:**\n\nO token. Não recebe id: era /solo/campanhas/:id/historico, e um id de campanha na URL é um caminho para o histórico de outra pessoa.\n\n**Notas:**\n\nAceita filtros em query string; as telas não mandam nenhum.",
+        "summary": "historico: Paginado<SessaoSolo> — as sessões da campanha",
+        "description": "**Chamada no front:** `api.solo.historico`\n\n**Resposta:** 200 Paginado<SessaoSolo> — as sessões da campanha\n\n**Identidade:**\n\nO token. Não recebe id: era /solo/campanhas/:id/historico, e um id de campanha na URL é um caminho para o histórico de outra pessoa.\n\n**Notas:**\n\nAceita filtros em query string; as telas não mandam nenhum.",
         "parameters": [],
         "responses": {
           "200": {
@@ -981,8 +997,8 @@
           "Solo"
         ],
         "operationId": "solo.indicadores",
-        "summary": "(ainda não implementada) indicadores: IndicadoresSolo",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.indicadores`\n\n**Resposta:** 200 IndicadoresSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das sessões concluídas, inteiras; null sem nenhuma (nunca 0). melhorWpm considera todas as sessões.",
+        "summary": "indicadores: IndicadoresSolo",
+        "description": "**Chamada no front:** `api.solo.indicadores`\n\n**Resposta:** 200 IndicadoresSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das sessões concluídas, inteiras; null sem nenhuma (nunca 0). melhorWpm considera todas as sessões.",
         "parameters": [],
         "responses": {
           "200": {
@@ -1052,8 +1068,8 @@
           "Solo"
         ],
         "operationId": "solo.estatisticas",
-        "summary": "(ainda não implementada) estatisticas: EstatisticasSolo",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.solo.estatisticas`\n\n**Resposta:** 200 EstatisticasSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nlicoesConcluidas = lições DISTINTAS com sessão concluída; o agregado por lição (tentativas, melhores marcas, última vez) com o JOIN em ExerciciosSolo para título e nível. Lição nunca tentada não aparece.\n\n**Notas:**\n\nNível e XP não vêm aqui (são de /solo/campanha). Sequência de dias e evolução a tela deriva das datas e dos PPM do histórico.",
+        "summary": "estatisticas: EstatisticasSolo",
+        "description": "**Chamada no front:** `api.solo.estatisticas`\n\n**Resposta:** 200 EstatisticasSolo\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nlicoesConcluidas = lições DISTINTAS com sessão concluída; o agregado por lição (tentativas, melhores marcas, última vez) com o JOIN em ExerciciosSolo para título e nível. Lição nunca tentada não aparece.\n\n**Notas:**\n\nNível e XP não vêm aqui (são de /solo/campanha). Sequência de dias e evolução a tela deriva das datas e dos PPM do histórico.",
         "parameters": [],
         "responses": {
           "200": {
@@ -1356,8 +1372,8 @@
           "Turmas (professor)"
         ],
         "operationId": "turmas.obter",
-        "summary": "(ainda não implementada) obter: TurmaDetalhe — a turma mais o PPM médio",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.obter`\n\n**Resposta:** 200 TurmaDetalhe — a turma mais o PPM médio\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nppmMedio com 1 casa decimal, só dos alunos que treinaram (quem nunca treinou não entra); null se ninguém treinou.",
+        "summary": "obter: TurmaDetalhe — a turma mais o PPM médio",
+        "description": "**Chamada no front:** `api.turmas.obter`\n\n**Resposta:** 200 TurmaDetalhe — a turma mais o PPM médio\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nppmMedio com 1 casa decimal, só dos alunos que treinaram (quem nunca treinou não entra); null se ninguém treinou.",
         "parameters": [
           {
             "name": "id",
@@ -3505,8 +3521,8 @@
           "Aluno"
         ],
         "operationId": "escola.aluno.historico",
-        "summary": "(ainda não implementada) historico: Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.historico`\n\n**Resposta:** 200 Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nJOIN com o título do exercício e o nome da turma; a ordem é parte do contrato. Sem filtro por exercício.",
+        "summary": "historico: Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga",
+        "description": "**Chamada no front:** `api.escola.aluno.historico`\n\n**Resposta:** 200 Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nJOIN com o título do exercício e o nome da turma; a ordem é parte do contrato. Sem filtro por exercício.",
         "parameters": [],
         "responses": {
           "200": {
@@ -3588,8 +3604,8 @@
           "Aluno"
         ],
         "operationId": "escola.aluno.resumo",
-        "summary": "(ainda não implementada) resumo: ResumoDoAluno — os números do topo do histórico",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.resumo`\n\n**Resposta:** 200 ResumoDoAluno — os números do topo do histórico\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das concluídas (null sem nenhuma), melhores marcas de todas e diasSeguidos terminando hoje ou ontem (senão 0). Sem média de turma.",
+        "summary": "resumo: ResumoDoAluno — os números do topo do histórico",
+        "description": "**Chamada no front:** `api.escola.aluno.resumo`\n\n**Resposta:** 200 ResumoDoAluno — os números do topo do histórico\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nMédias só das concluídas (null sem nenhuma), melhores marcas de todas e diasSeguidos terminando hoje ou ontem (senão 0). Sem média de turma.",
         "parameters": [],
         "responses": {
           "200": {
@@ -3659,8 +3675,8 @@
           "Aluno"
         ],
         "operationId": "escola.aluno.salas",
-        "summary": "(ainda não implementada) salas: SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.salas`\n\n**Resposta:** 200 SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.\n\n**Notas:**\n\nLista com no máximo um item.",
+        "summary": "salas: SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele",
+        "description": "**Chamada no front:** `api.escola.aluno.salas`\n\n**Resposta:** 200 SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.\n\n**Notas:**\n\nLista com no máximo um item.",
         "parameters": [],
         "responses": {
           "200": {
@@ -3732,8 +3748,8 @@
           "Aluno"
         ],
         "operationId": "escola.aluno.sala",
-        "summary": "(ainda não implementada) sala: SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.sala`\n\n**Resposta:** 200 SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega.",
+        "summary": "sala: SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE",
+        "description": "**Chamada no front:** `api.escola.aluno.sala`\n\n**Resposta:** 200 SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega.",
         "parameters": [
           {
             "name": "turmaId",
@@ -3843,8 +3859,8 @@
           "Aluno"
         ],
         "operationId": "escola.aluno.desempenhoNaTurma",
-        "summary": "(ainda não implementada) desempenhoNaTurma: DesempenhoNaTurma — o relatório individual dele NA sala",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.desempenhoNaTurma`\n\n**Resposta:** 200 DesempenhoNaTurma — o relatório individual dele NA sala\n\n**Identidade:**\n\nO token. O :turmaId é da turma, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null.",
+        "summary": "desempenhoNaTurma: DesempenhoNaTurma — o relatório individual dele NA sala",
+        "description": "**Chamada no front:** `api.escola.aluno.desempenhoNaTurma`\n\n**Resposta:** 200 DesempenhoNaTurma — o relatório individual dele NA sala\n\n**Identidade:**\n\nO token. O :turmaId é da turma, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null.",
         "parameters": [
           {
             "name": "turmaId",
@@ -4069,8 +4085,8 @@
           "Administração"
         ],
         "operationId": "admin.categorias",
-        "summary": "(ainda não implementada) categorias: Categoria[] — só as ativas",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.categorias`\n\n**Resposta:** 200 Categoria[] — só as ativas\n\n**Identidade:**\n\nQualquer token válido: ler a lista não exige papel.",
+        "summary": "categorias: Categoria[] — só as ativas",
+        "description": "**Chamada no front:** `api.admin.categorias`\n\n**Resposta:** 200 Categoria[] — só as ativas\n\n**Identidade:**\n\nQualquer token válido: ler a lista não exige papel.",
         "parameters": [],
         "responses": {
           "200": {
@@ -4120,8 +4136,8 @@
           "Administração"
         ],
         "operationId": "admin.criarCategoria",
-        "summary": "(ainda não implementada) criarCategoria: Categoria",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.criarCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse (ver a pendência do papel de administrador, no topo).",
+        "summary": "criarCategoria: Categoria",
+        "description": "**Chamada no front:** `api.admin.criarCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR (Users.Administrador). Conta comum ou aluno: 404, como se a rota não existisse — antes de qualquer 400.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNome aparado, com espaços internos reduzidos a um.",
         "parameters": [],
         "requestBody": {
           "description": "{ nome }",
@@ -4160,7 +4176,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome vazio",
+            "description": "`DADOS_INVALIDOS` — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))",
             "content": {
               "application/json": {
                 "examples": {
@@ -4237,8 +4253,8 @@
           "Administração"
         ],
         "operationId": "admin.renomearCategoria",
-        "summary": "(ainda não implementada) renomearCategoria: Categoria",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.renomearCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.",
+        "summary": "renomearCategoria: Categoria",
+        "description": "**Chamada no front:** `api.admin.renomearCategoria`\n\n**Corpo:** { nome }\n\n**Resposta:** 200 Categoria\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.",
         "parameters": [
           {
             "name": "id",
@@ -4285,6 +4301,22 @@
               }
             }
           },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — as mesmas regras de nome do POST /categorias",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
             "content": {
@@ -4302,7 +4334,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — a categoria não existe, ou o token não é de administrador",
+            "description": "`NAO_ENCONTRADO` — a categoria não existe (ou já foi apagada), ou o token não é de administrador",
             "content": {
               "application/json": {
                 "examples": {
@@ -4311,6 +4343,22 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`CATEGORIA_DUPLICADA` — outra categoria ativa já tem esse nome",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CATEGORIA_DUPLICADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CATEGORIA_DUPLICADA"
                     }
                   }
                 }
@@ -4329,8 +4377,8 @@
           "Administração"
         ],
         "operationId": "admin.apagarCategoria",
-        "summary": "(ainda não implementada) apagarCategoria: (sem corpo)",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.apagarCategoria`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExclusão LÓGICA (ativo = false).",
+        "summary": "apagarCategoria: (sem corpo)",
+        "description": "**Chamada no front:** `api.admin.apagarCategoria`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExclusão LÓGICA (ativo = false).",
         "parameters": [
           {
             "name": "id",
@@ -4362,7 +4410,7 @@
             }
           },
           "404": {
-            "description": "`NAO_ENCONTRADO` — a categoria não existe, ou o token não é de administrador",
+            "description": "`NAO_ENCONTRADO` — a categoria não existe (ou já foi apagada), ou o token não é de administrador",
             "content": {
               "application/json": {
                 "examples": {
@@ -4378,7 +4426,7 @@
             }
           },
           "409": {
-            "description": "`CATEGORIA_EM_USO` — algum exercício ativo usa a categoria",
+            "description": "`CATEGORIA_EM_USO` — algum exercício ativo (do professor ou do Solo) usa a categoria",
             "content": {
               "application/json": {
                 "examples": {
@@ -4407,8 +4455,8 @@
           "Administração"
         ],
         "operationId": "admin.parametros",
-        "summary": "(ainda não implementada) parametros: Parametros — a tabela Configuracoes",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.parametros`\n\n**Resposta:** 200 Parametros — a tabela Configuracoes\n\n**Identidade:**\n\nQualquer token válido: o lobby do Solo lê o xpPorNivel.",
+        "summary": "parametros: Parametros — a tabela Configuracoes",
+        "description": "**Chamada no front:** `api.admin.parametros`\n\n**Resposta:** 200 Parametros — a tabela Configuracoes\n\n**Identidade:**\n\nQualquer token válido: o lobby do Solo lê o xpPorNivel.",
         "parameters": [],
         "responses": {
           "200": {
@@ -4457,8 +4505,8 @@
           "Administração"
         ],
         "operationId": "admin.salvarParametros",
-        "summary": "(ainda não implementada) salvarParametros: Parametros — como ficou",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.admin.salvarParametros`\n\n**Corpo:** Partial<Parametros> — só os campos que mudam\n\n**Resposta:** 200 Parametros — como ficou\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.",
+        "summary": "salvarParametros: Parametros — como ficou",
+        "description": "**Chamada no front:** `api.admin.salvarParametros`\n\n**Corpo:** Partial<Parametros> — só os campos que mudam\n\n**Resposta:** 200 Parametros — como ficou\n\n**Identidade:**\n\nO token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere todos os campos antes de gravar qualquer um: um inválido devolve 400 e nada muda.",
         "parameters": [],
         "requestBody": {
           "description": "Partial<Parametros> — só os campos que mudam",
@@ -4491,6 +4539,22 @@
                       "precisaoMinima": 90,
                       "tempoLimitePadrao": 60,
                       "xpPorNivel": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
                     }
                   }
                 }

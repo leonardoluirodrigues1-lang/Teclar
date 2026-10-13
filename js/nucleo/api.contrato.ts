@@ -63,7 +63,7 @@ export const convencoes: Texto[] = [
   { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.`,
 ];
 
-// Banco: DB_Teclar_v8.sql. Toda coluna que o contrato usa existe nele.
+// Banco: DB_Teclar_v9.sql. Toda coluna que o contrato usa existe nele.
 //
 // O aluno, na v8: o professor cria a turma (o back gera ClassesProf.Codigo)
 // e sobe a lista de nomes; cada nome vira uma linha de Alunos DENTRO da
@@ -96,13 +96,10 @@ export const naoUsadas: Texto[] = [
   mas nenhuma rota grava: vem sempre null.`,
 ];
 
-// Ainda sem lugar no banco (não é coluna pedida, é decisão a tomar):
-export const pendencias: Texto[] = [
-  `Papel de administrador — POST, PATCH e DELETE /categorias e
-  PUT /parametros exigem administrador, mas a tabela Users não tem coluna
-  de papel. O back precisa de um jeito de saber quem é administrador
-  (uma coluna ou uma tabela). Até lá, o mock não tem nenhum.`,
-];
+// Ainda sem lugar no banco (não é coluna pedida, é decisão a tomar).
+// Vazia: o papel de administrador, a última, virou Users.Administrador
+// no banco v9.
+export const pendencias: Texto[] = [];
 
 export const grupos: Grupo[] = [
   {
@@ -173,8 +170,11 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
   {
     nome: 'Solo',
     intro: `O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui
-é 403 TIPO_INVALIDO. Um jogador tem UMA campanha, e ela sai do token:
-nenhuma rota usada pelas telas recebe id de campanha.`,
+é 403 TIPO_INVALIDO, menos em GET /solo/missoes/:id, que serve qualquer
+token. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota
+usada pelas telas recebe id de campanha. O progresso nunca regride: cada
+treino é uma linha nova, o XP só soma, e "lição concluída" e "melhor
+marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
     rotas: {
       'solo.campanhaAtual': {
         rota: 'GET /solo/campanha',
@@ -246,15 +246,19 @@ nenhuma rota usada pelas telas recebe id de campanha.`,
         resposta: `200 RespostaSessaoSolo — o id abre a tela de resultado
   { "id": "hs-11", "xpGanho": 74, "xpTotal": 743, "nivelAtual": 4,
     "subiuDeNivel": false, "recordePessoal": true }`,
-        erros: `403 TIPO_INVALIDO — token de aluno
+        erros: `400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)
+  403 TIPO_INVALIDO — token de aluno
   404 NAO_ENCONTRADO — sem campanha, ou lição inexistente`,
-        identidade: `O token: a sessão vai para a campanha DO TOKEN. Não aceita
-  campanha_id no corpo — com ele, dava para gravar XP na campanha de
-  outro jogador.`,
+        identidade: `O token: a sessão vai para a campanha DO TOKEN. campanha_id no
+  corpo é recusado com 400, nunca ignorado — com ele, dava para gravar XP
+  na campanha de outro jogador.`,
         back: `XP ganho (concluída: XP_BASE_MISSAO + bônus proporcional à
   precisão; não concluída: 30% do base), o novo XPTotal, o nível
   (recalculado do XP), subiuDeNivel e recordePessoal (PPM maior que o
-  melhor anterior NESTA lição). A tela não calcula XP nem nível.`,
+  melhor anterior NESTA lição). A tela não calcula XP nem nível.
+    xpGanho     concluída: 50 + round(50 × precisao/100 × 0,5); senão round(50 × 0,3) = 15
+    nivelAtual  floor(XPTotal / xp_por_nivel) + 1   (xp_por_nivel de Configuracoes: 200)
+  A sessão e o XP são gravados juntos, numa transação.`,
       },
       'solo.historico': {
         rota: 'GET /solo/historico',
@@ -858,7 +862,10 @@ da conta, e mora em \`solo\`.`,
   },
   {
     nome: 'Administração',
-    intro: `Categorias e parâmetros globais (tabela Configuracoes).`,
+    intro: `Categorias e parâmetros globais (tabela Configuracoes). Administrador é
+a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do
+banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma
+rota promove ninguém: quem marca é o banco.`,
     rotas: {
       'admin.categorias': {
         rota: 'GET /categorias',
@@ -872,12 +879,13 @@ da conta, e mora em \`solo\`.`,
   { "nome": "Atalhos de teclado" }`,
         resposta: `200 Categoria
   { "id": 6, "nome": "Atalhos de teclado", "ativo": true }`,
-        erros: `400 DADOS_INVALIDOS — nome vazio
+        erros: `400 DADOS_INVALIDOS — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
   409 CATEGORIA_DUPLICADA — já existe uma ativa com esse nome (sem diferenciar maiúscula)
   404 NAO_ENCONTRADO — o token não é de administrador`,
-        identidade: `O token, que tem de ser de ADMINISTRADOR. Conta comum ou
-  aluno: 404, como se a rota não existisse (ver a pendência do papel
-  de administrador, no topo).`,
+        identidade: `O token, que tem de ser de ADMINISTRADOR (Users.Administrador).
+  Conta comum ou aluno: 404, como se a rota não existisse — antes de
+  qualquer 400.`,
+        back: `Nome aparado, com espaços internos reduzidos a um.`,
       },
       'admin.renomearCategoria': {
         rota: 'PATCH /categorias/:id',
@@ -885,15 +893,17 @@ da conta, e mora em \`solo\`.`,
   { "nome": "Palavras do dia a dia" }`,
         resposta: `200 Categoria
   { "id": 1, "nome": "Palavras do dia a dia", "ativo": true }`,
-        erros: `404 NAO_ENCONTRADO — a categoria não existe, ou o token não é de administrador`,
+        erros: `400 DADOS_INVALIDOS — as mesmas regras de nome do POST /categorias
+  409 CATEGORIA_DUPLICADA — outra categoria ativa já tem esse nome
+  404 NAO_ENCONTRADO — a categoria não existe (ou já foi apagada), ou o token não é de administrador`,
         identidade: `O token, que tem de ser de ADMINISTRADOR. Conta comum ou
   aluno: 404, como se a rota não existisse.`,
       },
       'admin.apagarCategoria': {
         rota: 'DELETE /categorias/:id',
         resposta: `204 (sem corpo)`,
-        erros: `404 NAO_ENCONTRADO — a categoria não existe, ou o token não é de administrador
-  409 CATEGORIA_EM_USO — algum exercício ativo usa a categoria`,
+        erros: `404 NAO_ENCONTRADO — a categoria não existe (ou já foi apagada), ou o token não é de administrador
+  409 CATEGORIA_EM_USO — algum exercício ativo (do professor ou do Solo) usa a categoria`,
         identidade: `O token, que tem de ser de ADMINISTRADOR. Conta comum ou
   aluno: 404, como se a rota não existisse.`,
         back: `Exclusão LÓGICA (ativo = false).`,
@@ -910,9 +920,12 @@ da conta, e mora em \`solo\`.`,
   { "wpmMeta": 45 }`,
         resposta: `200 Parametros — como ficou
   { "wpmMeta": 45, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200 }`,
-        erros: `404 NAO_ENCONTRADO — o token não é de administrador`,
+        erros: `400 DADOS_INVALIDOS — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima
+  404 NAO_ENCONTRADO — o token não é de administrador`,
         identidade: `O token, que tem de ser de ADMINISTRADOR. Conta comum ou
   aluno: 404, como se a rota não existisse.`,
+        back: `Confere todos os campos antes de gravar qualquer um: um inválido
+  devolve 400 e nada muda.`,
       },
     },
   },

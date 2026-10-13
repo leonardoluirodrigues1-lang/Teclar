@@ -16,9 +16,9 @@
 //
 // Cria duas turmas, dois exercícios e três alunos só dele; não grava nada
 // nas turmas do seed. Grava no banco (pelo BancoService do dist/) só uma
-// sessão do Solo em cada campanha, porque o seed não tem nenhuma e
-// POST /solo/sessoes ainda não está implementada. O npm run seed apaga o
-// que ele cria.
+// sessão do Solo em cada campanha, porque o seed não tem nenhuma (gravar
+// pelo POST /solo/sessoes mexeria no XP das campanhas do seed; essa rota
+// tem o teste dela, testar-solo.mjs). O npm run seed apaga o que ele cria.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

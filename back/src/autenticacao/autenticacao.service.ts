@@ -119,8 +119,8 @@ export class AutenticacaoService {
     const conta = await this.banco.users.findUnique({
       where: { Email: email },
       // A campanha do Solo vem junto, pela relação users -> campanhassolo.
-      // Um jogador tem uma campanha só; o take: 1 deixa isso explícito.
-      include: { campanhassolo: { select: { CampanhaID: true }, take: 1 } },
+      // É uma só (UNIQUE em CampanhasSolo.JogadorID, banco v9), ou null.
+      include: { campanhassolo: { select: { CampanhaID: true } } },
     });
 
     // Compara ANTES de olhar se a conta existe (ver HASH_DE_NINGUEM).
@@ -177,7 +177,7 @@ export class AutenticacaoService {
     }
 
     // Conta recém-criada não tem campanha: o usuario sai sem campanhaAtiva.
-    const usuario = usuarioDaConta({ ...conta, campanhassolo: [] });
+    const usuario = usuarioDaConta({ ...conta, campanhassolo: null });
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario };
   }
 
@@ -198,7 +198,7 @@ export class AutenticacaoService {
   private async contaDoToken(id: string): Promise<UsuarioConta> {
     const conta = await this.banco.users.findUnique({
       where: { ID: id },
-      include: { campanhassolo: { select: { CampanhaID: true }, take: 1 } },
+      include: { campanhassolo: { select: { CampanhaID: true } } },
     });
     // Conta apagada ou desativada depois do login: a assinatura do token
     // ainda confere, mas a sessão acabou. É o mesmo 401 do token vencido,
@@ -316,19 +316,19 @@ export class AutenticacaoService {
 // O aluno como procurarAluno() devolve, já com a turma.
 type AlunoEncontrado = NonNullable<Awaited<ReturnType<AutenticacaoService['procurarAluno']>>>;
 
-// O mínimo de Users que a resposta precisa, com a campanha (se houver).
+// O mínimo de Users que a resposta precisa, com a campanha (null sem).
 interface ContaComCampanha {
   ID: string;
   Nome: string;
   Email: string;
-  campanhassolo: { CampanhaID: string }[];
+  campanhassolo: { CampanhaID: string } | null;
 }
 
 // O `usuario` de conta. Um lugar só monta, para o login, o cadastro e o
 // /auth/eu não divergirem no formato.
 function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
   const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta' };
-  const campanha = conta.campanhassolo[0];
+  const campanha = conta.campanhassolo;
   if (campanha) {
     usuario.campanhaAtiva = campanha.CampanhaID;
   }

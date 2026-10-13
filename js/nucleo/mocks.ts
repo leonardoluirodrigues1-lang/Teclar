@@ -1662,13 +1662,10 @@ function sessaoDoToken(id: string, token: string | null | undefined): Sessao | S
   throw erro(404, 'Sessão não encontrada.', 'NAO_ENCONTRADO');
 }
 
-// Quem pode mexer em categorias e parâmetros globais. A tabela Users não
-// tem coluna de papel, então o back ainda precisa de um lugar para dizer
-// quem é administrador (ver @coluna-pendente em api.ts). Até lá, a lista
-// é explícita e VAZIA: nenhuma conta semeada é administradora, e nenhuma
-// tela de administração existe. Para testar o caminho de sucesso, ponha
-// aqui o id de uma conta (ex.: 'u-2').
-const ADMINISTRADORES: string[] = [];
+// Quem pode mexer em categorias e parâmetros globais: no back, a conta com
+// Users.Administrador = TRUE (banco v9). O seed marca só a u-3 (ana), e a
+// lista daqui espelha o seed. Nenhuma tela de administração existe ainda.
+const ADMINISTRADORES: string[] = ['u-3'];
 
 // Token que não é de administrador: 404, como recurso que não existe —
 // para conta comum, estas rotas de escrita simplesmente não existem.

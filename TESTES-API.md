@@ -55,6 +55,23 @@ passado, porque a rota só grava com a data de agora e a janela de 7 dias e
 os dias seguidos precisam de dias anteriores. O seed não tem sessão do
 Solo: o teste de sessões grava uma em cada campanha, direto no banco.
 
+As linhas de `GET /turmas/:id`, do Solo (`/solo/...`), do próprio aluno
+(`/aluno/...` e `/turmas/:id/meu-desempenho`) e da administração
+(`/categorias...` e `/parametros`) foram rodadas em 13/10/2026, do mesmo
+jeito, pelos scripts `back/test/testar-turmas.mjs` (que ganhou a parte do
+detalhe), `testar-solo.mjs`, `testar-aluno.mjs` e `testar-administracao.mjs`
+(`npm run test:turmas`, `test:solo`, `test:aluno` e `test:administracao` em
+`back/`, com o back no ar e o seed aplicado), já com o banco v9
+(`Users.Administrador` e `xp_por_nivel` 200). O do Solo cria a própria
+conta pelo `POST /auth/cadastro` (o único jeito de ter "ainda não começou o
+Solo" sem mexer nas do seed), joga pelas rotas, com um pouco mais de 1
+segundo entre uma sessão e outra (`Data_Sessao` tem precisão de segundo), e
+apaga a conta no fim. O do aluno grava as sessões direto no banco, com
+datas no passado, pelos dias seguidos. O de administração usa
+`ana@teclar.dev` (a administradora do seed) e, como o seed não toca em
+Categorias nem em Configuracoes, apaga as categorias que criou e devolve
+os parâmetros aos valores do começo.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -166,33 +183,67 @@ Solo: o teste de sessões grava uma em cada campanha, direto no banco.
 | GET /turmas/:id/ranking | Visto pela Vera (6ª), pelo Ugo (5º) e pela Rita (1ª) | Nome só no pódio e na própria linha; null nos outros; só uma linha `voce`; o nome dos anônimos nem aparece no TEXTO da resposta | Como esperado; "Tito" e "Ugo" não aparecem no texto da resposta da Vera | Conforme |
 | GET /turmas/:id/ranking | Exercício arquivado depois das sessões | A lição continua contando | Rita com 3 lições e 115 | Conforme |
 | GET /turmas/:id/ranking | Sara desativada (`Alunos.Ativo = false`, direto no banco) | Sai do ranking | 5 linhas, sem "Sara" no texto | Conforme |
+| GET /turmas/:id | Sem token; token de aluno; turma-5 (de u-1) e turma que não existe, com token de u-2 | 401; 403 TIPO_INVALIDO; 404 NAO_ENCONTRADO | Como esperado | Conforme |
+| GET /turmas/:id | Turma recém-criada, sem sessão | 200 com `ppmMedio: null`, nunca 0 | `ppmMedio: null` | Conforme |
+| GET /turmas/:id | Turma com 4 alunos: Lia concluiu duas (30 e 41 PPM, média 36), Rui uma (33), Caio só uma NÃO concluída (90), Bia nenhuma | `ppmMedio` 34.5: média, com 1 casa, dos alunos que concluíram; o resto igual ao item de GET /turmas | `ppmMedio` 34.5; o resto idêntico ao item da lista, com 4 alunos e 1 exercício | Conforme |
+| GET /turmas/:id | Turma arquivada da conta | 200 com `ativa: false` (só não existe ou de outra conta é 404) | 200, `ativa: false` | Conforme |
+| As dez rotas do Solo | Sem token | 401 TOKEN_INVALIDO | 401 nas dez | Conforme |
+| As rotas do Solo, menos GET /solo/missoes/:id | Token de aluno | 403 TIPO_INVALIDO | 403 nas nove | Conforme |
+| GET /solo/missoes/:id | Token de aluno | 200: a lição não é de ninguém, e a rota serve qualquer token | 200, a solo-001 | Conforme |
+| GET /solo/campanha | Conta recém-cadastrada, sem campanha | 200 com `null` (estado de primeira vez, não erro) | 200, `null` | Conforme |
+| GET /solo/missoes, /historico, /indicadores, /estatisticas e POST /solo/sessoes | Conta sem campanha | 404 NAO_ENCONTRADO | 404 nas cinco | Conforme |
+| POST /solo/campanha | Primeira vez com 8 pedidos simultâneos; depois mais um | 200 em todos, nível 1, 0 XP, jogador do token, todos com a MESMA campanha; o UNIQUE de `CampanhasSolo.JogadorID` (banco v9) deixa uma linha só, e quem perde a corrida não recebe erro | 200 nos 9, mesmo `campanhaId`; 1 campanha da conta no banco | Conforme |
+| GET /solo/campanhas/:id | O dono; outra conta (leo) pedindo a nova; a conta nova pedindo a camp-1 (de leo); id que não existe | 200; 404; 404; 404 (nunca 403) | Como esperado | Conforme |
+| DELETE /solo/campanhas/:id | A camp-1 (de leo) pedida pela conta nova | 404, e nada apagado | 404; leo continua com a camp-1 | Conforme |
+| GET /solo/missoes | Conta com campanha | 200, as 76 lições na ordem 1 a 76, sem o texto e sem cadeado; a primeira igual ao exemplo do contrato | 76, em ordem; solo-001 com 472 s e 59 caracteres, 8 campos | Conforme |
+| GET /solo/missoes/:id | solo-001; id que não existe | 200 com o texto, `tamanhoCaracteres` = tamanho do texto; 404 | Como esperado | Conforme |
+| POST /solo/sessoes | `campanha_id`, `jogadorId`, `usuario_id`, `alunoId` ou `professorId` no corpo; sem `exercicio_id`; `wpm` -1, 1000 e "30"; `precisao` 100,5; `acertos` 1,5; `erros` -1; `tempo_gasto_segundos` "90"; `concluida` "sim" | 400 DADOS_INVALIDOS (recusado, nunca ignorado) | 400 nos catorze; XP continuou 0 e nenhuma sessão gravada | Conforme |
+| POST /solo/sessoes | Lição que não existe | 404 NAO_ENCONTRADO | 404 | Conforme |
+| POST /solo/sessoes | Cinco sessões: solo-001 concluída 96% 30 PPM; solo-001 100% 40; solo-002 não concluída 50% 20; solo-002 80% 25; solo-001 não concluída 40% 10 | XP 74, 75, 15, 70, 15 (base 50 + bônus da precisão; 15 sem concluir); total 74, 149, 164, 234, 249; nível 1, 1, 1, 2, 2 (200 XP por nível), `subiuDeNivel` só na 4ª; `recordePessoal` true, true, true, true, false | Exatamente esses números | Conforme |
+| POST /solo/sessoes | Refazer a solo-001 pior (a 5ª sessão) | Progresso não regride: a lição continua concluída (2 lições antes e depois), a melhor marca continua 40 PPM e 100%, o XP só sobe e o nível não desce; a tentativa conta (3) | Como esperado | Conforme |
+| GET /sessoes/:id | A 1ª sessão do Solo pelo dono; a mesma por outra conta | 200 com `xpGanho` 74; 404 | Como esperado | Conforme |
+| GET /solo/historico | Depois das cinco | Paginado com as 5 (`pagina` 1), da mais antiga para a mais recente, `xpGanho` de cada uma somando o XP da campanha (249), sem `alunoId` | Como esperado | Conforme |
+| GET /solo/indicadores | Depois das cinco | Nível 2, 249 XP, 5 sessões, médias só das 3 concluídas (32 PPM, 92%), melhor PPM 40 | Idêntico | Conforme |
+| GET /solo/estatisticas | Depois das cinco | 2 lições concluídas, melhores 40 PPM e 100%, uma linha por lição tentada com título e nível do JOIN; solo-002 com 2 tentativas, 25 PPM e 80% | Como esperado | Conforme |
+| DELETE /solo/campanhas/:id | O dono apaga a dele | 204 sem corpo; GET /solo/campanha volta a null; as sessões vão junto (CASCADE); começar de novo cria outra, do zero | Como esperado | Conforme |
+| As cinco rotas do próprio aluno | Sem token; token de conta (até a do professor da turma) | 401; 403 TIPO_INVALIDO | 401 e 403 nas cinco | Conforme |
+| GET /aluno/salas/:turmaId e GET /turmas/:turmaId/meu-desempenho | turma-1 e turma que não existe, pela Lia; a sala de teste pela Ana do seed | 404 NAO_ENCONTRADO, nunca 403 | 404 em todos | Conforme |
+| GET /aluno/historico | Lia, com 4 sessões em dias diferentes | Paginado com as 4 dela, da mais recente para a mais antiga, com `turmaId`, `tituloExercicio` e `nomeTurma`; nenhuma do colega | Como esperado | Conforme |
+| GET /aluno/historico | Bia, que nunca treinou | Lista vazia, `total` 0 | Como esperado | Conforme |
+| GET /aluno/resumo | Lia: concluídas 40/95 e 30/90, não concluídas 50/80 e 20/70, em hoje, ontem e anteontem | 4 sessões, 2 concluídas, médias só das concluídas (35, 93), melhores de TODAS (50 PPM, 95%), 3 dias seguidos | Idêntico | Conforme |
+| GET /aluno/resumo | Bia; Rui (treinou hoje e há 5 e 6 dias) | Bia: zeros e null (nunca 0); Rui: 1 dia seguido | Como esperado | Conforme |
+| GET /aluno/salas | Lia; Bia | Uma sala, a dela, com o nome do professor, 3 alunos e o progresso DELA (Lia 2 de 3 feitos, contando o de tempo esgotado; Bia 0 de 3) | Como esperado | Conforme |
+| GET /aluno/salas/:turmaId | Lia | Cabeçalho igual ao de GET /aluno/salas; exercícios na ordem da atribuição; ex1 `feito` com a melhor CONCLUÍDA (40/95, e não os 50 da não concluída), caracteres contados no back, sem o texto, `prazo` null; ex2 `tempo_esgotado` (20/70); ex3 `nao_feito` com null | Como esperado | Conforme |
+| GET /aluno/salas/:turmaId | Texto cru da resposta da Lia | Nenhum nome nem id de colega | Nem "Rui", nem "Bia", nem os ids | Conforme |
+| GET /turmas/:turmaId/meu-desempenho | Lia (2 concluídas); Rui (3 concluídas); Bia | Lia: contagens e 3 dias, as duas médias null (abaixo de 3); Rui: a dele 50/90 e a da sala sobre as 5 concluídas de todos 44/91; Bia: zeros e null | Idêntico | Conforme |
+| GET /aluno/salas/:turmaId e GET /aluno/historico | Exercício arquivado depois das sessões | Sai da sala (2 exercícios, 1 feito); a sessão nele continua no histórico, com o título | Como esperado | Conforme |
+| GET /aluno/salas, /aluno/salas/:turmaId, /turmas/:id/meu-desempenho e /aluno/historico | Turma da Lia arquivada (token ainda no prazo) | Salas vazio; sala e meu-desempenho 404; o histórico continua com as 4 | Como esperado | Conforme |
+| GET /categorias e GET /parametros | Sem token; conta comum, aluno e administradora | 401; 200 para os três, só as categorias ativas, parâmetros como números (`xpPorNivel` 200) | Como esperado | Conforme |
+| POST, PATCH, DELETE /categorias e PUT /parametros | Sem token; conta comum (`prof@teclar.dev`); aluno — com corpo válido e com corpo inválido | 401; 404 NAO_ENCONTRADO para os dois, antes de qualquer 400; nada muda | 401 e 404 nos seis casos de cada; categorias e parâmetros iguais aos do começo | Conforme |
+| PUT /parametros | Dar o papel à u-2 no banco, e tirar, sem novo login | Vale na hora nos dois sentidos (200, depois 404) | Como esperado | Conforme |
+| POST /categorias | Nome com espaços sobrando; o mesmo em outra caixa; vazio, só espaços, sem nome, número, 51 caracteres | 200 com o nome normalizado e id numérico; 409 CATEGORIA_DUPLICADA; 400 DADOS_INVALIDOS nos cinco | Como esperado | Conforme |
+| PATCH /categorias/:id | Renomear; o próprio nome em outra caixa; nome de outra ativa; vazio; id 999999 e "abc" | 200; 200; 409 CATEGORIA_DUPLICADA; 400; 404 | Como esperado | Conforme |
+| DELETE /categorias/:id | Categoria de um exercício ativo; depois de arquivar o exercício; de novo; PATCH da apagada; POST com o nome da apagada | 409 CATEGORIA_EM_USO; 204, some da lista e fica no banco com `Ativo = false`; 404; 404; 200 (nome só é único entre as ativas) | Como esperado | Conforme |
+| PUT /parametros | `{ wpmMeta: 45 }`; depois três campos | Só o enviado muda; GET já mostra | Como esperado | Conforme |
+| PUT /parametros | `wpmMeta` 0, 1000, "45" e 45,5; `precisaoMinima` 101; `tempoLimitePadrao` 3601 e -1; `xpPorNivel` 0; campo `xpNivel`; campo `toString`; um válido junto com um inválido; corpo que é lista | 400 DADOS_INVALIDOS, e nada gravado (nem o campo válido do corpo recusado) | 400 nos doze; parâmetros iguais aos de antes | Conforme |
 | As 53 chamadas não implementadas (49 operações HTTP) | Chamar cada uma delas, uma requisição por operação | 404: estão documentadas no Swagger como "(ainda não implementada)" | 404 nas 49 operações | Conforme |
 
 As 53 chamadas cabem em 49 operações porque `PATCH /turmas/:id` serve a
 quatro chamadas (renomear, trocar capa, arquivar, desarquivar) e
-`GET /turmas` serve a duas (ativas e arquivadas).
+`GET /turmas` serve a duas (ativas e arquivadas). Essa linha é do teste de
+06/10/2026; desde 13/10/2026 as 54 chamadas do contrato estão
+implementadas, e nenhuma responde mais "(ainda não implementada)".
 
 ## 2. Lista de pendências
 
-### Rotas não implementadas (22)
+### Rotas não implementadas (0)
 
-Estão implementados inteiros os grupos Autenticação (login, cadastro, eu,
-logout), Alunos (listar, importar, remover, zerar senha, desempenho),
-Relatórios (topo, por aluno, por exercício, sessões do aluno), Biblioteca
-de exercícios (listar, obter, criar, atualizar, arquivar) e Sessões
-(registrar, obter). Do grupo Turmas, só falta `GET /turmas/:id`; do grupo
-Aluno, só o ranking está pronto. Faltam, por módulo:
-
-1. **Solo (10):** `GET /solo/campanha`, `POST /solo/campanha`,
-   `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`,
-   `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`,
-   `GET /solo/indicadores`, `GET /solo/estatisticas`.
-2. **Turmas, do professor (1):** `GET /turmas/:id`.
-3. **Aluno (5):** `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`,
-   `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`.
-4. **Administração (6):** `GET /categorias`, `POST /categorias`,
-   `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`,
-   `PUT /parametros`.
+Nenhuma. Desde 13/10/2026 as 54 chamadas do contrato (50 operações HTTP)
+estão no back, testadas pelos onze scripts de `back/test/`. As últimas 22
+foram o grupo Solo (10), `GET /turmas/:id`, as cinco do próprio aluno
+(`/aluno/historico`, `/aluno/resumo`, `/aluno/salas`, `/aluno/salas/:turmaId`
+e `/turmas/:turmaId/meu-desempenho`) e as seis de administração
+(`/categorias` e `/parametros`).
 
 ### Divergências entre o contrato e o guia do professor
 
@@ -283,9 +334,13 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
 21. **Papel de administrador.** `POST`, `PATCH` e `DELETE /categorias` e
     `PUT /parametros` exigem administrador, mas a tabela `Users` não tem
     coluna de papel.
-    **Correção:** criar uma coluna de papel em `Users` (ou uma tabela de
-    administradores) no `DB_Teclar_v8.sql`, refazer o `prisma db pull` e
-    marcar um administrador no seed.
+    **Correção (feita em 13/10/2026):** coluna `Users.Administrador`
+    (BOOLEAN, FALSE por padrão) no `DB_Teclar_v9.sql`, `prisma db pull`
+    refeito e a conta `ana@teclar.dev` (u-3) marcada no seed. Na mesma
+    versão, `Configuracoes.xp_por_nivel` passou de 100 para 200, o valor que
+    o front, o mock e o contrato já usavam, e `CampanhasSolo.JogadorID`
+    ganhou UNIQUE (dois `POST /solo/campanha` simultâneos criavam duas
+    campanhas).
 
 22. **Seed sem aluno em turma arquivada.** O teste de turma arquivada
     precisou arquivar a turma-1 temporariamente.

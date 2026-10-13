@@ -15,10 +15,6 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **ExerciciosSolo.CategoriaID / ExerciciosProf.CategoriaID** — FK para Categorias. Nenhuma rota grava nem devolve: DadosExercicio não tem categoria, e a resposta de /exercicios também não.
 - **AtribuicoesProf.Prazo** — data de entrega. As respostas já devolvem `prazo` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId), mas nenhuma rota grava: vem sempre null.
 
-## Decisões de banco em aberto
-
-- **Papel de administrador** — POST, PATCH e DELETE /categorias e PUT /parametros exigem administrador, mas a tabela Users não tem coluna de papel. O back precisa de um jeito de saber quem é administrador (uma coluna ou uma tabela). Até lá, o mock não tem nenhum.
-
 ## Convenções de todas as rotas
 
 - Toda rota, menos as três públicas de /auth (login, cadastro e logout), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
@@ -168,7 +164,7 @@ Pode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que nã
 
 ## Solo
 
-O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha.
+O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO, menos em GET /solo/missoes/:id, que serve qualquer token. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha. O progresso nunca regride: cada treino é uma linha nova, o XP só soma, e "lição concluída" e "melhor marca" olham todas as sessões — refazer uma lição pior não as desfaz.
 
 ### `GET /solo/campanha`
 
@@ -359,16 +355,24 @@ DadosSessaoTreino — o que o motor mediu, mais a lição
 
 **Erros:**
 
+- 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)
 - 403 TIPO_INVALIDO — token de aluno
 - 404 NAO_ENCONTRADO — sem campanha, ou lição inexistente
 
 **Identidade:**
 
-O token: a sessão vai para a campanha DO TOKEN. Não aceita campanha_id no corpo — com ele, dava para gravar XP na campanha de outro jogador.
+O token: a sessão vai para a campanha DO TOKEN. campanha_id no corpo é recusado com 400, nunca ignorado — com ele, dava para gravar XP na campanha de outro jogador.
 
 **Regras de negócio no back (a tela não calcula):**
 
 XP ganho (concluída: XP_BASE_MISSAO + bônus proporcional à precisão; não concluída: 30% do base), o novo XPTotal, o nível (recalculado do XP), subiuDeNivel e recordePessoal (PPM maior que o melhor anterior NESTA lição). A tela não calcula XP nem nível.
+
+```
+xpGanho     concluída: 50 + round(50 × precisao/100 × 0,5); senão round(50 × 0,3) = 15
+nivelAtual  floor(XPTotal / xp_por_nivel) + 1   (xp_por_nivel de Configuracoes: 200)
+```
+
+A sessão e o XP são gravados juntos, numa transação.
 
 ### `GET /solo/historico`
 
@@ -1590,7 +1594,7 @@ O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos (quem 
 
 ## Administração
 
-Categorias e parâmetros globais (tabela Configuracoes).
+Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco.
 
 ### `GET /categorias`
 
@@ -1632,13 +1636,17 @@ Chamada no front: `api.admin.criarCategoria`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome vazio
+- 400 DADOS_INVALIDOS — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
 - 409 CATEGORIA_DUPLICADA — já existe uma ativa com esse nome (sem diferenciar maiúscula)
 - 404 NAO_ENCONTRADO — o token não é de administrador
 
 **Identidade:**
 
-O token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse (ver a pendência do papel de administrador, no topo).
+O token, que tem de ser de ADMINISTRADOR (Users.Administrador). Conta comum ou aluno: 404, como se a rota não existisse — antes de qualquer 400.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Nome aparado, com espaços internos reduzidos a um.
 
 ### `PATCH /categorias/:id`
 
@@ -1662,7 +1670,9 @@ Chamada no front: `api.admin.renomearCategoria`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — a categoria não existe, ou o token não é de administrador
+- 400 DADOS_INVALIDOS — as mesmas regras de nome do POST /categorias
+- 409 CATEGORIA_DUPLICADA — outra categoria ativa já tem esse nome
+- 404 NAO_ENCONTRADO — a categoria não existe (ou já foi apagada), ou o token não é de administrador
 
 **Identidade:**
 
@@ -1680,8 +1690,8 @@ Chamada no front: `api.admin.apagarCategoria`
 
 **Erros:**
 
-- 404 NAO_ENCONTRADO — a categoria não existe, ou o token não é de administrador
-- 409 CATEGORIA_EM_USO — algum exercício ativo usa a categoria
+- 404 NAO_ENCONTRADO — a categoria não existe (ou já foi apagada), ou o token não é de administrador
+- 409 CATEGORIA_EM_USO — algum exercício ativo (do professor ou do Solo) usa a categoria
 
 **Identidade:**
 
@@ -1731,9 +1741,14 @@ Partial<Parametros> — só os campos que mudam
 
 **Erros:**
 
+- 400 DADOS_INVALIDOS — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima
 - 404 NAO_ENCONTRADO — o token não é de administrador
 
 **Identidade:**
 
 O token, que tem de ser de ADMINISTRADOR. Conta comum ou aluno: 404, como se a rota não existisse.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Confere todos os campos antes de gravar qualquer um: um inválido devolve 400 e nada muda.
 

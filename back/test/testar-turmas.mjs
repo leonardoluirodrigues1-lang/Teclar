@@ -1,6 +1,7 @@
 // testar-turmas.mjs
-// Teste de fumaça das quatro rotas de turmas já implementadas, feito por
-// HTTP (fetch) contra o back rodando, sem navegador. Cobre:
+// Teste de fumaça das cinco rotas de turmas (as três de atribuições têm o
+// script delas), feito por HTTP (fetch) contra o back rodando, sem
+// navegador. Cobre:
 //   GET /turmas — só as ativas da conta do token, com as contagens; com
 //     ?ativa=false, só as arquivadas.
 //   POST /turmas — 200 na forma de um item de GET /turmas, código na regra
@@ -11,6 +12,9 @@
 //   Nome único só entre ATIVAS: arquivada não bloqueia o nome, mas
 //     desarquivar com o nome já em uso por uma ativa dá 409.
 //   POST /turmas/:id/codigo/novo — outro código, na mesma regra.
+//   GET /turmas/:id — a turma na forma do item de GET /turmas, mais o
+//     ppmMedio (1 casa decimal, só de quem concluiu sessão; null sem
+//     ninguém), também de turma arquivada.
 //   E, em todas: sem token 401, token de aluno 403 TIPO_INVALIDO, turma de
 //   outro professor (ou que não existe) 404 NAO_ENCONTRADO.
 //
@@ -22,8 +26,10 @@
 // Não mexe nas turmas do seed (o código K7M2QX é usado pelo test:auth):
 // arquiva e troca o código só das turmas que ele mesmo cria.
 //
-// Grava no banco: cada execução cria três turmas "Teste <horário>" na
-// conta prof@teclar.dev. O npm run seed apaga todas.
+// Grava no banco: cada execução cria quatro turmas "Teste <horário>" na
+// conta prof@teclar.dev (a quarta com um exercício, quatro alunos e as
+// sessões deles, gravadas pela rota POST /sessoes). O npm run seed apaga
+// tudo.
 import assert from 'node:assert/strict';
 
 const URL = 'http://localhost:3000/api';
@@ -245,4 +251,71 @@ r = await chamar('GET', '/turmas', null, loginLeo.corpo.token);
 const turma5 = r.corpo.find((t) => t.id === 'turma-5');
 confere('turma-5 continua intacta para o dono', turma5?.nome === 'Oficina de digitação' && turma5.codigo === 'D6YG2S');
 
-console.log(`\nTudo certo. Turmas de teste criadas: ${nova.id}, ${outra.id}, ${herdeira.id}`);
+// ============================================================================
+// GET /turmas/:id
+// ============================================================================
+
+r = await chamar('GET', '/turmas/turma-1');
+confere('detalhe: sem token 401 TOKEN_INVALIDO', ehErro(r, 401, 'TOKEN_INVALIDO'));
+r = await chamar('GET', '/turmas/turma-1', null, aluno);
+confere('detalhe: token de aluno 403 TIPO_INVALIDO', ehErro(r, 403, 'TIPO_INVALIDO'));
+for (const id of ['turma-5', 'nao-existe']) {
+  r = await chamar('GET', `/turmas/${id}`, null, prof);
+  confere(`detalhe ${id}: 404 NAO_ENCONTRADO`, ehErro(r, 404, 'NAO_ENCONTRADO'));
+}
+
+// Uma turma com um exercício e quatro alunos, cada um com uma história:
+//   Lia   duas sessões concluídas, 30 e 41 PPM  -> a média dela: 35,5 -> 36
+//   Rui   uma concluída, 33 PPM                 -> 33
+//   Caio  só uma NÃO concluída (90 PPM)         -> sem média: não entra
+//   Bia   nenhuma sessão                        -> não entra
+// ppmMedio = (36 + 33) / 2 = 34,5. Se Caio ou Bia entrassem, daria outro número.
+const detalhada = (await chamar('POST', '/turmas', { nome: `Teste ${Date.now()} detalhe` }, prof)).corpo;
+r = await chamar('GET', `/turmas/${detalhada.id}`, null, prof);
+confere('detalhe: turma sem ninguém treinando tem ppmMedio null (nunca 0)', r.status === 200 && r.corpo.ppmMedio === null);
+
+const exercicio = (
+  await chamar(
+    'POST',
+    '/exercicios',
+    { titulo: `Teste ${Date.now()}`, texto: 'Um texto qualquer com mais de vinte letras.', dificuldade: 'facil', tempoLimiteSegundos: 0 },
+    prof,
+  )
+).corpo;
+await chamar('POST', `/turmas/${detalhada.id}/atribuicoes`, { exercicioIds: [exercicio.id] }, prof);
+await chamar('POST', `/turmas/${detalhada.id}/alunos/importar`, { nomes: ['Lia Souza', 'Rui Lopes', 'Caio Prado', 'Bia Melo'] }, prof);
+
+// O aluno entra (primeiro acesso grava a senha) e treina pela rota.
+async function treinar(nome, wpm, concluida) {
+  const login = await chamar('POST', '/auth/login', { codigo: detalhada.codigo, nome, senha: 'senha1234' });
+  const sessao = {
+    exercicio_id: exercicio.id,
+    turma_id: detalhada.id,
+    wpm,
+    precisao: 90,
+    acertos: 40,
+    erros: 4,
+    tempo_gasto_segundos: 60,
+    concluida,
+  };
+  const gravada = await chamar('POST', '/sessoes', sessao, login.corpo.token);
+  assert.equal(gravada.status, 200, `preparo: sessão de ${nome}`);
+}
+await treinar('Lia Souza', 30, true);
+await treinar('Lia Souza', 41, true);
+await treinar('Rui Lopes', 33, true);
+await treinar('Caio Prado', 90, false);
+
+r = await chamar('GET', `/turmas/${detalhada.id}`, null, prof);
+confere(`detalhe: ppmMedio 34.5, só de quem concluiu (veio ${r.corpo?.ppmMedio})`, r.status === 200 && r.corpo.ppmMedio === 34.5);
+const listada = (await chamar('GET', '/turmas', null, prof)).corpo.find((t) => t.id === detalhada.id);
+const { ppmMedio, ...semPpm } = r.corpo;
+confere(
+  'detalhe: o resto é igual ao item de GET /turmas (4 alunos, 1 exercício)',
+  JSON.stringify(semPpm) === JSON.stringify(listada) && semPpm.totalAlunos === 4 && semPpm.totalExercicios === 1,
+);
+
+r = await chamar('GET', `/turmas/${herdeira.id}`, null, prof);
+confere('detalhe: turma ARQUIVADA também abre (só não existe ou de outra conta é 404)', r.status === 200 && r.corpo.ativa === false);
+
+console.log(`\nTudo certo. Turmas de teste criadas: ${nova.id}, ${outra.id}, ${herdeira.id}, ${detalhada.id}`);

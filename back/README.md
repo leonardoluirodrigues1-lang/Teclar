@@ -4,16 +4,17 @@ API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
-**Rotas prontas:** as quatro de `/auth`; as de turmas, menos
-`GET /turmas/:id` (listar, criar, PATCH, código novo e as três de
-atribuições); as cinco de alunos da turma; as cinco da biblioteca de
-exercícios (o `DELETE /exercicios/:id` arquiva, não apaga); as duas de
-sessões; as quatro de relatórios; e o ranking da turma. As outras estão
-no contrato e no Swagger, marcadas "(ainda não implementada)", e ainda não
-existem no back (respondem 404). Testes de fumaça, com o back no ar e o
-seed aplicado: `npm run test:auth`, `test:turmas`, `test:atribuicoes`,
-`test:alunos`, `test:exercicios`, `test:sessoes`, `test:relatorios` e
-`test:ranking`.
+**Rotas prontas: todas as do contrato.** As quatro de `/auth`; as dez do
+Solo (campanha, lições, sessões com XP, histórico, indicadores e
+estatísticas); as de turmas (listar, criar, detalhe, PATCH, código novo e
+as três de atribuições); as cinco de alunos da turma; as cinco da
+biblioteca de exercícios (o `DELETE /exercicios/:id` arquiva, não apaga);
+as duas de sessões; as quatro de relatórios; as seis do próprio aluno
+(histórico, resumo, salas, sala, meu desempenho e o ranking); e as seis de
+administração (categorias e parâmetros). Testes de fumaça, com o back no
+ar e o seed aplicado: `npm run test:auth`, `test:solo`, `test:turmas`,
+`test:atribuicoes`, `test:alunos`, `test:exercicios`, `test:sessoes`,
+`test:relatorios`, `test:aluno`, `test:ranking` e `test:administracao`.
 
 ## Swagger
 
@@ -25,8 +26,8 @@ próprio Swagger, copie o `token` da resposta e cole em **Authorize**.
 
 O Swagger não é montado a partir do código do back: ele mostra o
 `back/openapi.json`, que o `gerar-contrato.mjs` (na raiz) gera do mesmo
-`js/nucleo/api.ts` que gera o `CONTRATO-API.md`. Por isso documenta as 55
-rotas do contrato, prontas ou não, sem controller vazio no back. Mudou o
+`js/nucleo/api.ts` que gera o `CONTRATO-API.md`. Por isso documenta as 50
+rotas do contrato a partir do contrato, e não do código. Mudou o
 contrato, ou implementou uma rota? Na raiz do repositório:
 
 ```bash
@@ -37,7 +38,7 @@ Ao implementar uma rota, ponha a chamada dela (ex.: `'conta.rp'`) na lista
 `ROTAS_IMPLEMENTADAS` do `gerar-contrato.mjs` e rode o comando acima: o
 "(ainda não implementada)" sai do resumo dela.
 
-O contrato tem 59 chamadas, e o Swagger mostra 55 rotas: o
+O contrato tem 54 chamadas, e o Swagger mostra 50 rotas: o
 `PATCH /turmas/:id` serve a quatro chamadas (renomear, trocar a capa,
 arquivar, desarquivar) e o `GET /turmas` a duas (com e sem
 `?ativa=false`). Cada uma dessas aparece uma vez, com as variantes
@@ -46,7 +47,10 @@ dentro.
 ## Primeira vez
 
 Precisa de Node 20+ e do MySQL rodando com o banco já criado pelo
-`DB_Teclar_v8.sql` (na raiz do repositório).
+`DB_Teclar_v9.sql` (na raiz do repositório). Banco que já está na v8:
+rode a seção "Se o banco ja esta na v8", no fim do `.sql` (acrescenta
+`Users.Administrador` e corrige `xp_por_nivel` para 200), e depois o
+passo 2 abaixo.
 
 ```bash
 cd back
@@ -97,6 +101,7 @@ Contas (login por e-mail):
 | --- | --- | --- |
 | `prof@teclar.dev` | `senha123` | Professor: dono da turma-1, da turma-2 e de 11 exercícios |
 | `leo@teclar.dev` | `senha123` | Solo: tem a campanha `camp-1` (nível 1, 0 XP) |
+| `ana@teclar.dev` | `senha123` | Sem campanha e sem turma (os estados vazios); a **única administradora** (`Users.Administrador`): só ela usa as rotas de escrita de categorias e parâmetros |
 
 Alunos (login "Sou aluno": código da turma + nome + senha). O aluno é
 **por turma** (banco v8): não tem RP nem conta, e o mesmo nome em duas
@@ -124,10 +129,10 @@ e o ranking, que o seed ainda não copia.
 ## Login e token
 
 `POST /api/auth/login` devolve um token JWT, assinado com o `JWT_SEGREDO`
-do `.env` e válido por 8 horas. As outras rotas, quando existirem, vão
-exigir o cabeçalho `Authorization: Bearer <token>`. Quem confere é o
-`GuardaDoToken` (`src/autenticacao/guarda-do-token.ts`), que ainda não está
-aplicado em nenhuma rota.
+do `.env` e válido por 8 horas. Todas as outras rotas, menos cadastro e
+logout, exigem o cabeçalho `Authorization: Bearer <token>`. Quem confere é
+o `GuardaDoToken` (`src/autenticacao/guarda-do-token.ts`), posto em cada
+controller.
 
 As senhas são guardadas com bcrypt (biblioteca `bcryptjs`: o mesmo
 algoritmo do `bcrypt`, escrito em JavaScript puro, sem compilar nada na
@@ -135,7 +140,7 @@ instalação).
 
 ## O banco manda, o Prisma segue
 
-O `DB_Teclar_v8.sql` é a fonte da verdade do banco. Os models do
+O `DB_Teclar_v9.sql` é a fonte da verdade do banco. Os models do
 `prisma/schema.prisma` **não são escritos à mão**: saem do `db pull`.
 Mudou o banco? Muda o `.sql`, roda no MySQL e repete:
 
@@ -230,9 +235,44 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 - `POST /solo/campanha` é idempotente por causa de clique duplo, aba
   duplicada e F5. Não tem corpo porque CampanhaID, NivelAtual, XPTotal,
   Data_Criacao e Ativo são do back, e JogadorID sai do token.
+- "Um jogador, uma campanha" é garantido pelo banco: UNIQUE em
+  `CampanhasSolo.JogadorID` (banco v9). O back tenta o INSERT direto; se o
+  banco recusar (outra requisição do mesmo jogador criou primeiro), relê
+  e devolve a campanha que existe, com 200. Uma consulta antes do INSERT
+  não bastaria: dois pedidos simultâneos passariam os dois por ela.
 - `GET /solo/missoes` não traz o texto das lições: seriam uns 30 KB que
   nenhum cartão mostra. ExerciciosSolo.NivelMinimo existe desde a v7, mas
   nenhuma rota o usa ainda (ver `naoUsadas` no `api.contrato.ts`).
+- XP e nível são calculados no back (`src/solo/xp.ts`), nunca na tela: se
+  a tela mandasse o XP, bastava mandar outro número para subir de nível.
+  O XP por nível vem da tabela Configuracoes (o mesmo número que
+  `GET /parametros` dá ao lobby para desenhar a barra), e o XP base de
+  50 é constante, igual para toda lição.
+- O progresso nunca regride. Não existe tabela de "progresso por lição"
+  que uma sessão ruim pudesse sobrescrever: cada treino é uma linha nova
+  em SessionsSolo, o XP só soma, e "lição concluída" e "melhor marca" são
+  calculadas sobre todas as sessões (concluída se ALGUMA foi; a marca é
+  a maior). Refazer pior acrescenta uma tentativa e nada mais.
+- A sessão e o XP são gravados numa transação, com o XP somado pelo
+  banco (`increment`): duas sessões ao mesmo tempo não perdem XP.
+- `GET /solo/missoes/:id` aceita token de aluno: o contrato abre essa rota
+  a qualquer token, porque a lição não é de ninguém. As outras nove do
+  Solo são só de conta.
+- `DELETE /solo/campanhas/:id` apaga de verdade (as sessões vão junto, pelo
+  CASCADE). O contrato pede exclusão lógica em categorias e exercícios,
+  não aqui, e a campanha é só do jogador. Nenhuma tela chama.
+
+**Administração**
+
+- Administrador é a coluna `Users.Administrador` (banco v9), e não um
+  perfil: a mesma conta continua jogando e dando aula. A coluna é lida do
+  banco a cada pedido, e não guardada no token, para tirar o papel de
+  alguém valer na hora.
+- Para quem não é administrador, as rotas de escrita respondem 404 antes
+  de qualquer validação: nem as regras de nome vazam.
+- `PUT /parametros` confere todos os campos antes de gravar e recusa campo
+  desconhecido (um `xpNivel` com erro de digitação daria a impressão de
+  ter mudado o XP por nível).
 
 **Sessões**
 
@@ -258,13 +298,16 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 | `src/swagger.ts` | Serve o `openapi.json` em `/api/docs` |
 | `src/banco/` | A conexão: o client do Prisma como serviço do Nest |
 | `src/autenticacao/` | O login, o token, o guard e as regras de identidade do professor (`professor-do-token.ts`) |
-| `src/turmas/` | As rotas de turma do professor (listar, criar, PATCH, código novo) e o `turmaDaConta` que alunos e atribuições usam |
+| `src/turmas/` | As rotas de turma do professor (listar, criar, detalhe, PATCH, código novo) e o `turmaDaConta` que alunos e atribuições usam |
 | `src/atribuicoes/` | Qual exercício foi dado a qual turma (`/turmas/:id/atribuicoes`) |
 | `src/alunos/` | A lista de alunos de uma turma: importar, remover, zerar senha, desempenho |
 | `src/exercicios/` | A biblioteca de exercícios do professor |
-| `src/sessoes/` | Gravar e reler sessão; e a forma da sessão e as médias que as outras rotas reaproveitam (`sessao-escola.ts`) |
+| `src/sessoes/` | Gravar e reler sessão; e o que as outras rotas reaproveitam: a forma da sessão e as médias (`sessao-escola.ts`), a conferência do pacote do motor (`medidas-da-sessao.ts`) e os dias seguidos (`dias-seguidos.ts`) |
 | `src/relatorios/` | Os quatro relatórios do professor |
 | `src/ranking/` | O ranking da turma, visto pelo aluno (anonimizado aqui, no back) |
+| `src/solo/` | O mundo Solo: a campanha, as lições, e o progresso (sessões, XP, histórico, indicadores, estatísticas); a conta do XP fica em `xp.ts` |
+| `src/aluno/` | As telas do próprio aluno logado: histórico, resumo, salas e o relatório dele na sala |
+| `src/administracao/` | Categorias e parâmetros globais, e a regra de quem é administrador |
 | `openapi.json` | O Swagger, gerado do contrato — não editar à mão |
 | `prisma/schema.prisma` | Gerado pelo `db pull` — não editar os models à mão |
 | `prisma/seed.ts` | Os dados de teste (`npm run seed`) |

@@ -17,6 +17,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
+import { contarDiasSeguidos } from '../sessoes/dias-seguidos.js';
 import { mediaInteira } from '../sessoes/sessao-escola.js';
 
 // Uma linha da resposta (LinhaDoRanking no front).
@@ -82,13 +83,11 @@ export class RankingService {
       where: { ClassID: turmaId, alunos: { Ativo: true } },
       select: { AlunoID: true, ExerciseID: true, WPM: true, Concluida: true, Data_Sessao: true },
     });
-    const hoje = diaDe(new Date());
     return membros.map((membro) =>
       pontuar(
         membro.ID,
         membro.Nome,
         sessoes.filter((sessao) => sessao.AlunoID === membro.ID),
-        hoje,
       ),
     );
   }
@@ -98,11 +97,13 @@ export class RankingService {
 // Funções soltas: não dependem do banco nem do Nest.
 // ============================================================================
 
-function pontuar(alunoId: string, nome: string, sessoes: SessaoParaPontuar[], hoje: string): Pontuacao {
+function pontuar(alunoId: string, nome: string, sessoes: SessaoParaPontuar[]): Pontuacao {
   const concluidas = sessoes.filter((sessao) => sessao.Concluida);
   const licoes = new Set(concluidas.map((sessao) => sessao.ExerciseID)).size;
   const ritmo = mediaInteira(concluidas.map((sessao) => Number(sessao.WPM ?? 0)));
-  const diasSeguidos = contarDiasSeguidos(sessoes, hoje);
+  // A conta dos dias seguidos é a mesma do resumo do aluno
+  // (sessoes/dias-seguidos.ts).
+  const diasSeguidos = contarDiasSeguidos(sessoes);
   const pontos = licoes * PONTOS_POR_LICAO + (ritmo ?? 0) + diasSeguidos * PONTOS_POR_DIA_SEGUIDO;
   return { alunoId, nome, licoes, ritmo, diasSeguidos, pontos };
 }
@@ -133,40 +134,4 @@ function linhaVistaPor(alunoId: string, pontuacao: Pontuacao, indice: number): L
     diasSeguidos: pontuacao.diasSeguidos,
     pontos: pontuacao.pontos,
   };
-}
-
-// Quantos dias seguidos com sessão, contando para trás a partir do dia mais
-// recente — que tem de ser hoje ou ontem, senão a sequência já quebrou e
-// vale 0. É a mesma conta do front (sequenciaDeDias, em
-// js/utils/desempenho.ts), repetida porque o back não importa código do
-// front. O dia é o da data UTC, como lá.
-function contarDiasSeguidos(sessoes: { Data_Sessao: Date | null }[], hoje: string): number {
-  const dias = [...new Set(sessoes.filter((s) => s.Data_Sessao).map((s) => diaDe(s.Data_Sessao as Date)))]
-    .sort()
-    .reverse();
-  if (dias.length === 0) {
-    return 0;
-  }
-  if (dias[0] !== hoje && dias[0] !== somarDias(hoje, -1)) {
-    return 0;
-  }
-  let total = 1;
-  for (let i = 1; i < dias.length; i++) {
-    if (dias[i] !== somarDias(dias[i - 1], -1)) {
-      break;
-    }
-    total++;
-  }
-  return total;
-}
-
-// Date -> "AAAA-MM-DD" (UTC).
-function diaDe(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
-
-// "AAAA-MM-DD" mais (ou menos) N dias. O T00:00:00Z fixo deixa a conta
-// longe de fuso e de horário de verão.
-function somarDias(dia: string, quantos: number): string {
-  return new Date(Date.parse(`${dia}T00:00:00Z`) + quantos * 86400000).toISOString().slice(0, 10);
 }

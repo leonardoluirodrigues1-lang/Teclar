@@ -4,7 +4,7 @@
 // ATENÇÃO: APAGA tudo das tabelas que ele preenche (contas, alunos, turmas,
 // exercícios, sessões) antes de inserir. É para o banco de desenvolvimento.
 // Categorias e Configuracoes ficam como estão: quem as semeia é o
-// DB_Teclar_v8.sql.
+// DB_Teclar_v9.sql.
 //
 // Idempotente: rodar duas vezes dá o mesmo banco, porque cada rodada
 // começa limpando e os ids são fixos ('u-1', 'turma-1'...), não gerados.
@@ -73,13 +73,16 @@ async function limparTabelas(tx: Transacao): Promise<void> {
 // tem perfil: o que muda entre elas é o que cada uma tem.
 //   u-1 leo   Solo com campanha; professor de UMA turma (turma-5)
 //   u-2 prof  professor das turmas 1 a 4 e 6 a 8; Solo recém-começado
-//   u-3 ana   nada: sem campanha e sem turma (os estados vazios)
+//   u-3 ana   nada: sem campanha e sem turma (os estados vazios); é a
+//             única ADMINISTRADORA (Users.Administrador, banco v9), para o
+//             professor u-2 continuar sendo a "conta comum" das rotas de
+//             categorias e parâmetros
 async function inserirContas(tx: Transacao, senhaHash: string): Promise<void> {
   await tx.users.createMany({
     data: [
       { ID: 'u-1', Nome: 'Leonardo', Email: 'leo@teclar.dev', SenhaHash: senhaHash },
       { ID: 'u-2', Nome: 'Henrique Lima', Email: 'prof@teclar.dev', SenhaHash: senhaHash },
-      { ID: 'u-3', Nome: 'Ana Pires', Email: 'ana@teclar.dev', SenhaHash: senhaHash },
+      { ID: 'u-3', Nome: 'Ana Pires', Email: 'ana@teclar.dev', SenhaHash: senhaHash, Administrador: true },
     ],
   });
 }

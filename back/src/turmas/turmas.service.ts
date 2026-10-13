@@ -1,8 +1,9 @@
 // turmas.service.ts
-// A regra do grupo "Turmas (professor)" do CONTRATO-API.md, nas rotas que
-// já existem: GET /turmas (ativas ou arquivadas), POST /turmas,
-// PATCH /turmas/:id (renomear, trocar a capa, arquivar, desarquivar) e
-// POST /turmas/:id/codigo/novo.
+// A regra do grupo "Turmas (professor)" do CONTRATO-API.md: GET /turmas
+// (ativas ou arquivadas), POST /turmas, GET /turmas/:id, PATCH /turmas/:id
+// (renomear, trocar a capa, arquivar, desarquivar) e
+// POST /turmas/:id/codigo/novo. (As rotas de atribuição, também do grupo,
+// estão em src/atribuicoes/.)
 //
 // Vale para todas:
 //   - Só conta (Users) mexe em turma: token de aluno é 403 TIPO_INVALIDO.
@@ -14,6 +15,7 @@
 //     treino dos alunos continua.
 import { randomInt, randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { AlunosService } from '../alunos/alunos.service.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
@@ -52,6 +54,11 @@ export interface Turma {
   dataCriacao: string;
 }
 
+// GET /turmas/:id: a turma mais o PPM médio do topo da tela de turma.
+export interface TurmaDetalhe extends Turma {
+  ppmMedio: number | null;
+}
+
 export interface CodigoDaTurma {
   codigo: string;
 }
@@ -85,7 +92,10 @@ const MENOR_INT = -2147483648;
 
 @Injectable()
 export class TurmasService {
-  constructor(private readonly banco: BancoService) {}
+  constructor(
+    private readonly banco: BancoService,
+    private readonly alunos: AlunosService,
+  ) {}
 
   // GET /turmas e GET /turmas?ativa=false. Só "false" pede as arquivadas;
   // sem o parâmetro (ou com outro valor) vêm as ativas, como no mock.
@@ -124,6 +134,24 @@ export class TurmasService {
       }),
     );
     return turmaNaForma(turma);
+  }
+
+  // GET /turmas/:id. Vale para turma ativa ou arquivada: o contrato só dá
+  // 404 para a que não existe ou é de outra conta.
+  //
+  // ppmMedio é a média, com 1 casa decimal, do PPM médio de cada aluno que
+  // treinou — os mesmos números da lista GET /turmas/:id/alunos, que a
+  // mesma tela mostra logo abaixo (por isso a lista é reaproveitada do
+  // AlunosService, e não recalculada aqui). Quem nunca concluiu sessão
+  // não puxa a média para baixo: simplesmente não entra. Ninguém treinou:
+  // null, nunca 0.
+  async obter(identidade: Identidade, id: string): Promise<TurmaDetalhe> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, id);
+    const turma = await this.banco.classesprof.findUniqueOrThrow({ where: { ClassID: id }, include: COM_CONTAGENS });
+    const alunos = await this.alunos.listar(identidade, id);
+    const mediasDosAlunos = alunos.map((aluno) => aluno.wpmMedio).filter((media) => media !== null);
+    return { ...turmaNaForma(turma), ppmMedio: mediaComUmaCasa(mediasDosAlunos) };
   }
 
   // PATCH /turmas/:id. Pode vir mais de um campo; todos são validados antes
@@ -220,6 +248,17 @@ function turmaNaForma(linha: TurmaComContagens): Turma {
     turma.capaSemente = linha.CapaSemente;
   }
   return turma;
+}
+
+// Média com 1 casa decimal (ex.: 33.3), ou null sem amostra. Uma casa, e
+// não inteira como nos relatórios, porque é o que o topo da tela de turma
+// mostra (o mesmo mediaDecimal do mock).
+function mediaComUmaCasa(numeros: number[]): number | null {
+  if (numeros.length === 0) {
+    return null;
+  }
+  const soma = numeros.reduce((total, numero) => total + numero, 0);
+  return Math.round((soma / numeros.length) * 10) / 10;
 }
 
 // "2026 · 1º semestre". Vem pronto do back para a tela não montar texto.

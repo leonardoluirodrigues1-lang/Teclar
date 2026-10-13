@@ -1,11 +1,10 @@
 // app.module.ts
 // O módulo raiz: junta o banco e os módulos que têm rota implementada.
 //
-// Hoje a autenticação, as turmas (menos GET /turmas/:id), as atribuições,
-// os alunos da turma, a biblioteca de exercícios, as sessões, os relatórios
-// e o ranking. As outras rotas do contrato
-// ainda não têm código: estão documentadas no CONTRATO-API.md e no Swagger
-// (back/openapi.json), e ganham um módulo aqui quando forem implementadas.
+// Todas as rotas do contrato (CONTRATO-API.md) têm módulo: autenticação,
+// Solo, turmas, atribuições, alunos da turma, biblioteca de exercícios,
+// sessões, relatórios, o próprio aluno (com o ranking à parte) e
+// administração.
 import { Module } from '@nestjs/common';
 import { BancoModule } from './banco/banco.module.js';
 import { AutenticacaoModule } from './autenticacao/autenticacao.module.js';
@@ -16,6 +15,9 @@ import { ExerciciosModule } from './exercicios/exercicios.module.js';
 import { SessoesModule } from './sessoes/sessoes.module.js';
 import { RelatoriosModule } from './relatorios/relatorios.module.js';
 import { RankingModule } from './ranking/ranking.module.js';
+import { SoloModule } from './solo/solo.module.js';
+import { AlunoModule } from './aluno/aluno.module.js';
+import { AdministracaoModule } from './administracao/administracao.module.js';
 
 @Module({
   imports: [
@@ -30,6 +32,9 @@ import { RankingModule } from './ranking/ranking.module.js';
     SessoesModule,
     RelatoriosModule,
     RankingModule,
+    SoloModule,
+    AlunoModule,
+    AdministracaoModule,
   ],
 })
 export class AppModule {}

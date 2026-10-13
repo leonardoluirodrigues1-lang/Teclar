@@ -36,15 +36,13 @@ model atribuicoesprof {
 
 model campanhassolo {
   CampanhaID   String         @id @db.VarChar(100)
-  JogadorID    String         @db.VarChar(100)
+  JogadorID    String         @unique(map: "uq_campanha_jogador") @db.VarChar(100)
   NivelAtual   Int?           @default(1)
   XPTotal      Int?           @default(0)
   Data_Criacao DateTime?      @default(now()) @db.Timestamp(0)
   Ativo        Boolean?       @default(true)
   users        users          @relation(fields: [JogadorID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "campanhassolo_ibfk_1")
   sessionssolo sessionssolo[]
-
-  @@index([JogadorID], map: "JogadorID")
 }
 
 model categorias {
@@ -166,7 +164,8 @@ model users {
   SenhaHash      String?          @db.VarChar(255)
   Data_Cadastro  DateTime?        @default(now()) @db.Timestamp(0)
   Ativo          Boolean?         @default(true)
-  campanhassolo  campanhassolo[]
+  Administrador  Boolean          @default(false)
+  campanhassolo  campanhassolo?
   classesprof    classesprof[]
   exerciciosprof exerciciosprof[]
 }
