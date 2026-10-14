@@ -463,8 +463,20 @@ function Caminho() {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        const [campanha, licoes, sessoes] = await Promise.all([
-          api.solo.campanhaAtual(),
+        // A campanha ANTES do resto: sem ela, o back responde 404 às missões
+        // e ao histórico (são da campanha do token), e esse 404 virava o
+        // painel de erro no lugar de mandar para o dashboard.
+        const campanha = await api.solo.campanhaAtual();
+        if (cancelado) return;
+
+        if (campanha == null) {
+          // Sem campanha não há o que trilhar: o dashboard é quem oferece
+          // começar. replace, para o voltar do navegador não cair aqui.
+          window.location.replace(ROTA_DASHBOARD);
+          return;
+        }
+
+        const [licoes, sessoes] = await Promise.all([
           api.solo.missoes().then((m) => desembrulhar<Missao>(m)),
           api.solo
             .historico()
@@ -475,13 +487,6 @@ function Caminho() {
             }),
         ]);
         if (cancelado) return;
-
-        if (campanha == null) {
-          // Sem campanha não há o que trilhar: o dashboard é quem oferece
-          // começar. replace, para o voltar do navegador não cair aqui.
-          window.location.replace(ROTA_DASHBOARD);
-          return;
-        }
         // O treino lê o id da campanha da sessão (ver sessao.campanhaAtiva).
         sessao.atualizarUsuario({ campanhaAtiva: campanha.campanhaId });
         setCarga({ estado: 'pronto', licoes, sessoes });

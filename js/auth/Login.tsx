@@ -5,7 +5,8 @@
 //                     Professor), ou direto no último modo salvo
 //   Aluno          -> código da turma, nome (como o professor subiu na
 //                     lista) e senha; vai para o dashboard do aluno. No
-//                     primeiro acesso a senha digitada é gravada.
+//                     primeiro acesso a senha digitada é gravada, e um
+//                     aviso pede para guardá-la antes do dashboard.
 // O de aluno é alcançado pelo "Sou aluno, tenho o código da turma", ou
 // abre direto com ?aluno=1 (o cartão "Aluno" da tela de modo).
 //
@@ -26,6 +27,7 @@ import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
+import { Modal } from '../componentes/ModalReact.js';
 import type { RespostaLogin } from '../nucleo/tipos.js';
 import {
   validarEmail,
@@ -66,6 +68,10 @@ function Login() {
 
   const [erroConta, setErroConta] = useState('');
   const [erroAluno, setErroAluno] = useState('');
+  // Primeiro acesso do aluno: a senha que ele digitou acabou de ser gravada.
+  // O aviso fica entre o login e o dashboard, porque ele não tem e-mail para
+  // recuperar a senha: se esquecer, só o professor desbloqueia.
+  const [avisoPrimeiroAcesso, setAvisoPrimeiroAcesso] = useState(false);
 
   const email = useRef<HTMLInputElement>(null);
   const senha = useRef<HTMLInputElement>(null);
@@ -200,6 +206,11 @@ function Login() {
       // O `tipo` da resposta (conta ou aluno) é o que roteia: o
       // guarda.entrar() lê daí o destino: aluno no dashboard, conta na tela de modo.
       sessao.entrar(resposta);
+      if (resposta.primeiroAcesso) {
+        // Quem sai da tela é o "Continuar" do aviso (ver aoFechar abaixo).
+        setAvisoPrimeiroAcesso(true);
+        return;
+      }
       guarda.entrar();
       // Não libera o botão: a página está sendo substituída.
     } catch (excecao) {
@@ -377,6 +388,20 @@ function Login() {
           Não sou aluno
         </button>
       </section>
+
+      {/* Linguagem de criança: frases curtas, nada de "senha cadastrada".
+          Esc também fecha, e fechar de qualquer jeito segue para o dashboard. */}
+      {avisoPrimeiroAcesso && (
+        <Modal
+          eyebrow="Primeira vez"
+          titulo="Essa é a sua senha agora"
+          acoes={[{ rotulo: 'Continuar', principal: true }]}
+          aoFechar={() => guarda.entrar()}
+        >
+          <p>Você vai usar essa senha toda vez que entrar.</p>
+          <p>Guarde bem. Se esquecer, peça ajuda ao professor.</p>
+        </Modal>
+      )}
     </div>
   );
 }

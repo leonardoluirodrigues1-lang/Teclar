@@ -531,14 +531,37 @@ function Lobby() {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        // Todas juntas, e a campanha manda: sem ela não há o que mostrar.
-        // As outras vêm no mesmo ida-e-volta, cada uma com a própria rede de
-        // segurança (nullSeFalhar) — elas alimentam partes da tela, e uma
-        // falha numa delas não pode derrubar a tela inteira. Sem campanha,
-        // as quatro respondem 404 (a campanha é a do token) e viram null,
-        // que o estado 1 nem olha.
-        const [campanha, sessoes, estatisticas, indicadores, licoes, parametros] = await Promise.all([
-          api.solo.campanhaAtual(),
+        // A campanha manda: sem ela não há o que mostrar. Vem ANTES das
+        // outras porque, sem campanha, o back responde 404 a todas elas (a
+        // campanha é a do token) — eram quatro 404 e quatro erros no
+        // console a cada visita de quem ainda não começou.
+        const campanha = await api.solo.campanhaAtual();
+        if (cancelado) return;
+
+        // O id da campanha vai para a sessão porque caminho.html e a tela
+        // de treino leem dela. Sem campanha, a chave é limpa: um id velho
+        // (campanha apagada, outra conta no mesmo navegador) mandaria a
+        // tela de missões pedir uma campanha que não existe mais.
+        sessao.atualizarUsuario({ campanhaAtiva: campanha?.campanhaId ?? null });
+
+        if (campanha == null) {
+          // O estado 1 (o convite) só olha a campanha.
+          setCarga({
+            estado: 'pronto',
+            campanha: null,
+            sessoes: null,
+            estatisticas: null,
+            indicadores: null,
+            licoes: null,
+            xpPorNivel: CONFIG.SOLO.XP_POR_NIVEL,
+          });
+          return;
+        }
+
+        // As outras vêm juntas, cada uma com a própria rede de segurança
+        // (nullSeFalhar) — elas alimentam partes da tela, e uma falha numa
+        // delas não pode derrubar a tela inteira.
+        const [sessoes, estatisticas, indicadores, licoes, parametros] = await Promise.all([
           nullSeFalhar(api.solo.historico().then((historico) => desembrulhar<SessaoSolo>(historico))),
           nullSeFalhar(api.solo.estatisticas()),
           nullSeFalhar(api.solo.indicadores()),
@@ -549,15 +572,9 @@ function Lobby() {
         ]);
         if (cancelado) return;
 
-        // O id da campanha vai para a sessão porque caminho.html e a tela
-        // de treino leem dela. Sem campanha, a chave é limpa: um id velho
-        // (campanha apagada, outra conta no mesmo navegador) mandaria a
-        // tela de missões pedir uma campanha que não existe mais.
-        sessao.atualizarUsuario({ campanhaAtiva: campanha?.campanhaId ?? null });
-
         setCarga({
           estado: 'pronto',
-          campanha: campanha ?? null,
+          campanha,
           sessoes,
           estatisticas,
           indicadores,

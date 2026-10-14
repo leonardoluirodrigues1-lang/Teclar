@@ -109,12 +109,10 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        // As três sem id: a campanha é a do token nas três.
-        const [campanha, estatisticas, historico] = await Promise.all([
-          api.solo.campanhaAtual(),
-          api.solo.estatisticas(),
-          api.solo.historico(),
-        ]);
+        // As três sem id: a campanha é a do token nas três. A campanha vem
+        // ANTES: sem ela, o back responde 404 às outras duas, e esse 404
+        // virava o painel de erro no lugar de voltar para o lobby.
+        const campanha = await api.solo.campanhaAtual();
         if (cancelado) return;
 
         // A sessão tinha um id, mas a campanha não existe mais (apagada,
@@ -126,6 +124,9 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
           window.location.replace(ROTA_LOBBY);
           return;
         }
+
+        const [estatisticas, historico] = await Promise.all([api.solo.estatisticas(), api.solo.historico()]);
+        if (cancelado) return;
 
         setCarga({
           estado: 'pronto',
