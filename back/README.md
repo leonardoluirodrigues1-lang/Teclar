@@ -123,8 +123,12 @@ não tem alunos. Para ver o 403 de turma arquivada:
 seed de novo para voltar.
 
 Os códigos, nomes e senhas são os do mock (`js/nucleo/mocks.ts`). As
-sessões são 9 (as do mock até a ses-10); o mock tem mais, para o histórico
-e o ranking, que o seed ainda não copia.
+sessões são as 9 do mock até a ses-10, mais as dos colegas da Ana na
+turma-2 (Bruno a Gabriela), espalhadas pelos últimos 14 dias: o ranking da
+turma-2 sai com os mesmos pontos do mock (146, 134, 132, 122, 118, 86), com
+a Ana em 7º e a Helena, que nunca treinou, em 8º com "—" no relatório. Os
+dias seguidos contam a partir do dia em que o seed roda: rode o seed no dia
+da demonstração (no dia seguinte ainda vale; depois a sequência vira 0).
 
 ## Login e token
 

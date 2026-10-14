@@ -23,9 +23,9 @@ export const DIFICULDADES = {
 export type ModoTreino = 'livre' | 'bloqueante';
 
 export const CONFIG = {
-  // Enquanto MOCK for true, o api.js responde com dados falsos (js/nucleo/mocks.js)
-  // e nenhuma requisição de rede acontece. Vira false quando o back estiver de pé.
-  MOCK: true,
+  // Com MOCK true, o api.js responde com dados falsos (js/nucleo/mocks.js) e
+  // nenhuma requisição de rede acontece: serve para rodar o front sem banco.
+  MOCK: false,
 
   // Raiz da API do back (Node + Express + MySQL na porta 3000).
   BASE_URL: 'http://localhost:3000/api',

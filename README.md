@@ -69,11 +69,14 @@ ao estado inicial a cada F5.
 
 ### Dados falsos: `CONFIG.MOCK`
 
-Em `js/config.ts`, `CONFIG.MOCK` está `true`. Com isso o front inteiro roda
-com dados falsos (os de `js/nucleo/mocks.ts`) e nenhuma requisição sai para
-a rede: não é preciso ter o back rodando. Quando o back estiver pronto,
-`MOCK` vira `false` e as chamadas passam a ir para `CONFIG.BASE_URL`
-(`http://localhost:3000/api`).
+Em `js/config.ts`, `CONFIG.MOCK` está `false`: as chamadas vão para o back em
+`CONFIG.BASE_URL` (`http://localhost:3000/api`), que precisa estar rodando
+(ver `back/README.md`). Para rodar o front sem banco, ponha `MOCK: true` e
+rode `npx tsc`: o front inteiro passa a usar os dados falsos de
+`js/nucleo/mocks.ts`, sem nenhuma requisição de rede.
+
+`node js/nucleo/api.back.check.mjs` chama as 54 funções do `api.js` contra o
+back rodando (professor, aluno e Solo de ponta a ponta).
 
 ## Mapa das pastas
 

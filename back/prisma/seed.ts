@@ -356,8 +356,88 @@ async function inserirSessoes(tx: Transacao): Promise<void> {
       sessao('ses-8', 'al-43', 'ex-prof-3', 'turma-2', 28, 84, 126, 24, 178, true, diasAtras(26)),
       sessao('ses-9', 'al-43', 'ex-prof-3', 'turma-2', 31, 86, 129, 21, 165, true, diasAtras(22)),
       sessao('ses-10', 'al-43', 'ex-prof-5', 'turma-2', 30, 82, 41, 9, 45, false, diasAtras(18)),
+      ...COLEGAS_DA_TURMA_2.flatMap(sessoesDoColega),
     ],
   });
+}
+
+// ----------------------------------------------------------------------------
+// Os colegas da Ana na turma-2, para a demonstração do ranking
+// ----------------------------------------------------------------------------
+// Os mesmos números do mock (COLEGAS_DO_RANKING em js/nucleo/mocks.ts): o
+// ranking da turma-2 sai igual com o back e com o mock. O PPM e a precisão
+// abaixo são a MÉDIA de cada um; sessão a sessão eles variam para cima e
+// para baixo na mesma medida, então a média (e o ritmo do ranking) fica a
+// da tabela. Helena (al-46) não está aqui de propósito: nunca treinou, e é
+// a linha com "—" no relatório.
+//
+//   seguidos  dias seguidos terminando hoje (o diasSeguidos do ranking)
+//   antes     dias atrás com sessão, depois de um dia vazio: espalham o
+//             histórico pelos últimos 14 dias sem aumentar a sequência
+//   estourou  dia atrás de uma sessão NÃO concluída (tempo esgotado na
+//             Frase curta): aparece no relatório e não conta no ritmo
+//
+// Os dias seguidos contam a partir de quando o seed roda: para a sequência
+// aparecer, rode o seed no dia da demonstração (no dia seguinte ainda vale;
+// depois disso vira 0).
+const COLEGAS_DA_TURMA_2 = [
+  { id: 'al-50', wpm: 46, precisao: 95, seguidos: 12, antes: [13], estourou: null },
+  { id: 'al-51', wpm: 44, precisao: 94, seguidos: 10, antes: [12, 13], estourou: null },
+  { id: 'al-52', wpm: 47, precisao: 93, seguidos: 9, antes: [11], estourou: null },
+  { id: 'al-53', wpm: 42, precisao: 92, seguidos: 8, antes: [10, 12], estourou: null },
+  { id: 'al-54', wpm: 43, precisao: 90, seguidos: 7, antes: [9], estourou: 11 },
+  { id: 'al-55', wpm: 31, precisao: 86, seguidos: 3, antes: [6, 8, 13], estourou: 5 },
+];
+
+// Quanto o PPM e a precisão de uma sessão se afastam da média do aluno.
+const VARIACAO_DO_PPM = 3;
+const VARIACAO_DA_PRECISAO = 2;
+// A Frase curta tem 87 caracteres e 45 s de limite: só abaixo de ~23 PPM
+// o tempo acaba antes do texto. Com 20, a sessão para em 75 caracteres.
+const PPM_DE_QUEM_ESTOUROU = 20;
+
+type Colega = (typeof COLEGAS_DA_TURMA_2)[number];
+
+// As sessões concluídas, da mais recente para a mais antiga. Os exercícios
+// vão de dois em dois (3, 3, 5, 5...), e a variação alterna a cada sessão
+// (+, -, +, -...): assim cada exercício recebe sessões acima e abaixo da
+// média, e os dois ficam concluídos (licoes = 2 no ranking).
+function sessoesDoColega(colega: Colega) {
+  const sequencia = Array.from({ length: colega.seguidos }, (_, i) => i);
+  const dias = [...sequencia, ...colega.antes];
+  const sessoes = dias.map((dia, i) => {
+    const exercicioId = Math.floor(i / 2) % 2 === 0 ? 'ex-prof-3' : 'ex-prof-5';
+    const wpm = colega.wpm + desvio(i, dias.length, VARIACAO_DO_PPM);
+    const precisao = colega.precisao + desvio(i, dias.length, VARIACAO_DA_PRECISAO);
+    return sessaoMedida(`ses-${colega.id}-${i + 1}`, colega.id, exercicioId, wpm, precisao, true, diasAtras(dia));
+  });
+  if (colega.estourou !== null) {
+    sessoes.push(
+      sessaoMedida(`ses-${colega.id}-tempo`, colega.id, 'ex-prof-5', PPM_DE_QUEM_ESTOUROU, colega.precisao - 6, false, diasAtras(colega.estourou)),
+    );
+  }
+  return sessoes;
+}
+
+// +variacao nas posições pares, -variacao nas ímpares; com quantidade
+// ímpar, a última fica na média. A soma dos desvios é sempre zero.
+function desvio(posicao: number, quantidade: number, variacao: number): number {
+  if (quantidade % 2 === 1 && posicao === quantidade - 1) {
+    return 0;
+  }
+  return posicao % 2 === 0 ? variacao : -variacao;
+}
+
+// Uma sessão com acertos, erros e tempo coerentes com o PPM e a precisão,
+// como o motor de treino mediria: a concluída digita o texto inteiro; a que
+// estourou o tempo para no limite do exercício, no meio do texto.
+function sessaoMedida(id: string, alunoId: string, exercicioId: string, wpm: number, precisao: number, concluida: boolean, data: Date) {
+  const exercicio = EXERCICIOS_DO_PROFESSOR.find((e) => e.id === exercicioId)!;
+  const segundosParaTudo = Math.round((exercicio.texto.length / 5 / wpm) * 60);
+  const segundos = concluida ? segundosParaTudo : exercicio.tempo;
+  const digitados = concluida ? exercicio.texto.length : Math.round((wpm * 5 * segundos) / 60);
+  const acertos = Math.round((digitados * precisao) / 100);
+  return sessao(id, alunoId, exercicioId, 'turma-2', wpm, precisao, acertos, digitados - acertos, segundos, concluida, data);
 }
 
 // Uma linha de SessionsProf. Função para a lista acima caber numa linha por

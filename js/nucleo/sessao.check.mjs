@@ -25,6 +25,8 @@ const loja = new Map();
 const disco = new Map();
 globalThis.sessionStorage = storageDe(loja);
 globalThis.localStorage = storageDe(disco);
+// O atalho de desenvolvimento do sessao.js lê o location ao carregar.
+globalThis.location = { hostname: "localhost", search: "" };
 
 function chavesTeclar() {
   return [...loja.keys(), ...disco.keys()].filter((k) => k.startsWith('teclar:'));

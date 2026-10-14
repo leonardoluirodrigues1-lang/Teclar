@@ -283,9 +283,8 @@ const SENHA_ALUNO_DE_TESTE = 'aluno2026';
 // Os colegas do ranking da turma-2
 // ----------------------------------------------------------------------------
 // Seis alunos a mais na turma-2, para o aluno de teste (al-43) cair em
-// SEXTO lugar no ranking da sala. Os pontos são os que o back calcularia
-// com a fórmula documentada em api.ts (escola.aluno.rankingDaTurma) — o
-// mock não calcula, só devolve a tabela RANKING_PRONTO, mais abaixo:
+// SEXTO lugar no ranking da sala. O mock calcula os pontos com a conta do
+// back (ver rankingDaTurma, mais abaixo); com as sessões geradas aqui, sai:
 //
 //   1º al-50  2 lições, 46 PPM, 12 dias  -> 146
 //   2º al-51  2 lições, 44 PPM, 10 dias  -> 134
@@ -1466,50 +1465,45 @@ function numerosNaSala(turmaId: string, alunoId: string) {
   };
 }
 
-// O ranking das salas do aluno de teste, como o back o devolve: já em
-// ordem e já com os pontos. A fórmula (e quem calcula) é do back — ver o
-// comentário de rankingDaTurma em api.ts. Os números aqui batem com as
-// sessões semeadas: são os que aquela fórmula daria sobre elas.
+// O ranking da sala CALCULADO, com a mesma conta do back
+// (back/src/ranking/ranking.service.ts), sobre as sessões do mock. Calculado
+// e não tabelado: o aluno que treina na tela com o mock vê a posição mudar,
+// como veria com o back.
 //
-// Turma sem entrada aqui (ex.: a turma-4): todos os membros com zero, como
-// uma turma em que ninguém treinou.
-interface LinhaPronta {
+//   pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5
+//
+// Ordem: pontos, depois mais lições, depois mais dias; o nome no fim só
+// para empate perfeito não mudar de ordem entre uma chamada e outra.
+const PONTOS_POR_LICAO = 20;
+const PONTOS_POR_DIA_SEGUIDO = 5;
+
+interface Pontuacao {
   alunoId: string;
+  nome: string;
   licoes: number;
   ritmo: number | null;
   diasSeguidos: number;
   pontos: number;
 }
 
-const RANKING_PRONTO: Record<string, LinhaPronta[]> = {
-  'turma-1': [
-    { alunoId: 'al-43-t1', licoes: 2, ritmo: 38, diasSeguidos: 0, pontos: 78 },
-    { alunoId: 'al-49', licoes: 2, ritmo: 32, diasSeguidos: 0, pontos: 72 },
-    { alunoId: 'al-44', licoes: 1, ritmo: 29, diasSeguidos: 0, pontos: 49 },
-    { alunoId: 'al-45', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 },
-  ],
-  'turma-2': [
-    { alunoId: 'al-50', licoes: 2, ritmo: 46, diasSeguidos: 12, pontos: 146 },
-    { alunoId: 'al-51', licoes: 2, ritmo: 44, diasSeguidos: 10, pontos: 134 },
-    { alunoId: 'al-52', licoes: 2, ritmo: 47, diasSeguidos: 9, pontos: 132 },
-    { alunoId: 'al-53', licoes: 2, ritmo: 42, diasSeguidos: 8, pontos: 122 },
-    { alunoId: 'al-54', licoes: 2, ritmo: 43, diasSeguidos: 7, pontos: 118 },
-    { alunoId: 'al-43', licoes: 2, ritmo: 40, diasSeguidos: 3, pontos: 95 },
-    { alunoId: 'al-55', licoes: 2, ritmo: 31, diasSeguidos: 3, pontos: 86 },
-    { alunoId: 'al-46', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 },
-  ],
-  'turma-5': [{ alunoId: 'al-43-t5', licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 }],
-};
+function pontuar(turmaId: string, aluno: AlunoMock): Pontuacao {
+  const { licoes, ritmo, diasSeguidos } = numerosNaSala(turmaId, aluno.id);
+  const pontos = licoes * PONTOS_POR_LICAO + (ritmo ?? 0) + diasSeguidos * PONTOS_POR_DIA_SEGUIDO;
+  return { alunoId: aluno.id, nome: aluno.nome, licoes, ritmo, diasSeguidos, pontos };
+}
 
-// As linhas prontas da turma, só de quem ainda é membro, e quem não tem
-// linha no fim, zerado.
-function rankingDaTurma(turmaId: string): LinhaPronta[] {
-  const membros = (dados.alunos[turmaId] ?? []).map((a) => a.id);
-  const prontas = (RANKING_PRONTO[turmaId] ?? []).filter((l) => membros.includes(l.alunoId));
-  const semLinha = membros
-    .filter((id) => !prontas.some((l) => l.alunoId === id))
-    .map((alunoId) => ({ alunoId, licoes: 0, ritmo: null, diasSeguidos: 0, pontos: 0 }));
-  return [...prontas, ...semLinha];
+function compararPontuacoes(a: Pontuacao, b: Pontuacao): number {
+  return (
+    b.pontos - a.pontos ||
+    b.licoes - a.licoes ||
+    b.diasSeguidos - a.diasSeguidos ||
+    a.nome.localeCompare(b.nome, 'pt-BR')
+  );
+}
+
+// Todos os membros da turma, inclusive quem nunca treinou (zerado), já em ordem.
+function rankingDaTurma(turmaId: string): Pontuacao[] {
+  return (dados.alunos[turmaId] ?? []).map((aluno) => pontuar(turmaId, aluno)).sort(compararPontuacoes);
 }
 
 // concluintes(): um número guardado é o primeiro a discordar do resto.
@@ -2578,11 +2572,9 @@ const rotas: [string, RegExp, Handler][] = [
       return rankingDaTurma(turma.id).map((linha, i) => {
         const voce = linha.alunoId === aluno.id;
         const noPodio = i < 3;
-        const membro = (dados.alunos[turma.id] ?? []).find((a) => a.id === linha.alunoId);
-        const nome = membro?.nome ?? null;
         return {
           posicao: i + 1,
-          nome: voce || noPodio ? nome : null,
+          nome: voce || noPodio ? linha.nome : null,
           voce,
           licoes: linha.licoes,
           ritmo: linha.ritmo,
