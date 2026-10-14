@@ -8,7 +8,3 @@ node_modules/
 # embaixo com uma linha "!js/caminho/arquivo.js".
 js/**/*.js
 js/**/*.js.map
-
-# Prints que o npm run test:telas tira quando um cenário falha: são da
-# última execução, não do projeto.
-testes-telas/falhas/

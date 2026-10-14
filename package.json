@@ -7,13 +7,11 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "contrato": "node gerar-contrato.mjs",
-    "buraco-negro": "node gerar-buraco-negro.mjs",
-    "test:telas": "node testes-telas/testar-telas.mjs"
+    "buraco-negro": "node gerar-buraco-negro.mjs"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
-    "playwright": "^1.64.1",
     "typescript": "^7.0.2"
   }
 }
