@@ -173,6 +173,7 @@ interface OpcoesModalFim {
   eyebrow: string;
   titulo: string;
   mensagem: string;
+  recorde?: boolean;
 }
 
 interface PropsTreino {
@@ -674,16 +675,19 @@ function Treino({ usuario }: PropsTreino) {
       mensagem: resultado.enfileirada
         ? 'Sem conexão agora. Ela vai para o professor assim que a rede voltar.'
         : '',
+      // Na fila não há resposta, então não há recorde para mostrar.
+      recorde: resultado.ok === true && resultado.resposta.recordePessoal === true,
     });
   }
 
-  function abrirModalFim({ metricas, eyebrow, titulo: tituloModal, mensagem }: OpcoesModalFim) {
+  function abrirModalFim({ metricas, eyebrow, titulo: tituloModal, mensagem, recorde }: OpcoesModalFim) {
     abrirModal({
       eyebrow,
       titulo: tituloModal,
       conteudo: (
         <div>
           {mensagem && <p>{mensagem}</p>}
+          {recorde && <p>Novo recorde!</p>}
           {/* Mesmo bloco da tela de resultado do Solo. */}
           <BlocoDeMetricas
             wpm={metricas.wpm}
