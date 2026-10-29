@@ -254,7 +254,7 @@ ul { list-style: none; }
 /* A versão parada: um quadro do mesmo shader, renderizado à parte. O
    shader mede tudo pela ALTURA (a largura só mostra mais ou menos dos
    lados), então a imagem entra com a altura da seção e a largura que
-   der, centrada. A imagem é larga (gerar-buraco-negro.mjs) para cobrir
+   der, centrada. A imagem é larga (2560px) para cobrir
    até janelas bem largas; o que passar dela já seria quase preto no
    shader e cai na máscara dos lados. */
 .horizonte-estatico {

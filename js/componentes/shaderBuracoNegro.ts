@@ -15,12 +15,11 @@
    quadros, a area que precisa estar na tela e a pausa sem foco. O
    shader e o mesmo nos dois.
 
-   ATENCAO: existe uma traducao manual deste shader, de GLSL para JS, em
-   gerar-buraco-negro.mjs (na raiz). Ela gera a imagem estatica
-   (assets/img/buraco-negro.png) que a abertura mostra com menos
-   movimento, sem WebGL ou em maquina fraca. Mexeu no FRAG aqui? Atualize
-   a traducao la e rode npm run buraco-negro, senao a imagem parada deixa
-   de ser o mesmo desenho da animacao.
+   ATENCAO: a imagem estatica (assets/img/buraco-negro.png), que a
+   abertura mostra com menos movimento, sem WebGL ou em maquina fraca, e
+   um quadro deste shader (uTime = 0, uQuality = 1). Mexeu no FRAG aqui?
+   A imagem parada deixa de ser o mesmo desenho da animacao e precisa ser
+   capturada de novo a mao.
    ================================================================== */
 const VERT = `
 attribute vec2 aPos;
