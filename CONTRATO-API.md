@@ -374,7 +374,7 @@ xpGanho     concluída: 50 + round(50 × precisao/100 × 0,5); senão round(50 �
 nivelAtual  floor(XPTotal / xp_por_nivel) + 1   (xp_por_nivel de Configuracoes: 200)
 ```
 
-A sessão e o XP são gravados juntos, numa transação.
+A sessão e o XP são gravados juntos, numa transação. Sessão com menos de 1 s (tempo 0) é gravada com PPM 0, como em POST /sessoes: sem velocidade mensurável, e o PPM alto não vira recorde.
 
 ### `GET /solo/historico`
 
@@ -1342,7 +1342,7 @@ O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma
 
 **Regras de negócio no back (a tela não calcula):**
 
-recordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.
+recordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem arredondado, então tempo 0) é gravada com PPM 0: sem velocidade mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.
 
 **Notas:**
 

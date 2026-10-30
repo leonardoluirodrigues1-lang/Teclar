@@ -271,7 +271,9 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
   melhor anterior NESTA lição). A tela não calcula XP nem nível.
     xpGanho     concluída: 50 + round(50 × precisao/100 × 0,5); senão round(50 × 0,3) = 15
     nivelAtual  floor(XPTotal / xp_por_nivel) + 1   (xp_por_nivel de Configuracoes: 200)
-  A sessão e o XP são gravados juntos, numa transação.`,
+  A sessão e o XP são gravados juntos, numa transação. Sessão com menos de
+  1 s (tempo 0) é gravada com PPM 0, como em POST /sessoes: sem velocidade
+  mensurável, e o PPM alto não vira recorde.`,
       },
       'solo.historico': {
         rota: 'GET /solo/historico',
@@ -735,9 +737,11 @@ grupo "Aluno", em /aluno/.`,
   exercício) e os agregados do aluno, que passam a contar esta sessão.
   PPM, precisão, acertos e erros vêm do motor da tela e são gravados
   como chegaram; o back só confere que cabem nas colunas (WPM e Precisao
-  são DECIMAL(5,2), o resto INT). Na primeira sessão do aluno no
-  exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão
-  nova, mas as antigas nele ficam.`,
+  são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem
+  arredondado, então tempo 0) é gravada com PPM 0: sem velocidade
+  mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira
+  sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado
+  não recebe sessão nova, mas as antigas nele ficam.`,
         nota: `usuario_id, alunoId e professorId no corpo são recusados com 400,
   nunca ignorados.`,
       },

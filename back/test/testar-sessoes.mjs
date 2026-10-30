@@ -212,6 +212,17 @@ const sessaoDoDois = r.corpo;
 r = await chamar('POST', '/sessoes', { ...SESSAO, acertos: 30, erros: 2, tempo_gasto_segundos: 5, wpm: 72 }, dois);
 confere('registrar: sessão legítima curta (5 s, 72 PPM) passa', r.status === 200);
 
+// Sub-1 s (tempo 0, abandonada com PPM 250): grava, mas o PPM vira 0 — sem
+// velocidade mensurável — e não vira recorde, nem o "melhor PPM" do resumo,
+// que olha também as não concluídas. Num aluno novo, para o melhor dele
+// começar em zero.
+await preparar('POST', `/turmas/${turmaA.id}/alunos/importar`, { nomes: ['Aluno Quatro'] }, prof);
+const quatro = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Quatro', senha: 'quatro1234' });
+r = await chamar('POST', '/sessoes', { ...SESSAO, acertos: 20, erros: 0, tempo_gasto_segundos: 0, wpm: 250, concluida: false }, quatro);
+confere('registrar: abandonada sub-1 s com PPM 250 grava com PPM 0', r.status === 200 && r.corpo.wpm === 0 && r.corpo.recordePessoal === false);
+r = await chamar('GET', '/aluno/resumo', null, quatro);
+confere('resumo: a sessão sub-1 s não vira o melhor PPM (0, não 250)', r.status === 200 && r.corpo.melhorWpm === 0);
+
 // ============================================================================
 // GET /sessoes/:id
 // ============================================================================

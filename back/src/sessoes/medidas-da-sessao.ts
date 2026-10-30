@@ -65,6 +65,14 @@ export function validarMedidas(corpo: CorpoComMedidas | undefined): MedidasValid
     Tempo_Gasto_Segundos: inteiroNaoNegativo(corpo?.tempo_gasto_segundos, 'tempo_gasto_segundos'),
     Concluida: booleano(corpo?.concluida, 'concluida'),
   };
+  // Menos de 1 s (o tempo vem arredondado em segundos, então isto é tempo 0):
+  // não há velocidade mensurável, e o arredondamento impede conferir a
+  // coerência (c). Em vez de recusar, o PPM vira 0 — a sessão fica gravada,
+  // mas não entra como recorde nem puxa médias. Feito antes da plausibilidade
+  // para o teto (b) não barrar um PPM alto que aqui já vira 0.
+  if (medidas.Tempo_Gasto_Segundos < 1) {
+    medidas.WPM = 0;
+  }
   conferirPlausibilidade(medidas);
   return medidas;
 }

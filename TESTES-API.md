@@ -479,3 +479,25 @@ fórmula em CSV). Vale para listas de alunos e relatórios.
     nulo) e surrogate solto, chamada no mesmo ponto em que cada validador
     confere o tamanho: nome de turma, título de exercício, nome de aluno na
     importação, nome do cadastro e nome de categoria. 400 DADOS_INVALIDOS.
+
+29. **Sessão com menos de 1 s mandava PPM alto** (30/10/2026). A regra do
+    defeito #27 só confere a coerência do PPM com tempo de 1 s para cima.
+    Abaixo disso — sessão abandonada em menos de 1 s, que o motor manda com
+    `tempo_gasto_segundos: 0` — dava para enviar até 250 PPM e a sessão
+    gravava com esse PPM. Como o "melhor PPM" do resumo do aluno e o recorde
+    pessoal olham também as não concluídas, esse 250 virava recorde.
+    **Correção (feita em 30/10/2026):** `validarMedidas`
+    (`back/src/sessoes/medidas-da-sessao.ts`, as duas rotas) grava PPM 0
+    quando o tempo é menor que 1 s, sem recusar a sessão: com menos de 1 s
+    não há velocidade mensurável, e o tempo arredondado impede conferir a
+    coerência. A sessão continua gravada (abandonada curtíssima é legítima),
+    mas o PPM 0 não vira recorde nem puxa média. O motor do front nunca
+    manda PPM incoerente nesse caso (ele próprio zera o PPM quando não há
+    tempo; sub-segundo manda inteiro finito, nunca Infinity/NaN). O
+    `testar-sessoes.mjs` ganhou o caso (abandonada com tempo 0 e PPM 250 ->
+    grava PPM 0 e o melhor do resumo fica 0).
+    Para registro, o que olha sessões NÃO concluídas (não mudou): recorde
+    pessoal (`melhorPpmAnterior`), `melhorWpm` do resumo e do desempenho do
+    aluno, os `diasSeguidos` do ranking, e o XP do Solo (30% do base). Só
+    contam concluídas: `ritmo` e `lições` do ranking, `wpmMedio` e o
+    `ppmMedio` da turma (média do professor).
