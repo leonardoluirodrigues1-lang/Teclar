@@ -420,3 +420,17 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     aluno, sessões do aluno no relatório, desempenho do aluno, histórico e
     estatísticas do Solo). O `testar-solo.mjs` não espera mais 1 segundo
     entre uma sessão e outra.
+
+26. **Atribuições empatadas no mesmo segundo** (29/10/2026). Atribuir
+    vários exercícios na mesma chamada grava todos com a mesma
+    `Data_Atribuicao` (`DATETIME`, só até o segundo), e a ordem entre eles
+    nas atribuições da turma e na sala do aluno ficava indefinida. O
+    `testar-aluno.mjs` contornava isso dando uma data diferente a cada
+    atribuição.
+    **Correção (feita em 29/10/2026), sem mudar o banco:** as três consultas
+    que ordenam por `Data_Atribuicao` desempatam pelo título do exercício,
+    em ordem alfabética, e por fim pelo id do exercício (dois títulos
+    iguais). O `testar-aluno.mjs` manteve o caso das datas diferentes e
+    ganhou um com três atribuições na mesma chamada, fora da ordem
+    alfabética, mais uma atribuída depois com título que viria antes no
+    alfabeto: a sala e a lista do professor vêm A, B, C e depois ela.

@@ -245,7 +245,10 @@ export class AlunoService {
     const atribuicoes = await this.banco.atribuicoesprof.findMany({
       where: { ClassID: turmaId, exerciciosprof: { Ativo: true } },
       include: { exerciciosprof: true },
-      orderBy: { Data_Atribuicao: 'asc' },
+      // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
+      // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
+      // em ordem alfabética, e o id para dois títulos iguais.
+      orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
     const linhas = await this.banco.sessionsprof.findMany({ where: { AlunoID: alunoId, ClassID: turmaId } });
     const sessoes = linhas.map(sessaoNaForma);

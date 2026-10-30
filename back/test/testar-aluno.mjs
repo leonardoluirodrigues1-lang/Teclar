@@ -358,5 +358,36 @@ await gravarSessao(bia, ex1, 30, 90, true, emBrasilia(1, 12));
 r = await chamar('GET', '/aluno/resumo', null, tokenBia);
 confere('dias seguidos: sessão às 22h de Brasília conta no mesmo dia de Brasília (2, e não 1)', r.corpo.diasSeguidos === 2, r.corpo);
 
+// ============================================================================
+// Várias atribuições na mesma chamada: empate de data, desempate pelo título
+// ============================================================================
+
+// Três exercícios atribuídos juntos (mesmo segundo), mandados fora da ordem
+// alfabética: a sala e a lista do professor vêm pelo título. Um quarto,
+// atribuído depois e com título que viria antes no alfabeto, fica no fim:
+// a data continua mandando, o título só desempata.
+const turmaDoEmpate = await preparar('POST', '/turmas', { nome: `Teste empate ${agora}` }, prof);
+const exC = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} C`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
+const exA = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} A`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
+const exB = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} B`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
+const ex0 = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} 0`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
+await preparar('POST', `/turmas/${turmaDoEmpate.id}/atribuicoes`, { exercicioIds: [exC.id, exA.id, exB.id] }, prof);
+await preparar('POST', `/turmas/${turmaDoEmpate.id}/atribuicoes`, { exercicioIds: [ex0.id] }, prof);
+// O quarto num dia seguinte, para não cair no mesmo segundo dos outros três.
+await banco.atribuicoesprof.update({
+  where: { ClassID_ExerciseID: { ClassID: turmaDoEmpate.id, ExerciseID: ex0.id } },
+  data: { Data_Atribuicao: new Date(Date.now() + UM_DIA) },
+});
+await preparar('POST', `/turmas/${turmaDoEmpate.id}/alunos/importar`, { nomes: ['Ivo Teste'] }, prof);
+const tokenIvo = await entrar({ codigo: turmaDoEmpate.codigo, nome: 'Ivo Teste', senha: 'senha1234' });
+
+const ordemEsperada = [exA.id, exB.id, exC.id, ex0.id];
+r = await chamar('GET', `/aluno/salas/${turmaDoEmpate.id}`, null, tokenIvo);
+const ordemDaSala = r.corpo.lista?.map((ex) => ex.id);
+confere('empate: a sala do aluno vem A, B, C (mesmo segundo, pelo título) e depois o atribuído mais tarde', JSON.stringify(ordemDaSala) === JSON.stringify(ordemEsperada), ordemDaSala);
+r = await chamar('GET', `/turmas/${turmaDoEmpate.id}/atribuicoes`, null, prof);
+const ordemDoProfessor = r.corpo.map((a) => a.exercicioId);
+confere('empate: a lista do professor na mesma ordem', JSON.stringify(ordemDoProfessor) === JSON.stringify(ordemEsperada), ordemDoProfessor);
+
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id} (${turma.codigo})`);

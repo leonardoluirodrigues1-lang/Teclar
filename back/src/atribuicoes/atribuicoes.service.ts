@@ -50,7 +50,10 @@ export class AtribuicoesService {
     const atribuicoes = await this.banco.atribuicoesprof.findMany({
       where: { ClassID: turmaId },
       include: { exerciciosprof: { select: { Titulo: true, Dificuldade: true } } },
-      orderBy: { Data_Atribuicao: 'asc' },
+      // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
+      // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
+      // em ordem alfabética, e o id para dois títulos iguais.
+      orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
     const totalAlunos = await this.banco.alunos.count({ where: { ClassID: turmaId, Ativo: true } });
     const concluintes = await this.concluintesPorExercicio(turmaId);
@@ -92,7 +95,10 @@ export class AtribuicoesService {
 
     const lista = await this.banco.atribuicoesprof.findMany({
       where: { ClassID: turmaId },
-      orderBy: { Data_Atribuicao: 'asc' },
+      // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
+      // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
+      // em ordem alfabética, e o id para dois títulos iguais.
+      orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
     return lista.map((linha) => ({
       exerciseId: linha.ExerciseID,
