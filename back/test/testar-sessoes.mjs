@@ -99,6 +99,16 @@ const SESSAO = {
   concluida: true,
 };
 
+// A nova regra de plausibilidade recusa PPM que não bate com os acertos e o
+// tempo (o motor calcula wpm = acertos / 5 / minutos). Para variar só o PPM
+// num corpo que continua coerente, os acertos acompanham, no mesmo tempo da
+// SESSAO base.
+const CARACTERES_POR_PALAVRA = 5;
+function comPpm(wpm, extra = {}) {
+  const acertos = Math.round((wpm * CARACTERES_POR_PALAVRA * SESSAO.tempo_gasto_segundos) / 60);
+  return { ...SESSAO, wpm, acertos, ...extra };
+}
+
 // ============================================================================
 // Sem token (401) e token de conta (403)
 // ============================================================================
@@ -128,6 +138,10 @@ for (const [caso, mudanca] of [
   ['erros negativo', { erros: -1 }],
   ['tempo em texto', { tempo_gasto_segundos: '58' }],
   ['concluida que não é booleano', { concluida: 'sim' }],
+  // Plausibilidade (trapaça): impossíveis, mesmo cabendo nas colunas.
+  ['sessão concluída em 0 s', { tempo_gasto_segundos: 0 }],
+  ['PPM acima do plausível (251)', { wpm: 251 }],
+  ['PPM que não bate com acertos e tempo', { wpm: 200 }],
 ]) {
   r = await chamar('POST', '/sessoes', { ...SESSAO, ...mudanca }, um);
   confere(`registrar: ${caso} 400 (${r.corpo?.mensagem})`, ehErro(r, 400, 'DADOS_INVALIDOS'));
@@ -172,10 +186,10 @@ for (const [wpm, recorde, caso] of [
   [30.5, true, 'PPM maior que o melhor'],
   [30.5, false, 'PPM igual ao melhor'],
 ]) {
-  r = await chamar('POST', '/sessoes', { ...SESSAO, wpm }, um);
+  r = await chamar('POST', '/sessoes', comPpm(wpm), um);
   confere(`registrar: ${caso} -> recordePessoal ${recorde}`, r.status === 200 && r.corpo.recordePessoal === recorde);
 }
-r = await chamar('POST', '/sessoes', { ...SESSAO, wpm: 99, concluida: false }, um);
+r = await chamar('POST', '/sessoes', comPpm(99, { concluida: false }), um);
 confere('registrar: sessão em que o tempo estourou também grava', r.status === 200 && r.corpo.concluida === false);
 
 // Os agregados do aluno passam a contar as sessões (média das concluídas).
@@ -188,9 +202,15 @@ confere(
 );
 
 // O recorde é de CADA aluno: o primeiro do Dois é recorde dele.
-r = await chamar('POST', '/sessoes', { ...SESSAO, wpm: 10 }, dois);
+r = await chamar('POST', '/sessoes', comPpm(10), dois);
 confere('registrar: o recorde é por aluno', r.status === 200 && r.corpo.recordePessoal === true);
 const sessaoDoDois = r.corpo;
+
+// Sessão legítima curta (exercício curto, poucos segundos): a plausibilidade
+// deixa passar porque o PPM bate com os acertos e o tempo. 30 acertos em 5 s
+// = 72 PPM. Vai para o Dois, para não mexer na contagem do Um acima.
+r = await chamar('POST', '/sessoes', { ...SESSAO, acertos: 30, erros: 2, tempo_gasto_segundos: 5, wpm: 72 }, dois);
+confere('registrar: sessão legítima curta (5 s, 72 PPM) passa', r.status === 200);
 
 // ============================================================================
 // GET /sessoes/:id

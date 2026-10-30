@@ -11,6 +11,7 @@
 //
 // Cada função devolve null quando o valor serve, e a mensagem pronta
 // quando não serve.
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 // Os limites de tamanho são os da tabela Users: Nome e Email são
 // VARCHAR(150). Passar disso seria erro 500 no INSERT, em vez de 400.
@@ -35,6 +36,9 @@ export function problemaNoNome(nome: string): string | null {
   }
   if (nome.length > NOME_MAXIMO) {
     return 'O nome pode ter no máximo 150 caracteres.';
+  }
+  if (temCaractereDeControle(nome)) {
+    return 'O nome tem caracteres inválidos.';
   }
   return null;
 }

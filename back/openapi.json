@@ -824,7 +824,7 @@
                     "exercicio_id": "solo-009",
                     "wpm": 38,
                     "precisao": 95,
-                    "acertos": 57,
+                    "acertos": 304,
                     "erros": 3,
                     "tempo_gasto_segundos": 96,
                     "concluida": true
@@ -856,7 +856,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)",
+            "description": "`DADOS_INVALIDOS` — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1311,7 +1311,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)",
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1585,7 +1585,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres\n\n`DADOS_INVALIDOS` — capaSemente não é inteiro\n\n`DADOS_INVALIDOS` — ativa não é booleano",
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres ou com caracteres de controle\n\n`DADOS_INVALIDOS` — capaSemente não é inteiro\n\n`DADOS_INVALIDOS` — ativa não é booleano",
             "content": {
               "application/json": {
                 "examples": {
@@ -2136,7 +2136,7 @@
         ],
         "operationId": "alunos.importar",
         "summary": "importar: ResultadoImportacao — cada nome cai numa das três listas",
-        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
+        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
         "parameters": [
           {
             "name": "id",
@@ -2981,7 +2981,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId",
+            "description": "`DADOS_INVALIDOS` — título fora de 3 a 100 caracteres ou com caracteres de controle, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId",
             "content": {
               "application/json": {
                 "examples": {
@@ -3323,7 +3323,7 @@
                     "turma_id": "turma-1",
                     "wpm": 42,
                     "precisao": 94,
-                    "acertos": 141,
+                    "acertos": 308,
                     "erros": 9,
                     "tempo_gasto_segundos": 88,
                     "concluida": true
@@ -3349,7 +3349,7 @@
                       "wpm": 42,
                       "precisao": 94,
                       "tempoSegundos": 88,
-                      "acertos": 141,
+                      "acertos": 308,
                       "erros": 9,
                       "concluida": true,
                       "data": "2026-10-03T14:20:00.000Z",
@@ -3361,7 +3361,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano",
+            "description": "`DADOS_INVALIDOS` — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)",
             "content": {
               "application/json": {
                 "examples": {
@@ -4192,7 +4192,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))",
+            "description": "`DADOS_INVALIDOS` — nome vazio, que não é texto, com caracteres de controle, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))",
             "content": {
               "application/json": {
                 "examples": {

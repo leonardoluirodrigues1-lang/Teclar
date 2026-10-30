@@ -376,6 +376,15 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     precisou arquivar a turma-1 temporariamente.
     **Correção:** pôr um aluno na turma-8 (já arquivada) no seed.
 
+### Injeção de fórmula em exportação (futuro)
+
+Hoje o front exibe nome e título como texto (escapados), então nome de
+aluno como `=SOMA(1+1)`, `+CMD` ou `<script>...` aparece literal, sem
+executar. Não há exportação para planilha. **Se um dia houver exportação
+para CSV/Excel**, prefixar com `'` todo valor que começa com `=`, `+`, `-`
+ou `@`, senão a planilha interpreta o texto como fórmula (injeção de
+fórmula em CSV). Vale para listas de alunos e relatórios.
+
 ### Defeitos que os testes pegaram
 
 23. **Dias seguidos em UTC** (29/10/2026). O `testar-aluno.mjs` falhou às
@@ -434,3 +443,39 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     ganhou um com três atribuições na mesma chamada, fora da ordem
     alfabética, mais uma atribuída depois com título que viria antes no
     alfabeto: a sala e a lista do professor vêm A, B, C e depois ela.
+
+27. **Sessão impossível (trapaça)** (30/10/2026). Um teste exploratório
+    mandou ao `POST /sessoes` uma sessão concluída com PPM 999,99 e tempo
+    0 s, e o back gravou (200): o número virou recorde pessoal do aluno e
+    liderou o ranking da turma, e ainda subiu a média de PPM que o
+    professor vê. As medidas vêm do motor da tela, que roda no navegador,
+    então um `curl` manda o que quiser. O back só conferia que cada número
+    cabia na coluna (PPM até 999,99, inteiros não negativos), nunca se a
+    sessão era fisicamente possível.
+    **Correção (feita em 30/10/2026):** `validarMedidas`
+    (`back/src/sessoes/medidas-da-sessao.ts`, usada pelas duas rotas —
+    `POST /sessoes` e `POST /solo/sessoes`) recusa com 400 DADOS_INVALIDOS:
+    (a) sessão concluída com menos de 3 s (o contrato não dá o tamanho do
+    exercício aqui, então um mínimo fixo pequeno); (b) PPM acima de 250 (o
+    teto humano sustentado); (c) PPM que não bate com os acertos e o tempo
+    (o motor calcula `wpm = acertos / 5 / minutos`), com 10% de folga e só
+    para tempo de 1 s para cima — abaixo disso o tempo, arredondado em
+    segundos, torna a conta sem sentido, e o teto (b) já barra o absurdo.
+    Isto barra o impossível, não prova que a pessoa digitou (conferir tecla
+    a tecla no servidor fica como melhoria futura). O motor do front sempre
+    manda valores coerentes (o PPM sai dos próprios acertos e tempo), então
+    nenhuma sessão legítima é recusada. O `testar-sessoes.mjs` e o
+    `testar-solo.mjs` ganharam os casos (tempo 0, PPM 251, PPM incoerente,
+    e uma sessão curta legítima passando); as medidas dos testes que antes
+    tinham PPM solto passaram a ter acertos coerentes com o PPM.
+
+28. **Caractere de controle em nome e título** (30/10/2026). O mesmo teste
+    criou turma com nome contendo byte nulo (`\u0000`) e surrogate solto, e
+    o back gravou (200): são caracteres que ninguém digita e passam direto
+    pela validação de tamanho, só servindo para quebrar quem exibe o texto
+    depois.
+    **Correção (feita em 30/10/2026):** `temCaractereDeControle`
+    (`back/src/texto-limpo.ts`) recusa controle C0/C1 (inclusive o byte
+    nulo) e surrogate solto, chamada no mesmo ponto em que cada validador
+    confere o tamanho: nome de turma, título de exercício, nome de aluno na
+    importação, nome do cadastro e nome de categoria. 400 DADOS_INVALIDOS.

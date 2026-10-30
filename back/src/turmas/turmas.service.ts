@@ -22,6 +22,7 @@ import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { diaDe } from '../sessoes/dias-seguidos.js';
 import { turmaDaConta } from './turma-da-conta.js';
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 // O corpo do POST /turmas como chega. Tudo unknown: vem da rede, e um curl
 // pode mandar qualquer coisa. professorId está aqui só para ser RECUSADO
@@ -318,6 +319,9 @@ function nomeDaTurma(valor: unknown): string {
   const nome = valor.trim().replace(/\s+/g, ' ');
   if (nome.length < NOME_MINIMO || nome.length > NOME_MAXIMO) {
     throw dadosInvalidos(`O nome da turma precisa ter de ${NOME_MINIMO} a ${NOME_MAXIMO} caracteres.`);
+  }
+  if (temCaractereDeControle(nome)) {
+    throw dadosInvalidos('O nome da turma tem caracteres inválidos.');
   }
   return nome;
 }

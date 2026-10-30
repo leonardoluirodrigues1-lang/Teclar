@@ -90,7 +90,9 @@ const SENHA = 'senha123';
 const TEXTO = 'O rato roeu a roupa do rei de Roma e a rainha riu.';
 
 // O corpo que o motor de treino monta (typingEngine.montarCorpoSessao).
-const medidas = { wpm: 40, precisao: 95, acertos: 48, erros: 2, tempo_gasto_segundos: 60, concluida: true };
+// acertos coerente com o PPM e o tempo (wpm = acertos / 5 / minutos): 200
+// acertos em 60 s dá 40 PPM. Sem isso, a regra de plausibilidade recusa.
+const medidas = { wpm: 40, precisao: 95, acertos: 200, erros: 2, tempo_gasto_segundos: 60, concluida: true };
 
 // ============================================================================
 // 1. Professor
@@ -182,7 +184,7 @@ await confereErro('exercicios.obter (aluno) de exercício fora da turma', api.ex
 // Treino: como a tela de treino envia (filaSessoes.enviar com mundo 'escola')
 const envio = await filaSessoes.enviar({ ...medidas, exercicio_id: exercicio.id, turma_id: turma.id }, 'escola');
 confere('filaSessoes.enviar grava a sessão escola', envio.ok && envio.resposta.recordePessoal === true && envio.resposta.alunoId === bia.id);
-const segunda = await api.sessoes.registrar({ ...medidas, wpm: 30, exercicio_id: exercicio.id, turma_id: turma.id });
+const segunda = await api.sessoes.registrar({ ...medidas, wpm: 30, acertos: 150, exercicio_id: exercicio.id, turma_id: turma.id });
 confere('sessoes.registrar (pior) não é recorde', segunda.recordePessoal === false);
 await confereErro('sessoes.registrar com alunoId no corpo', api.sessoes.registrar({ ...medidas, alunoId: caio.id, exercicio_id: exercicio.id, turma_id: turma.id }), 400, 'DADOS_INVALIDOS');
 confere('sessoes.obter (F5 do resultado)', (await api.sessoes.obter(envio.resposta.id)).wpm === 40);

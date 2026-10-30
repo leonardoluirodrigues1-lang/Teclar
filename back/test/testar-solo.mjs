@@ -62,9 +62,13 @@ async function entrar(credenciais) {
   return r.corpo.token;
 }
 
-// Uma sessão do Solo válida, com o que o motor da tela mandaria.
+// Uma sessão do Solo válida, com o que o motor da tela mandaria. Os acertos
+// acompanham o PPM (wpm = acertos / 5 / minutos), senão a regra de
+// plausibilidade recusa por "wpm não bate com os acertos e o tempo".
 function sessao(licao, wpm, precisao, concluida) {
-  return { exercicio_id: licao, wpm, precisao, acertos: 50, erros: 3, tempo_gasto_segundos: 90, concluida };
+  const tempo = 90;
+  const acertos = Math.round((wpm * 5 * tempo) / 60);
+  return { exercicio_id: licao, wpm, precisao, acertos, erros: 3, tempo_gasto_segundos: tempo, concluida };
 }
 
 const banco = new BancoService();
@@ -210,6 +214,10 @@ const CORPOS_INVALIDOS = [
   ['erros -1', { ...valida, erros: -1 }],
   ['tempo_gasto_segundos "90"', { ...valida, tempo_gasto_segundos: '90' }],
   ['concluida "sim"', { ...valida, concluida: 'sim' }],
+  // Plausibilidade (trapaça): impossíveis, mesmo cabendo nas colunas.
+  ['sessão concluída em 0 s', { ...valida, tempo_gasto_segundos: 0 }],
+  ['PPM acima do plausível (251)', { ...valida, wpm: 251 }],
+  ['PPM que não bate com acertos e tempo', { ...valida, wpm: 200 }],
 ];
 for (const [caso, corpo] of CORPOS_INVALIDOS) {
   r = await chamar('POST', '/solo/sessoes', corpo, novo);
@@ -302,7 +310,7 @@ confere(
 );
 confere(
   'histórico: na forma de SessaoSolo (sem alunoId), medidas como chegaram',
-  r.corpo.itens[0].tempoSegundos === 90 && r.corpo.itens[0].acertos === 50 && !('alunoId' in r.corpo.itens[0]),
+  r.corpo.itens[0].tempoSegundos === 90 && r.corpo.itens[0].acertos === 225 && !('alunoId' in r.corpo.itens[0]),
 );
 
 r = await chamar('GET', '/solo/indicadores', null, novo);

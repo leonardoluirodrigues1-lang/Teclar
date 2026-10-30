@@ -19,6 +19,7 @@ import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/pro
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
@@ -229,6 +230,9 @@ function tituloDoExercicio(valor: unknown): string {
   }
   if (titulo.length > TITULO_MAXIMO) {
     throw dadosInvalidos('O título pode ter no máximo 100 caracteres.');
+  }
+  if (temCaractereDeControle(titulo)) {
+    throw dadosInvalidos('O título tem caracteres inválidos.');
   }
   return titulo;
 }

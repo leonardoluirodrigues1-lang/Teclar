@@ -254,12 +254,12 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
       'solo.registrarSessao': {
         rota: 'POST /solo/sessoes',
         corpo: `DadosSessaoTreino — o que o motor mediu, mais a lição
-  { "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 57,
+  { "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 304,
     "erros": 3, "tempo_gasto_segundos": 96, "concluida": true }`,
         resposta: `200 RespostaSessaoSolo — o id abre a tela de resultado
   { "id": "hs-11", "xpGanho": 74, "xpTotal": 743, "nivelAtual": 4,
     "subiuDeNivel": false, "recordePessoal": true }`,
-        erros: `400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)
+        erros: `400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
   403 TIPO_INVALIDO — token de aluno
   404 NAO_ENCONTRADO — sem campanha, ou lição inexistente`,
         identidade: `O token: a sessão vai para a campanha DO TOKEN. campanha_id no
@@ -353,7 +353,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
   { "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
     "totalAlunos": 0, "totalExercicios": 0, "periodo": "2026 · 1º semestre",
     "ativa": true, "dataCriacao": "2026-10-03" }`,
-        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
   409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
   403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token vira o ProfessorID. professorId no corpo é recusado com 400,
@@ -385,7 +385,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
   { "id": "turma-1", "codigo": "K7M2QX", "professorId": "u-2", "nome": "9º Ano A — Manhã (2026)",
     "totalAlunos": 4, "totalExercicios": 3, "periodo": "2026 · 1º semestre",
     "capaSemente": 7001, "ativa": true, "dataCriacao": "2026-02-01" }`,
-        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
+        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle
   409 TURMA_DUPLICADA — a turma está ativa e a conta já tem OUTRA turma ativa com esse nome
   404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
@@ -521,8 +521,8 @@ dele (importar).`,
   404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas
-  (vazio, item que não é texto, fora de 2 a 150 caracteres, ou "Nome
-  repetido na lista."), em
+  (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres
+  de controle, ou "Nome repetido na lista."), em
   jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha
   nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a
   rota pode ser chamada de novo com a lista completa.`,
@@ -674,7 +674,7 @@ feitas.`,
   { "id": "ex-prof-8", "professorId": "u-2", "titulo": "Pontuação e ritmo",
     "texto": "Vírgula, ponto; dois-pontos: ...", "dificuldade": "facil",
     "tempoLimiteSegundos": 0, "atribuidoA": 0 }`,
-        erros: `400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
+        erros: `400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres ou com caracteres de controle, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
   403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token vira o ProfessorID. professorId no corpo é recusado com 400.`,
         back: `Os limites são os do front (LIMITES em js/utils/validacao.ts). Quebra de
@@ -719,13 +719,13 @@ grupo "Aluno", em /aluno/.`,
         rota: 'POST /sessoes',
         corpo: `DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
   { "exercicio_id": "ex-prof-7", "turma_id": "turma-1", "wpm": 42, "precisao": 94,
-    "acertos": 141, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }`,
+    "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }`,
         resposta: `200 RespostaSessaoEscola — a sessão gravada mais o recorde
   { "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
     "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
-    "acertos": 141, "erros": 9, "concluida": true,
+    "acertos": 308, "erros": 9, "concluida": true,
     "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }`,
-        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano
+        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
   401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
   403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
   404 NAO_ENCONTRADO — exercício não atribuído à turma (ou arquivado), ou turma_id não é a turma do aluno`,
@@ -892,7 +892,7 @@ rota promove ninguém: quem marca é o banco.`,
   { "nome": "Atalhos de teclado" }`,
         resposta: `200 Categoria
   { "id": 6, "nome": "Atalhos de teclado", "ativo": true }`,
-        erros: `400 DADOS_INVALIDOS — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
+        erros: `400 DADOS_INVALIDOS — nome vazio, que não é texto, com caracteres de controle, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
   409 CATEGORIA_DUPLICADA — já existe uma ativa com esse nome (sem diferenciar maiúscula)
   404 NAO_ENCONTRADO — o token não é de administrador`,
         identidade: `O token, que tem de ser de ADMINISTRADOR (Users.Administrador).

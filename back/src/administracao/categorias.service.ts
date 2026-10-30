@@ -15,6 +15,7 @@ import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { exigirAdministrador } from './administrador-do-token.js';
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 export interface CorpoDaCategoria {
   nome?: unknown;
@@ -121,6 +122,9 @@ function nomeDaCategoria(valor: unknown): string {
   const nome = valor.trim().replace(/\s+/g, ' ');
   if (nome.length > NOME_MAXIMO) {
     throw dadosInvalidos(`O nome da categoria pode ter no máximo ${NOME_MAXIMO} caracteres.`);
+  }
+  if (temCaractereDeControle(nome)) {
+    throw dadosInvalidos('O nome da categoria tem caracteres inválidos.');
   }
   return nome;
 }

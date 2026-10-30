@@ -20,6 +20,7 @@ import { diaDe } from '../sessoes/dias-seguidos.js';
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 // O corpo do importar como chega: tudo unknown, vem da rede.
 export interface CorpoDaImportacao {
@@ -289,6 +290,9 @@ function problemaNoNome(nome: string): string | null {
   }
   if (nome.length < NOME_MINIMO || nome.length > NOME_MAXIMO) {
     return `O nome precisa ter de ${NOME_MINIMO} a ${NOME_MAXIMO} caracteres.`;
+  }
+  if (temCaractereDeControle(nome)) {
+    return 'O nome tem caracteres inválidos.';
   }
   return null;
 }

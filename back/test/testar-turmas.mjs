@@ -293,7 +293,9 @@ async function treinar(nome, wpm, concluida) {
     turma_id: detalhada.id,
     wpm,
     precisao: 90,
-    acertos: 40,
+    // acertos coerente com o PPM e o tempo (wpm = acertos / 5 / minutos),
+    // senão a regra de plausibilidade recusa: wpm PPM em 60 s = wpm*5 acertos.
+    acertos: wpm * 5,
     erros: 4,
     tempo_gasto_segundos: 60,
     concluida,

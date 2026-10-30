@@ -342,7 +342,7 @@ Chamada no front: `api.solo.registrarSessao`
 DadosSessaoTreino — o que o motor mediu, mais a lição
 
 ```json
-{ "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 57,
+{ "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 304,
   "erros": 3, "tempo_gasto_segundos": 96, "concluida": true }
 ```
 
@@ -357,7 +357,7 @@ DadosSessaoTreino — o que o motor mediu, mais a lição
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano (as mesmas regras de POST /sessoes)
+- 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
 - 403 TIPO_INVALIDO — token de aluno
 - 404 NAO_ENCONTRADO — sem campanha, ou lição inexistente
 
@@ -551,7 +551,7 @@ Chamada no front: `api.turmas.criar`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
 - 409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
 - 403 TIPO_INVALIDO — token de aluno
 
@@ -620,7 +620,7 @@ Chamada no front: `api.turmas.renomear`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres
+- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle
 - 409 TURMA_DUPLICADA — a turma está ativa e a conta já tem OUTRA turma ativa com esse nome
 - 404 NAO_ENCONTRADO — não existe ou é de outra conta
 
@@ -931,7 +931,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
+Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
 
 **Notas:**
 
@@ -1229,7 +1229,7 @@ DadosExercicio — o formulário inteiro
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
+- 400 DADOS_INVALIDOS — título fora de 3 a 100 caracteres ou com caracteres de controle, texto fora de 20 a 2000, dificuldade fora de facil/medio/dificil, tempoLimiteSegundos que não é inteiro de 0 a 3600, ou o corpo traz professorId
 - 403 TIPO_INVALIDO — token de aluno
 
 **Identidade:**
@@ -1315,7 +1315,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 
 ```json
 { "exercicio_id": "ex-prof-7", "turma_id": "turma-1", "wpm": 42, "precisao": 94,
-  "acertos": 141, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }
+  "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }
 ```
 
 **Resposta:**
@@ -1325,13 +1325,13 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 ```json
 { "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
   "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
-  "acertos": 141, "erros": 9, "concluida": true,
+  "acertos": 308, "erros": 9, "concluida": true,
   "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }
 ```
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano
+- 400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
 - 401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
 - 403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
 - 404 NAO_ENCONTRADO — exercício não atribuído à turma (ou arquivado), ou turma_id não é a turma do aluno
@@ -1638,7 +1638,7 @@ Chamada no front: `api.admin.criarCategoria`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome vazio, que não é texto, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
+- 400 DADOS_INVALIDOS — nome vazio, que não é texto, com caracteres de controle, ou com mais de 50 caracteres (Categorias.Nome é VARCHAR(50))
 - 409 CATEGORIA_DUPLICADA — já existe uma ativa com esse nome (sem diferenciar maiúscula)
 - 404 NAO_ENCONTRADO — o token não é de administrador
 
