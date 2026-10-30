@@ -20,6 +20,7 @@ import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/pro
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { diaDe } from '../sessoes/dias-seguidos.js';
 import { turmaDaConta } from './turma-da-conta.js';
 
 // O corpo do POST /turmas como chega. Tudo unknown: vem da rede, e um curl
@@ -237,7 +238,7 @@ function turmaNaForma(linha: TurmaComContagens): Turma {
     totalExercicios: linha._count.atribuicoesprof,
     ativa: linha.Ativa,
     // Só a data ("2026-02-01"), como o contrato pede.
-    dataCriacao: linha.Data_Criacao ? linha.Data_Criacao.toISOString().slice(0, 10) : '',
+    dataCriacao: linha.Data_Criacao ? diaDe(linha.Data_Criacao) : '',
   };
   // periodo e capaSemente são opcionais no tipo: sem valor, nem aparecem.
   const periodo = montarPeriodo(linha.Ano, linha.Semestre);

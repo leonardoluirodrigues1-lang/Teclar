@@ -32,7 +32,8 @@ import { randomUUID } from 'node:crypto';
 import { BancoService } from '../dist/banco/banco.service.js';
 
 const URL = 'http://localhost:3000/api';
-const UM_DIA = 24 * 60 * 60 * 1000;
+const UMA_HORA = 60 * 60 * 1000;
+const UM_DIA = 24 * UMA_HORA;
 
 // Faz a requisição e devolve status, corpo já lido como JSON e o texto cru.
 async function chamar(metodo, rota, corpo, token) {
@@ -50,9 +51,11 @@ async function chamar(metodo, rota, corpo, token) {
   return { status: resposta.status, corpo: texto ? JSON.parse(texto) : null, texto };
 }
 
-// Para no primeiro caso que falhar, com o nome dele.
-function confere(nome, condicao) {
-  assert.ok(condicao, nome);
+// Para no primeiro caso que falhar, com o nome dele. `recebido`, nos casos
+// que comparam vários valores de uma vez, entra na mensagem da falha.
+function confere(nome, condicao, recebido) {
+  assert.ok(condicao, recebido === undefined ? nome : `${nome}
+  veio: ${JSON.stringify(recebido)}`);
   console.log('ok -', nome);
 }
 
@@ -80,9 +83,18 @@ async function preparar(metodo, rota, corpo, token) {
   return r.corpo;
 }
 
-// Uma sessão gravada direto no banco, `diasAtras` dias antes de agora.
-// Devolve o id e a data, para o teste comparar com o que as rotas dizem.
-async function gravarSessao(aluno, exercicio, wpm, precisao, concluida, diasAtras) {
+// `diasAtras` dias antes de hoje, à `hora` (de Brasília) — hoje no
+// calendário de Brasília, que é o dos dias seguidos (diaDe, em
+// src/sessoes/dias-seguidos.ts). Hora fixa, e não "agora menos N dias": o
+// resultado não pode depender da hora em que o teste roda.
+function emBrasilia(diasAtras, hora) {
+  const hoje = new Date(Date.now() - 3 * UMA_HORA).toISOString().slice(0, 10);
+  return new Date(Date.parse(`${hoje}T00:00:00-03:00`) - diasAtras * UM_DIA + hora * UMA_HORA);
+}
+
+// Uma sessão gravada direto no banco, na data pedida. Devolve o id e a
+// data, para o teste comparar com o que as rotas dizem.
+async function gravarSessao(aluno, exercicio, wpm, precisao, concluida, data) {
   const linha = await banco.sessionsprof.create({
     data: {
       ID: randomUUID(),
@@ -95,7 +107,7 @@ async function gravarSessao(aluno, exercicio, wpm, precisao, concluida, diasAtra
       Erros: 2,
       Tempo_Gasto_Segundos: 60,
       Concluida: concluida,
-      Data_Sessao: new Date(Date.now() - diasAtras * UM_DIA),
+      Data_Sessao: data,
     },
   });
   return { id: linha.ID, data: linha.Data_Sessao.toISOString() };
@@ -125,22 +137,23 @@ for (const [i, exercicio] of [ex1, ex2, ex3].entries()) {
 const importados = await preparar('POST', `/turmas/${turma.id}/alunos/importar`, { nomes: ['Lia Souza', 'Rui Lopes', 'Bia Melo'] }, prof);
 const [lia, rui, bia] = importados.adicionados;
 
-// As sessões:
-//   Lia  ex1 concluída 40 PPM 95%  hoje
-//        ex1 NÃO concluída 50 / 80  ontem       (PPM maior, mas não concluída)
-//        ex1 concluída 30 / 90      há 2 dias
-//        ex2 NÃO concluída 20 / 70  há 2,1 dias (tempo esgotado)
-//   Rui  ex1 concluída 60 / 100     hoje
-//        ex2 concluída 50 / 90      há 5 dias
-//        ex2 concluída 40 / 80      há 6 dias
-//   Bia  nenhuma
-const liaS1 = await gravarSessao(lia, ex1, 40, 95, true, 0);
-const liaS2 = await gravarSessao(lia, ex1, 50, 80, false, 1);
-const liaS3 = await gravarSessao(lia, ex1, 30, 90, true, 2);
-const liaS4 = await gravarSessao(lia, ex2, 20, 70, false, 2.1);
-await gravarSessao(rui, ex1, 60, 100, true, 0);
-await gravarSessao(rui, ex2, 50, 90, true, 5);
-await gravarSessao(rui, ex2, 40, 80, true, 6);
+// As sessões (dias no calendário de Brasília; "hoje" é agora, porque o
+// meio-dia de hoje pode ainda não ter chegado):
+//   Lia  ex1 concluída 40 PPM 95%  hoje, agora
+//        ex1 NÃO concluída 50 / 80  ontem, 12h      (PPM maior, mas não concluída)
+//        ex1 concluída 30 / 90      há 2 dias, 12h
+//        ex2 NÃO concluída 20 / 70  há 2 dias, 9h   (tempo esgotado; mais antiga)
+//   Rui  ex1 concluída 60 / 100     hoje, agora
+//        ex2 concluída 50 / 90      há 5 dias, 12h
+//        ex2 concluída 40 / 80      há 6 dias, 12h
+//   Bia  nenhuma (até o caso das 22h, no fim)
+const liaS1 = await gravarSessao(lia, ex1, 40, 95, true, new Date());
+const liaS2 = await gravarSessao(lia, ex1, 50, 80, false, emBrasilia(1, 12));
+const liaS3 = await gravarSessao(lia, ex1, 30, 90, true, emBrasilia(2, 12));
+const liaS4 = await gravarSessao(lia, ex2, 20, 70, false, emBrasilia(2, 9));
+await gravarSessao(rui, ex1, 60, 100, true, new Date());
+await gravarSessao(rui, ex2, 50, 90, true, emBrasilia(5, 12));
+await gravarSessao(rui, ex2, 40, 80, true, emBrasilia(6, 12));
 
 const tokenLia = await entrar({ codigo: turma.codigo, nome: 'Lia Souza', senha: 'senha1234' });
 const tokenRui = await entrar({ codigo: turma.codigo, nome: 'Rui Lopes', senha: 'senha1234' });
@@ -207,6 +220,7 @@ confere(
       melhorPrecisao: 95,
       diasSeguidos: 3,
     }),
+  r.corpo,
 );
 r = await chamar('GET', '/aluno/resumo', null, tokenBia);
 confere(
@@ -221,9 +235,10 @@ confere(
       melhorPrecisao: null,
       diasSeguidos: 0,
     }),
+  r.corpo,
 );
 r = await chamar('GET', '/aluno/resumo', null, tokenRui);
-confere('resumo do Rui: dias seguidos 1 (hoje, e o dia anterior com treino foi há 5)', r.corpo.diasSeguidos === 1);
+confere('resumo do Rui: dias seguidos 1 (hoje, e o dia anterior com treino foi há 5)', r.corpo.diasSeguidos === 1, r.corpo);
 
 // ============================================================================
 // GET /aluno/salas e /aluno/salas/:turmaId
@@ -284,6 +299,7 @@ r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenLia);
 confere(
   'meu desempenho, Lia (2 concluídas, abaixo de 3): contagens, 3 dias seguidos, e as DUAS médias null',
   JSON.stringify(r.corpo) === JSON.stringify({ sessoesConcluidas: 2, licoes: 1, diasSeguidos: 3, minhaMedia: null, mediaSala: null }),
+  r.corpo,
 );
 r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenRui);
 confere(
@@ -296,6 +312,7 @@ confere(
       minhaMedia: { velocidade: 50, precisao: 90 },
       mediaSala: { velocidade: 44, precisao: 91 },
     }),
+  r.corpo,
 );
 r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenBia);
 confere('meu desempenho, Bia: tudo zero e médias null', r.corpo.sessoesConcluidas === 0 && r.corpo.licoes === 0 && r.corpo.minhaMedia === null);
@@ -328,6 +345,18 @@ confere('turma arquivada: meu-desempenho dá 404', ehErro(r, 404, 'NAO_ENCONTRAD
 r = await chamar('GET', '/aluno/historico', null, tokenLia);
 confere('turma arquivada: o histórico continua com as 4 sessões', r.status === 200 && r.corpo.total === 4);
 await preparar('PATCH', `/turmas/${turma.id}`, { ativa: true }, prof);
+
+// ============================================================================
+// Dias seguidos no calendário de Brasília
+// ============================================================================
+
+// 22h de anteontem em Brasília já é 01h de ontem em UTC. Contando em UTC, as
+// duas sessões da Bia cairiam no mesmo dia (ontem) e dariam 1; no
+// calendário de Brasília são anteontem e ontem: 2 dias seguidos.
+await gravarSessao(bia, ex1, 30, 90, true, emBrasilia(2, 22));
+await gravarSessao(bia, ex1, 30, 90, true, emBrasilia(1, 12));
+r = await chamar('GET', '/aluno/resumo', null, tokenBia);
+confere('dias seguidos: sessão às 22h de Brasília conta no mesmo dia de Brasília (2, e não 1)', r.corpo.diasSeguidos === 2, r.corpo);
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id} (${turma.codigo})`);

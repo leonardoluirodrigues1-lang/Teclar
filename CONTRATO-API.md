@@ -20,7 +20,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - Toda rota, menos as três públicas de /auth (login, cadastro e logout), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
 - Corpo de erro: { "mensagem": "...", "codigo": "NAO_ENCONTRADO" }. A tela decide pelo status e pelo código, nunca pelo texto da mensagem.
 - A identidade SEMPRE sai do token. Recurso de outra conta responde 404, igual ao que não existe — 403 confirmaria que ele existe. 403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de aluno, aluno numa rota de conta). professorId no corpo de uma rota do professor é recusado com 400 DADOS_INVALIDOS, nunca ignorado.
-- Sucesso sem corpo (DELETE, zerar senha, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").
+- Sucesso sem corpo (DELETE, zerar senha, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03"). O dia (só a data, "hoje", "ontem", dias seguidos) é o do calendário de Brasília (UTC-3): uma sessão às 22h de 03/10 é do dia 03/10.
 - Média que o back não pôde calcular (sem amostra) vem null, nunca 0: zero é informação diferente. A tela mostra "—".
 - Listas que crescem sem teto vêm paginadas: { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.
 - Limite geral por IP: 1000 requisições por minuto em cada rota. Acima disso, 429 MUITAS_TENTATIVAS com o cabeçalho Retry-After (segundos até liberar). O POST /auth/login tem também um limite de senhas erradas: ver a rota.
@@ -1592,7 +1592,7 @@ diasSeguidos  dias seguidos com sessão, terminando hoje ou ontem; senão 0
 pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5
 ```
 
-O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos (quem nunca treinou fica com zero). Lição de exercício arquivado continua contando. O dia de "hoje ou ontem" é a data UTC, a mesma conta do sequenciaDeDias do front. Empate em pontos, lições e dias: ordem alfabética do nome, só para a ordem não variar entre uma chamada e outra.
+O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos (quem nunca treinou fica com zero). Lição de exercício arquivado continua contando. O dia de "hoje ou ontem" é o do calendário de Brasília (UTC-3). Empate em pontos, lições e dias: ordem alfabética do nome, só para a ordem não variar entre uma chamada e outra.
 
 ## Administração
 

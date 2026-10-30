@@ -45,6 +45,13 @@ function diasAtras(dias: number): Date {
   return new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
 }
 
+// "2026-02-01" -> meio-dia desse dia em Brasília. new Date("2026-02-01") seria
+// meia-noite UTC, que no calendário de Brasília (o das rotas, ver diaDe em
+// src/sessoes/dias-seguidos.ts) já é 31/01.
+function meioDiaEmBrasilia(dia: string): Date {
+  return new Date(`${dia}T12:00:00-03:00`);
+}
+
 // ============================================================================
 // 1. Limpeza
 // ============================================================================
@@ -262,7 +269,7 @@ async function inserirTurmas(tx: Transacao): Promise<void> {
       Semestre: turma.semestre,
       CapaSemente: turma.capa,
       Ativa: turma.ativa,
-      Data_Criacao: new Date(turma.criada),
+      Data_Criacao: meioDiaEmBrasilia(turma.criada),
     })),
   });
 
@@ -290,7 +297,7 @@ async function inserirTurmas(tx: Transacao): Promise<void> {
 }
 
 function atribuicao(turmaId: string, exercicioId: string, data: string) {
-  return { ClassID: turmaId, ExerciseID: exercicioId, Data_Atribuicao: new Date(data) };
+  return { ClassID: turmaId, ExerciseID: exercicioId, Data_Atribuicao: meioDiaEmBrasilia(data) };
 }
 
 // Os alunos do mock, turma por turma (banco v8: o aluno nasce dentro da
@@ -330,7 +337,7 @@ async function inserirAlunos(tx: Transacao, senhaHash: string): Promise<void> {
       ClassID: aluno.turma,
       Nome: aluno.nome,
       SenhaHash: aluno.senha ? senhaHash : null,
-      Data_Cadastro: new Date(aluno.entrou),
+      Data_Cadastro: meioDiaEmBrasilia(aluno.entrou),
     })),
   });
 }

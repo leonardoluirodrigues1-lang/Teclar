@@ -5,8 +5,8 @@
 // aluno vê os três na mesma tarde).
 //
 // É a mesma conta do front (sequenciaDeDias, em js/utils/desempenho.ts),
-// repetida aqui porque o back não importa código do front. O dia é o da
-// data UTC, como lá.
+// repetida aqui porque o back não importa código do front. O dia é o do
+// calendário de Brasília (ver diaDe); o front ainda conta em UTC.
 
 // O que a conta precisa de cada sessão: só a data.
 interface ComData {
@@ -39,9 +39,15 @@ export function contarDiasSeguidos(sessoes: ComData[], agora: Date = new Date())
   return total;
 }
 
-// Date -> "AAAA-MM-DD" (UTC).
-function diaDe(data: Date): string {
-  return data.toISOString().slice(0, 10);
+// Os usuários estão no Brasil. Em UTC, uma sessão depois das 21h caía no
+// dia seguinte — e quebrava, ou inventava, dias seguidos. UTC-3 fixo: o
+// Brasil não tem horário de verão desde 2019.
+const FUSO_DE_BRASILIA_EM_MILISSEGUNDOS = -3 * 60 * 60 * 1000;
+
+// Date -> "AAAA-MM-DD" no calendário de Brasília. Também é o "só a data"
+// das rotas que devolvem dia (turma criada, aluno entrou, atribuído em).
+export function diaDe(data: Date): string {
+  return new Date(data.getTime() + FUSO_DE_BRASILIA_EM_MILISSEGUNDOS).toISOString().slice(0, 10);
 }
 
 // "AAAA-MM-DD" mais (ou menos) N dias. O T00:00:00Z fixo deixa a conta

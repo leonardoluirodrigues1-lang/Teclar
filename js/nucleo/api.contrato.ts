@@ -56,7 +56,9 @@ export const convencoes: Texto[] = [
   aluno, aluno numa rota de conta). professorId no corpo de uma rota do
   professor é recusado com 400 DADOS_INVALIDOS, nunca ignorado.`,
   `Sucesso sem corpo (DELETE, zerar senha, logout): 204.
-  Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").`,
+  Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03").
+  O dia (só a data, "hoje", "ontem", dias seguidos) é o do calendário de
+  Brasília (UTC-3): uma sessão às 22h de 03/10 é do dia 03/10.`,
   `Média que o back não pôde calcular (sem amostra) vem null, nunca
   0: zero é informação diferente. A tela mostra "—".`,
   `Listas que crescem sem teto vêm paginadas:
@@ -865,8 +867,8 @@ da conta, e mora em \`solo\`.`,
     pontos = licoes * 20 + (ritmo ?? 0) + diasSeguidos * 5
   O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos
   (quem nunca treinou fica com zero). Lição de exercício arquivado continua
-  contando. O dia de "hoje ou ontem" é a data UTC, a mesma conta do
-  sequenciaDeDias do front. Empate em pontos, lições e dias: ordem
+  contando. O dia de "hoje ou ontem" é o do calendário de Brasília
+  (UTC-3). Empate em pontos, lições e dias: ordem
   alfabética do nome, só para a ordem não variar entre uma chamada e outra.`,
       },
     },

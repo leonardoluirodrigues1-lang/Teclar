@@ -13,6 +13,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
+import { diaDe } from '../sessoes/dias-seguidos.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
 export interface CorpoDaAtribuicao {
@@ -143,5 +144,5 @@ function idsDoCorpo(valor: unknown): string[] {
 
 // Só a data ("2026-02-03"), como o contrato pede.
 function soData(data: Date | null): string | null {
-  return data ? data.toISOString().slice(0, 10) : null;
+  return data ? diaDe(data) : null;
 }

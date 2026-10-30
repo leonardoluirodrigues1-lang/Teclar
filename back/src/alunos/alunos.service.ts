@@ -16,6 +16,7 @@ import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/pro
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { diaDe } from '../sessoes/dias-seguidos.js';
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
@@ -261,7 +262,7 @@ function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
     id: aluno.ID,
     nome: aluno.Nome,
     // Só a data ("2026-02-01"), como o contrato pede.
-    entrouEm: aluno.Data_Cadastro ? aluno.Data_Cadastro.toISOString().slice(0, 10) : '',
+    entrouEm: aluno.Data_Cadastro ? diaDe(aluno.Data_Cadastro) : '',
     senhaDefinida: aluno.SenhaHash !== null,
     ...agregados,
   };

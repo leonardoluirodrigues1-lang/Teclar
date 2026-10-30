@@ -79,11 +79,16 @@ por 1 minuto só identidades que nenhum outro script usa (a conta que o
 próprio script cria e o Caio Ferreira da turma-1); rodar o script duas
 vezes no mesmo minuto falha no Caio. O caso do `JWT_SEGREDO` sobe um
 segundo back (`node dist/main.js`) com a variável vazia e confere a
-mensagem de erro e o código de saída.
+mensagem de erro e o código de saída. A linha das 22h de `GET /aluno/resumo`
+é do `testar-aluno.mjs`, que desde então grava as sessões em hora fixa de
+Brasília (12h, ou 9h e 22h onde o caso pede), e não mais "agora menos N
+dias".
 
-Em 29/10/2026, com o back reiniciado e o `npm run seed` aplicado, os
-scripts rodaram uma vez cada, em comandos separados e sem espera entre
-eles; o limite de senhas erradas não atrapalhou nenhum.
+Em 29/10/2026, das 22h33 às 22h36 (horário de Brasília), com o back
+reiniciado e o `npm run seed` aplicado, os onze scripts rodaram uma vez
+cada, em comandos separados e sem espera entre eles, todos sem falha. O
+horário importa: é a janela (21h às 23h59) em que a conta dos dias
+seguidos em UTC errava (ver "Defeitos que os testes pegaram", na seção 2).
 
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
@@ -236,6 +241,7 @@ eles; o limite de senhas erradas não atrapalhou nenhum.
 | GET /aluno/historico | Bia, que nunca treinou | Lista vazia, `total` 0 | Como esperado | Conforme |
 | GET /aluno/resumo | Lia: concluídas 40/95 e 30/90, não concluídas 50/80 e 20/70, em hoje, ontem e anteontem | 4 sessões, 2 concluídas, médias só das concluídas (35, 93), melhores de TODAS (50 PPM, 95%), 3 dias seguidos | Idêntico | Conforme |
 | GET /aluno/resumo | Bia; Rui (treinou hoje e há 5 e 6 dias) | Bia: zeros e null (nunca 0); Rui: 1 dia seguido | Como esperado | Conforme |
+| GET /aluno/resumo | Bia: sessões às 22h de anteontem e ao meio-dia de ontem (Brasília) | 2 dias seguidos: 22h de Brasília é do mesmo dia em Brasília (em UTC já seria o dia seguinte, e daria 1) | 2 | Conforme |
 | GET /aluno/salas | Lia; Bia | Uma sala, a dela, com o nome do professor, 3 alunos e o progresso DELA (Lia 2 de 3 feitos, contando o de tempo esgotado; Bia 0 de 3) | Como esperado | Conforme |
 | GET /aluno/salas/:turmaId | Lia | Cabeçalho igual ao de GET /aluno/salas; exercícios na ordem da atribuição; ex1 `feito` com a melhor CONCLUÍDA (40/95, e não os 50 da não concluída), caracteres contados no back, sem o texto, `prazo` null; ex2 `tempo_esgotado` (20/70); ex3 `nao_feito` com null | Como esperado | Conforme |
 | GET /aluno/salas/:turmaId | Texto cru da resposta da Lia | Nenhum nome nem id de colega | Nem "Rui", nem "Bia", nem os ids | Conforme |
@@ -372,7 +378,23 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
 
 ### Defeitos que os testes pegaram
 
-23. **Limite de login só por IP** (29/10/2026). Com 5 tentativas por
+23. **Dias seguidos em UTC** (29/10/2026). O `testar-aluno.mjs` falhou às
+    22h27 de Brasília: o resumo da Lia deu 4 dias seguidos, e não 3. O back
+    tirava o dia da data em UTC (`diaDe`, em `back/src/sessoes/dias-seguidos.ts`),
+    então toda sessão das 21h à meia-noite de Brasília caía no dia seguinte
+    e podia criar ou quebrar uma sequência. O próprio teste também dependia
+    da hora em que rodava (sessões em "agora menos N dias").
+    **Correção (feita em 29/10/2026):** `diaDe` usa o calendário de Brasília
+    (UTC-3 fixo; sem horário de verão desde 2019). Vale para o ranking, o
+    resumo do aluno e o meu-desempenho (dias seguidos) e para as rotas que
+    devolvem só a data: `dataCriacao` da turma, `entrouEm` do aluno e
+    `atribuidoEm`. O seed passou a gravar as datas fixas ao meio-dia de
+    Brasília (meia-noite UTC já seria o dia anterior). O teste grava em
+    hora fixa de Brasília e ganhou o caso das 22h.
+    **Pendente:** o `sequenciaDeDias` do front (`js/utils/desempenho.ts`)
+    ainda conta em UTC.
+
+24. **Limite de login só por IP** (29/10/2026). Com 5 tentativas por
     minuto por IP, certas ou erradas, os scripts de teste — que entram
     quase todos como `prof@teclar.dev` — passaram a levar 429 uns depois
     dos outros. Na escola seria pior: a turma inteira sai pelo mesmo IP.

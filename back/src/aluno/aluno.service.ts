@@ -22,7 +22,7 @@ import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
-import { contarDiasSeguidos } from '../sessoes/dias-seguidos.js';
+import { contarDiasSeguidos, diaDe } from '../sessoes/dias-seguidos.js';
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 
@@ -306,5 +306,5 @@ function ultimaData(sessoes: Sessao[]): string | null {
 
 // Só a data ("2026-02-03"), como GET /turmas/:id/atribuicoes devolve.
 function soData(data: Date | null): string | null {
-  return data ? data.toISOString().slice(0, 10) : null;
+  return data ? diaDe(data) : null;
 }
