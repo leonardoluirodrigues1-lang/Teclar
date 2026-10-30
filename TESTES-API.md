@@ -72,6 +72,19 @@ datas no passado, pelos dias seguidos. O de administração usa
 Categorias nem em Configuracoes, apaga as categorias que criou e devolve
 os parâmetros aos valores do começo.
 
+As linhas do limite de senhas erradas, do limite geral, do helmet e do
+`JWT_SEGREDO` foram rodadas em 29/10/2026, do mesmo jeito, pelo fim do
+`back/test/testar-auth.mjs` (`npm run test:auth`). O caso do 429 bloqueia
+por 1 minuto só identidades que nenhum outro script usa (a conta que o
+próprio script cria e o Caio Ferreira da turma-1); rodar o script duas
+vezes no mesmo minuto falha no Caio. O caso do `JWT_SEGREDO` sobe um
+segundo back (`node dist/main.js`) com a variável vazia e confere a
+mensagem de erro e o código de saída.
+
+Em 29/10/2026, com o back reiniciado e o `npm run seed` aplicado, os
+scripts rodaram uma vez cada, em comandos separados e sem espera entre
+eles; o limite de senhas erradas não atrapalhou nenhum.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -106,6 +119,17 @@ os parâmetros aos valores do começo.
 | GET /auth/eu | Token de aluno (login de "Ana Pires", `K7M2QX`) | 200, idêntico ao `usuario` do login | 200, `{ id: "al-43-t1", nome: "Ana Pires", tipo: "aluno", turmas: [{ id: "turma-1", nome: "9º Ano A — Manhã" }] }`, igual ao do login | Conforme |
 | POST /auth/logout | Sem token | 204 sem corpo: a rota é pública | 204, corpo vazio | Conforme |
 | POST /auth/logout | Com token de conta | 204 sem corpo | 204, corpo vazio | Conforme |
+| POST /auth/login | 5 senhas erradas para a conta criada pelo script, do mesmo IP | 401 CREDENCIAIS nas 5 | 401 CREDENCIAIS nas 5 | Conforme |
+| POST /auth/login | 6ª tentativa, com a senha CERTA e o e-mail em maiúscula com espaço | 429 MUITAS_TENTATIVAS: a pessoa está bloqueada, e o e-mail é a mesma pessoa | 429, "Muitas tentativas. Espere um minuto e tente de novo." | Conforme |
+| POST /auth/login | Logo depois, `prof@teclar.dev` (senha certa), do mesmo IP | 200: o bloqueio é da pessoa, não do IP | 200 | Conforme |
+| POST /auth/login | 5 senhas erradas do aluno Caio Ferreira (`K7M2QX`); a 6ª como "caio  ferreira"/`k7m2qx` com a senha certa | 401 nas 5; 429 na 6ª (mesmo aluno escrito de outro jeito) | Como esperado | Conforme |
+| POST /auth/login | Logo depois, a colega Marina Duarte Alves, mesma turma, mesmo IP | 200: a turma inteira sai pelo mesmo IP da escola | 200 | Conforme |
+| POST /auth/login | `leo@teclar.dev`: 4 erradas, a certa, mais 4 erradas, a certa | Todas as certas 200: login certo zera a contagem (sem zerar seriam 8 falhas) | 401 nas erradas, 200 nas duas certas | Conforme |
+| POST /auth/login | 10 logins certos seguidos em `prof@teclar.dev` | 200 nos 10: login certo não gasta tentativa | 200 nos 10 | Conforme |
+| POST /auth/logout | Depois dos bloqueios | 204; as outras rotas ficam no limite geral de 1000/min por IP | 204, `X-RateLimit-Limit: 1000` | Conforme |
+| (todas) | Cabeçalhos do helmet numa resposta da API | `X-Content-Type-Options: nosniff`, `Content-Security-Policy`, sem `X-Powered-By`, CSP sem `upgrade-insecure-requests` (o back é HTTP) | Como esperado | Conforme |
+| GET /api/docs | Swagger com o CSP do helmet | 200; página sem `<script>` inline; `swagger-ui.css`, `swagger-ui-bundle.js`, `swagger-ui-standalone-preset.js` e `swagger-ui-init.js` 200 (o CSP só libera script do próprio back) | 200 nos cinco, nenhum script inline | Conforme |
+| (subida) | `node dist/main.js` com `JWT_SEGREDO` vazio | O back não sobe: erro na montagem do AutenticacaoModule | Saída 1, "JWT_SEGREDO não definido no .env. Veja o .env.example." | Conforme |
 | GET /turmas, POST /turmas, PATCH /turmas/:id, POST /turmas/:id/codigo/novo | Sem o cabeçalho Authorization | 401 TOKEN_INVALIDO | 401 TOKEN_INVALIDO nas quatro | Conforme |
 | GET /turmas, POST /turmas, PATCH /turmas/:id, POST /turmas/:id/codigo/novo | Token de aluno ("Ana Pires", `K7M2QX`) | 403 TIPO_INVALIDO | 403 TIPO_INVALIDO nas quatro | Conforme |
 | GET /turmas | Token de `prof@teclar.dev` (u-2) | 200, só as turmas ativas de u-2, com as contagens feitas no back | 200, todas de u-2 e ativas; sem a turma-5 (de u-1) nem a turma-8 (arquivada); turma-1 com `codigo` K7M2QX, 4 alunos, 8 exercícios, `periodo` "2026 · 1º semestre", `capaSemente` 7001, `dataCriacao` "2026-02-01" | Conforme |
@@ -345,3 +369,14 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
 22. **Seed sem aluno em turma arquivada.** O teste de turma arquivada
     precisou arquivar a turma-1 temporariamente.
     **Correção:** pôr um aluno na turma-8 (já arquivada) no seed.
+
+### Defeitos que os testes pegaram
+
+23. **Limite de login só por IP** (29/10/2026). Com 5 tentativas por
+    minuto por IP, certas ou erradas, os scripts de teste — que entram
+    quase todos como `prof@teclar.dev` — passaram a levar 429 uns depois
+    dos outros. Na escola seria pior: a turma inteira sai pelo mesmo IP.
+    **Correção (feita em 29/10/2026):** só a senha errada conta, por IP +
+    pessoa (o e-mail; no aluno, o código da turma + o nome), e o login
+    certo zera a contagem (`back/src/autenticacao/tentativas-de-login.ts`).
+    As outras rotas ficam no limite geral de 1000 por minuto por IP.

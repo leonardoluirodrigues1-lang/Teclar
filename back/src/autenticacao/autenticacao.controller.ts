@@ -2,7 +2,7 @@
 // As rotas HTTP do grupo Autenticação. Só recebe e devolve: a regra está
 // no AutenticacaoService. As quatro do contrato existem: login, cadastro,
 // eu e logout.
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post, Req, UseGuards } from '@nestjs/common';
 import { AutenticacaoService } from './autenticacao.service.js';
 import type { CorpoDoCadastro, CorpoDoLogin, RespostaLogin, Usuario } from './autenticacao.service.js';
 import { GuardaDoToken } from './guarda-do-token.js';
@@ -15,10 +15,12 @@ export class AutenticacaoController {
   // Rota pública: não passa pelo GuardaDoToken (é ela que dá o token).
   // @HttpCode porque o Nest responde POST com 201 (criado), e o contrato
   // diz 200: o login não cria recurso nenhum.
+  // O IP vai para o contador de senhas erradas (ver tentativas-de-login.ts);
+  // com o trust proxy do main.ts, é o IP de quem chamou, não o do proxy.
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  entrar(@Body() corpo: CorpoDoLogin): Promise<RespostaLogin> {
-    return this.autenticacao.entrar(corpo);
+  entrar(@Body() corpo: CorpoDoLogin, @Ip() ip: string): Promise<RespostaLogin> {
+    return this.autenticacao.entrar(corpo, ip);
   }
 
   // Pública, como o login. Aqui sim se cria um recurso, mas o contrato diz

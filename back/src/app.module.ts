@@ -6,6 +6,9 @@
 // sessões, relatórios, o próprio aluno (com o ranking à parte) e
 // administração.
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { GuardaDoLimite, LIMITE_GERAL } from './limite-de-tentativas.js';
 import { BancoModule } from './banco/banco.module.js';
 import { AutenticacaoModule } from './autenticacao/autenticacao.module.js';
 import { TurmasModule } from './turmas/turmas.module.js';
@@ -35,6 +38,9 @@ import { AdministracaoModule } from './administracao/administracao.module.js';
     SoloModule,
     AlunoModule,
     AdministracaoModule,
+    ThrottlerModule.forRoot([LIMITE_GERAL]),
   ],
+  // Guard global: vale para toda rota, antes do GuardaDoToken.
+  providers: [{ provide: APP_GUARD, useClass: GuardaDoLimite }],
 })
 export class AppModule {}

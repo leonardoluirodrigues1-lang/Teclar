@@ -27,6 +27,8 @@ export const MENSAGENS = {
   // digitada ia ser gravada e não segue a regra. A tela já confere antes
   // (validarSenhaAluno); isto é a rede de segurança.
   SENHA_PRIMEIRO_ACESSO: 'A senha precisa ter de 4 a 20 caracteres.',
+  // 429 do login: 5 senhas erradas no mesmo minuto (back/src/autenticacao/tentativas-de-login.ts).
+  MUITAS_TENTATIVAS: 'Muitas tentativas seguidas. Espere um minuto e tente de novo.',
   CONEXAO: 'Não foi possível conectar. Tente de novo.',
 };
 
@@ -58,6 +60,7 @@ export function mensagemDoErro(
 
   if (daApi && erro.status === 401) return credenciais;
   if (daApi && erro.status === 403) return inativa;
+  if (daApi && erro.status === 429) return MENSAGENS.MUITAS_TENTATIVAS;
   if (daApi && erro.status === 400 && erro.codigo === 'DADOS_INVALIDOS' && dadosInvalidos) return dadosInvalidos;
 
   // Erro que não veio da API (bug, resposta fora do formato) some da tela,

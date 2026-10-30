@@ -12,6 +12,7 @@ import { BancoModule } from '../banco/banco.module.js';
 import { AutenticacaoController } from './autenticacao.controller.js';
 import { AutenticacaoService } from './autenticacao.service.js';
 import { GuardaDoToken } from './guarda-do-token.js';
+import { TentativasDeLogin } from './tentativas-de-login.js';
 import { VALIDADE_DO_TOKEN, segredoDoJwt } from './token.js';
 
 @Module({
@@ -30,7 +31,7 @@ import { VALIDADE_DO_TOKEN, segredoDoJwt } from './token.js';
     }),
   ],
   controllers: [AutenticacaoController],
-  providers: [AutenticacaoService, GuardaDoToken],
+  providers: [AutenticacaoService, GuardaDoToken, TentativasDeLogin],
   exports: [GuardaDoToken, JwtModule],
 })
 export class AutenticacaoModule {}

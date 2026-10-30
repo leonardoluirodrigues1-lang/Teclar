@@ -51,7 +51,7 @@
         ],
         "operationId": "auth.entrar",
         "summary": "entrar: RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha",
-        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash.",
+        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.",
         "parameters": [],
         "requestBody": {
           "description": "Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)",
@@ -163,6 +163,22 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "CONTA_INATIVA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`MUITAS_TENTATIVAS` — 5 senhas erradas no mesmo minuto para a mesma pessoa, do mesmo IP: as próximas tentativas dela, até com a senha certa, até o minuto passar",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "MUITAS_TENTATIVAS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "MUITAS_TENTATIVAS"
                     }
                   }
                 }

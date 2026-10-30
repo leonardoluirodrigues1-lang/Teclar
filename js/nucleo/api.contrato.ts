@@ -61,6 +61,10 @@ export const convencoes: Texto[] = [
   0: zero é informação diferente. A tela mostra "—".`,
   `Listas que crescem sem teto vêm paginadas:
   { "total": 12, "pagina": 1, "itens": [...] }. As curtas, array puro.`,
+  `Limite geral por IP: 1000 requisições por minuto em cada rota. Acima
+  disso, 429 MUITAS_TENTATIVAS com o cabeçalho Retry-After (segundos até
+  liberar). O POST /auth/login tem também um limite de senhas erradas:
+  ver a rota.`,
 ];
 
 // Banco: DB_Teclar_v9.sql. Toda coluna que o contrato usa existe nele.
@@ -122,7 +126,8 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
            "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }`,
         erros: `400 DADOS_INVALIDOS — primeiro acesso de aluno com senha fora de 4 a 20 caracteres
   401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
-  403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada`,
+  403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada
+  429 MUITAS_TENTATIVAS — 5 senhas erradas no mesmo minuto para a mesma pessoa, do mesmo IP: as próximas tentativas dela, até com a senha certa, até o minuto passar`,
         identidade: `Pública. O token devolvido carrega o id e o tipo de quem entrou.`,
         back: `\`tipo\` é a tabela em que autenticou: \`email\` busca em Users; \`codigo\`
   busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula,
@@ -130,7 +135,13 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
   maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha
   enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.`,
         nota: `Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas
-  pontas antes de gravar ou conferir o hash.`,
+  pontas antes de gravar ou conferir o hash.
+  Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o
+  e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e
+  acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o
+  minuto da primeira falha passar; outro e-mail, ou um colega da mesma
+  turma no mesmo IP, entra normalmente. Login certo não conta e zera a
+  contagem. Este 429 não traz Retry-After.`,
       },
       'auth.cadastrar': {
         rota: 'POST /auth/cadastro',

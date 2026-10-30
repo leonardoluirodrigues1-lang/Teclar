@@ -32,6 +32,7 @@ import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regras-do-cadastro.js';
 import { problemaNaSenhaDoAluno } from './senha-do-aluno.js';
+import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 
 // O corpo como chega. Tudo unknown: vem da rede, e nada garante que a tela
@@ -96,9 +97,30 @@ export class AutenticacaoService {
   constructor(
     private readonly banco: BancoService,
     private readonly jwt: JwtService,
+    private readonly tentativas: TentativasDeLogin,
   ) {}
 
-  async entrar(corpo: CorpoDoLogin): Promise<RespostaLogin> {
+  // O login com o contador de senhas erradas em volta (ver
+  // tentativas-de-login.ts). A chave é IP + quem tenta entrar: numa escola
+  // todos os alunos saem pelo mesmo IP, e contar só por IP bloquearia a
+  // turma inteira pelos erros de um.
+  async entrar(corpo: CorpoDoLogin, ip: string): Promise<RespostaLogin> {
+    const chave = `${ip}|${identidadeDoLogin(corpo)}`;
+    this.tentativas.conferir(chave);
+    try {
+      const resposta = await this.autenticar(corpo);
+      this.tentativas.zerar(chave);
+      return resposta;
+    } catch (erro) {
+      // Só o 401 CREDENCIAIS é chute de senha; 400 e 403 não contam.
+      if (erro instanceof UnauthorizedException) {
+        this.tentativas.somarFalha(chave);
+      }
+      throw erro;
+    }
+  }
+
+  private async autenticar(corpo: CorpoDoLogin): Promise<RespostaLogin> {
     // As pontas da senha são aparadas antes de tudo: senha colada costuma
     // trazer espaço ou quebra de linha no fim. É seguro porque nenhuma
     // senha gravada tem espaço nas pontas — a de conta é recusada assim no
@@ -365,6 +387,18 @@ function normalizarCodigo(valor: unknown): string {
 // a um — a forma em que a importação grava. "Ana  Pires" acha "Ana Pires".
 function normalizarNome(valor: unknown): string {
   return String(valor ?? '').trim().replace(/\s+/g, ' ');
+}
+
+// Quem o corpo do login diz ser, decidido como no autenticar (codigo
+// presente = aluno). O nome vai também sem maiúscula e sem acento, como a
+// collation do banco compara: senão "ana pires" e "Ana Pires" seriam
+// contadores diferentes para a mesma aluna.
+function identidadeDoLogin(corpo: CorpoDoLogin): string {
+  if (corpo?.codigo !== undefined) {
+    const nome = normalizarNome(corpo.nome).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+    return `aluno|${normalizarCodigo(corpo.codigo)}|${nome}`;
+  }
+  return `conta|${normalizarEmail(corpo?.email)}`;
 }
 
 // Compara a senha com o hash. Sem hash, compara com HASH_DE_NINGUEM para
