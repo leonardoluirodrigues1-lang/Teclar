@@ -10,6 +10,8 @@
 // que já está na mão. As funções recebem só a forma mínima (data, wpm)
 // para servirem a SessaoDoHistorico, SessaoSolo e o que mais vier.
 
+import { emBrasilia } from './formato.js';
+
 /** O que a sequência precisa de uma sessão: a data ISO. */
 export interface SessaoComData {
   data: string;
@@ -44,10 +46,9 @@ export function maisRecentesPrimeiro<T extends SessaoComData>(lista: T[]): T[] {
 // continua a de ontem. Uma sequência antiga já terminou, e aí é 0. Não há
 // aviso nenhum sobre isso na tela: é um número, não um puxão de orelha.
 //
-// O dia sai dos 10 primeiros caracteres do ISO, sem Date() no meio, pela
-// mesma razão de formatarDataHora (formato.ts): o app inteiro mostra o
-// horário como o registro o gravou, sem converter fuso. Converter só aqui
-// faria a sequência discordar da data que a linha da tabela mostra.
+// O dia é o do calendário de Brasília (emBrasilia, em formato.ts), o
+// mesmo que formatarDataHora mostra na linha da tabela e o mesmo do diaDe
+// do back: em UTC, uma sessão depois das 21h caía no dia seguinte.
 
 export function sequenciaDeDias(sessoes: SessaoComData[]): number {
   const dias = [...new Set(sessoes.map((s) => diaDe(s.data)))].filter(Boolean).sort().reverse();
@@ -64,9 +65,9 @@ export function sequenciaDeDias(sessoes: SessaoComData[]): number {
   return total;
 }
 
-// 'AAAA-MM-DDTHH:MM:SS...' -> 'AAAA-MM-DD'.
+// 'AAAA-MM-DDTHH:MM:SS...' -> 'AAAA-MM-DD', no calendário de Brasília.
 export function diaDe(iso: string): string {
-  const m = /^(\d{4}-\d{2}-\d{2})/.exec(String(iso));
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(emBrasilia(iso));
   return m ? m[1] : '';
 }
 

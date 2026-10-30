@@ -170,7 +170,9 @@ export class AlunosService {
 
     const linhas = await this.banco.sessionsprof.findMany({
       where: { AlunoID: alunoId, ClassID: turmaId },
-      orderBy: { Data_Sessao: 'asc' },
+      // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
+      // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
+      orderBy: [{ Data_Sessao: 'asc' }, { ID: 'asc' }],
     });
     const sessoes = linhas.map(sessaoNaForma);
     const concluidas = sessoes.filter((sessao) => sessao.concluida);

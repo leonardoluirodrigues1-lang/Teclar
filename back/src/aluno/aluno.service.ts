@@ -116,7 +116,9 @@ export class AlunoService {
         exerciciosprof: { select: { Titulo: true } },
         classesprof: { select: { NomeTurma: true } },
       },
-      orderBy: { Data_Sessao: 'desc' },
+      // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
+      // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
+      orderBy: [{ Data_Sessao: 'desc' }, { ID: 'desc' }],
     });
     const itens = linhas.map((linha) => ({
       ...sessaoNaForma(linha),

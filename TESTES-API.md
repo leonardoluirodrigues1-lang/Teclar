@@ -64,9 +64,9 @@ detalhe), `testar-solo.mjs`, `testar-aluno.mjs` e `testar-administracao.mjs`
 `back/`, com o back no ar e o seed aplicado), já com o banco v9
 (`Users.Administrador` e `xp_por_nivel` 200). O do Solo cria a própria
 conta pelo `POST /auth/cadastro` (o único jeito de ter "ainda não começou o
-Solo" sem mexer nas do seed), joga pelas rotas, com um pouco mais de 1
-segundo entre uma sessão e outra (`Data_Sessao` tem precisão de segundo), e
-apaga a conta no fim. O do aluno grava as sessões direto no banco, com
+Solo" sem mexer nas do seed), joga pelas rotas, uma sessão logo depois
+da outra (desde 29/10/2026 `Data_Sessao` guarda milissegundos, ver o item
+25 da seção 2), e apaga a conta no fim. O do aluno grava as sessões direto no banco, com
 datas no passado, pelos dias seguidos. O de administração usa
 `ana@teclar.dev` (a administradora do seed) e, como o seed não toca em
 Categorias nem em Configuracoes, apaga as categorias que criou e devolve
@@ -391,8 +391,12 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     `atribuidoEm`. O seed passou a gravar as datas fixas ao meio-dia de
     Brasília (meia-noite UTC já seria o dia anterior). O teste grava em
     hora fixa de Brasília e ganhou o caso das 22h.
-    **Pendente:** o `sequenciaDeDias` do front (`js/utils/desempenho.ts`)
-    ainda conta em UTC.
+    No front (`js/utils/formato.ts`, `emBrasilia`), a mesma regra: o dia
+    da sequência e da semana do lobby (`js/utils/desempenho.ts`) e a data e
+    a hora das tabelas (`formatarDataHora` e `formatarData`) saem no relógio
+    de Brasília. Antes, uma sessão às 22h aparecia como 01h do dia seguinte.
+    `js/utils/desempenho.check.mjs` ganhou o caso das 22h. Os testes de
+    ranking e relatórios também passaram a gravar em hora fixa de Brasília.
 
 24. **Limite de login só por IP** (29/10/2026). Com 5 tentativas por
     minuto por IP, certas ou erradas, os scripts de teste — que entram
@@ -402,3 +406,17 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     pessoa (o e-mail; no aluno, o código da turma + o nome), e o login
     certo zera a contagem (`back/src/autenticacao/tentativas-de-login.ts`).
     As outras rotas ficam no limite geral de 1000 por minuto por IP.
+
+25. **Sessões empatadas no mesmo segundo** (29/10/2026). O
+    `js/nucleo/api.back.check.mjs` falhou em "escola.aluno.historico, mais
+    recente primeiro": duas sessões gravadas uma logo depois da outra
+    tinham a mesma `Data_Sessao` (`TIMESTAMP(0)`, só até o segundo), e a
+    ordem entre elas ficava indefinida. No uso real isso acontece quando a
+    fila de sessões envia de uma vez as que guardou sem internet.
+    **Correção (feita em 29/10/2026):** `Data_Sessao` passou a
+    `TIMESTAMP(3)` em `SessionsProf` e `SessionsSolo` (no
+    `DB_Teclar_v9.sql` e no `schema.prisma`), e toda lista de sessões
+    ordena por data e, no empate, por id, no mesmo sentido (histórico do
+    aluno, sessões do aluno no relatório, desempenho do aluno, histórico e
+    estatísticas do Solo). O `testar-solo.mjs` não espera mais 1 segundo
+    entre uma sessão e outra.

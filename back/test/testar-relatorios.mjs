@@ -27,7 +27,21 @@ import { randomUUID } from 'node:crypto';
 import { BancoService } from '../dist/banco/banco.service.js';
 
 const URL = 'http://localhost:3000/api';
-const UM_DIA = 24 * 60 * 60 * 1000;
+const UMA_HORA = 60 * 60 * 1000;
+const UM_DIA = 24 * UMA_HORA;
+
+// `diasAtras` dias antes de hoje, ao meio-dia de Brasília — hoje no
+// calendário de Brasília, o dos dias seguidos (diaDe, em
+// src/sessoes/dias-seguidos.ts). Hoje é agora: o meio-dia de hoje pode
+// ainda não ter chegado. Hora fixa, e não "agora menos N dias": o
+// resultado não pode depender da hora em que o teste roda.
+function diaEmBrasilia(diasAtras) {
+  if (diasAtras === 0) {
+    return new Date();
+  }
+  const hoje = new Date(Date.now() - 3 * UMA_HORA).toISOString().slice(0, 10);
+  return new Date(Date.parse(`${hoje}T12:00:00-03:00`) - diasAtras * UM_DIA);
+}
 
 // Faz a requisição e devolve status e corpo já lido como JSON.
 async function chamar(metodo, rota, corpo, token) {
@@ -68,7 +82,7 @@ async function preparar(metodo, rota, corpo, token) {
   return r.corpo;
 }
 
-// Uma sessão gravada direto no banco, `diasAtras` dias antes de agora.
+// Uma sessão gravada direto no banco, `diasAtras` dias antes de hoje (ver diaEmBrasilia).
 function gravarSessao(aluno, exercicio, wpm, precisao, concluida, diasAtras) {
   return banco.sessionsprof.create({
     data: {
@@ -82,7 +96,7 @@ function gravarSessao(aluno, exercicio, wpm, precisao, concluida, diasAtras) {
       Erros: 5,
       Tempo_Gasto_Segundos: 40,
       Concluida: concluida,
-      Data_Sessao: new Date(Date.now() - diasAtras * UM_DIA),
+      Data_Sessao: diaEmBrasilia(diasAtras),
     },
   });
 }

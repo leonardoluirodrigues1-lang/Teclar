@@ -67,13 +67,6 @@ function sessao(licao, wpm, precisao, concluida) {
   return { exercicio_id: licao, wpm, precisao, acertos: 50, erros: 3, tempo_gasto_segundos: 90, concluida };
 }
 
-// Data_Sessao é TIMESTAMP(0), com precisão de segundo. Entre uma sessão e
-// outra o teste espera um pouco mais de 1 segundo, para cada uma ter a sua
-// data e a ordem do histórico ser a ordem em que foram jogadas.
-function esperarUmSegundo() {
-  return new Promise((resolver) => setTimeout(resolver, 1100));
-}
-
 const banco = new BancoService();
 const email = `solo-${Date.now()}@teclar.dev`;
 const cadastro = await chamar('POST', '/auth/cadastro', { nome: 'Teste Solo', email, senha: 'senha1234' });
@@ -264,7 +257,6 @@ for (const [indice, [corpo, esperado]] of JOGADAS.entries()) {
   );
   idsDasSessoes.push(id);
   respostas.push(r.corpo);
-  await esperarUmSegundo();
 }
 
 r = await chamar('GET', '/solo/campanha', null, novo);

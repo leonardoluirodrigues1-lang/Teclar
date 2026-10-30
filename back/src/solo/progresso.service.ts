@@ -146,7 +146,9 @@ export class ProgressoService {
     const campanha = await campanhaDoToken(this.banco, identidade);
     const linhas = await this.banco.sessionssolo.findMany({
       where: { CampanhaID: campanha.CampanhaID },
-      orderBy: { Data_Sessao: 'asc' },
+      // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
+      // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
+      orderBy: [{ Data_Sessao: 'asc' }, { ID: 'asc' }],
     });
     const itens = linhas.map(sessaoSoloNaForma);
     return { total: itens.length, pagina: 1, itens };
@@ -178,7 +180,9 @@ export class ProgressoService {
       where: { CampanhaID: campanha.CampanhaID },
       // O JOIN em ExerciciosSolo, para título e nível de cada lição.
       include: { exerciciossolo: { select: { Titulo: true, Nivel: true, Ordem: true } } },
-      orderBy: [{ exerciciossolo: { Ordem: 'asc' } }, { Data_Sessao: 'asc' }],
+      // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
+      // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
+      orderBy: [{ exerciciossolo: { Ordem: 'asc' } }, { Data_Sessao: 'asc' }, { ID: 'asc' }],
     });
     const sessoes = linhas.map(sessaoSoloNaForma);
     return {

@@ -126,7 +126,7 @@ model sessionsprof {
   Erros                Int?
   Tempo_Gasto_Segundos Int?
   Concluida            Boolean        @default(true)
-  Data_Sessao          DateTime?      @default(now()) @db.Timestamp(0)
+  Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
   alunos               alunos         @relation(fields: [AlunoID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_1")
   exerciciosprof       exerciciosprof @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_2")
   classesprof          classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_3")
@@ -147,7 +147,7 @@ model sessionssolo {
   Tempo_Gasto_Segundos Int?
   Concluida            Boolean        @default(true)
   XPGanho              Int            @default(0)
-  Data_Sessao          DateTime?      @default(now()) @db.Timestamp(0)
+  Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
   campanhassolo        campanhassolo  @relation(fields: [CampanhaID], references: [CampanhaID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_1")
   exerciciossolo       exerciciossolo @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_2")
 

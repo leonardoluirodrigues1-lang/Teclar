@@ -168,7 +168,7 @@ CREATE TABLE SessionsSolo (
     Tempo_Gasto_Segundos INT,
     Concluida BOOLEAN NOT NULL DEFAULT TRUE,   -- TRUE = terminou o texto | FALSE = estourou o tempo
     XPGanho INT NOT NULL DEFAULT 0,            -- quanto essa sessao rendeu
-    Data_Sessao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Data_Sessao TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),   -- milissegundos: a fila envia varias sessoes no mesmo segundo
     FOREIGN KEY (CampanhaID) REFERENCES CampanhasSolo(CampanhaID) ON DELETE CASCADE,
     FOREIGN KEY (ExerciseID) REFERENCES ExerciciosSolo(ExerciseID) ON DELETE CASCADE
 );
@@ -264,7 +264,7 @@ CREATE TABLE SessionsProf (
     Erros INT,
     Tempo_Gasto_Segundos INT,
     Concluida BOOLEAN NOT NULL DEFAULT TRUE,   -- TRUE = terminou o texto | FALSE = estourou o tempo
-    Data_Sessao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Data_Sessao TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),   -- milissegundos: a fila envia varias sessoes no mesmo segundo
     CONSTRAINT fk_sessao_aluno FOREIGN KEY (AlunoID)
         REFERENCES Alunos(ID) ON DELETE CASCADE,
     FOREIGN KEY (ExerciseID) REFERENCES ExerciciosProf(ExerciseID) ON DELETE CASCADE,

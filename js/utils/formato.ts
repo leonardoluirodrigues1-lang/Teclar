@@ -29,19 +29,36 @@ export function formatarDecimal(valor: number): string {
   return String(valor).replace('.', ',');
 }
 
-// 'AAAA-MM-DDTHH:MM...' -> 'DD/MM/AAAA HH:MM', sem Date() no meio: o app
-// mostra o horário como o registro o gravou, sem converter fuso.
+// Os usuários estão no Brasil, e o back manda os horários em UTC ("...Z").
+// Sem converter, uma sessão às 22h aparecia como 01h do dia seguinte. É a
+// mesma regra do diaDe do back (back/src/sessoes/dias-seguidos.ts): UTC-3
+// fixo, porque o Brasil não tem horário de verão desde 2019.
+const FUSO_DE_BRASILIA_EM_MILISSEGUNDOS = -3 * 60 * 60 * 1000;
+
+// Horário com fuso -> o mesmo instante no relógio de Brasília, sem fuso
+// ('2026-10-30T01:00:00.000Z' -> '2026-10-29T22:00:00'). Sai sem fuso de
+// propósito: passar de novo por aqui não converte duas vezes. Data sem hora
+// ('2026-10-03') e horário sem fuso já são o dia de quem vê: voltam iguais.
+export function emBrasilia(iso: string): string {
+  const texto = String(iso);
+  if (!/T\d{2}:\d{2}.*(Z|[+-]\d{2}:?\d{2})$/.test(texto)) return texto;
+  const instante = Date.parse(texto);
+  if (Number.isNaN(instante)) return texto;
+  return new Date(instante + FUSO_DE_BRASILIA_EM_MILISSEGUNDOS).toISOString().slice(0, 19);
+}
+
+// 'AAAA-MM-DDTHH:MM...' -> 'DD/MM/AAAA HH:MM', no relógio de Brasília.
 export function formatarDataHora(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(iso));
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(emBrasilia(iso));
   if (!m) return String(iso);
   const [, ano, mes, dia, hora, minuto] = m;
   return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
 }
 
-// 'AAAA-MM-DD...' -> 'DD/MM/AAAA'. Sem data, "—".
+// 'AAAA-MM-DD...' -> 'DD/MM/AAAA', no calendário de Brasília. Sem data, "—".
 export function formatarData(iso: string | null | undefined): string {
   if (iso == null || iso === '') return '—';
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(emBrasilia(iso));
   return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
 }
 

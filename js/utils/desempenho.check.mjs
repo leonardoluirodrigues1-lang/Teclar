@@ -4,7 +4,8 @@
 //
 // Roda no .js gerado pelo tsc (npm run build), não no .ts.
 import assert from 'node:assert/strict';
-import { semanaDeDias, sequenciaDeDias } from './desempenho.js';
+import { diaDe, semanaDeDias, sequenciaDeDias } from './desempenho.js';
+import { emBrasilia, formatarData, formatarDataHora } from './formato.js';
 
 const sessao = (data) => ({ data, wpm: 40 });
 
@@ -76,6 +77,32 @@ const QUARTA = '2026-09-23';
   assert.equal(sequenciaDeDias([sessao('2020-01-01T10:00:00Z')]), 0,
     'sequência velha já terminou');
   assert.equal(sequenciaDeDias([]), 0, 'sem sessão, sequência 0 -> "Comece hoje."');
+}
+
+{
+  // O dia é o do calendário de Brasília (UTC-3), como no back: 22h30 de
+  // segunda em Brasília é 01h30Z de terça, e tem de acender a SEGUNDA.
+  const semana = semanaDeDias([sessao('2026-09-22T01:30:00Z')], QUARTA);
+  assert.deepEqual(semana.map((d) => d.treinou), [true, false, false, false, false, false, false],
+    'sessão às 22h30 de Brasília é do mesmo dia em Brasília');
+  assert.equal(diaDe('2026-09-22T01:30:00.000Z'), '2026-09-21');
+  assert.equal(diaDe('2026-09-22T03:00:00Z'), '2026-09-22', 'meia-noite de Brasília já é o dia novo');
+  assert.equal(diaDe('2026-09-22'), '2026-09-22', 'data sem hora não muda de dia');
+  assert.equal(diaDe('2026-09-22T01:30:00'), '2026-09-22', 'horário sem fuso fica como veio');
+  assert.equal(diaDe('2026-09-22T01:30:00-03:00'), '2026-09-22', 'horário já em -03:00 não muda');
+  assert.equal(emBrasilia(emBrasilia('2026-09-22T01:30:00Z')), '2026-09-21T22:30:00', 'converter duas vezes não desconta 6h');
+  assert.equal(formatarDataHora('2026-09-22T01:30:00.000Z'), '21/09/2026 22:30', 'a tabela mostra a hora de Brasília');
+  assert.equal(formatarData('2026-09-22T01:30:00.000Z'), '21/09/2026');
+  assert.equal(formatarData('2026-02-01'), '01/02/2026', 'só a data, como o back manda, fica igual');
+
+  // Sequência: 22h de anteontem e meio-dia de ontem em Brasília são dois
+  // dias seguidos; em UTC cairiam os dois em ontem e dariam 1.
+  const agora = Date.now();
+  const hojeEmBrasilia = new Date(agora - 3 * 3600000).toISOString().slice(0, 10);
+  const meiaNoite = Date.parse(`${hojeEmBrasilia}T00:00:00-03:00`);
+  const emBrasiliaHa = (dias, hora) => new Date(meiaNoite - dias * 86400000 + hora * 3600000).toISOString();
+  assert.equal(sequenciaDeDias([sessao(emBrasiliaHa(2, 22)), sessao(emBrasiliaHa(1, 12))]), 2,
+    'sequência no calendário de Brasília');
 }
 
 console.log('desempenho.check: ok');
