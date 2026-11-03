@@ -1,4 +1,3 @@
-// atribuicoes.controller.ts
 // As rotas HTTP de /turmas/:turmaId/atribuicoes. Só recebe e devolve: a
 // regra está no AtribuicoesService.
 //

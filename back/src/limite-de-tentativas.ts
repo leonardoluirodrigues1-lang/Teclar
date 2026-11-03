@@ -1,4 +1,3 @@
-// limite-de-tentativas.ts
 // Limite geral de requisições por IP (@nestjs/throttler), aplicado a todas
 // as rotas pelo AppModule. As senhas erradas do login têm um contador
 // próprio, mais apertado (autenticacao/tentativas-de-login.ts).

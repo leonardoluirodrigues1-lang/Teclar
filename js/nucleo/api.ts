@@ -1,4 +1,3 @@
-// api.ts
 // Todas as chamadas ao back passam por aqui. Nenhuma tela usa fetch direto.
 // Enquanto CONFIG.MOCK for true, nada de rede sai daqui: tudo é respondido
 // por ./mocks.js.
@@ -56,9 +55,7 @@ import type {
   Usuario,
 } from './tipos.js';
 
-// ============================================================================
 // 1. ErroApi
-// ============================================================================
 
 // Erro de qualquer chamada à API. A tela precisa do status HTTP para decidir
 // o que fazer: 401 -> mandar para o login; 403 -> mostrar "sem permissão";
@@ -89,9 +86,26 @@ export class ErroApi extends Error implements ErroDaApi {
   }
 }
 
-// ============================================================================
+// A frase da tela para uma falha da API. Decide pelo status, nunca pelo texto
+// que o servidor mandou; a frase de cada caso é da tela que chamou.
+export function mensagemDaFalha(
+  excecao: unknown,
+  mensagens: { CONEXAO: string; PERMISSAO: string; GENERICA: string },
+): string {
+  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
+  // ErroApi, mas não é instância dele.
+  const erro = excecao as ErroDaApi | null | undefined;
+  if (erro?.name !== 'ErroApi') {
+    console.error(excecao);
+    return mensagens.GENERICA;
+  }
+  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
+  if (erro.status === 0) return mensagens.CONEXAO;
+  if (erro.status === 403) return mensagens.PERMISSAO;
+  return mensagens.GENERICA;
+}
+
 // 2. Sessão expirada — 401 em qualquer chamada do app
-// ============================================================================
 // Token vencido, revogado ou apagado no back: a sessão local não vale mais
 // nada. Vale para o app inteiro, não só para a tela de login — qualquer
 // chamada pode ser a primeira a descobrir que o token morreu.
@@ -112,9 +126,7 @@ function expirarSessao(): void {
   window.location.replace(`${ROTA_LOGIN}?expirou=1`);
 }
 
-// ============================================================================
 // 3. req — o único ponto que fala fetch
-// ============================================================================
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -201,9 +213,7 @@ const put = <T = unknown>(rota: string, corpo?: unknown) => req<T>('PUT', rota, 
 const patch = <T = unknown>(rota: string, corpo?: unknown) => req<T>('PATCH', rota, corpo);
 const del = <T = null>(rota: string) => req<T>('DELETE', rota);
 
-// ============================================================================
 // 4. montarQuery — query string a partir de um objeto de filtros
-// ============================================================================
 
 // Ignora undefined, null e string vazia, para não sujar a URL com
 // "?pagina=&status=". Devolve '' quando não sobra nada.
@@ -221,9 +231,7 @@ function montarQuery(filtros?: Filtros | null): string {
   return `?${parametros.toString()}`;
 }
 
-// ============================================================================
 // 5. api — chamadas organizadas por grupo
-// ============================================================================
 
 export const api = {
   auth: {
@@ -373,9 +381,7 @@ export const api = {
   },
 };
 
-// ============================================================================
 // 6. filaSessoes — resultado de treino não se perde se a rede cair
-// ============================================================================
 // O cálculo (PPM, precisão, erros) é todo feito no front, então a tela de
 // resultado mostra o número de qualquer jeito. O que pode falhar é só a
 // gravação no back — e para isso existe esta fila no localStorage.

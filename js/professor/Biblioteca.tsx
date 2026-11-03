@@ -33,7 +33,7 @@ import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
-import { contagem } from '../utils/formato.js';
+import { contagem, DIFICULDADES, normalizar, pesoDificuldade, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -49,24 +49,6 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// Rótulo de cada valor do ENUM Dificuldade, na ordem em que o seletor e a
-// ordenação usam. A ordem importa: ordenar por dificuldade é ordenar por
-// esta posição, não pelo nome ("dificil" < "facil" em ordem alfabética).
-const DIFICULDADES: { valor: Dificuldade; rotulo: string }[] = [
-  { valor: 'facil', rotulo: 'Fácil' },
-  { valor: 'medio', rotulo: 'Médio' },
-  { valor: 'dificil', rotulo: 'Difícil' },
-];
-
-function rotuloDificuldade(valor: string | null | undefined): string {
-  return DIFICULDADES.find((d) => d.valor === valor)?.rotulo ?? '—';
-}
-
-function pesoDificuldade(valor: string | null | undefined): number {
-  const i = DIFICULDADES.findIndex((d) => d.valor === valor);
-  return i < 0 ? DIFICULDADES.length : i;
-}
-
 // A prévia abre o exercício no treino. É o &previa=1 que manda: com ele,
 // o Treino.tsx não grava sessão nenhuma (sessão de conta sem o parâmetro
 // é treino do Solo, e grava).
@@ -74,9 +56,7 @@ function urlDaPrevia(id: string): string {
   return `../treino/treino.html?${new URLSearchParams({ exercicio: id, previa: '1' })}`;
 }
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -94,9 +74,7 @@ type ConfigModal =
 
 let proximaChave = 0;
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Biblioteca() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -382,9 +360,7 @@ function Biblioteca() {
   );
 }
 
-// ============================================================================
 // Formatação, filtro e ordenação
-// ============================================================================
 
 // Tamanho do texto contado no front: não existe coluna para isso no banco.
 function tamanhoDoTexto(ex: Exercicio): number {
@@ -409,15 +385,6 @@ function filtrar(lista: Exercicio[], termo: string, dificuldade: FiltroDificulda
   );
 }
 
-// Sem acento e em minúsculas dos dois lados — mesma receita da busca de
-// Turmas.tsx: procurar "acentuacao" tem de achar "Acentuação em foco".
-function normalizar(texto: string | null | undefined): string {
-  return String(texto ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
-}
-
 // O que cada coluna vale para o ordenar de utils/ordenacao.ts. Título é
 // texto (o ordenar compara em pt-BR, sem pesar acento nem caixa); a
 // dificuldade entra pelo peso dela (fácil < média < difícil), não pelo
@@ -429,9 +396,7 @@ function valorOrdenavelExercicio(ex: Exercicio, campo: string): string | number 
   return null;
 }
 
-// ============================================================================
 // Modal de criar/editar
-// ============================================================================
 
 interface PropsModalExercicio {
   /** null = criar. */
@@ -669,10 +634,8 @@ function ModalExercicio({ exercicio, aoConcluir, aoFechar }: PropsModalExercicio
   );
 }
 
-// ============================================================================
 // Modal de arquivar (a chamada continua sendo api.exercicios.excluir, o
 // DELETE /exercicios/:id)
-// ============================================================================
 // O DELETE arquiva: o exercício some da biblioteca e de todas as turmas,
 // mas as sessões que os alunos já fizeram nele ficam. O texto muda com o
 // atribuidoA; contagem desconhecida (o back não mandou) recebe o aviso das
@@ -750,10 +713,8 @@ function ModalExcluir({ exercicio, aoConcluir, aoFechar }: PropsModalExcluir) {
   );
 }
 
-// ============================================================================
 // Erros — mesmo critério de Turmas.tsx: decide pelo status, nunca pelo
 // texto que o servidor mandou.
-// ============================================================================
 
 function mensagemDaFalha(excecao: unknown): string {
   // Duck typing, não instanceof: o erro do mock tem a mesma forma do
@@ -772,9 +733,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de professor antes de montar. Devolveu null, redirecionou: a
 // tela para aqui e nada mais roda.

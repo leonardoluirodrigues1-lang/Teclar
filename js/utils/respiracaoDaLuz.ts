@@ -1,4 +1,3 @@
-// respiracaoDaLuz.ts
 // Desliga a respiração da luz do horizonte (css/base/movimento.css, seção
 // 6) em máquina que não dá conta dela. A respiração é acabamento: se ela
 // custar quadro, é a primeira coisa a sair.

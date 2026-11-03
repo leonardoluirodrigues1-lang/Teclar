@@ -1,4 +1,3 @@
-// ModalReact.tsx
 // O modal de vidro em React (substituiu o antigo modal.ts em JS puro,
 // já apagado). Mesmo markup,
 // mesmas classes de css/componentes/modais.css e as mesmas três coisas que

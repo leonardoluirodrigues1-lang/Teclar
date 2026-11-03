@@ -1,4 +1,3 @@
-// tipos.ts
 // Interfaces do domínio: o contrato entre o front e o back, extraído do
 // que ./mocks.ts devolve hoje. Nenhum campo aqui foi inventado ou
 // renomeado — se um nome parece estranho, é porque o back é assim.
@@ -10,9 +9,7 @@
 // Este arquivo só tem tipos: o tipos.js gerado é vazio e ninguém o importa
 // em tempo de execução (os .ts usam `import type`).
 
-// ============================================================================
 // 1. Enumerações do banco
-// ============================================================================
 
 /** Rótulos exatos do ENUM Dificuldade. */
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
@@ -36,9 +33,7 @@ export type TipoSessao = 'conta' | 'aluno';
  */
 export type Modo = 'solo' | 'professor';
 
-// ============================================================================
 // 2. Usuário e sessão de login
-// ============================================================================
 
 /** A turma do aluno, como aparece dentro do usuário (conveniência do login). */
 export interface TurmaDoUsuario {
@@ -103,9 +98,7 @@ export interface DadosCadastro {
   senha: string;
 }
 
-// ============================================================================
 // 3. Erro da API
-// ============================================================================
 
 /**
  * A forma de todo erro que sai do api.ts — tanto o ErroApi real quanto o
@@ -123,9 +116,7 @@ export interface ErroDaApi extends Error {
   readonly ehRede: boolean;
 }
 
-// ============================================================================
 // 4. Envelopes e filtros
-// ============================================================================
 
 /** Listagem paginada: { total, pagina, itens }. */
 export interface Paginado<T> {
@@ -138,9 +129,7 @@ export interface Paginado<T> {
  *  undefined, null e '' são ignorados. */
 export type Filtros = Record<string, string | number | boolean | null | undefined>;
 
-// ============================================================================
 // 5. Mundo SOLO
-// ============================================================================
 
 /**
  * A campanha Solo, EXATAMENTE como a tabela CampanhasSolo:
@@ -298,9 +287,7 @@ export interface EstatisticasSolo {
   porLicao: DesempenhoLicaoSolo[];
 }
 
-// ============================================================================
 // 6. Mundo ESCOLA — turmas, alunos, exercícios, atribuições
-// ============================================================================
 
 export interface Turma {
   id: string;
@@ -437,9 +424,7 @@ export interface DesempenhoTurma {
   precisaoMedia: number | null;
 }
 
-// ============================================================================
 // 7. Sessões de treino (mundo ESCOLA)
-// ============================================================================
 
 /**
  * Pacote que a tela de treino envia ao gravar uma sessão: o que o motor
@@ -507,9 +492,7 @@ export interface DesempenhoAluno {
   sessoes: Sessao[];
 }
 
-// ============================================================================
 // 8. Admin
-// ============================================================================
 
 /** As do seed têm id numérico; as criadas pelo mock recebem id string. */
 export interface Categoria {
@@ -526,9 +509,7 @@ export interface Parametros {
   xpPorNivel: number;
 }
 
-// ============================================================================
 // 9. Fila de sessões (api.ts → filaSessoes)
-// ============================================================================
 
 /** Um item guardado no localStorage à espera de reenvio. */
 export interface ItemFila {
@@ -548,9 +529,7 @@ export interface ResultadoSincronizacao {
   restantes: number;
 }
 
-// ============================================================================
 // 10. Relatórios do professor (pages/professor/relatorios.html)
-// ============================================================================
 // Tudo aqui é AGREGADO PELO BACK, em SessionsProf com JOIN (Alunos
 // para saber quem é da turma, AtribuicoesProf para saber o que foi
 // atribuído, ExerciciosProf para o título). O front não calcula média de
@@ -638,9 +617,7 @@ export interface SessaoDoAluno extends Sessao {
   tituloExercicio: string | null;
 }
 
-// ============================================================================
 // 11. Histórico do aluno (pages/aluno/historico.html)
-// ============================================================================
 // A tela em que o ALUNO vê o próprio desempenho. Nada aqui fala de turma
 // como coletivo: não existe média da turma, posição, nem comparação com
 // colega nenhum — nem como campo opcional. O que o aluno não pode ver não
@@ -695,9 +672,7 @@ export interface ResumoDoAluno extends IndicadoresEscola {
   diasSeguidos: number;
 }
 
-// ============================================================================
 // 12. As salas do aluno (pages/aluno/dashboard.html e sala.html)
-// ============================================================================
 // "Sala" é a turma vista pelo aluno. Todas as rotas daqui saem do TOKEN,
 // como as da seção 11: nenhuma recebe id de aluno (ver o grupo
 // escola.aluno em api.ts).

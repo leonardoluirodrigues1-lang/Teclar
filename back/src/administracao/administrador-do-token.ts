@@ -1,4 +1,3 @@
-// administrador-do-token.ts
 // "Quem pede é administrador?": a pergunta das quatro rotas de escrita da
 // Administração (POST, PATCH e DELETE /categorias e PUT /parametros).
 //

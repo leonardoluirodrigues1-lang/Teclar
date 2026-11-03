@@ -1,4 +1,3 @@
-// turmas.controller.ts
 // As rotas HTTP do grupo "Turmas (professor)". Só recebe e devolve: a
 // regra está no TurmasService.
 //

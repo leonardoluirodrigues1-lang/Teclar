@@ -38,7 +38,7 @@ import {
   normalizarCodigo,
 } from '../utils/validacao.js';
 import { mensagemDoErro, MENSAGENS } from './comum.js';
-import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
+import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 type Modo = 'conta' | 'aluno';
@@ -244,28 +244,7 @@ function Login() {
         <p className="descricao">Use o e-mail e a senha da sua conta.</p>
 
         <form className="acoes formulario" id="form-conta" noValidate onSubmit={aoEnviarConta}>
-          <div className="campo">
-            <label className="rotulo" htmlFor="campo-email">
-              E-mail
-            </label>
-            <input
-              type="email"
-              name="email"
-              id="campo-email"
-              autoComplete="email"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="email"
-              maxLength={150}
-              aria-describedby="erro-email"
-              required
-              ref={email}
-              onBlur={() => campos.aoSair('email')}
-              {...atributosDeErro(campos.erros.email)}
-            />
-            <ErroCampo id="erro-email" erro={campos.erros.email} />
-          </div>
+          <CampoEmail inputRef={email} erro={campos.erros.email} onBlur={() => campos.aoSair('email')} />
 
           <div className="campo">
             <label className="rotulo" htmlFor="campo-senha">
@@ -406,9 +385,7 @@ function Login() {
   );
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Quem já está logado não deveria ver esta tela — vai direto para a casa
 // da sessão. Quando redireciona, nada abaixo roda.

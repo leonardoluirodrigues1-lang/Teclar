@@ -1,4 +1,3 @@
-// relatorios.module.ts
 // Grupo "Relatórios (professor)" do CONTRATO-API.md. Pronto inteiro:
 //   GET /turmas/:id/relatorio, GET /turmas/:id/relatorio/alunos,
 //   GET /turmas/:id/relatorio/exercicios,

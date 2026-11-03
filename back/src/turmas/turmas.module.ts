@@ -1,4 +1,3 @@
-// turmas.module.ts
 // Grupo "Turmas (professor)" do CONTRATO-API.md. Pronto inteiro:
 //   GET /turmas (e ?ativa=false), POST /turmas, GET /turmas/:id,
 //   PATCH /turmas/:id (renomear, trocarCapa, arquivar, desarquivar) e

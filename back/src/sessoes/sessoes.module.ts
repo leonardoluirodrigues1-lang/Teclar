@@ -1,4 +1,3 @@
-// sessoes.module.ts
 // Grupo "Sessões" do CONTRATO-API.md. Pronto inteiro: POST /sessoes e
 // GET /sessoes/:id.
 //

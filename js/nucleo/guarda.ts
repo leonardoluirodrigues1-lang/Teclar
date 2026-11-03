@@ -1,4 +1,3 @@
-// guarda.ts
 // Impede que alguém chegue numa tela digitando a URL direto.
 //
 // ATENÇÃO: isto é conveniência de interface, NÃO segurança. Quem protege de

@@ -1,4 +1,3 @@
-// Formulario.tsx
 // As peças de formulário que Login.tsx e Cadastro.tsx repetem — o que no
 // comum.js era mostrarErroCampo, linkErro, ocupar e ligarMostrarSenha.
 // Aqui elas têm a forma que fazem sentido em React:
@@ -26,9 +25,7 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import type { Validacao } from '../utils/validacao.js';
 
-// ============================================================================
 // Erro por campo
-// ============================================================================
 
 export interface ErroDeCampo {
   mensagem: string;
@@ -110,9 +107,41 @@ export function ErroCampo({ id, erro }: PropsErroCampo) {
   );
 }
 
-// ============================================================================
+interface PropsCampoEmail {
+  erro: ErroDeCampo | null | undefined;
+  inputRef: RefObject<HTMLInputElement>;
+  onBlur: () => void;
+}
+
+/** O campo de e-mail, igual no login e no cadastro. */
+export function CampoEmail({ erro, inputRef, onBlur }: PropsCampoEmail) {
+  return (
+    <div className="campo">
+      <label className="rotulo" htmlFor="campo-email">
+        E-mail
+      </label>
+      <input
+        type="email"
+        name="email"
+        id="campo-email"
+        autoComplete="email"
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
+        inputMode="email"
+        maxLength={150}
+        aria-describedby="erro-email"
+        required
+        ref={inputRef}
+        onBlur={onBlur}
+        {...atributosDeErro(erro)}
+      />
+      <ErroCampo id="erro-email" erro={erro} />
+    </div>
+  );
+}
+
 // Senha com mostrar/esconder
-// ============================================================================
 
 interface PropsCampoSenha {
   id: string;

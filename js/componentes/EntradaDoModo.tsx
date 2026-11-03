@@ -1,4 +1,3 @@
-// EntradaDoModo.tsx
 // As peças da tela de ENTRADA dos modos de escola: a de turmas do
 // Professor (js/professor/Turmas.tsx) e a de salas do Aluno
 // (js/aluno/Dashboard.tsx). Nasceram dentro de Turmas.tsx; saíram de lá
@@ -20,10 +19,9 @@ import { sessao } from '../nucleo/sessao.js';
 import { rng } from '../landing/letras.js';
 import { MenuDaConta, type SecoesNav } from './Nav.js';
 import { iniciarBuracoNegro } from './shaderBuracoNegro.js';
+import { querMenosMovimento } from '../utils/movimento.js';
 
-// ============================================================================
 // Conta fixa no canto
-// ============================================================================
 
 interface PropsContaFixa {
   secoes: SecoesNav;
@@ -45,9 +43,7 @@ export function ContaFixa({ secoes, papel }: PropsContaFixa) {
   );
 }
 
-// ============================================================================
 // Abertura
-// ============================================================================
 
 // O horizonte é o buraco negro da landing, posto dentro da seção (ver
 // .abertura em escola.css): ao rolar, vai embora junto com ela. A marca se
@@ -81,11 +77,6 @@ export function Abertura() {
 //     (js/utils/respiracaoDaLuz.ts) põe .luz-parada no <html>. Daí em
 //     diante fica a imagem, e a animação não volta até a próxima página.
 const QUADROS_DA_ABERTURA = 30;
-
-function querMenosMovimento(): boolean {
-  if (document.documentElement.classList.contains('movimento-reduzido')) return true;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 function maquinaLenta(): boolean {
   return document.documentElement.classList.contains('luz-parada');
@@ -128,9 +119,7 @@ function Horizonte() {
   return <canvas className="horizonte" ref={canvas} aria-hidden="true"></canvas>;
 }
 
-// ============================================================================
 // Funções — as três teclas grandes
-// ============================================================================
 
 export function Funcoes({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
@@ -160,9 +149,7 @@ export function Funcao({ href, nome, texto, sinal }: PropsFuncao) {
   );
 }
 
-// ============================================================================
 // Cartão da turma
-// ============================================================================
 
 interface PropsCartao {
   id: string;
@@ -219,9 +206,7 @@ export function CartaoDeTurma({ id, nome, href, linha, capaSemente, aposNome, cl
   );
 }
 
-// ============================================================================
 // Capa gerada — arcos de luz sobre preto
-// ============================================================================
 
 // A semente gravada pelo "Editar capa" do professor; sem ela, uma tirada
 // do id. Assim toda turma tem um desenho próprio desde que nasce, o mesmo

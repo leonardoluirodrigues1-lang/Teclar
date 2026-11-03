@@ -1,4 +1,3 @@
-// movimento.ts
 // O lado JavaScript das regras de css/base/movimento.css. Quem usa:
 //   · ModalReact.tsx e toast.ts: duracaoDoToken, para esperar a animação
 //     de saída terminar antes de tirar o elemento da tela;
@@ -25,9 +24,7 @@ export function duracaoDoToken(nome: string, padraoMs: number): number {
   return milissegundos;
 }
 
-// ============================================================================
 // Saída ao navegar
-// ============================================================================
 
 const CLASSE_SAINDO = 'saindo-da-pagina';
 
@@ -127,7 +124,7 @@ function levaParaOutraPaginaDoProjeto(link: HTMLAnchorElement): boolean {
 
 // O sistema pediu, ou a pessoa pediu em Configurações do Solo (a classe
 // que guarda.aplicarMundo põe no <html>).
-function querMenosMovimento(): boolean {
+export function querMenosMovimento(): boolean {
   if (document.documentElement.classList.contains('movimento-reduzido')) return true;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

@@ -1,4 +1,3 @@
-// sessao.ts
 // Guarda quem está logado. É o ÚNICO arquivo do projeto que lê ou escreve
 // as chaves de autenticação (token e usuário). Todo o resto do front
 // pergunta o estado da sessão através deste módulo.
@@ -313,9 +312,7 @@ export const sessao = {
   atualizarUsuario,
 };
 
-// ============================================================================
 // ATALHO TEMPORARIO DE DESENVOLVIMENTO, REMOVER ANTES DA ENTREGA.
-// ============================================================================
 // Abre as telas do aluno sem passar pelo login, só para ver o visual:
 //   http://127.0.0.1:5500/pages/aluno/dashboard.html?dev=aluno
 // Com ?dev=aluno na URL, grava a sessão do aluno de teste (al-43, ver
@@ -342,6 +339,4 @@ if (atalhoDeDesenvolvimentoLigado()) {
   // prefixoToken em mocks.ts); o resto pode ser qualquer coisa.
   entrar({ token: 'mock-aluno-al-43-token-dev', usuario: USUARIOS_DO_MOCK.aluno });
 }
-// ============================================================================
 // FIM DO ATALHO TEMPORARIO DE DESENVOLVIMENTO.
-// ============================================================================

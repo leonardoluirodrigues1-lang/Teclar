@@ -186,9 +186,7 @@ function TelaModo() {
   );
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Só sessão de conta escolhe modo. Sem sessão vai para o login; aluno vai
 // para o dashboard dele. Quando redireciona, nada abaixo roda.

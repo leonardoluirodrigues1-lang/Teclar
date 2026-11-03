@@ -1,4 +1,3 @@
-// aluno.controller.ts
 // As rotas HTTP do grupo "Aluno" (o próprio aluno logado). Só recebe e
 // devolve: a regra está no AlunoService.
 //

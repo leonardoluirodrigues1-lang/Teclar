@@ -1,7 +1,6 @@
-// IconesDoTutorial.tsx
-// Os ícones de item que os DOIS tutoriais usam (js/solo/Tutorial.tsx e
-// js/professor/Tutorial.tsx), para não existirem duas cópias do mesmo
-// desenho. Ícone que só um tutorial usa mora no arquivo dele.
+// Os ícones usados em mais de um arquivo (os dois tutoriais, o Caminho e a
+// MolduraSolo), para não existirem duas cópias do mesmo desenho. Ícone que
+// só uma tela usa mora no arquivo dela.
 //
 // SVG traçado em linha, escrito à mão. A cor e a espessura do traço vêm de
 // .tutorial-icone svg, em css/componentes/tutorial.css.
@@ -11,6 +10,14 @@ export function IconeTeclado() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="2" y="6" width="20" height="12" rx="2" />
       <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+    </svg>
+  );
+}
+
+export function IconeSair() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
     </svg>
   );
 }

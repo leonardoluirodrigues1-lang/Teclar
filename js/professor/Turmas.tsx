@@ -31,6 +31,7 @@ import { sessao } from '../nucleo/sessao.js';
 import type { ErroDaApi, Turma } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
+import { normalizar } from '../utils/formato.js';
 import { validarNomeTurma } from '../utils/validacao.js';
 import { SECOES_PROFESSOR } from '../componentes/Nav.js';
 import {
@@ -69,9 +70,7 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 // `turmas` é a lista como o back mandou. Três estados excludentes, e não
 // três booleanos soltos.
@@ -90,9 +89,7 @@ type ModalAberto =
 
 let proximaChave = 0;
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Turmas() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -450,9 +447,7 @@ function Turmas() {
   );
 }
 
-// ============================================================================
 // Funções
-// ============================================================================
 
 // As três teclas do professor. A de Turmas leva para a grade logo abaixo,
 // na mesma página.
@@ -478,9 +473,7 @@ function FuncoesDoProfessor() {
   );
 }
 
-// ============================================================================
 // Cartão
-// ============================================================================
 
 interface PropsCartao {
   turma: Turma;
@@ -636,9 +629,7 @@ function contagem(valor: unknown): string {
   return Number.isFinite(valor) ? String(valor) : '—';
 }
 
-// ============================================================================
 // Cartão arquivado
-// ============================================================================
 
 // Apagado de propósito (ver .cartao-arquivado em escola.css): está ali para
 // ser desarquivado, não para ser usado. Por isso não é link, não tem "⋯" e
@@ -694,9 +685,7 @@ function CartaoArquivado({
   );
 }
 
-// ============================================================================
 // Capa — o desenho é o CapaDaTurma de EntradaDoModo.tsx
-// ============================================================================
 
 // Uma semente nova para o "Editar capa". Inteira e positiva: cabe no INT
 // da coluna CapaSemente.
@@ -704,9 +693,7 @@ function sortearSemente(): number {
   return Math.floor(Math.random() * 1000000);
 }
 
-// ============================================================================
 // Busca — filtra no cliente, sem ida ao servidor
-// ============================================================================
 
 function filtrar(lista: Turma[], termo: string): Turma[] {
   if (!termo) return lista;
@@ -714,18 +701,7 @@ function filtrar(lista: Turma[], termo: string): Turma[] {
   return lista.filter((turma) => normalizar(turma.nome).includes(alvo));
 }
 
-// Sem acento e em minúsculas dos dois lados: procurar "extensao" tem de
-// achar "Projeto de Extensão".
-function normalizar(texto: string | null | undefined): string {
-  return String(texto ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
-}
-
-// ============================================================================
 // Modal de nome — criar e renomear
-// ============================================================================
 
 interface PropsModalNome {
   eyebrow: string;
@@ -845,9 +821,7 @@ function ModalNome({
   );
 }
 
-// ============================================================================
 // Modal de capa — sorteia outro desenho e mostra antes de salvar
-// ============================================================================
 
 interface PropsModalCapa {
   turma: Turma;
@@ -918,9 +892,7 @@ function ModalCapa({ turma, aoConcluir, aoFechar }: PropsModalCapa) {
   );
 }
 
-// ============================================================================
 // Modal de arquivar — confirmação simples
-// ============================================================================
 
 interface PropsModalArquivar {
   turma: Turma;
@@ -980,9 +952,7 @@ function ModalArquivar({ turma, aoConcluir, aoFechar }: PropsModalArquivar) {
   );
 }
 
-// ============================================================================
 // Erros
-// ============================================================================
 
 // A tela decide pelo status, nunca pelo texto do servidor: mensagem de
 // back muda, vem em inglês, vem com detalhe técnico. O status também
@@ -1005,9 +975,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // O host dos toasts fica fora da raiz do React (ver turmas.html), e o
 // toast.js continua cuidando dele como nas telas em JS.

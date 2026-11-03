@@ -1,4 +1,3 @@
-// BarraXp.tsx
 // A barra de XP do mundo Solo: quanto do nível atual já foi percorrido e
 // quanto falta para o próximo. Nasceu em js/solo/Lobby.tsx e saiu de lá
 // quando a tela de estatísticas (js/solo/Estatisticas.tsx) precisou da

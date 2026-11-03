@@ -56,9 +56,7 @@ const MENSAGENS = {
 
 const salaId = new URLSearchParams(window.location.search).get('id');
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -149,9 +147,7 @@ function participantes(total: number): string {
   return total === 1 ? '1 participante' : `${total} participantes`;
 }
 
-// ============================================================================
 // Aba Exercícios — a trilha com o estado DELE
-// ============================================================================
 
 function AbaExercicios({ sala }: { sala: SalaDetalhe }) {
   if (sala.lista.length === 0) {
@@ -190,9 +186,7 @@ function pedraDoAluno(ex: ExercicioDaSala, indice: number, indiceDoProximo: numb
   return { id: ex.id, titulo: ex.titulo, estado: 'depois', legenda: 'a seguir', href };
 }
 
-// ============================================================================
 // Aba Participantes — o ranking que o back manda pronto
-// ============================================================================
 
 type CargaRanking =
   | { estado: 'carregando' }
@@ -286,9 +280,7 @@ const COLUNAS_DO_RANKING: ColunaTabela<LinhaDoRanking>[] = [
   },
 ];
 
-// ============================================================================
 // Aba Relatório — o relatório individual
-// ============================================================================
 
 type CargaRelatorio =
   | { estado: 'carregando' }
@@ -377,9 +369,7 @@ function linhasDoCsv(nomeDaSala: string, d: DesempenhoNaTurma): (string | number
   ];
 }
 
-// ============================================================================
 // Erros — decide pelo status, nunca pelo texto que o servidor mandou
-// ============================================================================
 
 // Duck typing, não instanceof: o erro do mock tem a forma do ErroApi do
 // api.ts, mas não é instância dele.
@@ -397,9 +387,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 if (usuario) {
   guarda.aplicarMundo();

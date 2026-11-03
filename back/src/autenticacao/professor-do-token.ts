@@ -1,4 +1,3 @@
-// professor-do-token.ts
 // As duas regras de identidade que toda rota do PROFESSOR repete (turmas,
 // alunos, exercícios, atribuições). Ficam num lugar só para as quatro não
 // divergirem na mensagem nem no código de erro.

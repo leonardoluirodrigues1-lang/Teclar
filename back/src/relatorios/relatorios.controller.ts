@@ -1,4 +1,3 @@
-// relatorios.controller.ts
 // As rotas HTTP do grupo "Relatórios (professor)". Só recebe e devolve: a
 // regra está no RelatoriosService.
 //

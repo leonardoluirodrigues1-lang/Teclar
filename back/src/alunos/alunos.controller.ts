@@ -1,4 +1,3 @@
-// alunos.controller.ts
 // As rotas HTTP do grupo "Alunos (professor)". Só recebe e devolve: a
 // regra está no AlunosService.
 //

@@ -19,9 +19,7 @@ import { iniciarBuracoNegro } from '../componentes/shaderBuracoNegro.js';
 import { iniciarRaiosEParticulas, iniciarLetrasOrbitando, iniciarLetrasEspalhadas } from './letras.js';
 import { useRevelacao } from './reveal.js';
 
-// ============================================================================
 // Hero: canvas + camadas de letras
-// ============================================================================
 
 // useLayoutEffect, não useEffect, nos três: o index.html rodava tudo num
 // <script type="module"> antes da primeira pintura, então o hero nunca
@@ -89,9 +87,7 @@ function Hero() {
   );
 }
 
-// ============================================================================
 // Barra fixa: marca + Entrar
-// ============================================================================
 
 // Não é a Nav.tsx: aquela é de tela com sessão (avatar, menu, troca de
 // modo). Aqui só marca e um link, dentro de uma pílula de vidro que existe
@@ -136,9 +132,7 @@ function Barra() {
   );
 }
 
-// ============================================================================
 // Conteúdo: intro, passos e CTA final
-// ============================================================================
 
 // data-split="" e não data-split: o React renderiza o atributo com valor
 // vazio, exatamente como o HTML sem valor. O reveal só olha a presença.
@@ -245,8 +239,6 @@ function Landing() {
   );
 }
 
-// ============================================================================
 // Montagem
-// ============================================================================
 
 createRoot(document.getElementById('raiz')).render(<Landing />);

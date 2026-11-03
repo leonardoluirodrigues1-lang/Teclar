@@ -1,4 +1,3 @@
-// turmas.service.ts
 // A regra do grupo "Turmas (professor)" do CONTRATO-API.md: GET /turmas
 // (ativas ou arquivadas), POST /turmas, GET /turmas/:id, PATCH /turmas/:id
 // (renomear, trocar a capa, arquivar, desarquivar) e
@@ -14,7 +13,7 @@
 //   - Não existe excluir turma, só arquivar (Ativa = false): o histórico de
 //     treino dos alunos continua.
 import { randomInt, randomUUID } from 'node:crypto';
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { AlunosService } from '../alunos/alunos.service.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
@@ -23,6 +22,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { diaDe } from '../sessoes/dias-seguidos.js';
 import { turmaDaConta } from './turma-da-conta.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O corpo do POST /turmas como chega. Tudo unknown: vem da rede, e um curl
 // pode mandar qualquer coisa. professorId está aqui só para ser RECUSADO
@@ -223,9 +223,7 @@ export class TurmasService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 // Da linha do banco para a forma do contrato. Um lugar só monta, para as
 // quatro rotas devolverem a mesma Turma.
@@ -367,10 +365,7 @@ function cabeNoInt(valor: unknown): valor is number {
 }
 
 // Os erros, no corpo que o contrato define para todo erro: { mensagem, codigo }.
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
-}
-
+//
 // O contrato só diz "409"; o código segue o padrão de CATEGORIA_DUPLICADA.
 function nomeEmUso(): ConflictException {
   return new ConflictException({ mensagem: 'Você já tem uma turma com esse nome.', codigo: 'TURMA_DUPLICADA' });

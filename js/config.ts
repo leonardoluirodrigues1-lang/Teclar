@@ -1,4 +1,3 @@
-// config.ts
 // Único lugar do front que sabe onde o back mora e quais são as regras
 // numéricas do sistema. Qualquer outro módulo importa daqui em vez de
 // repetir URL ou número mágico.

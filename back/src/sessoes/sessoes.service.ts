@@ -1,4 +1,3 @@
-// sessoes.service.ts
 // A regra do grupo "Sessões" do CONTRATO-API.md:
 //   POST /sessoes      o aluno grava o treino que acabou de fazer
 //   GET  /sessoes/:id  o dono relê uma sessão (o F5 da tela de resultado)
@@ -7,7 +6,7 @@
 // atribuído à turma do aluno: sem essa regra, um aluno gravaria sessão num
 // exercício que o professor nunca deu, e ela apareceria nos relatórios.
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -15,6 +14,7 @@ import { validarMedidas } from './medidas-da-sessao.js';
 import type { CorpoComMedidas } from './medidas-da-sessao.js';
 import { sessaoNaForma } from './sessao-escola.js';
 import type { LinhaDeSessao, Sessao } from './sessao-escola.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O corpo do POST como chega (DadosSessaoTreino no contrato), em
 // snake_case como o motor da tela manda: o exercício, a turma e as medidas
@@ -153,9 +153,7 @@ export class SessoesService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 function sessaoEscolaNaForma(linha: LinhaDeSessao): SessaoEscola {
   return { ...sessaoNaForma(linha), turmaId: linha.ClassID };
@@ -193,10 +191,6 @@ function idDoCorpo(valor: unknown, campo: string): string {
     throw dadosInvalidos(`Informe ${campo}.`);
   }
   return valor;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }
 
 function naoEncontrado(mensagem: string): NotFoundException {

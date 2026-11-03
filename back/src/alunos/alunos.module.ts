@@ -1,4 +1,3 @@
-// alunos.module.ts
 // Grupo "Alunos (professor)" do CONTRATO-API.md. Pronto inteiro:
 //   GET /turmas/:id/alunos, POST /turmas/:id/alunos/importar,
 //   DELETE /turmas/:id/alunos/:alunoId,

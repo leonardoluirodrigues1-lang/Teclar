@@ -1,4 +1,3 @@
-// Estrela.tsx
 // A estrela de quatro pontas, desenhada à mão em SVG. É o símbolo de
 // CONQUISTA do site e só aparece onde houve uma: lição concluída, dia
 // treinado, recorde batido, nível que subiu, exercício entregue, melhor

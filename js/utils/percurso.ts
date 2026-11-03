@@ -1,4 +1,3 @@
-// percurso.ts
 // A regra que decide a próxima lição do Solo: a ordem do percurso
 // (agrupada por nível) e para onde o botão "Continuar" leva e como ele se
 // chama. Existia duplicada na antiga tela de lições e em js/solo/Lobby.tsx;

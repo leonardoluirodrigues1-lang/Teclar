@@ -1,4 +1,3 @@
-// validacao.ts
 // Regras de campo do formulário, sem DOM e sem texto de interface espalhado.
 // Cada validador devolve `null` quando o valor está bom e a MENSAGEM pronta
 // quando está ruim — quem chama só pergunta "tem erro?" e imprime embaixo do

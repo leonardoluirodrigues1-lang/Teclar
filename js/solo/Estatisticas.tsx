@@ -27,13 +27,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api } from '../nucleo/api.js';
+import { api, mensagemDaFalha } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
   Campanha,
   DesempenhoLicaoSolo,
-  ErroDaApi,
   EstatisticasSolo,
   SessaoSolo,
   Usuario,
@@ -62,6 +61,7 @@ const ROTA_CAMINHO = 'caminho.html';
 // lições, para nada pular de lugar quando os dados chegarem.
 const ESQUELETOS_LINHA = 5;
 
+// 403 nestas rotas quer dizer que o token não é de conta individual.
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
   PERMISSAO: 'Estas estatísticas são da conta individual, e a sessão atual não tem acesso a elas. Entre de novo.',
@@ -70,9 +70,7 @@ const MENSAGENS = {
 
 const TODOS = 'todos';
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -84,9 +82,7 @@ function filtroDaUrl(): string {
   return new URLSearchParams(window.location.search).get('nivel') ?? TODOS;
 }
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 interface PropsEstatisticas {
   usuario: Usuario;
@@ -137,7 +133,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
           sessoes: maisRecentesPrimeiro(desembrulhar(historico)),
         });
       } catch (excecao) {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao, MENSAGENS) });
       }
     }
 
@@ -351,9 +347,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
   );
 }
 
-// ============================================================================
 // Um dos seis números
-// ============================================================================
 
 interface PropsNumero {
   rotulo: string;
@@ -375,9 +369,7 @@ function Numero({ rotulo, id, valor, unidade }: PropsNumero) {
   );
 }
 
-// ============================================================================
 // Esqueleto — a altura do conteúdo final
-// ============================================================================
 // Na ordem do painel pronto: rótulo de seção, os seis números em dois
 // grupos, a barra de XP com legenda, a linha de evolução, outro rótulo, o
 // filtro e a tabela. Quando os dados chegam, nada pula.
@@ -404,9 +396,7 @@ function EsqueletoEstatisticas() {
   );
 }
 
-// ============================================================================
 // Evolução — a frase é desta tela; a conta é de utils/desempenho.ts
-// ============================================================================
 // Tom de progressão, não de boletim: melhorou, diz quanto; manteve, fala de
 // constância. Nunca diz que caiu.
 
@@ -420,9 +410,7 @@ function textoDaEvolucao(evolucao: Evolucao): string {
   return 'Seu ritmo se manteve nas últimas sessões — o próximo nível vem com a constância.';
 }
 
-// ============================================================================
 // Ordenação — o que cada campo vale numa linha (a regra é a de utils/ordenacao.ts)
-// ============================================================================
 
 function valorOrdenavel(licao: DesempenhoLicaoSolo, campo: string): string | number | null {
   if (campo === 'titulo') return licao.titulo;
@@ -436,28 +424,7 @@ function valorOrdenavel(licao: DesempenhoLicaoSolo, campo: string): string | num
   return null;
 }
 
-// ============================================================================
-// Erros — decide pelo status, nunca pelo texto que o servidor mandou
-// ============================================================================
-
-function mensagemDaFalha(excecao: unknown): string {
-  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
-  // ErroApi do api.ts, mas não é instância dele.
-  const erro = excecao as ErroDaApi | null | undefined;
-  if (erro?.name !== 'ErroApi') {
-    console.error(excecao);
-    return MENSAGENS.GENERICA;
-  }
-  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
-  if (erro.status === 0) return MENSAGENS.CONEXAO;
-  // 403 nestas rotas quer dizer que o token não é de conta individual.
-  if (erro.status === 403) return MENSAGENS.PERMISSAO;
-  return MENSAGENS.GENERICA;
-}
-
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de conta antes de montar (e grava o modo solo). Devolveu null, redirecionou:
 // a tela para aqui e nada mais roda.

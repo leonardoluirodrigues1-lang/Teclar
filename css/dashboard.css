@@ -64,14 +64,6 @@ ul { list-style: none; }
 .conteudo,
 .lobby-conteudo { display: block; }
 
-/* A largura média: as telas que são UMA coluna de conteúdo (as lições, e
-   as duas do aluno) em vez das duas colunas do lobby. A nav acompanha, e
-   fica alinhada com o painel em vez de flutuar 400px mais larga que ele.
-
-   Duas classes no seletor de propósito: escola.css também tem um .pagina
-   (o contêiner das telas do professor) e é carregada DEPOIS desta folha
-   nas telas do aluno. Com uma classe só, o width: 100% de lá venceria. */
-.pagina.pagina-media { width: 880px; }
 
 /* Mais larga que a média, para as telas cujo conteúdo é uma TABELA: ela
    tem mais colunas do que uma coluna de leitura comporta. É a largura que

@@ -1,4 +1,3 @@
-// categorias.service.ts
 // As categorias de exercício (tabela Categorias), no grupo "Administração"
 // do CONTRATO-API.md:
 //   GET    /categorias       as ativas — qualquer token válido
@@ -10,12 +9,13 @@
 // ter o nome reusado. O banco não consegue dizer "único entre as ativas"
 // (ver o comentário da tabela no DB_Teclar_v9.sql), então quem confere é
 // esta classe, antes de gravar: 409 CATEGORIA_DUPLICADA.
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { exigirAdministrador } from './administrador-do-token.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 export interface CorpoDaCategoria {
   nome?: unknown;
@@ -127,8 +127,4 @@ function nomeDaCategoria(valor: unknown): string {
     throw dadosInvalidos('O nome da categoria tem caracteres inválidos.');
   }
   return nome;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

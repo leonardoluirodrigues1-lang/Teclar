@@ -1,4 +1,3 @@
-// texto-limpo.ts
 // Um pedaço de texto que uma pessoa digita (nome de aluno, de turma, de
 // categoria, título de exercício) não tem caractere de controle nem
 // surrogate solto: são lixo que não aparece num teclado, passam direto

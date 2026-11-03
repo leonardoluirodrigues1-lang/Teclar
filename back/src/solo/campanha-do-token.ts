@@ -1,4 +1,3 @@
-// campanha-do-token.ts
 // As duas perguntas que quase toda rota do Solo faz antes de qualquer
 // coisa: "quem pede é uma CONTA?" e "qual é a campanha dela?". Ficam num
 // lugar só para todas responderem o mesmo 403 e o mesmo 404.

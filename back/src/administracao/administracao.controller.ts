@@ -1,4 +1,3 @@
-// administracao.controller.ts
 // As rotas HTTP do grupo "Administração": categorias e parâmetros globais.
 // Só recebe e devolve: a regra está nos dois services.
 //

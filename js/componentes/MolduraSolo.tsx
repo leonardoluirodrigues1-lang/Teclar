@@ -1,4 +1,3 @@
-// MolduraSolo.tsx
 // A moldura das telas do mundo Solo, no lugar da nav em pílula:
 //   · topo à esquerda  — a marca TECLAR;
 //   · topo à direita   — a pessoa (inicial, nome, nível e uma barra de XP
@@ -36,6 +35,7 @@ import { guarda } from '../nucleo/guarda.js';
 import { CONFIG } from '../config.js';
 import type { Campanha } from '../nucleo/tipos.js';
 import { progressoDe } from './BarraXp.js';
+import { IconeSair } from './IconesDoTutorial.js';
 
 /** Qual item da barra lateral é a tela atual. */
 export type TelaSolo = 'caminho' | 'configuracoes' | 'ajuda' | 'sobre';
@@ -51,9 +51,7 @@ interface PropsMoldura {
   children: ReactNode;
 }
 
-// ============================================================================
 // Ícones — SVG traçado em linha, feitos à mão (os mesmos do preview)
-// ============================================================================
 // viewBox 24×24 e só traço: a cor e a espessura vêm do CSS
 // (.barra-lateral-item svg), então o ícone acompanha a cor do texto.
 
@@ -109,17 +107,7 @@ function IconeTrocarModo() {
   );
 }
 
-function IconeSair() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-    </svg>
-  );
-}
-
-// ============================================================================
 // Topo à direita: a pessoa
-// ============================================================================
 
 // "Leonardo" -> "L". Sem nome, fica vazio: melhor que um placeholder.
 function inicialDoNome(nome: string): string {
@@ -165,9 +153,7 @@ function BotaoPessoa({ campanha, xpPorNivel }: PropsBotaoPessoa) {
   );
 }
 
-// ============================================================================
 // Barra lateral
-// ============================================================================
 
 interface PropsBarraLateral {
   aberta: boolean;
@@ -284,9 +270,7 @@ function BarraLateral({ aberta, ativo, aoFechar }: PropsBarraLateral) {
   );
 }
 
-// ============================================================================
 // A moldura
-// ============================================================================
 
 export function MolduraSolo({ ativo, esconderMenu = false, telaDaPessoa = false, children }: PropsMoldura) {
   const [aberta, setAberta] = useState(false);

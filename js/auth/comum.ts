@@ -1,4 +1,3 @@
-// comum.ts
 // O que Login.tsx e Cadastro.tsx compartilham e NÃO é React: a tradução
 // de erro da API. Tudo aqui é utilidade pura — função que recebe valor e
 // devolve valor. O campo de estrelas que morava aqui foi para
@@ -11,9 +10,7 @@
 // saiu: o login vem antes de qualquer escolha, e Solo/Professor é modo da
 // conta, gravado pelo sessao.ts depois do login — não perfil.
 
-// ============================================================================
 // 1. Erros da API traduzidos para a tela
-// ============================================================================
 // A tela decide pelo CÓDIGO, nunca pela mensagem do servidor: texto de back
 // muda, vem em inglês, vem com detalhe técnico ou vaza informação. E o
 // status HTTP nunca aparece para a pessoa.

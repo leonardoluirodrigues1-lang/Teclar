@@ -1,4 +1,3 @@
-// TopoAluno.tsx
 // O topo da tela de histórico do Aluno: a marca à esquerda e, à direita, o
 // botão do nome (retrato com a inicial, nome e turma), que abre o menu com
 // a turma em destaque, Meu histórico, Trocar de modo e Sair. Usado por

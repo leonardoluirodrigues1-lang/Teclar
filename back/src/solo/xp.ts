@@ -1,4 +1,3 @@
-// xp.ts
 // As duas contas da gamificação do Solo: quanto XP uma sessão rende e em
 // que nível um XP total está. São do back, e não da tela: se a tela
 // calculasse o XP, bastava mandar outro número para subir de nível.

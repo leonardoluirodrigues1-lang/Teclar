@@ -1,4 +1,3 @@
-// alunos.service.ts
 // A regra do grupo "Alunos (professor)" do CONTRATO-API.md: o professor
 // administrando a lista de UMA turma dele.
 //   GET    /turmas/:turmaId/alunos                         a lista, com agregados
@@ -11,7 +10,7 @@
 // aluno-ALVO, e só vale dentro da :turmaId: aluno de outra turma, mesmo da
 // mesma conta, é 404. Quem pede continua saindo do token.
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
@@ -21,6 +20,7 @@ import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao
 import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O corpo do importar como chega: tudo unknown, vem da rede.
 export interface CorpoDaImportacao {
@@ -254,9 +254,7 @@ export class AlunosService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 type LinhaDeAluno = { ID: string; Nome: string; SenhaHash: string | null; Data_Cadastro: Date | null };
 
@@ -295,8 +293,4 @@ function problemaNoNome(nome: string): string | null {
     return 'O nome tem caracteres inválidos.';
   }
   return null;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

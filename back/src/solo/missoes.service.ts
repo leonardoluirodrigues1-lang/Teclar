@@ -1,4 +1,3 @@
-// missoes.service.ts
 // As lições do Solo (tabela ExerciciosSolo), no grupo "Solo" do
 // CONTRATO-API.md:
 //   GET /solo/missoes       as 76 lições, na ordem do percurso, sem o texto

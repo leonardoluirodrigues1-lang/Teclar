@@ -1,4 +1,3 @@
-// atribuicoes.service.ts
 // As três rotas de /turmas/:turmaId/atribuicoes (no CONTRATO-API.md, dentro
 // do grupo "Turmas (professor)"): qual exercício da biblioteca do professor
 // foi dado a qual turma dele.

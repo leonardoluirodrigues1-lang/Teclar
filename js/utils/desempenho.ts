@@ -1,4 +1,3 @@
-// desempenho.ts
 // Contas que uma tela faz sobre a lista de sessões que JÁ carregou:
 // sequência de dias e evolução de PPM. Nasceram em js/aluno/Historico.tsx
 // e saíram de lá quando a tela de estatísticas do Solo (js/solo/
@@ -34,9 +33,7 @@ export function maisRecentesPrimeiro<T extends SessaoComData>(lista: T[]): T[] {
   return [...lista].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
 }
 
-// ============================================================================
 // Sequência de dias
-// ============================================================================
 // Quantos dias SEGUIDOS a pessoa treinou, contados do dia da sessão mais
 // recente para trás. Não existe tabela de sequência no banco, e nem
 // precisa: a informação está nas datas.
@@ -77,9 +74,7 @@ export function somarDias(dia: string, delta: number): string {
   return new Date(Date.parse(`${dia}T00:00:00Z`) + delta * 86400000).toISOString().slice(0, 10);
 }
 
-// ============================================================================
 // Evolução
-// ============================================================================
 // Média de PPM das 5 sessões mais recentes contra a das 5 anteriores. É a
 // ÚNICA média que o front calcula, e ela é permitida porque é uma conta
 // sobre a lista que a tela já carregou — não uma segunda versão de um
@@ -120,9 +115,7 @@ export function arredondar(valor: number): number {
   return Math.round(valor * 10) / 10;
 }
 
-// ============================================================================
 // A semana corrente, dia a dia
-// ============================================================================
 // Os sete quadrados do painel de sequência do lobby: segunda a domingo da
 // semana em que hoje cai, cada dia sabendo se houve treino. Como a
 // sequência, não existe tabela para isto — sai das datas do histórico.

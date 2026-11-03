@@ -1,4 +1,3 @@
-// relatorios.service.ts
 // A regra do grupo "Relatórios (professor)" do CONTRATO-API.md:
 //   GET /turmas/:turmaId/relatorio                      as quatro métricas do topo
 //   GET /turmas/:turmaId/relatorio/alunos               uma linha por aluno

@@ -1,4 +1,3 @@
-// banco.module.ts
 // Empacota o BancoService para o Nest. Um módulo de rota que precisar do
 // banco põe BancoModule no seu "imports" e recebe o BancoService no
 // construtor.

@@ -45,7 +45,7 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { contagem, formatarData, formatarDataHora, numero, porcentagem } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
@@ -63,9 +63,7 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 // `turma` é o detalhe; `alunos` e `atribuicoes` são as duas listas que
 // Promise.all traz juntas. Tudo o que a tela mostra — inclusive as três
@@ -88,9 +86,7 @@ let proximaChave = 0;
 
 const turmaId = new URLSearchParams(window.location.search).get('turma');
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Turma() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -536,9 +532,7 @@ function pedraDaTurma(item: AtribuicaoProfessor): PedraDaTrilha {
   };
 }
 
-// ============================================================================
 // Aba Relatório — os números da turma inteira
-// ============================================================================
 
 type CargaRelatorio =
   | { estado: 'carregando' }
@@ -619,9 +613,7 @@ function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[
   ];
 }
 
-// ============================================================================
 // Métricas e ordenação
-// ============================================================================
 
 // Média só entre quem já treinou — quem nunca treinou não entra na conta
 // (nem para cima, nem para baixo). Uma casa decimal, igual ao que o mock
@@ -643,10 +635,8 @@ function valorOrdenavelAluno(aluno: Aluno, campo: string): string | number | nul
   return null;
 }
 
-// ============================================================================
 // Modal de confirmação — remover aluno, zerar senha, código novo e remover
 // atribuição
-// ============================================================================
 
 interface PropsModalRemover {
   eyebrow: string;
@@ -719,10 +709,8 @@ function ModalRemover({
   );
 }
 
-// ============================================================================
 // Modal "Atribuir exercício" — biblioteca do professor, busca, seleção
 // múltipla. Confirmar atribui todos os marcados de uma vez.
-// ============================================================================
 
 type Biblioteca =
   | { estado: 'carregando' }
@@ -907,19 +895,8 @@ function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir
   );
 }
 
-// Sem acento e em minúsculas dos dois lados — mesma receita da busca de
-// Turmas.tsx, aqui para o título do exercício.
-function normalizar(texto: string | null | undefined): string {
-  return String(texto ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
-}
-
-// ============================================================================
 // Erros — mesmo critério de Turmas.tsx: decide pelo status, nunca pelo
 // texto que o servidor mandou.
-// ============================================================================
 
 // Duck typing, não instanceof: o erro do mock tem a mesma forma do ErroApi
 // do api.ts, mas não é instância dele.
@@ -938,9 +915,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de professor antes de montar. Devolveu null, redirecionou: a
 // tela para aqui e nada mais roda.

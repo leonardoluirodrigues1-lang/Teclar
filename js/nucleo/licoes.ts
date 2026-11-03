@@ -1,4 +1,3 @@
-// licoes.ts
 // As 76 lições do Solo, numa fonte só para o front e o back.
 //
 // Saiu do mocks.ts porque o seed do back (back/prisma/seed.ts) grava
@@ -9,9 +8,7 @@
 
 import type { Dificuldade, MissaoDetalhe } from './tipos.js';
 
-// ============================================================================
 // 1b. LICOES — as 76 lições do Solo
-// ============================================================================
 // O conteúdo inicial do mundo Solo: as lições que o professor escreveu e
 // que já foram semeadas na tabela ExerciciosSolo. Não são exemplo nem
 // enfeite de mock — são o percurso de verdade, e a tela de campanhas

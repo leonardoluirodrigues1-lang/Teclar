@@ -1,4 +1,3 @@
-// NumeroQueConta.tsx
 // Um número que conta do zero até o valor, em vez de aparecer pronto. Só
 // para o número que é a CONQUISTA da tela: o desempenho do treino
 // (treino/BlocoDeMetricas.tsx, na tela de resultado e no modal de fim), o XP

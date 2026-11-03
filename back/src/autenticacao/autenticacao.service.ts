@@ -1,4 +1,3 @@
-// autenticacao.service.ts
 // A regra do grupo Autenticação (ver CONTRATO-API.md): o POST /auth/login,
 // o POST /auth/cadastro e o GET /auth/eu. O logout não tem regra (ver o
 // controller). Abaixo, o que vale para o login:
@@ -34,6 +33,7 @@ import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regra
 import { problemaNaSenhaDoAluno } from './senha-do-aluno.js';
 import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O corpo como chega. Tudo unknown: vem da rede, e nada garante que a tela
 // (ou quem chamar com curl) mandou texto.
@@ -133,9 +133,7 @@ export class AutenticacaoService {
     return this.entrarComoConta(normalizarEmail(corpo?.email), senha);
   }
 
-  // ==========================================================================
   // Conta (Users)
-  // ==========================================================================
 
   private async entrarComoConta(email: string, senha: string): Promise<RespostaLogin> {
     const conta = await this.banco.users.findUnique({
@@ -160,9 +158,7 @@ export class AutenticacaoService {
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario: usuarioDaConta(conta) };
   }
 
-  // ==========================================================================
   // Cadastro (só conta: aluno não se cadastra, é importado pelo professor)
-  // ==========================================================================
 
   async cadastrar(corpo: CorpoDoCadastro): Promise<RespostaLogin> {
     // Nome e e-mail são aparados (espaço nas pontas é sempre engano de
@@ -203,9 +199,7 @@ export class AutenticacaoService {
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario };
   }
 
-  // ==========================================================================
   // Quem sou eu (GET /auth/eu)
-  // ==========================================================================
 
   // O dono do token, lido de novo do banco, na mesma forma do login. Lê do
   // banco, e não só do token, porque o token guarda só id e tipo — e
@@ -245,9 +239,7 @@ export class AutenticacaoService {
     return usuarioDoAluno(aluno);
   }
 
-  // ==========================================================================
   // Aluno (Alunos, dentro de uma turma)
-  // ==========================================================================
 
   private async entrarComoAluno(codigo: string, nome: string, senha: string): Promise<RespostaLogin> {
     const aluno = await this.procurarAluno(codigo, nome);
@@ -367,9 +359,7 @@ function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
   };
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 // E-mail sem espaço nas pontas e minúsculo, como o mock e a tela fazem.
 function normalizarEmail(valor: unknown): string {
@@ -434,10 +424,6 @@ function contaDesativada(): ForbiddenException {
 
 function senhaForaDaRegra(mensagem: string): BadRequestException {
   return dadosInvalidos(mensagem);
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }
 
 function emailEmUso(): ConflictException {

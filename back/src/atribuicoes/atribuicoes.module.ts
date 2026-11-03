@@ -1,4 +1,3 @@
-// atribuicoes.module.ts
 // As três rotas de atribuição do grupo "Turmas (professor)" do
 // CONTRATO-API.md: GET, POST /turmas/:id/atribuicoes e
 // DELETE /turmas/:id/atribuicoes/:exercicioId.

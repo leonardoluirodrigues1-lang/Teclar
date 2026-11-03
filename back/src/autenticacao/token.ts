@@ -1,4 +1,3 @@
-// token.ts
 // O que vai dentro do token de login (JWT) e como ele é assinado. Usado
 // pelos dois lados: o login, que emite o token, e o guard, que o confere.
 

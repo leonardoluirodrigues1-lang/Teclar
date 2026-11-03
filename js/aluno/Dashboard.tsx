@@ -42,9 +42,7 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 // Três estados excludentes, e não três booleanos soltos.
 type Carga =
@@ -52,9 +50,7 @@ type Carga =
   | { estado: 'erro'; mensagem: string }
   | { estado: 'pronto'; salas: SalaDoAluno[] };
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Salas() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
@@ -147,9 +143,7 @@ function Salas() {
   );
 }
 
-// ============================================================================
 // Cartão da sala
-// ============================================================================
 
 function CartaoDaSala({ sala }: { sala: SalaDoAluno }) {
   // Sala sem exercício nenhum não está "completa": não há conquista em
@@ -211,9 +205,7 @@ function AnelDeProgresso({ feitos, total }: { feitos: number; total: number }) {
   );
 }
 
-// ============================================================================
 // Erros
-// ============================================================================
 
 // A tela decide pelo status, nunca pelo texto do servidor: mensagem de
 // back muda, vem em inglês, vem com detalhe técnico. Duck typing, e não
@@ -229,9 +221,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 if (usuario) {
   // Marca o <body> com .mundo-escola: densidade e raio de cartão vêm do CSS.

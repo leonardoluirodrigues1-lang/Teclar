@@ -1,4 +1,3 @@
-// TelaDeTutorial.tsx
 // A estrutura dos tutoriais de primeira vez: os passos, um de cada vez, com
 // o texto e os itens à esquerda e um painel de vidro à direita; embaixo, os
 // pontinhos e os botões "Pular" e "Continuar" (que vira "Começar" no

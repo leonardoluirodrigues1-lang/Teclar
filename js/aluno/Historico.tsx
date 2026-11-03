@@ -26,10 +26,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api } from '../nucleo/api.js';
+import { api, mensagemDaFalha } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { ErroDaApi, ResumoDoAluno, SessaoDoHistorico, Usuario } from '../nucleo/tipos.js';
+import type { ResumoDoAluno, SessaoDoHistorico, Usuario } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
@@ -49,6 +49,8 @@ import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 // sessões, para nada pular de lugar quando os dados chegarem.
 const ESQUELETOS_LINHA = 6;
 
+// 403 nestas rotas quer dizer que o token não é de aluno — é o mesmo
+// caminho que impede um aluno de ver o histórico de outro.
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
   PERMISSAO: 'Este histórico é seu, mas a sessão atual não tem acesso a ele. Entre de novo.',
@@ -57,9 +59,7 @@ const MENSAGENS = {
 
 const TODOS = 'todos';
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -70,9 +70,7 @@ function filtroDaUrl(): string {
   return new URLSearchParams(window.location.search).get('exercicio') ?? TODOS;
 }
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 interface PropsHistorico {
   usuario: Usuario;
@@ -120,7 +118,7 @@ function Historico({ usuario }: PropsHistorico) {
           resumo,
         });
       } catch (excecao) {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao, MENSAGENS) });
       }
     }
 
@@ -396,9 +394,7 @@ function Historico({ usuario }: PropsHistorico) {
   );
 }
 
-// ============================================================================
 // Evolução — a frase é desta tela; a conta é de utils/desempenho.ts
-// ============================================================================
 // Melhorou, mostra quanto. Não melhorou, a frase fala de constância e
 // ponto — nenhuma tela do aluno vai dizer a ele que caiu.
 
@@ -410,9 +406,7 @@ function textoDaEvolucao(evolucao: Evolucao): string {
   return 'Seu ritmo está constante nas últimas sessões — constância é o que faz o resultado durar.';
 }
 
-// ============================================================================
 // Ordenação — data, PPM e precisão (a regra é a de utils/ordenacao.ts)
-// ============================================================================
 
 function valorOrdenavel(sessao: SessaoDoHistorico, campo: string): string | number | null {
   // A data crua, não a formatada: 'AAAA-MM-DD...' ordena como texto, e
@@ -423,29 +417,7 @@ function valorOrdenavel(sessao: SessaoDoHistorico, campo: string): string | numb
   return null;
 }
 
-// ============================================================================
-// Erros — decide pelo status, nunca pelo texto que o servidor mandou
-// ============================================================================
-
-function mensagemDaFalha(excecao: unknown): string {
-  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
-  // ErroApi do api.ts, mas não é instância dele.
-  const erro = excecao as ErroDaApi | null | undefined;
-  if (erro?.name !== 'ErroApi') {
-    console.error(excecao);
-    return MENSAGENS.GENERICA;
-  }
-  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
-  if (erro.status === 0) return MENSAGENS.CONEXAO;
-  // 403 nestas rotas quer dizer que o token não é de aluno — é o mesmo
-  // caminho que impede um aluno de ver o histórico de outro.
-  if (erro.status === 403) return MENSAGENS.PERMISSAO;
-  return MENSAGENS.GENERICA;
-}
-
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de aluno antes de montar. Devolveu null, redirecionou: a tela
 // para aqui e nada mais roda.

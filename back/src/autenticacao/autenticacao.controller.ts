@@ -1,4 +1,3 @@
-// autenticacao.controller.ts
 // As rotas HTTP do grupo Autenticação. Só recebe e devolve: a regra está
 // no AutenticacaoService. As quatro do contrato existem: login, cadastro,
 // eu e logout.

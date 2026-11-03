@@ -1,4 +1,3 @@
-// Nav.tsx
 // Barra do topo em pílula + avatar com o menu da conta. Nasceu em
 // js/professor/turmas.js e foi copiada em turma.js e alunos.js; a migração
 // para React é o momento em que ela vira UMA peça. Mesmo HTML e mesmas
@@ -39,8 +38,6 @@ export interface SecoesNav {
    *  menu muda — ver MenuDaConta. */
   sessao: 'conta' | 'aluno';
 }
-
-export type SecaoProfessor = 'turmas' | 'biblioteca' | 'relatorios';
 
 /** As seções das telas do professor — exatamente as de turmas.html. */
 export const SECOES_PROFESSOR: SecoesNav = {

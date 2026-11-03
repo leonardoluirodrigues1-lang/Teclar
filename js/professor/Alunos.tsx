@@ -61,9 +61,7 @@ const MENSAGENS = {
 // certa antes de a turma chegar, e nada pula quando o nome aparece.
 const NBSP = String.fromCharCode(0xa0);
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Aba = 'um' | 'csv';
 
@@ -99,9 +97,7 @@ function abaDaUrl(): Aba {
   return new URLSearchParams(window.location.search).get('aba') === 'csv' ? 'csv' : 'um';
 }
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Alunos() {
   // Turma — só o nome, para o subtítulo. Turma inexistente derruba a tela
@@ -263,9 +259,7 @@ function Alunos() {
   );
 }
 
-// ============================================================================
 // Aba 1 — um por um
-// ============================================================================
 
 function UmPorUm() {
   const campo = useRef<HTMLInputElement>(null);
@@ -394,9 +388,7 @@ function UmPorUm() {
   );
 }
 
-// ============================================================================
 // Copiar — clipboard com fallback silencioso
-// ============================================================================
 
 // Se a área de transferência não estiver disponível (página fora de HTTPS,
 // permissão negada), o texto aparece num campo selecionável logo abaixo
@@ -436,9 +428,7 @@ function CampoCopia({ copia }: { copia: Copia }) {
   );
 }
 
-// ============================================================================
 // Aba 2 — importar CSV. Três passos na mesma página.
-// ============================================================================
 
 function ImportarCsv() {
   const arquivo = useRef<HTMLInputElement>(null);
@@ -799,9 +789,7 @@ const colunasPrevia: ColunaTabela<LinhaConferida>[] = [
   },
 ];
 
-// ============================================================================
 // Passo 3 — resultado
-// ============================================================================
 
 // `puladas` são as linhas que a conferência já tinha marcado e não foram
 // enviadas; entram no resumo de falhas com o motivo delas, para o CSV de
@@ -940,9 +928,7 @@ function baixarModelo() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ============================================================================
 // Apoio
-// ============================================================================
 
 // Como o back grava o nome: pontas aparadas, um espaço só entre palavras.
 function normalizarNome(valor: unknown): string {
@@ -987,9 +973,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de professor antes de montar. Devolveu null, redirecionou: a
 // tela para aqui e nada mais roda.

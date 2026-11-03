@@ -1,4 +1,3 @@
-// senha-do-aluno.ts
 // A regra da senha de ALUNO, que o login confere no primeiro acesso (quando
 // Alunos.SenhaHash é NULL e a senha enviada vai ser gravada).
 //

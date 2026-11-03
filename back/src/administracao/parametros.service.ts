@@ -1,4 +1,3 @@
-// parametros.service.ts
 // Os parâmetros globais (tabela Configuracoes), no grupo "Administração"
 // do CONTRATO-API.md:
 //   GET /parametros   os quatro valores — qualquer token válido (o lobby
@@ -7,10 +6,11 @@
 //
 // A tabela é chave/valor, com o valor em texto (VARCHAR). Aqui ela vira o
 // objeto Parametros do front, com nomes nossos e números de verdade.
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { exigirAdministrador } from './administrador-do-token.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // A forma do tipo Parametros do front (js/nucleo/tipos.ts).
 export interface Parametros {
@@ -98,8 +98,4 @@ function validarMudancas(corpo: unknown): [NomeDoParametro, number][] {
     mudancas.push([nome, valor as number]);
   }
   return mudancas;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

@@ -18,7 +18,6 @@
 
   --cor-fundo: #000000;              /* fundo da página */
   --cor-superficie: #0e0e0e;         /* superfície de cartão, painel, linha de tabela */
-  --cor-superficie-elevada: #1c1c1c; /* superfície elevada: modal e estado hover */
 
   /* ==========================================================================
      COR — TEXTO
@@ -52,7 +51,6 @@
   --cor-cursor: #ffffff;                     /* cursor de digitação */
 
   /* Cores de status para mensagens gerais da interface (toasts, validação). */
-  --cor-sucesso: #3ddc84;
   --cor-alerta: #f5b93b;
   --cor-erro: #ff5a5a;
 
@@ -83,8 +81,6 @@
   --fs-lg: 1.25rem;    /*  20 px  — subtítulo, destaque de parágrafo */
   --fs-xl: 1.5625rem;  /* ~25 px  — título de seção */
   --fs-2xl: 1.9531rem; /* ~31 px  — título de página */
-  --fs-3xl: 2.4414rem; /* ~39 px  — título grande */
-  --fs-4xl: 3.0518rem; /* ~49 px  — display / herói */
 
   /* ==========================================================================
      TIPOGRAFIA — PESOS
@@ -108,7 +104,6 @@
      ========================================================================== */
 
   --ls-titulo: -0.02em; /* títulos grandes fecham um pouco */
-  --ls-marca: 0.42em;   /* wordmark TECLAR do herói */
   --ls-rotulo: 0.08em;  /* rótulos e overlines, geralmente em maiúsculas */
 
   /* ==========================================================================
@@ -121,7 +116,7 @@
   /* ==========================================================================
      ESPAÇAMENTO
      Escala baseada em 4px. Todos os passos são múltiplos de 4.
-     Nomeados de --e-1 (4px) a --e-10 (128px).
+     Nomeados de --e-1 (4px) a --e-9 (96px).
      ========================================================================== */
 
   --e-1: 0.25rem;  /*   4 px */
@@ -133,7 +128,6 @@
   --e-7: 3rem;     /*  48 px */
   --e-8: 4rem;     /*  64 px */
   --e-9: 6rem;     /*  96 px */
-  --e-10: 8rem;    /* 128 px */
 
   /* ==========================================================================
      FORMA
@@ -145,7 +139,6 @@
   --raio-g: 16px;       /* grande: painéis, modais */
   --raio-total: 9999px; /* total: pílulas, avatar, indicadores */
 
-  --borda-fina: 1px solid var(--cor-borda);
 
   /* ==========================================================================
      PROFUNDIDADE
@@ -156,7 +149,6 @@
 
   --brilho-suave: 0 0 24px rgba(255, 255, 255, 0.05);
   --brilho-forte: 0 0 56px rgba(255, 255, 255, 0.12);
-  --sombra-texto: 0 0 32px rgba(0, 0, 0, 0.9);
 
   /* ==========================================================================
      MOVIMENTO
@@ -175,9 +167,6 @@
      Larguras máximas, dimensões de chrome e camadas de empilhamento.
      ========================================================================== */
 
-  --largura-conteudo: 1120px; /* container principal */
-  --largura-estreita: 560px;  /* formulários, texto centrado, login */
-  --largura-treino: 700px;    /* área de texto da tela de treino */
 
   --altura-cabecalho: 64px;   /* header fixo */
   --largura-sidebar: 248px;   /* barra lateral de navegação */

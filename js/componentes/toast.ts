@@ -1,4 +1,3 @@
-// toast.ts
 // Avisos curtos que aparecem e somem sozinhos. Só texto, sem botão, sem
 // foco: um toast nunca interrompe o que a pessoa está fazendo. O host
 // deve ter aria-live="polite" para o leitor de tela anunciar sem cortar.

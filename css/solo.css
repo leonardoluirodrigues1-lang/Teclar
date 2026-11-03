@@ -176,30 +176,6 @@
   padding-bottom: 16px;
 }
 
-/* Os dois links discretos. Discretos de propósito: não competem com o
-   botão de continuar, que é o que a pessoa veio fazer. */
-.lobby-atalhos {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--e-5, 24px);
-}
-.lobby-atalho {
-  padding-bottom: 2px;
-  border-bottom: 1px solid transparent;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.lobby-atalho:hover {
-  color: var(--cor-texto, #fff);
-  border-bottom-color: rgba(255, 255, 255, 0.35);
-}
-
 /* ---------------------------------------------------------------------------
    Responsivo — o painel encolhe, nada rola para o lado
 
@@ -707,38 +683,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   gap: 26px;
 }
 
-.lobby-quem {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-}
-
-/* O retrato é a inicial num disco de luz. Não é avatar de verdade: a
-   tabela Users não tem coluna de imagem, e o disco é desenho, não dado. */
-.lobby-retrato {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 92px;
-  height: 92px;
-  border-radius: var(--raio-total, 9999px);
-  background: radial-gradient(circle at 50% 42%,
-    rgba(255, 255, 255, 0.30) 0%,
-    rgba(255, 255, 255, 0.05) 72%);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 30px;
-  color: rgba(255, 255, 255, 0.85);
-}
-
 .lobby-identidade { min-width: 0; }
-
-.lobby-linha-nome {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-}
 
 /* Mono porque é o nome como identidade da campanha, na mesma família do
    resto dos dados da tela. */
@@ -751,18 +696,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   overflow-wrap: anywhere;
 }
 
-.lobby-selo {
-  flex: none;
-  padding: 5px 11px;
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.20em;
-  text-transform: uppercase;
-}
-
 /* O rótulo mono miúdo dos dois painéis: EXPERIÊNCIA e SEQUÊNCIA. */
 .lobby-rotulo {
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
@@ -770,48 +703,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   letter-spacing: 0.30em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.62);
-}
-
-/* --- a barra de XP dentro do painel -------------------------------------- */
-/* A <BarraXp> continua a mesma e escreve o mesmo trilho e a mesma legenda.
-   O desenho só quer a legenda EM CIMA, à direita do rótulo, em vez de
-   embaixo. Em vez de um segundo componente, as três peças (rótulo,
-   legenda, trilho) entram na mesma grade: o display: contents dissolve o
-   .lobby-xp, que aqui é só um invólucro, e deixa os filhos dele serem
-   células — assim o trilho pode atravessar as duas colunas. */
-.lobby-experiencia {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: baseline;
-  column-gap: var(--e-4, 16px);
-}
-.lobby-experiencia .lobby-rotulo { grid-row: 1; grid-column: 1; }
-.lobby-experiencia .lobby-xp { display: contents; }
-
-.lobby-experiencia .lobby-xp-legenda {
-  grid-row: 1;
-  grid-column: 2;
-  justify-self: end;
-  font-size: 10px;
-  letter-spacing: normal;
-  color: rgba(255, 255, 255, 0.62);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Trilho mais fino e preenchimento em degradê com brilho, como o desenho.
-   O .lobby-xp-preenchimento lá de cima já tem a transição de largura e o
-   comportamento sob movimento reduzido — nada disso se repete aqui. */
-.lobby-experiencia .lobby-xp-trilho {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  margin-top: 10px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 0;
-}
-.lobby-experiencia .lobby-xp-preenchimento {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), #fff);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
 }
 
 /* ---------------------------------------------------------------------------
@@ -877,22 +768,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   color: rgba(255, 255, 255, 0.62);
 }
 
-/* ---------------------------------------------------------------------------
-   Rodapé: a ação e os dois atalhos
-
-   O lugar que a grade de missões ocupa no desenho. Aqui as lições moram em
-   caminho.html, então fica o que o lobby sempre teve — e a .lobby-acao,
-   a .lobby-atalhos e o .lobby-atalho continuam sendo as regras de cima.
-   ------------------------------------------------------------------------- */
-.lobby-rodape {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e-5, 24px);
-  margin-top: 44px;
-}
-.lobby-rodape .lobby-acao { max-width: 420px; }
-
 /* --- convite (primeira vez, sem campanha) -------------------------------- */
 /* Painel único e centrado. O .lobby-convite lá de cima já empilha e
    centraliza; aqui ele só ganha o respiro do painel largo. */
@@ -952,8 +827,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .lobby-topo { margin-top: 24px; }
   .lobby-topo .painel { padding: 24px 22px; }
 
-  .lobby-quem { gap: 16px; }
-  .lobby-retrato { width: 68px; height: 68px; font-size: 22px; }
   .lobby-nome { font-size: 22px; }
 
   /* Os quadrados passam a dividir a largura disponível em sete partes
@@ -962,13 +835,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .lobby-dia { flex: 1; min-width: 0; }
   .lobby-quad { width: 100%; height: auto; aspect-ratio: 1; }
 
-  /* A legenda do XP não cabe ao lado do rótulo no talo da tela: desce para
-     a própria linha, alinhada à esquerda com ele. */
-  .lobby-experiencia { grid-template-columns: 1fr; }
-  .lobby-experiencia .lobby-xp-legenda { grid-row: 2; grid-column: 1; justify-self: start; }
-  .lobby-experiencia .lobby-xp-trilho { grid-row: 3; }
-
-  .lobby-rodape { margin-top: 32px; }
   .lobby-esboco:first-child { gap: 16px; }
   .lobby-esboco-retrato { width: 68px; height: 68px; }
 }

@@ -58,13 +58,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api } from '../nucleo/api.js';
+import { api, mensagemDaFalha } from '../nucleo/api.js';
 import { CONFIG } from '../config.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
   Campanha,
-  ErroDaApi,
   EstatisticasSolo,
   IndicadoresSolo,
   Missao,
@@ -103,15 +102,14 @@ const ROTA_ESTATISTICAS = 'estatisticas.html';
 const SESSOES_NO_RITMO = 12;
 const MINIMO_PARA_O_RITMO = 3;
 
+// 403 nestas rotas quer dizer que o token não é de conta individual.
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
   PERMISSAO: 'Esta é a área da conta individual, e a sessão atual não tem acesso a ela. Entre de novo.',
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// ============================================================================
 // XP — a regra é a do config, não uma segunda conta feita aqui
-// ============================================================================
 // progressoDe() mora em componentes/BarraXp.tsx e é a mesma conta que a
 // barra das outras telas usa. Aqui o progresso vira ANEL em vez de barra;
 // a <BarraXp> continua existindo para estatisticas.html.
@@ -194,9 +192,7 @@ function AnelXp({ progresso }: { progresso: ProgressoXp }) {
   );
 }
 
-// ============================================================================
 // Esqueleto — a altura dos painéis finais
-// ============================================================================
 
 // Os dois painéis e a faixa já ocupam o lugar que terão: quando a
 // campanha chega, nada pula. A medida é a do estado COM campanha, que é o
@@ -224,9 +220,7 @@ function EsbocoLobby() {
   );
 }
 
-// ============================================================================
 // Painel do personagem
-// ============================================================================
 
 interface PropsMetrica {
   rotulo: string;
@@ -285,9 +279,7 @@ function PainelPersonagem({ nome, campanha, estatisticas, indicadores, xpPorNive
   );
 }
 
-// ============================================================================
 // Painel de sequência
-// ============================================================================
 // O dado não existe em tabela: sai das datas de GET /solo/historico, pela
 // semanaDeDias() de utils/desempenho.ts — a mesma aritmética de dia que a
 // sequência já usava. Se o histórico falhar, este painel simplesmente não
@@ -390,9 +382,7 @@ function PainelSequencia({ dias, sequencia, sessoes, ehEstrelaNova }: PropsSeque
   );
 }
 
-// ============================================================================
 // Faixa "continuar de onde parou"
-// ============================================================================
 // Qual lição e qual verbo (Continuar / Começar / Repetir a última) vêm de
 // utils/percurso.ts — a mesma regra da pedra acesa de caminho.html, então as
 // duas telas sempre apontam para a mesma lição com o mesmo texto.
@@ -453,9 +443,7 @@ function FaixaContinuar({ progresso }: { progresso: ProgressoDoPercurso | null }
   );
 }
 
-// ============================================================================
 // Rodapé — a linha-guia do teclado
-// ============================================================================
 // A linha acende no meio e tem a marca central, como o relevo das teclas F
 // e J. Embaixo, a fileira de casa à esquerda e a contagem de lições à
 // direita, que leva a elas.
@@ -483,9 +471,7 @@ function RodapeLinhaGuia({ licoes }: { licoes: Missao[] | null }) {
   );
 }
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -582,7 +568,7 @@ function Lobby() {
           xpPorNivel: parametros?.xpPorNivel ?? CONFIG.SOLO.XP_POR_NIVEL,
         });
       } catch (excecao) {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao, MENSAGENS) });
       }
     }
 
@@ -630,7 +616,7 @@ function Lobby() {
       // por um painel de erro tiraria da frente justamente a única ação
       // que a pessoa veio fazer.
       setCriando(false);
-      setFalhaAoCriar(mensagemDaFalha(excecao));
+      setFalhaAoCriar(mensagemDaFalha(excecao, MENSAGENS));
     }
   }
 
@@ -734,28 +720,7 @@ function Lobby() {
   );
 }
 
-// ============================================================================
-// Erros — decide pelo status, nunca pelo texto que o servidor mandou
-// ============================================================================
-
-function mensagemDaFalha(excecao: unknown): string {
-  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
-  // ErroApi do api.ts, mas não é instância dele.
-  const erro = excecao as ErroDaApi | null | undefined;
-  if (erro?.name !== 'ErroApi') {
-    console.error(excecao);
-    return MENSAGENS.GENERICA;
-  }
-  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
-  if (erro.status === 0) return MENSAGENS.CONEXAO;
-  // 403 nestas rotas quer dizer que o token não é de conta individual.
-  if (erro.status === 403) return MENSAGENS.PERMISSAO;
-  return MENSAGENS.GENERICA;
-}
-
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de conta antes de montar (e grava o modo solo). Devolveu null, redirecionou:
 // a tela para aqui e nada mais roda. Esta tela não tem guarda de campanha,

@@ -1,10 +1,9 @@
-// medidas-da-sessao.ts
 // O pacote que o motor de digitação da tela manda ao fim de um treino
 // (wpm, precisao, acertos, erros, tempo_gasto_segundos, concluida), e a
 // conferência dele. Serve aos dois mundos: POST /sessoes (Escola) e
 // POST /solo/sessoes (Solo) recebem o mesmo pacote (DadosSessaoTreino no
 // contrato) e gravam nas mesmas colunas, então conferem do mesmo jeito.
-import { BadRequestException } from '@nestjs/common';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O pacote como chega da rede: tudo unknown, porque um curl pode mandar
 // qualquer coisa.
@@ -122,8 +121,4 @@ function booleano(valor: unknown, campo: string): boolean {
     throw dadosInvalidos(`${campo} precisa ser true ou false.`);
   }
   return valor;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

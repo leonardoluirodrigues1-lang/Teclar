@@ -1,4 +1,3 @@
-// TelaDaTurma.tsx
 // As peças da tela de UMA turma, iguais para os dois papéis: o professor
 // (js/professor/Turma.tsx) e o aluno (js/aluno/Sala.tsx). Existe para o
 // projeto ter uma tela de turma só: cada um daqueles arquivos guarda apenas
@@ -22,9 +21,7 @@ import type { SecoesNav } from './Nav.js';
 import { ContaFixa } from './EntradaDoModo.js';
 import { PainelEstado } from './PainelErro.js';
 
-// ============================================================================
 // Abas
-// ============================================================================
 
 export type AbaDaTurma = 'exercicios' | 'participantes' | 'relatorio';
 
@@ -61,9 +58,7 @@ export function focarAba(aba: AbaDaTurma) {
   document.getElementById(`aba-${aba}`)?.focus();
 }
 
-// ============================================================================
 // Casca
-// ============================================================================
 
 interface PropsCasca {
   secoes: SecoesNav;
@@ -165,9 +160,7 @@ function AbasDaTurma({ aba, aoSelecionar }: { aba: AbaDaTurma; aoSelecionar: (ab
   );
 }
 
-// ============================================================================
 // Turma não encontrada
-// ============================================================================
 
 interface PropsNaoEncontrada {
   secoes: SecoesNav;
@@ -194,9 +187,7 @@ export function TurmaNaoEncontrada({ secoes, papel, texto, link }: PropsNaoEncon
   );
 }
 
-// ============================================================================
 // Trilha de exercícios
-// ============================================================================
 
 /**
  * Uma pedra da trilha. O estado diz como ela é desenhada:
@@ -288,9 +279,7 @@ function Pedra({ pedra, posicao }: { pedra: PedraDaTrilha; posicao: number }) {
   );
 }
 
-// ============================================================================
 // Painel de relatório
-// ============================================================================
 
 export interface NumeroDoRelatorio {
   rotulo: string;

@@ -1,4 +1,3 @@
-// campoDeEstrelas.ts
 // Pinta o campo de estrelas do fundo. Toda tela com fundo carrega este
 // arquivo direto no HTML, com <script type="module">, e ele preenche cada
 // <div class="fundo-estrelas"> da página uma vez, ao carregar. A aparência

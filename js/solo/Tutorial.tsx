@@ -1,4 +1,3 @@
-// Tutorial.tsx
 // A apresentação do Solo, na primeira vez que a conta abre o caminho. Três
 // passos: o que é o TECLAR, como o caminho funciona e onde ficam o painel
 // e o menu. À esquerda o texto e três itens com ícone; à direita, uma
@@ -15,12 +14,10 @@
 
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
 import { TelaDeTutorial, type PassoDoTutorial } from '../componentes/TelaDeTutorial.js';
-import { IconeEstrela, IconeGrafico, IconePessoa, IconeTeclado } from '../componentes/IconesDoTutorial.js';
+import { IconeEstrela, IconeGrafico, IconePessoa, IconeSair, IconeTeclado } from '../componentes/IconesDoTutorial.js';
 
-// ============================================================================
 // Ícones que só o Solo usa — SVG traçado em linha, feitos à mão
 // (os comuns aos dois tutoriais estão em componentes/IconesDoTutorial.tsx)
-// ============================================================================
 
 // Uma pedra da trilha: um círculo com um ponto no meio.
 function IconePedra() {
@@ -57,17 +54,7 @@ function IconeMenu() {
   );
 }
 
-function IconeSair() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-    </svg>
-  );
-}
-
-// ============================================================================
 // Os passos
-// ============================================================================
 // Só o que o Solo já faz: nada aqui promete função que não existe.
 
 // O painel da direita de todos os passos: a frase, em duas linhas, em cima
@@ -134,9 +121,7 @@ const PASSOS: PassoDoTutorial[] = [
   },
 ];
 
-// ============================================================================
 // A tela
-// ============================================================================
 
 interface PropsTutorial {
   aoTerminar: () => void;

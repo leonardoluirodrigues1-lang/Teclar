@@ -1,4 +1,3 @@
-// ordenacao.ts
 // A regra de ordenação das tabelas (componentes/Tabela.tsx diz qual
 // cabeçalho foi clicado; quem ordena é a tela): nulo por último NAS DUAS
 // DIREÇÕES. Quem não tem o dado não deve ficar pulando entre o topo e o

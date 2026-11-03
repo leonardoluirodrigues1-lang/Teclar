@@ -1,4 +1,3 @@
-// listaExercicios.ts
 // Hoje só o desembrulhar(), que quase toda tela usa. O arquivo desenhava a
 // lista de exercícios dos dashboards mínimos; a última a usar era a tela
 // inicial do aluno, que passou a mostrar salas (js/aluno/Dashboard.tsx), e

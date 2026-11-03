@@ -1,4 +1,3 @@
-// BlocoDeMetricas.tsx
 // O desempenho de uma sessão de treino, do jeito que o motor de digitação o
 // devolveu. Usado nos dois lugares onde um treino termina:
 //   · a tela de resultado do Solo (treino/Resultado.tsx);

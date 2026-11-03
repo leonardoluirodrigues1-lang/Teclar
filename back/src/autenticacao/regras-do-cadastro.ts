@@ -1,4 +1,3 @@
-// regras-do-cadastro.ts
 // As regras dos campos do POST /auth/cadastro: nome, e-mail e a senha de
 // CONTA (Users), que é a regra forte. A senha de ALUNO é outra, mais
 // branda, e fica em senha-do-aluno.ts.

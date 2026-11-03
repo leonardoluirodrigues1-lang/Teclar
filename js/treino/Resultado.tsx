@@ -93,9 +93,7 @@ interface Resultado {
 
 type Tela = { fase: 'carregando' } | { fase: 'pronto'; resultado: Resultado } | { fase: 'erro'; detalhe: string };
 
-// ============================================================================
 // Leitura e normalização
-// ============================================================================
 
 // Devolve o objeto guardado pela tela de treino (ou null) e apaga a chave:
 // o resultado é de uma sessão só, um F5 não deve reanimar o mesmo XP.
@@ -194,9 +192,7 @@ function porcentagemNoNivel(xpTotal: number): number {
   return ((xpTotal % XP_POR_NIVEL) / XP_POR_NIVEL) * 100;
 }
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function ResultadoTela() {
   const [params] = useState(() => new URLSearchParams(location.search));
@@ -376,9 +372,7 @@ function ResultadoTela() {
   );
 }
 
-// ============================================================================
 // Fim da lição no Solo: para onde ir
-// ============================================================================
 // Três caminhos, com peso diferente:
 //   · principal (tecla clara): a próxima lição, com o nome dela;
 //   · secundários (tecla escura): repetir esta lição e voltar ao caminho.
@@ -488,9 +482,7 @@ function AcoesDoSolo({ exercicioId, hrefRepetir }: PropsAcoesDoSolo) {
   );
 }
 
-// ============================================================================
 // Barra de XP
-// ============================================================================
 
 interface PropsBarraXp {
   xp: Xp;
@@ -619,9 +611,7 @@ function aoTerminarTransicao(elemento: HTMLElement, fn: () => void) {
   setTimeout(concluir, 1100);
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Qualquer sessão logada vê o próprio resultado. Devolveu null,
 // redirecionou: a tela para aqui e nada mais roda.

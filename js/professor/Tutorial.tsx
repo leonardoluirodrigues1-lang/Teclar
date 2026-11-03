@@ -19,10 +19,8 @@ import { Estrela } from '../componentes/Estrela.js';
 import { TelaDeTutorial, type PassoDoTutorial } from '../componentes/TelaDeTutorial.js';
 import { IconeEstrela, IconeGrafico, IconePessoa, IconeTeclado } from '../componentes/IconesDoTutorial.js';
 
-// ============================================================================
 // Ícones que só o Professor usa — SVG traçado em linha, feitos à mão
 // (os comuns aos dois tutoriais estão em componentes/IconesDoTutorial.tsx)
-// ============================================================================
 
 // Uma sala: a moldura com as divisões de uma planta.
 function IconeSala() {
@@ -67,9 +65,7 @@ function IconeExportar() {
   );
 }
 
-// ============================================================================
 // O bonequinho
-// ============================================================================
 // Cabeça e ombros, nada mais: um círculo e um arco, em traço fino. É um
 // pictograma do mesmo peso dos ícones do site, não um desenho de gente —
 // por isso não tem braço, perna nem rosto.
@@ -104,9 +100,7 @@ function pontosEmVolta(cx: number, cy: number, raio: number, quantos: number): {
   return pontos;
 }
 
-// ============================================================================
 // Desenho 1 — as salas em volta do professor
-// ============================================================================
 
 // O professor fica no meio do desenho.
 const CENTRO = { x: 230, y: 200 };
@@ -154,9 +148,7 @@ function DesenhoSalas() {
   );
 }
 
-// ============================================================================
 // Desenho 2 — o aluno entra pelo código da sala
-// ============================================================================
 
 const SALA_DO_CONVITE = { cx: 140, cy: 200, raio: 66 };
 
@@ -190,9 +182,7 @@ function DesenhoConvite() {
   );
 }
 
-// ============================================================================
 // Desenho 3 — o desempenho da turma
-// ============================================================================
 
 // O PPM de dez sessões seguidas, da mais antiga para a mais recente.
 const RITMO_DA_TURMA = [26, 34, 30, 44, 38, 52, 46, 58, 54, 66];
@@ -239,9 +229,7 @@ function DesenhoDesempenho() {
   );
 }
 
-// ============================================================================
 // Os passos
-// ============================================================================
 // Só o que o modo Professor já faz: nada aqui promete função que não existe.
 
 const PASSOS: PassoDoTutorial[] = [
@@ -299,9 +287,7 @@ const PASSOS: PassoDoTutorial[] = [
   },
 ];
 
-// ============================================================================
 // A tela
-// ============================================================================
 
 interface PropsTutorialDoProfessor {
   aoTerminar: () => void;

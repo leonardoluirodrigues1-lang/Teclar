@@ -1,4 +1,3 @@
-// ranking.controller.ts
 // A rota HTTP do ranking da turma (GET /turmas/:turmaId/ranking). Só recebe
 // e devolve: a regra, e a anonimização, estão no RankingService.
 //

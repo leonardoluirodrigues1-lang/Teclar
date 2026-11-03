@@ -1,4 +1,3 @@
-// teclasDoCaractere.ts
 // Dado o PRÓXIMO caractere do texto do exercício, quais teclas do teclado
 // ABNT2 a pessoa precisa apertar — é o que o teclado guia da tela de
 // treino acende. A tecla sai do texto que VEM, nunca do que foi digitado.

@@ -1,4 +1,3 @@
-// dias-seguidos.ts
 // "Dias seguidos com sessão, terminando hoje ou ontem; senão 0": a conta
 // que o ranking, o resumo do aluno e o relatório dele na sala fazem. Fica
 // num lugar só para as três rotas nunca discordarem do mesmo número (o

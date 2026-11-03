@@ -889,9 +889,7 @@ function Treino({ usuario }: PropsTreino) {
   );
 }
 
-// ============================================================================
 // Agregado das voltas: o corpo da sessão gravada
-// ============================================================================
 // Uma linha por sessão no banco, sem coluna de repetição. PPM e precisão são
 // a média das voltas; acertos, erros e tempo, a soma; concluida só se todas
 // terminaram pelo texto. Com uma volta, devolve o corpo dela tal qual.
@@ -910,9 +908,7 @@ function agregarVoltas(voltas: DadosSessaoTreino[]): DadosSessaoTreino {
   };
 }
 
-// ============================================================================
 // Texto do exercício: um <span class="c"> por caractere
-// ============================================================================
 
 interface PropsCaracteres {
   chars: string[];
@@ -949,9 +945,7 @@ function mesmoStatus(a: StatusCaractere[], b: StatusCaractere[]): boolean {
   return true;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Qualquer sessão logada treina (Solo, Aluno, e conta em prévia).
 // Devolveu null, redirecionou: a tela para aqui e nada mais roda.

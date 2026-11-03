@@ -1,4 +1,3 @@
-// mocks.ts
 // Respostas FALSAS com EXATAMENTE o mesmo formato que a API real vai usar.
 // Se o mock mentir sobre o formato (nome de campo, tipo, forma do objeto),
 // a tela é construída em cima da mentira e quebra no dia da integração com
@@ -17,9 +16,7 @@
 //  - o "banco" (objeto `dados`) vive em memória e reinicia a cada F5. Isso é
 //    proposital: todo teste parte do mesmo estado.
 //
-// ============================================================================
 // CONTAS DE TESTE — para entrar sem o back de pé
-// ============================================================================
 //
 // Uma conta é uma conta: a tabela Users NÃO tem coluna de perfil. Toda
 // conta abre o Solo E o Professor; o que muda entre eles é o modo escolhido
@@ -57,9 +54,7 @@
 // como a collation do banco. Os demais alunos das turmas também entram com
 // aluno2026 (menos os de senha null, marcados em `alunos`).
 //
-// ============================================================================
 // O ALUNO NA V8 (DB_Teclar_v8.sql)
-// ============================================================================
 //
 //   Alunos        ganha ClassID e perde UserID: o aluno nasce dentro da
 //                 turma, da lista de nomes que o professor sobe
@@ -105,7 +100,6 @@ import type {
   Campanha,
   Categoria,
   DesempenhoLicaoSolo,
-  Dificuldade,
   ErroDaApi,
   EstatisticasSolo,
   Exercicio,
@@ -132,9 +126,7 @@ import type {
   Usuario,
 } from './tipos.js';
 
-// ============================================================================
 // 1. TEXTOS de treino (português real, sem lorem ipsum)
-// ============================================================================
 
 const TEXTOS = {
   // Curto: uma frase.
@@ -174,9 +166,7 @@ const TEXTOS = {
 // professor sempre carregou o dele (ver dados.exercicios). Os TEXTOS acima
 // servem agora só à biblioteca do professor.
 
-// ============================================================================
 // 4. USUARIOS de teste
-// ============================================================================
 
 // O `usuario` devolvido no login e no cadastro. Espelha a tabela Users:
 // ID, Nome, Email. Não tem senha, não tem hash, não tem GoogleID — nada
@@ -228,14 +218,10 @@ export const USUARIOS: {
   },
 };
 
-// ============================================================================
 // 1b. LICOES — as 76 lições do Solo: moram em ./licoes.ts
-// ============================================================================
 // Saíram daqui para o seed do back gravar no banco exatamente as mesmas.
 
-// ============================================================================
 // 2. dados — "banco" em memória, reiniciado a cada carga de página
-// ============================================================================
 
 // A forma do "banco". Os mapas por turma/campanha são indexados por id em
 // tempo de execução (turmas criadas pelo mock entram aqui), por isso são
@@ -1039,9 +1025,7 @@ export const dados: BancoMock = {
   },
 };
 
-// ============================================================================
 // Helpers
-// ============================================================================
 
 const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -1514,9 +1498,7 @@ function comAtribuidoA(ex: Exercicio): Exercicio {
   return { ...ex, atribuidoA };
 }
 
-// ============================================================================
 // 5. erro(status, mensagem, codigo)
-// ============================================================================
 // Devolve um Error com os mesmos getters que o ErroApi do api.js expõe, para
 // a tela tratar a falha do mock igual à falha da API real.
 
@@ -1536,9 +1518,7 @@ export function erro(status: number, mensagem: string, codigo: string | null = n
   return e;
 }
 
-// ============================================================================
 // 5b. CONTAS — credenciais de teste
-// ============================================================================
 // O "banco de senhas" do mock. Senha em texto puro aqui é proposital: é o
 // único jeito de comparar sem hash, e este arquivo nunca vai para produção
 // (some junto com CONFIG.MOCK = false).
@@ -1670,9 +1650,7 @@ function exigirAdministrador(token: string | null | undefined): void {
   }
 }
 
-// ============================================================================
 // 6. rotas — [método, regex, handler(params, corpo)]
-// ============================================================================
 // As mais específicas vêm antes das genéricas. `params` é o array de trechos
 // capturados na ordem em que aparecem na URL.
 
@@ -2706,9 +2684,7 @@ const rotas: [string, RegExp, Handler][] = [
   ],
 ];
 
-// ============================================================================
 // 7. responderMock
-// ============================================================================
 
 // Rotas que não exigem token: são justamente as que o entregam (ou o
 // descartam). 401 nelas quer dizer "credencial errada", não "sessão morta".

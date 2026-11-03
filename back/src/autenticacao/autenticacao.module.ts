@@ -1,4 +1,3 @@
-// autenticacao.module.ts
 // Grupo "Autenticação" do CONTRATO-API.md.
 // Pronto: POST /auth/login, POST /auth/cadastro, GET /auth/eu,
 //         POST /auth/logout

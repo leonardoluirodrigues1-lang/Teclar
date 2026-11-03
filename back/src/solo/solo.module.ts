@@ -1,4 +1,3 @@
-// solo.module.ts
 // Grupo "Solo" do CONTRATO-API.md. Pronto inteiro: a campanha
 // (campanhas.service.ts), as lições (missoes.service.ts) e o progresso —
 // sessões, XP, histórico, indicadores e estatísticas (progresso.service.ts).

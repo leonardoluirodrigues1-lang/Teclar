@@ -1,4 +1,3 @@
-// guarda-do-token.ts
 // O guard que protege as rotas: confere o token do cabeçalho
 //   Authorization: Bearer <token>
 // e, se ele vale, põe a identidade (id e tipo) em request.identidade.

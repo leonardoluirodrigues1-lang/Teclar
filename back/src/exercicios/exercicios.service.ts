@@ -1,4 +1,3 @@
-// exercicios.service.ts
 // A regra do grupo "Biblioteca de exercícios (professor)" do
 // CONTRATO-API.md:
 //   GET    /exercicios          a biblioteca do professor do token
@@ -14,12 +13,13 @@
 // rotas, um exercício que não existe: 404. A linha continua no banco só
 // para as sessões antigas dos alunos continuarem apontando para ela.
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
@@ -192,9 +192,7 @@ export class ExerciciosService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 function exercicioNaForma(linha: ExercicioComContagem): Exercicio {
   return {
@@ -274,10 +272,6 @@ function tempoDoExercicio(valor: unknown): number {
     throw dadosInvalidos('O tempo limite vai de 0 a 3600 segundos.');
   }
   return valor;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }
 
 function naoEncontrado(): NotFoundException {

@@ -1,4 +1,3 @@
-// csv.ts
 // Parser de CSV feito à mão, sem biblioteca. Existe para a importação de
 // alunos (pages/professor/alunos.html), mas não sabe nada de aluno: recebe
 // texto, devolve linhas de células. Sem fetch; o único toque no DOM é o
@@ -188,10 +187,8 @@ export function gerarCsv(
   return bom ? BOM + corpo : corpo;
 }
 
-// ============================================================================
 // Download — saiu de professor/Relatorios.tsx quando o relatório do aluno
 // (aluno/Sala.tsx) também passou a exportar CSV.
-// ============================================================================
 
 // Um nome de turma em pedaço de nome de arquivo: minúsculas e sem acento.
 // Fora disso, o que não é letra nem número vira hífen — "9º Ano A — Manhã" tem espaço, ordinal e travessão, e um nome de

@@ -1,4 +1,3 @@
-// exercicios.controller.ts
 // As rotas HTTP do grupo "Biblioteca de exercícios (professor)". Só recebe
 // e devolve: a regra está no ExerciciosService.
 //

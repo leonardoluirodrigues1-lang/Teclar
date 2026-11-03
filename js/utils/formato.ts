@@ -1,4 +1,3 @@
-// formato.ts
 // As portas de formatação de dado das telas de números: null e undefined
 // viram "—"; zero é 0. Nunca "null", nunca "NaN", nunca 0 no lugar de um
 // dado que não veio.
@@ -11,6 +10,8 @@
 // (Havia um js/utils/formato.js vazio, placeholder da época em que tudo
 // era JS; foi apagado para este .ts poder nascer sem colidir com o .js que
 // o tsc gera ao lado — ver a nota sobre caixa de nome em tsconfig.json.)
+
+import type { Dificuldade } from '../nucleo/tipos.js';
 
 export function numero(valor: number | null | undefined): string {
   return valor == null || !Number.isFinite(valor) ? '—' : formatarDecimal(valor);
@@ -62,3 +63,29 @@ export function formatarData(iso: string | null | undefined): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
 }
 
+// Rótulo de cada valor do ENUM Dificuldade, na ordem em que o seletor e a
+// ordenação usam. A ordem importa: ordenar por dificuldade é ordenar por
+// esta posição, não pelo nome ("dificil" < "facil" em ordem alfabética).
+export const DIFICULDADES: { valor: Dificuldade; rotulo: string }[] = [
+  { valor: 'facil', rotulo: 'Fácil' },
+  { valor: 'medio', rotulo: 'Médio' },
+  { valor: 'dificil', rotulo: 'Difícil' },
+];
+
+export function rotuloDificuldade(valor: string | null | undefined): string {
+  return DIFICULDADES.find((d) => d.valor === valor)?.rotulo ?? '—';
+}
+
+export function pesoDificuldade(valor: string | null | undefined): number {
+  const i = DIFICULDADES.findIndex((d) => d.valor === valor);
+  return i < 0 ? DIFICULDADES.length : i;
+}
+
+// Sem acento e em minúsculas, para as buscas: procurar "extensao" tem de
+// achar "Projeto de Extensão".
+export function normalizar(texto: string | null | undefined): string {
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}

@@ -1,4 +1,3 @@
-// main.ts
 // Ponto de entrada do back: sobe o Nest na porta 3000, sob /api, e libera o front.
 //
 // O dotenv vem no PRIMEIRO import: ele põe o .env em process.env, e o

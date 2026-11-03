@@ -1,4 +1,3 @@
-// solo.controller.ts
 // As rotas HTTP do grupo "Solo". Só recebe e devolve: a regra está nos
 // três services (campanha, missões e progresso).
 //

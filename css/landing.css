@@ -161,154 +161,18 @@ footer p{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.3em;color
 @media(prefers-reduced-motion:reduce){
   .reveal,.w{opacity:1;transform:none;filter:none;transition:none}
 }
-.teclar-canvas-motion {
-  animation-name: teclar-canvas-drift;
-  animation-duration: 18s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  animation-play-state: running;
-  will-change: transform;
-}
-
-@keyframes teclar-orbit-a {
-  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.05; }
-  20%  { opacity: 0.35; }
-  55%  { transform: translate3d(-7vw, -5vh, 0) scale(0.9); }
-  85%  { transform: translate3d(-13vw, 3vh, 0) scale(0.55); opacity: 0.08; }
-  100% { transform: translate3d(-16vw, 6vh, 0) scale(0.3); opacity: 0; }
-}
-
-@keyframes teclar-orbit-b {
-  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.05; }
-  25%  { opacity: 0.3; }
-  60%  { transform: translate3d(6vw, 6vh, 0) scale(0.85); }
-  100% { transform: translate3d(14vw, -4vh, 0) scale(0.3); opacity: 0; }
-}
-
 /* --- Teclar living hero: compositor-driven motion ------------------ */
 
-@keyframes teclar-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes teclar-spin-rev {
-  from { transform: rotate(360deg); }
-  to   { transform: rotate(0deg); }
-}
-@keyframes teclar-infall {
-  0%   { transform: translate3d(var(--r), 0, 0) scale(1); opacity: 0; }
-  12%  { opacity: var(--o, 0.35); }
-  70%  { opacity: var(--o, 0.35); }
-  100% { transform: translate3d(calc(var(--r) * 0.12), 0, 0) scale(0.35); opacity: 0; }
-}
-@keyframes teclar-letter-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(var(--spin, 180deg)); }
-}
-@keyframes teclar-drift {
-  0%   { transform: translate3d(0, 0, 0); }
-  50%  { transform: translate3d(var(--dx, 3vw), var(--dy, -3vh), 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
 @keyframes teclar-streak {
   0%   { transform: translate3d(-60%, 0, 0) scaleX(0.6); opacity: 0; }
   15%  { opacity: var(--so, 0.5); }
   85%  { opacity: var(--so, 0.5); }
   100% { transform: translate3d(60%, 0, 0) scaleX(1.6); opacity: 0; }
 }
-@keyframes teclar-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50%      { transform: scale(1.06); opacity: 0.85; }
-}
 @keyframes teclar-particle {
   0%   { transform: translate3d(var(--r), 0, 0) scale(1); opacity: 0; }
   20%  { opacity: var(--o, 0.6); }
   100% { transform: translate3d(0, 0, 0) scale(0.2); opacity: 0; }
-}
-
-/* --- Event horizon: real positional CSS motion (compositor only) --- */
-
-@keyframes teclar-flow-a {
-  0%   { transform: translate3d(-7%, 3%, 0) scale(1.02) rotate(0deg); opacity: 0.6; }
-  33%  { transform: translate3d(8%, -6%, 0) scale(1.22) rotate(9deg); opacity: 1; }
-  66%  { transform: translate3d(3%, 8%, 0) scale(0.96) rotate(-7deg); opacity: 0.55; }
-  100% { transform: translate3d(-7%, 3%, 0) scale(1.02) rotate(0deg); opacity: 0.6; }
-}
-@keyframes teclar-flow-b {
-  0%   { transform: translate3d(7%, -4%, 0) scale(1.12) rotate(0deg); opacity: 0.9; }
-  40%  { transform: translate3d(-9%, 6%, 0) scale(0.88) rotate(-13deg); opacity: 0.5; }
-  75%  { transform: translate3d(-3%, -8%, 0) scale(1.26) rotate(11deg); opacity: 1; }
-  100% { transform: translate3d(7%, -4%, 0) scale(1.12) rotate(0deg); opacity: 0.9; }
-}
-@keyframes teclar-flow-c {
-  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 0.7; }
-  30%  { transform: translate3d(-6%, 5%, 0) scale(1.14) rotate(-9deg); opacity: 1; }
-  65%  { transform: translate3d(9%, 4%, 0) scale(1.3) rotate(16deg); opacity: 0.8; }
-  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 0.7; }
-}
-@keyframes teclar-flow-d {
-  0%   { transform: translate3d(0, 0, 0) scale(1.1) rotate(360deg); opacity: 0.95; }
-  50%  { transform: translate3d(-9%, -5%, 0) scale(0.9) rotate(180deg); opacity: 0.5; }
-  100% { transform: translate3d(0, 0, 0) scale(1.1) rotate(0deg); opacity: 0.95; }
-}
-@keyframes teclar-canvas-drift {
-  0%   { transform: scale(1.1) translate3d(-2.5%, 1.5%, 0); }
-  50%  { transform: scale(1.18) translate3d(3%, -2.5%, 0); }
-  100% { transform: scale(1.1) translate3d(-2.5%, 1.5%, 0); }
-}
-
-/* --- Scattered letters across the whole hero ----------------------- */
-
-@keyframes teclar-cross {
-  0%   { transform: translate3d(var(--fx, -60vw), 0, 0) scale(var(--fs, 1)); opacity: 0; }
-  12%  { opacity: var(--fo, 0.3); }
-  80%  { opacity: var(--fo, 0.3); }
-  100% { transform: translate3d(var(--tx, 60vw), var(--ty, -6vh), 0) scale(calc(var(--fs, 1) * 0.7)); opacity: 0; }
-}
-@keyframes teclar-pull {
-  0%   { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: 0; }
-  15%  { opacity: var(--fo, 0.35); }
-  70%  { opacity: calc(var(--fo, 0.35) * 0.8); }
-  100% { transform: translate3d(var(--tx, 0), var(--ty, 0), 0) scale(calc(var(--fs, 1) * 0.2)); opacity: 0; }
-}
-@keyframes teclar-float {
-  0%   { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: var(--fo, 0.25); }
-  50%  { transform: translate3d(var(--tx, 2vw), var(--ty, -3vh), 0) scale(calc(var(--fs, 1) * 1.1)); opacity: calc(var(--fo, 0.25) * 1.6); }
-  100% { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: var(--fo, 0.25); }
-}
-
-/* curved, natural trajectories for the scattered letters */
-@keyframes teclar-arc {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--fs, 1)); opacity: 0; }
-  10%  { opacity: var(--fo, 0.3); }
-  35%  { transform: translate3d(calc(var(--tx) * 0.28), calc(var(--ty) * 0.62), 0) rotate(calc(var(--rot, 40deg) * 0.4)) scale(calc(var(--fs, 1) * 1.08)); }
-  70%  { transform: translate3d(calc(var(--tx) * 0.74), calc(var(--ty) * 0.3), 0) rotate(calc(var(--rot, 40deg) * 0.8)) scale(calc(var(--fs, 1) * 0.9)); opacity: var(--fo, 0.3); }
-  100% { transform: translate3d(var(--tx), var(--ty), 0) rotate(var(--rot, 40deg)) scale(calc(var(--fs, 1) * 0.6)); opacity: 0; }
-}
-
-/* extra horizon rotation layers */
-@keyframes teclar-swirl {
-  0%   { transform: rotate(0deg) scale(1); }
-  50%  { transform: rotate(180deg) scale(1.12); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-@keyframes teclar-swirl-rev {
-  0%   { transform: rotate(360deg) scale(1.08) translate3d(2%, -1%, 0); }
-  50%  { transform: rotate(180deg) scale(0.94) translate3d(-3%, 2%, 0); }
-  100% { transform: rotate(0deg) scale(1.08) translate3d(2%, -1%, 0); }
-}
-
-/* --- Scroll reveal -------------------------------------------------- */
-
-.teclar-reveal {
-  opacity: 0;
-  transform: translate3d(0, 28px, 0);
-  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-.teclar-reveal[data-visible="true"] {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
 }
 
 /* ============ BARRA FIXA ============ */

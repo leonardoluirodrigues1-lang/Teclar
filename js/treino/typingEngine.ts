@@ -1,4 +1,3 @@
-// typingEngine.ts
 // O motor de digitação — o coração do TECLAR. Lógica PURA: recebe o texto,
 // escuta o que a pessoa digita e expõe o estado. Não desenha nada; quem pinta
 // é a tela de treino. O MESMO motor serve ao mundo Solo e ao Escola.
@@ -121,9 +120,7 @@ export class MotorDigitacao {
     this.#statusChars = new Array(this.#alvoChars.length).fill('pendente');
   }
 
-  // =========================================================================
   // Ligação com o input invisível
-  // =========================================================================
 
   anexar(inputEl: HTMLInputElement): void {
     // POR QUE UM <input> INVISÍVEL + EVENTO 'input' (e não keydown):
@@ -166,9 +163,7 @@ export class MotorDigitacao {
     el.removeEventListener('focus', this.#aoGanharFoco);
   }
 
-  // =========================================================================
   // Ciclo de vida
-  // =========================================================================
 
   iniciar(): void {
     if (this.#finalizada) return;
@@ -222,9 +217,7 @@ export class MotorDigitacao {
     this.#inputEl = null;
   }
 
-  // =========================================================================
   // Estado (somente leitura)
-  // =========================================================================
 
   get estado(): EstadoMotor {
     const decorridoMs = this.#tempoDecorridoMs();
@@ -282,9 +275,7 @@ export class MotorDigitacao {
     };
   }
 
-  // =========================================================================
   // Relógio
-  // =========================================================================
 
   #ligarRelogio(): void {
     this.#iniciada = true;
@@ -329,9 +320,7 @@ export class MotorDigitacao {
     this.#emitir(); // só repaint; o tempo já anda sozinho
   }
 
-  // =========================================================================
   // Entrada do usuário
-  // =========================================================================
 
   #aoDigitar = (): void => {
     if (this.#finalizada || this.#pausada || !this.#inputEl) return;
@@ -414,9 +403,7 @@ export class MotorDigitacao {
     }
   }
 
-  // =========================================================================
   // Foco: pausar e retomar sozinho
-  // =========================================================================
 
   #aoPerderFoco = (): void => {
     // Sem pausar aqui, o cronômetro continuaria correndo enquanto a pessoa
@@ -434,9 +421,7 @@ export class MotorDigitacao {
     if (this.#pausadaPorFoco) this.retomar();
   };
 
-  // =========================================================================
   // Fim
-  // =========================================================================
 
   #finalizar(motivo: 'texto' | 'tempo'): void {
     if (this.#finalizada) return;

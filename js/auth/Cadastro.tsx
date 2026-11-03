@@ -24,7 +24,7 @@ import {
   validarConfirmacao,
 } from '../utils/validacao.js';
 import { mensagemDoErro, ehConflito } from './comum.js';
-import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoSenha } from './Formulario.js';
+import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // O host dos toasts fica fora da raiz do React (ver cadastro.html), e o
@@ -167,28 +167,7 @@ function Cadastro() {
           <ErroCampo id="erro-nome" erro={campos.erros.nome} />
         </div>
 
-        <div className="campo">
-          <label className="rotulo" htmlFor="campo-email">
-            E-mail
-          </label>
-          <input
-            type="email"
-            name="email"
-            id="campo-email"
-            autoComplete="email"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            inputMode="email"
-            maxLength={150}
-            aria-describedby="erro-email"
-            required
-            ref={email}
-            onBlur={() => campos.aoSair('email')}
-            {...atributosDeErro(campos.erros.email)}
-          />
-          <ErroCampo id="erro-email" erro={campos.erros.email} />
-        </div>
+        <CampoEmail inputRef={email} erro={campos.erros.email} onBlur={() => campos.aoSair('email')} />
 
         <div className="campo">
           <label className="rotulo" htmlFor="campo-senha">
@@ -245,9 +224,7 @@ function Cadastro() {
   );
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Quem já está logado não tem o que fazer criando conta.
 if (!guarda.redirecionarSeLogado()) {

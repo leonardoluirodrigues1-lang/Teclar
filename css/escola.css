@@ -829,9 +829,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .tabela tr.linha-sem-dado td { color: var(--cor-texto-fraco, #8a8a8a); }
 .tabela tr.linha-sem-dado td.col-mono { color: inherit; opacity: 0.7; }
 
-/* .btn-mini é a mesma pílula fora da tabela (copiar senha, etc.): uma
-   receita, dois nomes, para o de dentro da lista não se chamar "tabela". */
-.tabela-acao, .btn-mini {
+.tabela-acao {
   padding: 6px 12px;
   border-radius: var(--raio-total, 9999px);
   background: rgba(255, 255, 255, 0.06);
@@ -846,7 +844,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
               box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
               transform var(--t-rapido, 160ms) var(--curva, ease-out);
 }
-.tabela-acao:hover, .btn-mini:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.14); }
+.tabela-acao:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.14); }
 
 /* Esqueleto de tabela — mesma altura da tabela cheia, para o layout não
    pular quando os dados chegam. O pulso é o mesmo @keyframes pulso da
@@ -1004,8 +1002,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .item-convidado-valor { display: block; margin-top: 2px; font-size: 15px; }
 /* O nome na fonte de texto: o mono é do RP, que se confere dígito a dígito. */
 .item-convidado-nome { font-family: var(--fonte-leitura, "Inter", -apple-system, "Segoe UI", Roboto, sans-serif); }
-/* "Já estavam" no resultado do CSV: o estado, sem cor — não é falha. */
-.item-convidado-estado { color: var(--cor-texto-suave, #c4c4c4); }
 
 /* Campo selecionável que aparece quando a área de transferência falha:
    melhor um texto para copiar à mão do que um erro. */
@@ -1337,29 +1333,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   text-align: left;
 }
 
-/* Identificação do aluno: nome em cima, matrícula embaixo em mono menor.
-   Sem nome na tabela Alunos, sobra só a matrícula — e aí ela ocupa a linha
-   de cima, sem um espaço vazio fingindo que o nome existe. */
-.celula-aluno { display: block; }
 .celula-aluno-nome {
   display: block;
   font-size: 15px;
-}
-.celula-aluno-matricula {
-  display: block;
-  margin-top: 2px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-/* Sozinha, a matrícula é o nome do aluno: mesmo tamanho do resto da linha,
-   sem o recuo de legenda e sem a margem que a segunda linha teria. */
-.celula-aluno-so-matricula {
-  margin-top: 0;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  color: inherit;
 }
 
 /* Precisão média abaixo de 85%: tom mais forte e peso um pouco maior — o

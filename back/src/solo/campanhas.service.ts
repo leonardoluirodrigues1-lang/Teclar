@@ -1,4 +1,3 @@
-// campanhas.service.ts
 // A campanha do Solo (tabela CampanhasSolo), no grupo "Solo" do
 // CONTRATO-API.md:
 //   GET    /solo/campanha        a campanha do token, ou null

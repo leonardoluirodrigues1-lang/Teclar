@@ -37,10 +37,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api } from '../nucleo/api.js';
+import { api, mensagemDaFalha } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { ErroDaApi, Missao, SessaoSolo } from '../nucleo/tipos.js';
+import type { Missao, SessaoSolo } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { MolduraSolo } from '../componentes/MolduraSolo.js';
@@ -55,6 +55,7 @@ import {
 } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
+import { IconeTeclado } from '../componentes/IconesDoTutorial.js';
 
 // Vizinho desta em pages/solo/: é lá que mora o convite de começar.
 const ROTA_DASHBOARD = 'dashboard.html';
@@ -80,9 +81,7 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// ============================================================================
 // Geometria da trilha — as medidas do preview
-// ============================================================================
 // Em px, dentro da área da trilha. A trilha é uma senoide: vai da margem
 // esquerda à direita subindo e descendo pouco mais de uma volta.
 
@@ -167,18 +166,7 @@ function useTamanho(elemento: React.RefObject<HTMLElement>): { largura: number; 
   return tamanho;
 }
 
-// ============================================================================
 // Ícones
-// ============================================================================
-
-function IconeTeclado() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
-    </svg>
-  );
-}
 
 function IconeTrofeu() {
   return (
@@ -188,9 +176,7 @@ function IconeTrofeu() {
   );
 }
 
-// ============================================================================
 // Pedra
-// ============================================================================
 
 type EstadoDaPedra = 'feita' | 'proxima' | 'nova';
 
@@ -305,9 +291,7 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra
   );
 }
 
-// ============================================================================
 // Nível: a faixa do topo e a trilha
-// ============================================================================
 
 // "8 lições" / "1 lição".
 function contagemDeLicoes(quantas: number): string {
@@ -424,9 +408,7 @@ function Trilha({ grupo, progresso, ehEstrelaNova }: PropsTrilha) {
   );
 }
 
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Carga =
   | { estado: 'carregando' }
@@ -491,7 +473,7 @@ function Caminho() {
         sessao.atualizarUsuario({ campanhaAtiva: campanha.campanhaId });
         setCarga({ estado: 'pronto', licoes, sessoes });
       } catch (excecao) {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
+        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao, MENSAGENS) });
       }
     }
 
@@ -567,27 +549,7 @@ function Caminho() {
   );
 }
 
-// ============================================================================
-// Erros — decide pelo status, nunca pelo texto que o servidor mandou
-// ============================================================================
-
-function mensagemDaFalha(excecao: unknown): string {
-  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
-  // ErroApi do api.ts, mas não é instância dele.
-  const erro = excecao as ErroDaApi | null | undefined;
-  if (erro?.name !== 'ErroApi') {
-    console.error(excecao);
-    return MENSAGENS.GENERICA;
-  }
-  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
-  if (erro.status === 0) return MENSAGENS.CONEXAO;
-  if (erro.status === 403) return MENSAGENS.PERMISSAO;
-  return MENSAGENS.GENERICA;
-}
-
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de conta (e grava o modo solo). Devolveu null, redirecionou: a
 // tela para aqui. Quem não tem campanha é mandado ao dashboard no

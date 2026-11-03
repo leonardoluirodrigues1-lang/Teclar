@@ -1,4 +1,3 @@
-// swagger.ts
 // Serve a documentação da API em /api/docs (e o JSON em /api/docs-json).
 //
 // O documento não é montado aqui: é o back/openapi.json, que o

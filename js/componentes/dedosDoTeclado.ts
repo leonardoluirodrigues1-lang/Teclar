@@ -1,4 +1,3 @@
-// dedosDoTeclado.ts
 // Qual dedo aperta cada tecla do teclado ABNT2, pela digitação de dez
 // dedos. É DADO, não lógica: uma tabela tecla → dedo, uma linha por tecla.
 //

@@ -1,4 +1,3 @@
-// PainelErro.tsx
 // O painel de estado das telas do professor (section.estado.vidro), que
 // turmas.js, turma.js e alunos.js montavam como montarEstado(): título,
 // texto e uma ação. PainelErro é o caso "não foi possível carregar", com o

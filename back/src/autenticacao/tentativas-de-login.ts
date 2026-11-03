@@ -1,4 +1,3 @@
-// tentativas-de-login.ts
 // Conta as senhas erradas do POST /auth/login por IP + identidade (ver
 // AutenticacaoService.entrar). Com 5 falhas no mesmo minuto, as próximas
 // tentativas dessa chave — até com a senha certa — dão 429

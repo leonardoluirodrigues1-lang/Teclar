@@ -1,4 +1,3 @@
-// ranking.service.ts
 // GET /turmas/:turmaId/ranking (CONTRATO-API.md, grupo "Aluno"): o ranking da
 // turma visto pelo PRÓPRIO aluno logado. Vem JÁ ORDENADO E PONTUADO: a tela
 // só exibe.
@@ -93,9 +92,7 @@ export class RankingService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 function pontuar(alunoId: string, nome: string, sessoes: SessaoParaPontuar[]): Pontuacao {
   const concluidas = sessoes.filter((sessao) => sessao.Concluida);

@@ -1,4 +1,3 @@
-// app.module.ts
 // O módulo raiz: junta o banco e os módulos que têm rota implementada.
 //
 // Todas as rotas do contrato (CONTRATO-API.md) têm módulo: autenticação,

@@ -1,4 +1,3 @@
-// progresso.service.ts
 // O progresso do jogador no Solo, no grupo "Solo" do CONTRATO-API.md:
 //   POST /solo/sessoes        grava um treino e dá o XP
 //   GET  /solo/historico      as sessões da campanha
@@ -14,7 +13,7 @@
 // marca é a maior de todas). Refazer uma lição pior acrescenta uma linha,
 // mas não apaga a melhor nem tira a lição da lista das concluídas.
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -26,6 +25,7 @@ import { sessaoSoloNaForma } from '../sessoes/sessoes.service.js';
 import type { SessaoSolo } from '../sessoes/sessoes.service.js';
 import { campanhaDoToken, jogadorDoToken } from './campanha-do-token.js';
 import { nivelDoXp, xpDaSessao } from './xp.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 
 // O corpo do POST como chega (DadosSessaoTreino no contrato): a lição e as
 // medidas do motor. Os ids de pessoa e de campanha só existem aqui para
@@ -232,9 +232,7 @@ export class ProgressoService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 type SessaoComLicao = Prisma.sessionssoloGetPayload<{
   include: { exerciciossolo: { select: { Titulo: true; Nivel: true; Ordem: true } } };
@@ -287,8 +285,4 @@ function licaoDoCorpo(valor: unknown): string {
     throw dadosInvalidos('Informe exercicio_id.');
   }
   return valor;
-}
-
-function dadosInvalidos(mensagem: string): BadRequestException {
-  return new BadRequestException({ mensagem, codigo: 'DADOS_INVALIDOS' });
 }

@@ -1,4 +1,3 @@
-// TecladoAbnt2.tsx
 // O desenho do teclado ABNT2, o teclado do projeto. Um componente só, em
 // dois tamanhos:
 //   · 'tutorial' — o do tutorial do Solo (js/solo/Tutorial.tsx): grande,
@@ -28,9 +27,7 @@ import { teclasDoCaractere, type TeclasParaDigitar } from '../utils/teclasDoCara
 
 export type TamanhoDoTeclado = 'tutorial' | 'treino';
 
-// ============================================================================
 // As teclas
-// ============================================================================
 
 interface TeclaDoDesenho {
   /** A chave em DEDO_DA_TECLA e em teclasDoCaractere. */
@@ -79,9 +76,7 @@ const FILEIRAS: TeclaDoDesenho[][] = [
   ],
 ];
 
-// ============================================================================
 // A marca do dedo
-// ============================================================================
 // Sem cor nova: o dedo se lê pela FORMA e pela POSIÇÃO da marca na base da
 // tecla. Pontinhos — 1 no indicador, 2 no médio, 3 no anelar, 4 no mínimo —
 // encostados no lado da mão (esquerda ou direita). O polegar é um traço
@@ -100,9 +95,7 @@ function MarcaDoDedo({ dedo }: { dedo: Dedo }) {
   return <span className={`teclado-marca-dedo teclado-marca-${dedo.mao}`}>{pontos}</span>;
 }
 
-// ============================================================================
 // Uma tecla
-// ============================================================================
 
 interface PropsTecla {
   tecla: TeclaDoDesenho;
@@ -133,9 +126,7 @@ const Tecla = memo(function Tecla({ tecla, acesa, guiaAcesa }: PropsTecla) {
   );
 });
 
-// ============================================================================
 // O teclado
-// ============================================================================
 
 // O que vai embaixo do teclado do treino: "indicador esquerdo", e o Shift
 // quando há. Sem destaque, um espaço fixo, para a altura não pular.

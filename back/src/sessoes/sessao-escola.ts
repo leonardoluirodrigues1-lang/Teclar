@@ -1,4 +1,3 @@
-// sessao-escola.ts
 // A sessão do mundo Escola (tabela SessionsProf) na forma do contrato, e as
 // duas contas de média que toda rota com sessão faz. Ficam aqui porque
 // alunos, relatórios, sessões e ranking devolvem a mesma sessão e a mesma

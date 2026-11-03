@@ -1,4 +1,3 @@
-// aluno.service.ts
 // A regra do grupo "Aluno" do CONTRATO-API.md: o PRÓPRIO aluno logado, nas
 // telas de pages/aluno/. (Não confundir com o grupo "Alunos", em
 // src/alunos/, que é o professor administrando a turma.)
@@ -277,9 +276,7 @@ export class AlunoService {
   }
 }
 
-// ============================================================================
 // Funções soltas: não dependem do banco nem do Nest.
-// ============================================================================
 
 // O id do aluno do token, ou 403 TIPO_INVALIDO se o token é de conta.
 function alunoDoToken(identidade: Identidade): string {

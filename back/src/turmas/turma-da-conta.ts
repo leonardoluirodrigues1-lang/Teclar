@@ -1,4 +1,3 @@
-// turma-da-conta.ts
 // "A turma tem de ser da conta do token": a pergunta que turmas, alunos e
 // atribuições fazem antes de qualquer coisa. Uma função só, para as três
 // responderem o mesmo 404.

@@ -1,4 +1,3 @@
-// estrelasJaVistas.ts
 // Decide quais estrelas de conquista são NOVAS — as que merecem nascer com
 // o pulso (.estrela-nasce, css/base/movimento.css).
 //

@@ -1,4 +1,3 @@
-// sessoes.controller.ts
 // As rotas HTTP do grupo "Sessões". Só recebe e devolve: a regra está no
 // SessoesService.
 //

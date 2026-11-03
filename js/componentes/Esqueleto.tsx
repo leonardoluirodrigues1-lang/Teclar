@@ -1,4 +1,3 @@
-// Esqueleto.tsx
 // Os esqueletos de carregamento das telas de escola (professor e aluno),
 // na mesma altura e com o mesmo respiro dos elementos finais: quando os
 // dados chegam, nada pula de lugar. Mesmas classes de css/escola.css que turmas.js e turma.js

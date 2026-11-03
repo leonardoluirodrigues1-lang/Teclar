@@ -1,4 +1,3 @@
-// configuracao-do-banco.ts
 // Monta a configuração do driver do MySQL a partir do DATABASE_URL do .env.
 //
 // Fica num arquivo próprio, sem nada do Nest, porque dois lugares precisam

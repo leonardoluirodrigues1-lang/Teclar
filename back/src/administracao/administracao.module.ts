@@ -1,4 +1,3 @@
-// administracao.module.ts
 // Grupo "Administração" do CONTRATO-API.md. Pronto inteiro: as quatro rotas
 // de /categorias e as duas de /parametros. Quem é administrador diz a
 // coluna Users.Administrador (banco v9; ver administrador-do-token.ts).

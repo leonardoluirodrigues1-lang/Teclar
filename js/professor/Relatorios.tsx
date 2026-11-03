@@ -24,7 +24,6 @@ import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
-  Dificuldade,
   ErroDaApi,
   RelatorioAluno,
   RelatorioExercicio,
@@ -35,7 +34,7 @@ import type {
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { baixarCsv, slug } from '../utils/csv.js';
-import { contagem, formatarDataHora, formatarDecimal, numero, porcentagem } from '../utils/formato.js';
+import { contagem, formatarDataHora, formatarDecimal, numero, pesoDificuldade, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
@@ -60,28 +59,7 @@ const MENSAGENS = {
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// Rótulo de cada valor do ENUM Dificuldade e o peso para ordenar. Mesma
-// receita de Biblioteca.tsx, e pelo mesmo motivo: em ordem alfabética
-// "dificil" vem antes de "facil", o que não é a ordem que se espera de uma
-// coluna de dificuldade.
-const DIFICULDADES: { valor: Dificuldade; rotulo: string }[] = [
-  { valor: 'facil', rotulo: 'Fácil' },
-  { valor: 'medio', rotulo: 'Médio' },
-  { valor: 'dificil', rotulo: 'Difícil' },
-];
-
-function rotuloDificuldade(valor: string | null | undefined): string {
-  return DIFICULDADES.find((d) => d.valor === valor)?.rotulo ?? '—';
-}
-
-function pesoDificuldade(valor: string | null | undefined): number {
-  const i = DIFICULDADES.findIndex((d) => d.valor === valor);
-  return i < 0 ? DIFICULDADES.length : i;
-}
-
-// ============================================================================
 // Estado da tela
-// ============================================================================
 
 type Aba = 'alunos' | 'exercicios';
 
@@ -129,9 +107,7 @@ function trocarNaUrl(chave: string, valor: string): void {
   window.history.replaceState(null, '', url);
 }
 
-// ============================================================================
 // Tela
-// ============================================================================
 
 function Relatorios() {
   const [cargaTurmas, setCargaTurmas] = useState<CargaTurmas>({ estado: 'carregando' });
@@ -658,9 +634,7 @@ function Relatorios() {
   );
 }
 
-// ============================================================================
 // Modal de histórico — as sessões do aluno NESTA turma
-// ============================================================================
 // Esc fecha, Tab não vaza e o foco volta ao botão da linha que o abriu:
 // tudo isso é do ModalReact, que captura o elemento ativo na montagem.
 
@@ -763,9 +737,7 @@ function ModalHistorico({ turmaId, aluno, aoFechar }: PropsHistorico) {
   );
 }
 
-// ============================================================================
 // Formatação — o front só apresenta o que o back agregou
-// ============================================================================
 // numero, porcentagem, contagem e formatarDataHora vêm de utils/formato.ts:
 // null e undefined viram "—", zero é 0, e é por essas portas que todo
 // número do back chega à tela. O "0 de 4" depende disso: o zero é um dado.
@@ -789,9 +761,7 @@ function semSessao(aluno: RelatorioAluno): boolean {
   return !aluno.totalSessoes;
 }
 
-// ============================================================================
 // O melhor da turma
-// ============================================================================
 // Uma estrela por coluna, ao lado do MAIOR número dela — nunca em toda
 // linha. Comparar não é calcular: o número continua sendo o do back; a
 // tela só aponta qual é o maior.
@@ -841,10 +811,8 @@ function linkDaTurma(turmaId: string): string {
   return `turma.html?${new URLSearchParams({ turma: turmaId })}`;
 }
 
-// ============================================================================
 // Ordenação — utils/ordenacao.ts (nulo por último nas duas direções);
 // cada tabela entrega só o valor de cada campo.
-// ============================================================================
 
 function valorOrdenavelAluno(aluno: RelatorioAluno, campo: string): string | number | null {
   if (campo === 'aluno') return aluno.nome.toLowerCase();
@@ -868,9 +836,7 @@ function valorOrdenavelExercicio(item: RelatorioExercicio, campo: string): strin
   return null;
 }
 
-// ============================================================================
 // Exportar CSV
-// ============================================================================
 // Exporta O QUE ESTÁ NA TELA: a aba aberta, as linhas visíveis e a
 // ordenação atual. Nenhuma requisição nova — os dados já estão aqui, e uma
 // segunda busca poderia trazer números diferentes dos que o professor viu.
@@ -937,10 +903,8 @@ function celulaNumero(valor: number | null | undefined): string {
   return valor == null || !Number.isFinite(valor) ? '' : formatarDecimal(valor);
 }
 
-// ============================================================================
 // Erros — mesmo critério das outras telas: decide pelo status, nunca pelo
 // texto que o servidor mandou.
-// ============================================================================
 
 function mensagemDaFalha(excecao: unknown): string {
   // Duck typing, não instanceof: o erro do mock tem a mesma forma do
@@ -957,9 +921,7 @@ function mensagemDaFalha(excecao: unknown): string {
   return MENSAGENS.GENERICA;
 }
 
-// ============================================================================
 // Montagem — guarda primeiro, React depois
-// ============================================================================
 
 // Guarda de professor antes de montar. Devolveu null, redirecionou: a tela
 // para aqui e nada mais roda.

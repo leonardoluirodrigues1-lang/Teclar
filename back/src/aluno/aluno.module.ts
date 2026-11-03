@@ -1,4 +1,3 @@
-// aluno.module.ts
 // Grupo "Aluno" do CONTRATO-API.md: as telas do PRÓPRIO aluno logado
 // (histórico, resumo, salas e o relatório individual). O ranking da turma,
 // que também é do grupo, está no RankingModule (src/ranking/), porque

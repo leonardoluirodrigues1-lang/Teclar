@@ -1,4 +1,3 @@
-// Tabela.tsx
 // A tabela sólida das telas do professor (turma: alunos e exercícios;
 // matrícula: prévia do CSV). É a ÚNICA superfície sólida dessas telas —
 // decisão do projeto: vidro é para painel e pílula, não para uma grade de
