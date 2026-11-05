@@ -223,9 +223,6 @@ function mensagemDaFalha(excecao: unknown): string {
 
 // Montagem — guarda primeiro, React depois
 
-if (usuario) {
-  // Marca o <body> com .mundo-escola: densidade e raio de cartão vêm do CSS.
-  guarda.aplicarMundo();
-  ativarSaidaAoNavegar();
-  createRoot(document.getElementById('raiz')).render(<Salas />);
-}
+// O aluno é de uma turma só: esta lista não abre mais, quem chega aqui vai
+// para a sala. replace: o voltar do navegador não cai de novo neste desvio.
+if (usuario) window.location.replace(guarda.casa());

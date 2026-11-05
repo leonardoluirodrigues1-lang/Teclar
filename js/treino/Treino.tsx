@@ -62,7 +62,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CONFIG } from '../config.js';
+import { CONFIG, ROTA_INICIAL } from '../config.js';
 import { api, filaSessoes } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
@@ -251,8 +251,14 @@ function Treino({ usuario }: PropsTreino) {
 
   // --- navegação -------------------------------------------------------------
 
+  // Para o relógio e a passagem antes de ir: nem o limite de tempo nem a volta
+  // seguinte podem disparar (e gravar) enquanto a página troca. replace: o
+  // voltar do navegador não cai num treino com o motor já destruído.
   function sair() {
-    location.href = guarda.casa();
+    pararPassagem();
+    motor.current?.destruir();
+    motor.current = null;
+    location.replace(modoTreino === 'solo' ? ROTA_INICIAL.solo : guarda.casa());
   }
 
   // Sair pelo Esc ou pelo botão "← Sair" do HUD: os dois chamam esta, e
@@ -719,6 +725,9 @@ function Treino({ usuario }: PropsTreino) {
         <button
           type="button"
           className="hud-sair tecla"
+          // Sem isto o mousedown tira o foco do input, o motor pausa e a camada
+          // de pausa cobre o botão antes do clique terminar: o Sair só pausava.
+          onMouseDown={(evento) => evento.preventDefault()}
           onClick={sairSeNenhumModalAberto}
           aria-label="Sair do treino (Esc)"
         >

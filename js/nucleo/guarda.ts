@@ -36,13 +36,13 @@ function mandarParaLogin(): void {
   irPara(`${ROTA_LOGIN}?volta=${encodeURIComponent(urlAtual())}`);
 }
 
-// A casa da sessão atual, para quem JÁ está navegando: aluno -> dashboard
-// do aluno; conta -> a casa do modo em uso, ou a tela de modo se ainda não
-// escolheu. Sem sessão, a landing. Não é usada logo depois do login: ver
+// A casa da sessão atual, para quem JÁ está navegando: aluno -> a sala dele;
+// conta -> a casa do modo em uso, ou a tela de modo se ainda não escolheu.
+// Sem sessão, a landing. A conta não passa por aqui logo depois do login: ver
 // destinoAoEntrar().
 function casa(): string {
   const tipo = sessao.tipo();
-  return tipo ? rotaInicial(tipo, sessao.modo()) : ROTA_LANDING;
+  return tipo ? rotaInicial(tipo, sessao.modo(), sessao.turmaAtiva()) : ROTA_LANDING;
 }
 
 // Porteiro da tela. `tipoExigido` é 'conta', 'aluno' ou nada (qualquer
@@ -90,14 +90,14 @@ function qualquerLogado(): Usuario | null {
 }
 
 // Para onde a pessoa vai ao ENTRAR no sistema (login, cadastro, ou quem
-// abre o login já logado). Aluno vai para o dashboard dele. Conta vai
+// abre o login já logado). Aluno vai para a sala dele. Conta vai
 // SEMPRE para a tela de modo, e não para o último modo usado: a mesma
 // conta abre o Professor, o Solo e a entrada de aluno, e a cada entrada a
 // pessoa escolhe onde quer estar, em vez de cair no mundo da última vez.
 // O modo salvo continua valendo dentro da sessão (casa(), Nav).
 function destinoAoEntrar(): string {
   if (sessao.tipo() === 'aluno') {
-    return ROTA_INICIAL.aluno;
+    return casa();
   }
   return ROTA_MODO;
 }

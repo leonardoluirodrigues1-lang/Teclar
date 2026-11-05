@@ -127,18 +127,21 @@ export const ROTA_INICIAL = {
   // As TURMAS, com a Nav e o menu do avatar (onde mora o "Ir para o Solo").
   // O antigo professor/dashboard.html (lista mínima) foi apagado.
   professor: '/pages/professor/turmas.html',
-  aluno: '/pages/aluno/dashboard.html',
+  // A sala dele. Sem ?id= a própria sala descobre qual é (js/aluno/Sala.tsx).
+  aluno: '/pages/aluno/sala.html',
 } as const;
 
 /**
  * Para onde "voltar ao início" leva quem já está navegando (guarda.casa()).
  * Logo depois do login a conta vai sempre para a tela de modo, não daqui:
  * ver destinoAoEntrar() em js/nucleo/guarda.ts.
- *   aluno            -> dashboard do aluno
+ *   aluno            -> a sala da turma dele
  *   conta com modo   -> a casa do modo
  *   conta sem modo   -> tela de modo
  */
-export function rotaInicial(tipo: TipoSessao, modo: Modo | null): string {
-  if (tipo === 'aluno') return ROTA_INICIAL.aluno;
+export function rotaInicial(tipo: TipoSessao, modo: Modo | null, turmaId?: string | null): string {
+  if (tipo === 'aluno') {
+    return turmaId ? `${ROTA_INICIAL.aluno}?id=${encodeURIComponent(turmaId)}` : ROTA_INICIAL.aluno;
+  }
   return modo ? ROTA_INICIAL[modo] : ROTA_MODO;
 }

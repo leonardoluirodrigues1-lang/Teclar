@@ -71,7 +71,7 @@ export function TopoAluno({ usuario }: PropsTopoAluno) {
 
   return (
     <header className="aluno-topo">
-      <a className="aluno-marca" href="dashboard.html" aria-label="Suas salas">
+      <a className="aluno-marca" href={guarda.casa()} aria-label="Sua sala">
         TECLAR
       </a>
 

@@ -204,7 +204,7 @@ function Login() {
     try {
       const resposta = await requisicao();
       // O `tipo` da resposta (conta ou aluno) é o que roteia: o
-      // guarda.entrar() lê daí o destino: aluno no dashboard, conta na tela de modo.
+      // guarda.entrar() lê daí o destino: aluno na sala dele, conta na tela de modo.
       sessao.entrar(resposta);
       if (resposta.primeiroAcesso) {
         // Quem sai da tela é o "Continuar" do aviso (ver aoFechar abaixo).

@@ -70,13 +70,20 @@ function Sala() {
   const [aba, selecionarAba] = useAbaDaUrl();
 
   useEffect(() => {
-    // Sem ?id= não há o que carregar.
-    if (!salaId) return;
     let cancelado = false;
 
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
+        // Sem ?id= (o login não trouxe a turma): entra na única sala dele. Sem
+        // sala nenhuma (turma arquivada), não há para onde ir.
+        if (!salaId) {
+          const [unica] = await api.escola.aluno.salas();
+          if (cancelado) return;
+          if (unica) window.location.replace(`sala.html?${new URLSearchParams({ id: unica.id })}`);
+          else setCarga({ estado: 'nao-encontrada' });
+          return;
+        }
         const sala = await api.escola.aluno.sala(salaId);
         if (!cancelado) setCarga({ estado: 'pronto', sala });
       } catch (excecao) {
@@ -100,13 +107,13 @@ function Sala() {
     if (sala) document.title = `Teclar — ${sala.nome}`;
   }, [sala]);
 
-  if (!salaId || carga.estado === 'nao-encontrada') {
+  if (carga.estado === 'nao-encontrada') {
     return (
       <TurmaNaoEncontrada
         secoes={SECOES_ALUNO}
         papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
-        texto="Ela pode ter sido encerrada, ou você não está nela. Suas salas estão na tela inicial."
-        link={{ href: 'dashboard.html', rotulo: 'Ver minhas salas' }}
+        texto="Ela pode ter sido encerrada, ou você não está nela. O seu histórico continua em Histórico."
+        link={{ href: 'historico.html', rotulo: 'Ver meu histórico' }}
       />
     );
   }
@@ -131,7 +138,6 @@ function Sala() {
     <CascaDaTurma
       secoes={SECOES_ALUNO}
       papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
-      voltar={{ href: 'dashboard.html', rotulo: 'Salas' }}
       titulo={sala ? sala.nome : null}
       subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}
       aba={aba}

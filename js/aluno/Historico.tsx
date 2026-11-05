@@ -268,7 +268,7 @@ function Historico({ usuario }: PropsHistorico) {
           titulo="Seu histórico começa no primeiro treino"
           texto="Assim que você terminar um exercício, ele aparece aqui com seu PPM, sua precisão e sua evolução ao longo do tempo."
         >
-          <a className="btn btn-solido tecla tecla-clara" href="dashboard.html">
+          <a className="btn btn-solido tecla tecla-clara" href={guarda.casa()}>
             Ver exercícios da turma
           </a>
         </PainelEstado>
@@ -368,11 +368,11 @@ function Historico({ usuario }: PropsHistorico) {
 
       <main className="conteudo">
         <section className="painel vidro historico" aria-labelledby="titulo">
-          <a className="voltar" href="dashboard.html">
+          <a className="voltar" href={guarda.casa()}>
             <span className="voltar-seta" aria-hidden="true">
               ←
             </span>
-            Suas salas
+            Sua sala
           </a>
 
           <header className="cabecalho">

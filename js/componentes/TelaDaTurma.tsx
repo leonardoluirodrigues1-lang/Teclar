@@ -64,7 +64,8 @@ interface PropsCasca {
   secoes: SecoesNav;
   /** A linha embaixo do nome, na conta fixa. */
   papel: string;
-  voltar: { href: string; rotulo: string };
+  /** Sem ele, nada: a sala é a casa do aluno, não há de onde voltar. */
+  voltar?: { href: string; rotulo: string };
   /** null enquanto a turma não chega: o título guarda a altura. */
   titulo: string | null;
   subtitulo: string | null;
@@ -91,12 +92,14 @@ export function CascaDaTurma(props: PropsCasca) {
       <ContaFixa secoes={secoes} papel={papel} />
 
       <main>
-        <a className="voltar" href={voltar.href}>
-          <span className="voltar-seta" aria-hidden="true">
-            ←
-          </span>
-          {voltar.rotulo}
-        </a>
+        {voltar && (
+          <a className="voltar" href={voltar.href}>
+            <span className="voltar-seta" aria-hidden="true">
+              ←
+            </span>
+            {voltar.rotulo}
+          </a>
+        )}
 
         <div className="cabecalho">
           <div className="cabecalho-texto">
