@@ -455,16 +455,19 @@ async function enviarFila(): Promise<ResultadoSincronizacao> {
 }
 
 export const filaSessoes = {
-  // Tenta gravar a sessão. Se falhar POR REDE, guarda na fila e devolve
-  // { ok:false, enfileirada:true, pendentes:n }. Qualquer outro erro sobe.
+  // Tenta gravar a sessão. Se falhar por rede ou por token vencido (401), guarda
+  // na fila e devolve { ok:false, enfileirada:true, pendentes:n }. Qualquer
+  // outro erro sobe.
   async enviar(dados: DadosSessaoTreino, mundo: Mundo): Promise<ResultadoEnvio> {
+    // Lido antes do envio: no 401, o req() já saiu da conta quando o catch roda.
+    const usuarioId = sessao.usuario()?.id;
     try {
       const resposta = await registradorDe(mundo)(dados);
       return { ok: true, enfileirada: false, resposta };
     } catch (erro) {
-      if (erro instanceof ErroApi && erro.ehRede) {
+      if (erro instanceof ErroApi && (erro.ehRede || erro.status === 401)) {
         const fila = lerFila();
-        fila.push({ dados, mundo, em: Date.now(), usuarioId: sessao.usuario()?.id });
+        fila.push({ dados, mundo, em: Date.now(), usuarioId });
         escreverFila(fila);
         return { ok: false, enfileirada: true, pendentes: fila.length };
       }

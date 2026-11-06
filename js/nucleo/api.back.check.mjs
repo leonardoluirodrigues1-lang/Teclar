@@ -340,4 +340,21 @@ sessionStorage.setItem(CONFIG.CHAVES_STORAGE.TOKEN, 'token-que-o-back-nao-reconh
 const comTokenVencido = await filaSessoes.sincronizar();
 confere('401 ao sincronizar guarda o item', comTokenVencido.enviadas === 0 && filaSessoes.pendentes() === 1);
 
+// Token vencido bem no fim do treino. Módulo novo, como numa página nova: a
+// sessão só cai no primeiro 401 de cada página (ver expirarSessao no api.ts).
+const paginaNova = await import('./api.js?pagina-nova');
+filaSessoes.limpar();
+redirecionouPara = null;
+await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
+await api.solo.criarCampanha();
+sessionStorage.setItem(CONFIG.CHAVES_STORAGE.TOKEN, 'token-que-o-back-nao-reconhece');
+const envioVencido = await paginaNova.filaSessoes.enviar({ ...medidas, exercicio_id: primeira.exerciseId }, 'solo');
+confere('401 no fim do treino: a sessão vai para a fila', envioVencido.enfileirada === true && filaSessoes.pendentes() === 1);
+confere('401 no fim do treino: a sessão da conta cai e vai para o login', !sessao.logado() && redirecionouPara === '/pages/login.html?expirou=1');
+const itemVencido = JSON.parse(localStorage.getItem(CONFIG.CHAVES_STORAGE.FILA_SESSOES))[0];
+confere('401 no fim do treino: o item guarda de quem é', itemVencido.usuarioId === dono.usuario.id);
+await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
+const aoVoltar = await filaSessoes.sincronizar();
+confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
+
 console.log(`\nTudo certo: ${verificacoes} verificações, as 54 funções do api.ts contra o back.`);

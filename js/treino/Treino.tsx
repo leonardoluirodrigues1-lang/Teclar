@@ -667,6 +667,9 @@ function Treino({ usuario }: PropsTreino) {
       return;
     }
 
+    // Token vencido: a sessão ficou na fila, e o api.ts já está indo para o login.
+    if (!sessao.logado()) return;
+
     setDicaOculta(true);
 
     if (mundo === 'solo') irParaResultado(resultado, corpo);
