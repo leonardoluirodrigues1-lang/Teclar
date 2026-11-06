@@ -272,6 +272,20 @@ const sincronia = await filaSessoes.sincronizar();
 confere('filaSessoes.sincronizar reenvia quando a rede volta', sincronia.enviadas === 1 && sincronia.restantes === 0);
 confere('solo.historico com a sessão da fila', (await api.solo.historico()).total === 2);
 
+// Falha passageira para o envio: a segunda sessão não vai antes da primeira.
+CONFIG.BASE_URL = 'http://localhost:1/api';
+await filaSessoes.enviar({ ...medidas, exercicio_id: primeira.exerciseId }, 'solo');
+await filaSessoes.enviar({ ...medidas, exercicio_id: primeira.exerciseId }, 'solo');
+const aindaSemRede = await filaSessoes.sincronizar();
+confere('sincronizar sem rede guarda as duas', aindaSemRede.enviadas === 0 && aindaSemRede.restantes === 2);
+CONFIG.BASE_URL = urlCerta;
+// Sessão de outra pessoa (o navegador fechou sem sair) não vai com este token.
+const CHAVE_DA_FILA = CONFIG.CHAVES_STORAGE.FILA_SESSOES;
+localStorage.setItem(CHAVE_DA_FILA, JSON.stringify(JSON.parse(localStorage.getItem(CHAVE_DA_FILA)).map((item, i) => (i === 0 ? { ...item, usuarioId: 'outra-pessoa' } : item))));
+const soADele = await filaSessoes.sincronizar();
+confere('sincronizar envia só a sessão de quem está logado', soADele.enviadas === 1 && soADele.restantes === 1 && (await api.solo.historico()).total === 3);
+filaSessoes.limpar();
+
 confere('solo.apagarCampanha devolve null (204)', (await api.solo.apagarCampanha(campanha.campanhaId)) === null);
 await confereErro('solo.campanha depois de apagada', api.solo.campanha(campanha.campanhaId), 404, 'NAO_ENCONTRADO');
 

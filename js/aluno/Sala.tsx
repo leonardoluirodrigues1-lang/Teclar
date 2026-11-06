@@ -20,7 +20,7 @@
 
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api } from '../nucleo/api.js';
+import { api, filaSessoes } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { DesempenhoNaTurma, ErroDaApi, ExercicioDaSala, LinhaDoRanking, SalaDetalhe } from '../nucleo/tipos.js';
 import { SECOES_ALUNO } from '../componentes/Nav.js';
@@ -75,6 +75,10 @@ function Sala() {
 
     async function carregar() {
       setCarga({ estado: 'carregando' });
+      // Antes da lista: a sessão feita sem rede pode liberar o próximo exercício.
+      // Se falhar, a lista abre do mesmo jeito e tenta de novo na próxima vez.
+      await filaSessoes.sincronizar().catch(console.error);
+      if (cancelado) return;
       try {
         // Sem ?id= (o login não trouxe a turma): entra na única sala dele. Sem
         // sala nenhuma (turma arquivada), não há para onde ir.
@@ -101,6 +105,8 @@ function Sala() {
       cancelado = true;
     };
   }, [tentativa]);
+
+  useEffect(() => filaSessoes.aoVoltarARede(() => setTentativa((n) => n + 1)), []);
 
   const sala = carga.estado === 'pronto' ? carga.sala : null;
 

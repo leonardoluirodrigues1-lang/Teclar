@@ -512,6 +512,8 @@ export interface ItemFila {
   dados: DadosSessaoTreino;
   mundo: Mundo;
   em: number;
+  /** De quem é a sessão: só é reenviada com o token dessa pessoa. */
+  usuarioId: string;
 }
 
 /** Resultado de filaSessoes.enviar(). */

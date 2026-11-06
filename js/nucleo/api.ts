@@ -411,6 +411,42 @@ function registradorDe(mundo: Mundo) {
   return mundo === 'solo' ? api.solo.registrarSessao : api.sessoes.registrar;
 }
 
+function falhaPassageira(erro: unknown): boolean {
+  const status = (erro as ErroDaApi | null)?.status;
+  return status === 0 || status === 429 || status >= 500;
+}
+
+async function enviarFila(): Promise<ResultadoSincronizacao> {
+  const fila = lerFila();
+  const usuarioId = sessao.usuario()?.id;
+  const sobraram: ItemFila[] = [];
+  let enviadas = 0;
+  let parou = false;
+
+  for (const item of fila) {
+    // O token some ao fechar o navegador, mas a fila fica: item de outra
+    // pessoa, enviado com este token, gravaria a sessão dela na conta errada.
+    if (parou || item.usuarioId !== usuarioId) {
+      sobraram.push(item);
+      continue;
+    }
+    try {
+      await registradorDe(item.mundo)(item.dados);
+      enviadas++;
+    } catch (erro) {
+      if (falhaPassageira(erro)) {
+        parou = true;
+        sobraram.push(item);
+      }
+    }
+  }
+
+  // O slice guarda o que outra aba enfileirou durante o envio.
+  const novas = lerFila().slice(fila.length);
+  escreverFila([...sobraram, ...novas]);
+  return { enviadas, restantes: sobraram.length + novas.length };
+}
+
 export const filaSessoes = {
   // Tenta gravar a sessão. Se falhar POR REDE, guarda na fila e devolve
   // { ok:false, enfileirada:true, pendentes:n }. Qualquer outro erro sobe.
@@ -421,7 +457,7 @@ export const filaSessoes = {
     } catch (erro) {
       if (erro instanceof ErroApi && erro.ehRede) {
         const fila = lerFila();
-        fila.push({ dados, mundo, em: Date.now() });
+        fila.push({ dados, mundo, em: Date.now(), usuarioId: sessao.usuario()?.id });
         escreverFila(fila);
         return { ok: false, enfileirada: true, pendentes: fila.length };
       }
@@ -434,32 +470,28 @@ export const filaSessoes = {
     return lerFila().length;
   },
 
-  // Reenvia tudo o que está na fila. O que falhar por rede volta para a
-  // fila; o que falhar por validação é descartado, senão a fila nunca
-  // esvazia. Devolve { enviadas, restantes }.
-  async sincronizar(): Promise<ResultadoSincronizacao> {
-    const fila = lerFila();
-    if (fila.length === 0) {
-      return { enviadas: 0, restantes: 0 };
+  // Reenvia, em ordem, o que está na fila e é de quem está logado. Falha
+  // passageira (rede, 429, 5xx) para o envio e guarda o resto para a próxima
+  // vez: o item seguinte tomaria 403 ATIVIDADE_BLOQUEADA e seria descartado.
+  // O que o back recusa de vez (400/403/404...) é descartado, senão a fila
+  // nunca esvazia. Devolve { enviadas, restantes }.
+  //
+  // A trava é porque o evento "online" dispara em todas as abas abertas, e
+  // duas abas reenviando a mesma sessão dariam o XP em dobro.
+  // shortcut: sem navigator.locks (http fora de localhost) não há trava; servir por https resolve.
+  sincronizar(): Promise<ResultadoSincronizacao> {
+    const locks = globalThis.navigator?.locks;
+    return locks ? locks.request(CHAVE_FILA, enviarFila) : enviarFila();
+  },
+
+  // A rede voltou com sessão na fila: a tela recarrega, e o carregar dela
+  // sincroniza antes de buscar a lista. Devolve como desligar o aviso.
+  aoVoltarARede(recarregar: () => void): () => void {
+    function aoFicarOnline() {
+      if (lerFila().length > 0) recarregar();
     }
-
-    const sobraram: ItemFila[] = [];
-    let enviadas = 0;
-
-    for (const item of fila) {
-      try {
-        await registradorDe(item.mundo)(item.dados);
-        enviadas++;
-      } catch (erro) {
-        if (erro instanceof ErroApi && erro.ehRede) {
-          sobraram.push(item); // rede ainda fora: tenta na próxima sincronização
-        }
-        // erro de validação (400/409/...): descarta o item silenciosamente
-      }
-    }
-
-    escreverFila(sobraram);
-    return { enviadas, restantes: sobraram.length };
+    window.addEventListener('online', aoFicarOnline);
+    return () => window.removeEventListener('online', aoFicarOnline);
   },
 
   limpar(): void {

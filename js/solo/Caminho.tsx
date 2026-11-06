@@ -38,7 +38,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api, mensagemDaFalha } from '../nucleo/api.js';
+import { api, filaSessoes, mensagemDaFalha } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { Missao, SessaoSolo } from '../nucleo/tipos.js';
@@ -457,6 +457,10 @@ function Caminho() {
 
     async function carregar() {
       setCarga({ estado: 'carregando' });
+      // Antes da lista: a sessão feita sem rede pode liberar a próxima lição.
+      // Se falhar, a lista abre do mesmo jeito e tenta de novo na próxima vez.
+      await filaSessoes.sincronizar().catch(console.error);
+      if (cancelado) return;
       try {
         // A campanha ANTES do resto: sem ela, o back responde 404 às missões
         // e ao histórico (são da campanha do token), e esse 404 virava o
@@ -495,6 +499,8 @@ function Caminho() {
       cancelado = true;
     };
   }, [tentativa]);
+
+  useEffect(() => filaSessoes.aoVoltarARede(() => setTentativa((n) => n + 1)), []);
 
   const pronto = carga.estado === 'pronto' ? carga : null;
   const grupos = useMemo(() => agruparPorNivel(pronto?.licoes ?? []), [pronto?.licoes]);
