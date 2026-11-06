@@ -4,13 +4,15 @@
 //   GET /solo/missoes/:id   uma lição, com o texto
 //
 // As lições são conteúdo semeado, iguais para todo mundo: não existe lição
-// "de outra conta". Nenhuma vem bloqueada — ExerciciosSolo.NivelMinimo não
-// é lido (está em `naoUsadas`, no api.contrato.ts) —, e quem agrupa por
-// nível é a tela.
+// "de outra conta". O `bloqueada` da lista sai da ordem do percurso e das
+// sessões da campanha (sessoes/liberacao.ts), não de
+// ExerciciosSolo.NivelMinimo, que continua sem uso (`naoUsadas`, no
+// api.contrato.ts). Quem agrupa por nível é a tela.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { estaBloqueada, sequenciaDoSolo } from '../sessoes/liberacao.js';
 import { campanhaDoToken } from './campanha-do-token.js';
 
 // Uma lição na forma do tipo Missao do front (js/nucleo/tipos.ts).
@@ -29,6 +31,10 @@ export interface MissaoDetalhe extends Missao {
   texto: string;
 }
 
+export interface MissaoDaLista extends Missao {
+  bloqueada: boolean;
+}
+
 type LinhaDeLicao = Prisma.exerciciossoloGetPayload<object>;
 
 @Injectable()
@@ -39,15 +45,16 @@ export class MissoesService {
   // de "ainda não começou"). O contrato diz que a rota aceita filtros na
   // query string, mas não diz quais, e nenhuma tela manda: a query é
   // ignorada e vêm sempre todas.
-  async listar(identidade: Identidade): Promise<Missao[]> {
-    await campanhaDoToken(this.banco, identidade);
+  async listar(identidade: Identidade): Promise<MissaoDaLista[]> {
+    const campanha = await campanhaDoToken(this.banco, identidade);
     const licoes = await this.banco.exerciciossolo.findMany({
       where: { Ativo: true },
       orderBy: { Ordem: 'asc' },
     });
+    const sequencia = await sequenciaDoSolo(this.banco, campanha.CampanhaID);
     // O texto é lido do banco só para contar os caracteres: na resposta ele
     // não vai. Seriam uns 30 KB que nenhum cartão do percurso mostra.
-    return licoes.map(missaoNaForma);
+    return licoes.map((licao) => ({ ...missaoNaForma(licao), bloqueada: estaBloqueada(licao.ExerciseID, sequencia) }));
   }
 
   // GET /solo/missoes/:id. Qualquer token válido, de conta ou de aluno: o

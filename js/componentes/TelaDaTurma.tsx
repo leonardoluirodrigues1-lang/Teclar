@@ -19,6 +19,7 @@
 import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
 import type { SecoesNav } from './Nav.js';
 import { ContaFixa } from './EntradaDoModo.js';
+import { IconeCadeado } from './IconesDoTutorial.js';
 import { PainelEstado } from './PainelErro.js';
 
 // Abas
@@ -196,14 +197,14 @@ export function TurmaNaoEncontrada({ secoes, papel, texto, link }: PropsNaoEncon
  * Uma pedra da trilha. O estado diz como ela é desenhada:
  *   feito   — sólida, com o visto (o aluno concluiu);
  *   agora   — acesa (o próximo do aluno);
- *   depois  — apagada (os seguintes do aluno);
+ *   bloqueado — apagada, com cadeado e sem link (os seguintes do aluno);
  *   turma   — neutra, com o número (a visão do professor, que não tem
  *             "o seu" estado: a legenda diz quantos concluíram).
  */
 export interface PedraDaTrilha {
   id: string;
   titulo: string;
-  estado: 'feito' | 'agora' | 'depois' | 'turma';
+  estado: 'feito' | 'agora' | 'bloqueado' | 'turma';
   /** A linha em mono embaixo do título ("concluído", "3 de 4 concluíram"). */
   legenda: string;
   /** Presente: a pedra é link (o aluno vai treinar). */
@@ -244,7 +245,7 @@ function Pedra({ pedra, posicao }: { pedra: PedraDaTrilha; posicao: number }) {
   // Concluído é a tecla clara, de face branca: o mesmo relevo do botão
   // principal (.tecla-clara, css/base/luz.css).
   const classe = pedra.estado === 'feito' ? 'pedra tecla tecla-clara' : 'pedra tecla';
-  const marca = pedra.estado === 'feito' ? '✓' : posicao + 1;
+  const marca = pedra.estado === 'feito' ? '✓' : pedra.estado === 'bloqueado' ? <IconeCadeado /> : posicao + 1;
   // As variáveis de coluna e fileira são lidas pelo CSS só na tela larga.
   const estilo = { '--coluna': coluna + 1, '--fileira': fileira + 1 } as React.CSSProperties;
 

@@ -652,7 +652,7 @@
         ],
         "operationId": "solo.missoes",
         "summary": "missoes: Missao[] — as 76 lições, na ordem do percurso, SEM o texto",
-        "description": "**Chamada no front:** `api.solo.missoes`\n\n**Resposta:** 200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto\n\n**Identidade:**\n\nO token (precisa ter campanha). Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.\n\n**Notas:**\n\nAceita filtros em query string, mas nenhuma tela manda. O texto da lição não vem na lista.",
+        "description": "**Chamada no front:** `api.solo.missoes`\n\n**Resposta:** 200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto\n\n**Identidade:**\n\nO token (precisa ter campanha). Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`bloqueada`: as lições abrem na ordem do caminho (agrupada por nível, como em js/utils/percurso.ts, e não pelo número da lição). Só a primeira não concluída fica aberta; as concluídas (ao menos uma sessão com concluida = true) continuam abertas; tempo esgotado não libera a seguinte. ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.\n\n**Notas:**\n\nAceita filtros em query string, mas nenhuma tela manda. O texto da lição não vem na lista.",
         "parameters": [],
         "responses": {
           "200": {
@@ -671,7 +671,8 @@
                         "dificuldade": "facil",
                         "repeticoes": 10,
                         "tempoLimiteSegundos": 472,
-                        "tamanhoCaracteres": 59
+                        "tamanhoCaracteres": 59,
+                        "bloqueada": false
                       }
                     ]
                   }
@@ -888,7 +889,7 @@
             }
           },
           "403": {
-            "description": "`TIPO_INVALIDO` — token de aluno",
+            "description": "`TIPO_INVALIDO` — token de aluno\n\n`ATIVIDADE_BLOQUEADA` — a lição ainda está bloqueada (ver GET /solo/missoes); nada é gravado",
             "content": {
               "application/json": {
                 "examples": {
@@ -897,6 +898,13 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "TIPO_INVALIDO"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "ATIVIDADE_BLOQUEADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "ATIVIDADE_BLOQUEADA"
                     }
                   }
                 }
@@ -3393,7 +3401,7 @@
             }
           },
           "403": {
-            "description": "`TIPO_INVALIDO` — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)",
+            "description": "`TIPO_INVALIDO` — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)\n\n`ATIVIDADE_BLOQUEADA` — o exercício ainda está bloqueado (ver GET /aluno/salas/:turmaId); nada é gravado",
             "content": {
               "application/json": {
                 "examples": {
@@ -3402,6 +3410,13 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "TIPO_INVALIDO"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "ATIVIDADE_BLOQUEADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "ATIVIDADE_BLOQUEADA"
                     }
                   }
                 }
@@ -3765,7 +3780,7 @@
         ],
         "operationId": "escola.aluno.sala",
         "summary": "sala: SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE",
-        "description": "**Chamada no front:** `api.escola.aluno.sala`\n\n**Resposta:** 200 SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega.",
+        "description": "**Chamada no front:** `api.escola.aluno.sala`\n\n**Resposta:** 200 SalaDetalhe — a sala e os exercícios dela, com o estado de cada um PARA ELE\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.",
         "parameters": [
           {
             "name": "turmaId",
@@ -3802,6 +3817,7 @@
                           "atribuidoEm": "2026-02-03",
                           "prazo": null,
                           "estado": "feito",
+                          "bloqueada": false,
                           "melhorWpm": 40,
                           "melhorPrecisao": 95,
                           "ultimaSessao": "2026-02-18T14:10:00.000Z"

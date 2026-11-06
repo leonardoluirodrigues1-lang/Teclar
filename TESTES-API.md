@@ -90,6 +90,17 @@ cada, em comandos separados e sem espera entre eles, todos sem falha. O
 horário importa: é a janela (21h às 23h59) em que a conta dos dias
 seguidos em UTC errava (ver "Defeitos que os testes pegaram", na seção 2).
 
+As linhas de liberação em ordem foram rodadas em 05/11/2026, com o back
+reiniciado e o `npm run seed` aplicado: os onze scripts e o
+`js/nucleo/api.back.check.mjs` uma vez cada, sem filtro e sem falha. O mock
+tem o check dele (`node js/nucleo/liberacao.mock.check.mjs`). No navegador,
+com `leo@teclar.dev` e com a Ana Pires da `R8VD3K`: cadeado sem link, a próxima
+em destaque, e o treino de atividade bloqueada aberto pela URL voltando com o
+aviso, que some no F5. Para ver um cadeado na turma-2, que só tem dois
+exercícios, o `ex-prof-4` foi atribuído a ela durante o teste. As sessões
+desse teste foram enviadas por `fetch` da própria página, sem digitar o texto
+no treino, e o seed rodou de novo no fim.
+
 | Rota | Cenário | Resultado esperado | Resultado observado | Situação |
 | --- | --- | --- | --- | --- |
 | POST /auth/login | Conta com e-mail e senha corretos (`prof@teclar.dev`) | 200, token, `tipo: "conta"` | 200, token, `tipo: "conta"`, id `u-2` (Henrique Lima) | Conforme |
@@ -197,6 +208,10 @@ seguidos em UTC errava (ver "Defeitos que os testes pegaram", na seção 2).
 | POST /sessoes | Primeira sessão de OUTRO aluno no mesmo exercício | O recorde é por aluno: `true` | `true` | Conforme |
 | POST /sessoes | Exercício arquivado depois de ter sessões | 404 para sessão nova; as antigas continuam no histórico do professor e o dono ainda as relê | 404; histórico com as 5; GET /sessoes/:id 200 | Conforme |
 | POST /sessoes | Turma do aluno arquivada depois do login (token ainda no prazo) | 401 TOKEN_INVALIDO, como no GET /auth/eu | 401 TOKEN_INVALIDO | Conforme |
+| POST /sessoes | Gravar na 2 sem concluir a 1; na 3 sem concluir a 2 | 403 ATIVIDADE_BLOQUEADA, com mensagem | 403 nos dois | Conforme |
+| POST /sessoes | Tempo esgotado na 2, depois gravar na 3 | A 2 aceita (é a próxima); a 3 continua 403 | 200; 403 | Conforme |
+| POST /sessoes | Concluir a 2, depois gravar na 3; voltar à 1, já concluída | A 3 libera; voltar é permitido | 200 nas três | Conforme |
+| POST /sessoes | Exercício atribuído depois; atribuição removida; exercício arquivado | O atribuído depois entra no fim (403 enquanto falta um anterior); o removido e o arquivado saem da sequência | 403; depois 200 sem o removido e sem o arquivado | Conforme |
 | GET /sessoes/:id | O dono lê a sessão que gravou | 200, igual à resposta do POST sem o `recordePessoal` | Igual | Conforme |
 | GET /sessoes/:id | Sessão de outro aluno (nos dois sentidos); sessão da Escola com token de conta (até a do professor da turma); id que não existe | 404 NAO_ENCONTRADO | 404 em todos | Conforme |
 | GET /sessoes/:id | Conta lê a sessão do Solo da própria campanha; outra conta tenta ler a mesma; aluno tenta ler uma do Solo | 200 com `xpGanho` e sem `alunoId`; 404; 404 | Como esperado | Conforme |
@@ -224,12 +239,16 @@ seguidos em UTC errava (ver "Defeitos que os testes pegaram", na seção 2).
 | POST /solo/campanha | Primeira vez com 8 pedidos simultâneos; depois mais um | 200 em todos, nível 1, 0 XP, jogador do token, todos com a MESMA campanha; o UNIQUE de `CampanhasSolo.JogadorID` (banco v9) deixa uma linha só, e quem perde a corrida não recebe erro | 200 nos 9, mesmo `campanhaId`; 1 campanha da conta no banco | Conforme |
 | GET /solo/campanhas/:id | O dono; outra conta (leo) pedindo a nova; a conta nova pedindo a camp-1 (de leo); id que não existe | 200; 404; 404; 404 (nunca 403) | Como esperado | Conforme |
 | DELETE /solo/campanhas/:id | A camp-1 (de leo) pedida pela conta nova | 404, e nada apagado | 404; leo continua com a camp-1 | Conforme |
-| GET /solo/missoes | Conta com campanha | 200, as 76 lições na ordem 1 a 76, sem o texto e sem cadeado; a primeira igual ao exemplo do contrato | 76, em ordem; solo-001 com 472 s e 59 caracteres, 8 campos | Conforme |
+| GET /solo/missoes | Conta com campanha | 200, as 76 lições na ordem 1 a 76, sem o texto; a primeira igual ao exemplo do contrato; sem sessão, só ela com `bloqueada: false` | 76, em ordem; solo-001 com 472 s e 59 caracteres; só ela liberada | Conforme |
 | GET /solo/missoes/:id | solo-001; id que não existe | 200 com o texto, `tamanhoCaracteres` = tamanho do texto; 404 | Como esperado | Conforme |
 | POST /solo/sessoes | `campanha_id`, `jogadorId`, `usuario_id`, `alunoId` ou `professorId` no corpo; sem `exercicio_id`; `wpm` -1, 1000 e "30"; `precisao` 100,5; `acertos` 1,5; `erros` -1; `tempo_gasto_segundos` "90"; `concluida` "sim" | 400 DADOS_INVALIDOS (recusado, nunca ignorado) | 400 nos catorze; XP continuou 0 e nenhuma sessão gravada | Conforme |
 | POST /solo/sessoes | Lição que não existe | 404 NAO_ENCONTRADO | 404 | Conforme |
 | POST /solo/sessoes | Cinco sessões: solo-001 concluída 96% 30 PPM; solo-001 100% 40; solo-002 não concluída 50% 20; solo-002 80% 25; solo-001 não concluída 40% 10 | XP 74, 75, 15, 70, 15 (base 50 + bônus da precisão; 15 sem concluir); total 74, 149, 164, 234, 249; nível 1, 1, 1, 2, 2 (200 XP por nível), `subiuDeNivel` só na 4ª; `recordePessoal` true, true, true, true, false | Exatamente esses números | Conforme |
 | POST /solo/sessoes | Refazer a solo-001 pior (a 5ª sessão) | Progresso não regride: a lição continua concluída (2 lições antes e depois), a melhor marca continua 40 PPM e 100%, o XP só sobe e o nível não desce; a tentativa conta (3) | Como esperado | Conforme |
+| POST /solo/sessoes | Com a 1 e a 2 concluídas: gravar na solo-004 | 403 ATIVIDADE_BLOQUEADA, com mensagem, nada gravado | 403; contagem de sessões igual | Conforme |
+| POST /solo/sessoes | Tempo esgotado na solo-003, depois gravar na solo-004 | A 3 aceita; a 4 continua 403; `GET /solo/missoes` libera só 001, 002 e 003 | 200; 403; as três | Conforme |
+| POST /solo/sessoes | Concluir a solo-003, depois gravar na solo-004; voltar à solo-002 | A 4 libera; voltar é permitido | 200 nas três | Conforme |
+| POST /solo/sessoes | Da 1 à 8 concluídas: gravar na solo-009 (nível 2) e na solo-049 (nível 1) | A ordem é a do caminho: a 9 dá 403 e a 49 é a próxima | 403; 200 | Conforme |
 | GET /sessoes/:id | A 1ª sessão do Solo pelo dono; a mesma por outra conta | 200 com `xpGanho` 74; 404 | Como esperado | Conforme |
 | GET /solo/historico | Depois das cinco | Paginado com as 5 (`pagina` 1), da mais antiga para a mais recente, `xpGanho` de cada uma somando o XP da campanha (249), sem `alunoId` | Como esperado | Conforme |
 | GET /solo/indicadores | Depois das cinco | Nível 2, 249 XP, 5 sessões, médias só das 3 concluídas (32 PPM, 92%), melhor PPM 40 | Idêntico | Conforme |
@@ -243,7 +262,7 @@ seguidos em UTC errava (ver "Defeitos que os testes pegaram", na seção 2).
 | GET /aluno/resumo | Bia; Rui (treinou hoje e há 5 e 6 dias) | Bia: zeros e null (nunca 0); Rui: 1 dia seguido | Como esperado | Conforme |
 | GET /aluno/resumo | Bia: sessões às 22h de anteontem e ao meio-dia de ontem (Brasília) | 2 dias seguidos: 22h de Brasília é do mesmo dia em Brasília (em UTC já seria o dia seguinte, e daria 1) | 2 | Conforme |
 | GET /aluno/salas | Lia; Bia | Uma sala, a dela, com o nome do professor, 3 alunos e o progresso DELA (Lia 2 de 3 feitos, contando o de tempo esgotado; Bia 0 de 3) | Como esperado | Conforme |
-| GET /aluno/salas/:turmaId | Lia | Cabeçalho igual ao de GET /aluno/salas; exercícios na ordem da atribuição; ex1 `feito` com a melhor CONCLUÍDA (40/95, e não os 50 da não concluída), caracteres contados no back, sem o texto, `prazo` null; ex2 `tempo_esgotado` (20/70); ex3 `nao_feito` com null | Como esperado | Conforme |
+| GET /aluno/salas/:turmaId | Lia | Cabeçalho igual ao de GET /aluno/salas; exercícios na ordem da atribuição; ex1 `feito` com a melhor CONCLUÍDA (40/95, e não os 50 da não concluída), caracteres contados no back, sem o texto, `prazo` null; ex2 `tempo_esgotado` (20/70); ex3 `nao_feito` com null; ex1 e ex2 abertos e ex3 com `bloqueada: true` (tempo esgotado não libera); com o ex2 arquivado, o ex3 abre | Como esperado | Conforme |
 | GET /aluno/salas/:turmaId | Texto cru da resposta da Lia | Nenhum nome nem id de colega | Nem "Rui", nem "Bia", nem os ids | Conforme |
 | GET /turmas/:turmaId/meu-desempenho | Lia (2 concluídas); Rui (3 concluídas); Bia | Lia: contagens e 3 dias, as duas médias null (abaixo de 3); Rui: a dele 50/90 e a da sala sobre as 5 concluídas de todos 44/91; Bia: zeros e null | Idêntico | Conforme |
 | GET /aluno/salas/:turmaId e GET /aluno/historico | Exercício arquivado depois das sessões | Sai da sala (2 exercícios, 1 feito); a sessão nele continua no histórico, com o título | Como esperado | Conforme |

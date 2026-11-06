@@ -4,9 +4,9 @@
 // ../componentes/TelaDaTurma.tsx; aqui fica só o que muda para o aluno:
 //
 //   EXERCÍCIOS     a trilha com o estado DELE: concluído sólido com o
-//                  visto, o próximo aceso, os seguintes apagados. Toda
-//                  pedra leva ao treino. Nada sobre quantos colegas
-//                  entregaram.
+//                  visto, o próximo aceso, os seguintes apagados, com
+//                  cadeado e sem clique (quem decide é o back). Nada sobre
+//                  quantos colegas entregaram.
 //   PARTICIPANTES  o ranking da sala, já ordenado e pontuado pelo back.
 //                  Do quarto lugar em diante o nome vem vazio DO BACK; a
 //                  linha dele vem sempre com o nome, destacada.
@@ -36,6 +36,7 @@ import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
+import { AvisoBloqueada } from '../componentes/AvisoBloqueada.js';
 import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
@@ -165,31 +166,26 @@ function AbaExercicios({ sala }: { sala: SalaDetalhe }) {
     );
   }
 
-  // O próximo é o primeiro ainda não feito, na ordem em que o professor
-  // atribuiu.
-  const indiceDoProximo = sala.lista.findIndex((ex) => ex.estado === 'nao_feito');
-  const pedras = sala.lista.map((ex, i) => pedraDoAluno(ex, i, indiceDoProximo, sala.id));
-
   return (
     <>
-      <TrilhaDeExercicios pedras={pedras} />
+      <AvisoBloqueada />
+      <TrilhaDeExercicios pedras={sala.lista.map((ex) => pedraDoAluno(ex, sala.id))} />
       <p className="nota">
-        O que você concluiu fica sólido, o próximo fica aceso e o resto espera. A ordem é a que o professor
-        atribuiu.
+        O que você concluiu fica sólido e pode ser refeito, o próximo fica aceso e o resto abre em ordem, um de cada
+        vez. A ordem é a que o professor atribuiu.
       </p>
     </>
   );
 }
 
-// Toda pedra é link para o treino, inclusive as apagadas: o banco não tem
-// regra de liberação, e trancar seria inventar uma. "Tempo esgotado" conta
-// como feito: ele fez a atividade, e o texto não diz que falhou.
-function pedraDoAluno(ex: ExercicioDaSala, indice: number, indiceDoProximo: number, idDaSala: string): PedraDaTrilha {
+// Quem diz o que está bloqueado é o back. Sobra um só não concluído e aberto:
+// o próximo. "Tempo esgotado" não libera o seguinte, então continua sendo ele.
+function pedraDoAluno(ex: ExercicioDaSala, idDaSala: string): PedraDaTrilha {
+  if (ex.bloqueada) return { id: ex.id, titulo: ex.titulo, estado: 'bloqueado', legenda: 'bloqueado' };
   const href = `../treino/treino.html?${new URLSearchParams({ exercicio: ex.id, turma: idDaSala })}`;
-  if (ex.estado === 'tempo_esgotado') return { id: ex.id, titulo: ex.titulo, estado: 'feito', legenda: 'tempo esgotado', href };
   if (ex.estado === 'feito') return { id: ex.id, titulo: ex.titulo, estado: 'feito', legenda: 'concluído', href };
-  if (indice === indiceDoProximo) return { id: ex.id, titulo: ex.titulo, estado: 'agora', legenda: 'é o próximo', href };
-  return { id: ex.id, titulo: ex.titulo, estado: 'depois', legenda: 'a seguir', href };
+  const legenda = ex.estado === 'tempo_esgotado' ? 'tempo esgotado: tente de novo' : 'é o próximo';
+  return { id: ex.id, titulo: ex.titulo, estado: 'agora', legenda, href };
 }
 
 // Aba Participantes — o ranking que o back manda pronto

@@ -10,7 +10,7 @@
 
 Não é para criar nem para apagar: a coluna está no banco esperando a rota. Até ela existir, fica no valor padrão.
 
-- **ExerciciosSolo.NivelMinimo** — nível da campanha que desbloqueia a lição. Nenhuma rota lê: GET /solo/missoes não manda cadeado, e a tela não bloqueia nada.
+- **ExerciciosSolo.NivelMinimo** — nível da campanha que desbloqueia a lição. Nenhuma rota lê: o `bloqueada` de GET /solo/missoes sai da ordem do percurso e das sessões da campanha, não do nível.
 - **ExerciciosSolo.XPConcessao** — XP base da lição. Nenhuma rota lê: o XP de POST /solo/sessoes sai de uma constante do back (XP_BASE_MISSAO), igual para toda lição.
 - **ExerciciosSolo.CategoriaID / ExerciciosProf.CategoriaID** — FK para Categorias. Nenhuma rota grava nem devolve: DadosExercicio não tem categoria, e a resposta de /exercicios também não.
 - **AtribuicoesProf.Prazo** — data de entrega. As respostas já devolvem `prazo` (POST /turmas/:id/atribuicoes, GET /aluno/salas/:turmaId), mas nenhuma rota grava: vem sempre null.
@@ -289,7 +289,8 @@ Chamada no front: `api.solo.missoes`
 ```json
 [{ "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
    "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-   "repeticoes": 10, "tempoLimiteSegundos": 472, "tamanhoCaracteres": 59 }]
+   "repeticoes": 10, "tempoLimiteSegundos": 472, "tamanhoCaracteres": 59,
+   "bloqueada": false }]
 ```
 
 **Erros:**
@@ -302,7 +303,7 @@ O token (precisa ter campanha). Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Nenhuma lição vem bloqueada: ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.
+`bloqueada`: as lições abrem na ordem do caminho (agrupada por nível, como em js/utils/percurso.ts, e não pelo número da lição). Só a primeira não concluída fica aberta; as concluídas (ao menos uma sessão com concluida = true) continuam abertas; tempo esgotado não libera a seguinte. ExerciciosSolo.NivelMinimo não é lido. Quem agrupa por nível é a tela.
 
 **Notas:**
 
@@ -359,6 +360,7 @@ DadosSessaoTreino — o que o motor mediu, mais a lição
 
 - 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
 - 403 TIPO_INVALIDO — token de aluno
+- 403 ATIVIDADE_BLOQUEADA — a lição ainda está bloqueada (ver GET /solo/missoes); nada é gravado
 - 404 NAO_ENCONTRADO — sem campanha, ou lição inexistente
 
 **Identidade:**
@@ -1334,6 +1336,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 - 400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
 - 401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
 - 403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
+- 403 ATIVIDADE_BLOQUEADA — o exercício ainda está bloqueado (ver GET /aluno/salas/:turmaId); nada é gravado
 - 404 NAO_ENCONTRADO — exercício não atribuído à turma (ou arquivado), ou turma_id não é a turma do aluno
 
 **Identidade:**
@@ -1505,7 +1508,7 @@ Chamada no front: `api.escola.aluno.sala`
   "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3,
   "lista": [{ "id": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
     "caracteres": 247, "tempoLimiteSegundos": 120, "atribuidoEm": "2026-02-03",
-    "prazo": null, "estado": "feito", "melhorWpm": 40, "melhorPrecisao": 95,
+    "prazo": null, "estado": "feito", "bloqueada": false, "melhorWpm": 40, "melhorPrecisao": 95,
     "ultimaSessao": "2026-02-18T14:10:00.000Z" }] }
 ```
 
@@ -1520,7 +1523,7 @@ O token. O :turmaId é da SALA, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega.
+Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.
 
 ### `GET /turmas/:turmaId/meu-desempenho`
 

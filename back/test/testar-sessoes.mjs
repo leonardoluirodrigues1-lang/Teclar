@@ -5,7 +5,8 @@
 //     aluno passam a contar a sessão; os 400 (ids de pessoa no corpo e
 //     medidas fora das colunas); 404 para turma que não é a dele, exercício
 //     não atribuído e exercício arquivado; 401 para turma arquivada depois
-//     do login; 403 para token de conta.
+//     do login; 403 para token de conta; 403 ATIVIDADE_BLOQUEADA ao pular um
+//     exercício na ordem da sala.
 //   GET /sessoes/:id — só o dono lê: aluno lê as dele da Escola, conta lê as
 //     do Solo da campanha dele; de outra pessoa é 404.
 //
@@ -275,6 +276,64 @@ confere('arquivado: e o dono ainda relê a sessão antiga', r.status === 200);
 await preparar('PATCH', `/turmas/${turmaB.id}`, { ativa: false }, prof);
 r = await chamar('POST', '/sessoes', { ...SESSAO, turma_id: turmaB.id }, tres);
 confere('turma arquivada depois do login: 401 TOKEN_INVALIDO', ehErro(r, 401, 'TOKEN_INVALIDO'));
+
+// ============================================================================
+// Os exercícios liberam na ordem da sala
+// ============================================================================
+
+const turmaOrdem = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} ordem` }, prof);
+const exerciciosOrdem = [];
+for (const numero of [1, 2, 3, 4]) {
+  exerciciosOrdem.push(await preparar('POST', '/exercicios', { titulo: `Teste ${agora} ordem ${numero}`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof));
+}
+const [o1, o2, o3, o4] = exerciciosOrdem;
+await preparar('POST', `/turmas/${turmaOrdem.id}/atribuicoes`, { exercicioIds: [o1.id, o2.id, o3.id, o4.id] }, prof);
+await preparar('POST', `/turmas/${turmaOrdem.id}/alunos/importar`, { nomes: ['Aluno Ordem'] }, prof);
+const ordem = await entrar({ codigo: turmaOrdem.codigo, nome: 'Aluno Ordem', senha: 'ordem1234' });
+const noExercicio = (exercicio, concluida = true) => ({ ...SESSAO, exercicio_id: exercicio.id, turma_id: turmaOrdem.id, concluida });
+const abertosDaSala = async () => (await chamar('GET', `/aluno/salas/${turmaOrdem.id}`, null, ordem)).corpo.lista.filter((ex) => !ex.bloqueada).map((ex) => ex.id).join();
+
+confere('ordem: sem sessão, só o primeiro está aberto', (await abertosDaSala()) === o1.id);
+r = await chamar('POST', '/sessoes', noExercicio(o2), ordem);
+confere('ordem: pular o primeiro dá 403 ATIVIDADE_BLOQUEADA, com mensagem', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA') && typeof r.corpo.mensagem === 'string');
+await chamar('POST', '/sessoes', noExercicio(o1), ordem);
+r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
+confere('ordem: gravar na 3 sem concluir a 2 dá 403', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
+r = await chamar('POST', '/sessoes', noExercicio(o2, false), ordem);
+confere('ordem: o próximo aceita sessão com o tempo esgotado', r.status === 200);
+r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
+confere('ordem: tempo esgotado não libera o seguinte', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
+r = await chamar('POST', '/sessoes', noExercicio(o2), ordem);
+confere('ordem: concluir a 2 grava', r.status === 200);
+r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
+confere('ordem: concluída a 2, a 3 libera', r.status === 200);
+r = await chamar('POST', '/sessoes', noExercicio(o1), ordem);
+confere('ordem: voltar a um concluído é permitido', r.status === 200);
+confere('ordem: abertos os concluídos e o próximo', (await abertosDaSala()) === [o1.id, o2.id, o3.id, o4.id].join());
+
+// O atribuído depois entra no fim; o removido ou arquivado sai da sequência.
+const o5 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} ordem 5`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof);
+const o6 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} ordem 6`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof);
+await preparar('POST', `/turmas/${turmaOrdem.id}/atribuicoes`, { exercicioIds: [o5.id, o6.id] }, prof);
+for (const [i, exercicio] of [o5, o6].entries()) {
+  await banco.atribuicoesprof.update({
+    where: { ClassID_ExerciseID: { ClassID: turmaOrdem.id, ExerciseID: exercicio.id } },
+    data: { Data_Atribuicao: new Date(Date.now() + (i + 1) * 60 * 60 * 1000) },
+  });
+}
+r = await chamar('POST', '/sessoes', noExercicio(o5), ordem);
+confere('ordem: atribuído depois entra no fim (bloqueado enquanto falta o 4)', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
+await preparar('DELETE', `/turmas/${turmaOrdem.id}/atribuicoes/${o4.id}`, null, prof);
+r = await chamar('POST', '/sessoes', noExercicio(o5), ordem);
+confere('ordem: atribuição removida sai da sequência (o 5 libera)', r.status === 200);
+await preparar('POST', `/turmas/${turmaOrdem.id}/atribuicoes`, { exercicioIds: [o4.id] }, prof);
+await banco.atribuicoesprof.update({
+  where: { ClassID_ExerciseID: { ClassID: turmaOrdem.id, ExerciseID: o4.id } },
+  data: { Data_Atribuicao: new Date(Date.now() + 3 * 60 * 60 * 1000) },
+});
+await preparar('DELETE', `/exercicios/${o6.id}`, null, prof);
+r = await chamar('POST', '/sessoes', noExercicio(o4), ordem);
+confere('ordem: exercício arquivado sai da sequência (o 4, reatribuído no fim, libera sem o 6)', r.status === 200);
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turmas de teste criadas: ${turmaA.id}, ${turmaB.id}`);

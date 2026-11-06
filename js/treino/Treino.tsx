@@ -188,6 +188,19 @@ function modoTreinoDe(usuario: Usuario, params: URLSearchParams): ModoTreino {
   return params.get('previa') === '1' ? 'previa' : 'solo';
 }
 
+// Quem decide é o back: a prévia do professor não grava e não tem bloqueio.
+async function atividadeBloqueada(modo: ModoTreino, exercicioId: string, turmaId: string | null): Promise<boolean> {
+  if (modo === 'solo') {
+    const licoes = await api.solo.missoes();
+    return licoes.some((licao) => licao.exerciseId === exercicioId && licao.bloqueada);
+  }
+  if (modo === 'aluno') {
+    const sala = await api.escola.aluno.sala(turmaId);
+    return sala.lista.some((ex) => ex.id === exercicioId && ex.bloqueada);
+  }
+  return false;
+}
+
 // O host dos toasts fica fora da raiz do React (ver treino.html), e o
 // toast.ts continua cuidando dele como na tela em JS.
 let toasts: Toasts;
@@ -259,6 +272,14 @@ function Treino({ usuario }: PropsTreino) {
     motor.current?.destruir();
     motor.current = null;
     location.replace(modoTreino === 'solo' ? ROTA_INICIAL.solo : guarda.casa());
+  }
+
+  // Atividade bloqueada: volta para o caminho ou a sala, que mostram o aviso
+  // (componentes/AvisoBloqueada.tsx).
+  function voltarBloqueada() {
+    const destino = new URL(modoTreino === 'solo' ? ROTA_INICIAL.solo : guarda.casa(), location.origin);
+    destino.searchParams.set('bloqueada', '1');
+    location.replace(destino);
   }
 
   // Sair pelo Esc ou pelo botão "← Sair" do HUD: os dois chamam esta, e
@@ -336,6 +357,11 @@ function Treino({ usuario }: PropsTreino) {
           modoTreino === 'solo'
             ? await api.solo.missao(exercicioId)
             : await api.exercicios.obter(exercicioId, turmaId);
+        // A pessoa não digita o texto inteiro para ouvir o 403 só ao gravar.
+        if (await atividadeBloqueada(modoTreino, exercicioId, turmaId)) {
+          if (!cancelado) voltarBloqueada();
+          return;
+        }
       } catch (erro) {
         if (cancelado) return;
         mostrarErroCarga(
@@ -622,6 +648,12 @@ function Treino({ usuario }: PropsTreino) {
       // frente — o resultado é calculado no front e não pode se perder.
       resultado = await filaSessoes.enviar(corpo, mundo);
     } catch (erro) {
+      // Bloqueou depois de abrir (o professor mudou a sala, outra aba...):
+      // "tentar de novo" daria o mesmo 403.
+      if (erro?.codigo === 'ATIVIDADE_BLOQUEADA') {
+        voltarBloqueada();
+        return;
+      }
       setDicaOculta(true);
       abrirModal({
         eyebrow: 'Não deu',

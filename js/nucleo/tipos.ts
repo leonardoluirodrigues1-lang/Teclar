@@ -186,15 +186,11 @@ export interface Missao {
   repeticoes: number;
   tempoLimiteSegundos: number;
   tamanhoCaracteres: number;
+  /** Só na listagem: as lições abrem na ordem do percurso. */
+  bloqueada?: boolean;
 }
 
-/**
- * GET /solo/missoes/:id — o único lugar com o texto completo.
- *
- * Não há tipo separado para o item da listagem: MissaoDaCampanha existia
- * só para carregar o campo `bloqueada`, e o cadeado foi embora junto com o
- * nível mínimo. A listagem devolve Missao puro.
- */
+/** GET /solo/missoes/:id — o único lugar com o texto completo. */
 export interface MissaoDetalhe extends Missao {
   texto: string;
 }
@@ -702,8 +698,8 @@ export interface SalaDoAluno {
  *   nao_feito       — nenhuma sessão ainda;
  *   feito           — terminou o texto pelo menos uma vez;
  *   tempo_esgotado  — tentou, mas o tempo acabou em todas as vezes.
- * "Tempo esgotado" conta como feito no progresso: ele fez a atividade, e
- * o texto não diz que falhou. Pode treinar de novo quando quiser.
+ * "Tempo esgotado" conta em exerciciosFeitos (ele fez a atividade, e o texto
+ * não diz que falhou), mas não libera o exercício seguinte.
  */
 export type EstadoExercicioDaSala = 'nao_feito' | 'feito' | 'tempo_esgotado';
 
@@ -720,6 +716,8 @@ export interface ExercicioDaSala {
   atribuidoEm: string | null;
   prazo: string | null;
   estado: EstadoExercicioDaSala;
+  /** Os exercícios abrem na ordem da sala. */
+  bloqueada: boolean;
   /** A melhor sessão dele neste exercício, nesta sala. Tudo null quando o
    *  estado é nao_feito. */
   melhorWpm: number | null;

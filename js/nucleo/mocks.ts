@@ -92,6 +92,7 @@
 
 import { CONFIG } from '../config.js';
 import { sequenciaDeDias } from '../utils/desempenho.js';
+import { ordemDoPercurso } from '../utils/percurso.js';
 import { LICOES, montarLicao } from './licoes.js';
 import { validarSenhaAluno } from '../utils/validacao.js';
 import type {
@@ -768,10 +769,11 @@ export const dados: BancoMock = {
       concluida: false,
       data: '2026-02-20T16:45:00.000Z',
     },
-    // al-44, turma-1: concluiu ex-prof-2 (que não tem tempo limite).
+    // al-44, turma-1: concluiu ex-prof-1 depois de estourar o tempo (ses-5).
+    // Tempo esgotado não libera o ex-prof-2: ele só treinou o primeiro.
     {
       id: 'ses-4',
-      exerciseId: 'ex-prof-2',
+      exerciseId: 'ex-prof-1',
       alunoId: 'al-44',
       wpm: 29,
       precisao: 88,
@@ -779,7 +781,7 @@ export const dados: BancoMock = {
       acertos: 81,
       erros: 11,
       concluida: true,
-      data: diasAtras(6),
+      data: diasAtras(3),
     },
     // ESTOUROU O TEMPO: concluida = false em ex-prof-1, que tem tempo
     // limite de 120s. É a linha que faz a coluna "estouraram o tempo" da
@@ -795,13 +797,13 @@ export const dados: BancoMock = {
       acertos: 77,
       erros: 18,
       concluida: false,
-      data: diasAtras(3),
+      data: diasAtras(6),
     },
     // al-49: duas sessões concluídas, as duas com precisão baixa — é o
     // que põe a média dela em 78% e aciona o destaque de abaixo de 85%.
     {
       id: 'ses-6',
-      exerciseId: 'ex-prof-1',
+      exerciseId: 'ex-prof-2',
       alunoId: 'al-49',
       wpm: 33,
       precisao: 79,
@@ -813,7 +815,7 @@ export const dados: BancoMock = {
     },
     {
       id: 'ses-7',
-      exerciseId: 'ex-prof-2',
+      exerciseId: 'ex-prof-1',
       alunoId: 'al-49',
       wpm: 30,
       precisao: 76,
@@ -993,10 +995,10 @@ export const dados: BancoMock = {
   //     38, 40, 36 → 38,8) com as 5 anteriores (34, 30, 31, 29, 27 → 30,2);
   //   · hoje, ontem, anteontem e três dias atrás — sequência de 4 dias
   //     (cinco dias atrás quebra);
-  //   · lições dos níveis 1, 2, 3 e 4 — o filtro por nível tem opções;
-  //   · uma não concluída (hs-6, solo-020) — "tempo esgotado" aparece como
-  //     tentativa, e a lição segue contando como concluída por causa da
-  //     hs-7.
+  //   · lições feitas na ordem do percurso (só o nível 1: o nível 2 só abre
+  //     depois das dez lições do 1) — a próxima liberada é a solo-006;
+  //   · uma não concluída (hs-6, solo-004) — "tempo esgotado" aparece como
+  //     tentativa, e a lição só conta como concluída por causa da hs-7.
   // A ordem aqui é da mais antiga para a mais recente, como o back grava;
   // quem precisa da ordem inversa ordena (utils/desempenho.ts).
   historicoSolo: {
@@ -1010,17 +1012,17 @@ export const dados: BancoMock = {
       // 50 + round(25 * 0,86) = 72
       { id: 'hs-4', exerciseId: 'solo-001', wpm: 30, precisao: 86, tempoSegundos: 120, acertos: 49, erros: 8, concluida: true, xpGanho: 72, data: diasAtras(5.2) },
       // 50 + round(25 * 0,96) = 74
-      { id: 'hs-5', exerciseId: 'solo-009', wpm: 34, precisao: 96, tempoSegundos: 104, acertos: 48, erros: 2, concluida: true, xpGanho: 74, data: diasAtras(3.1) },
+      { id: 'hs-5', exerciseId: 'solo-003', wpm: 34, precisao: 96, tempoSegundos: 104, acertos: 48, erros: 2, concluida: true, xpGanho: 74, data: diasAtras(3.1) },
       // tempo esgotou: round(50 * 0,3) = 15
-      { id: 'hs-6', exerciseId: 'solo-020', wpm: 36, precisao: 84, tempoSegundos: 244, acertos: 58, erros: 11, concluida: false, xpGanho: 15, data: diasAtras(2.2) },
+      { id: 'hs-6', exerciseId: 'solo-004', wpm: 36, precisao: 84, tempoSegundos: 244, acertos: 58, erros: 11, concluida: false, xpGanho: 15, data: diasAtras(2.2) },
       // 50 + round(25 * 0,90) = 73
-      { id: 'hs-7', exerciseId: 'solo-020', wpm: 40, precisao: 90, tempoSegundos: 236, acertos: 54, erros: 6, concluida: true, xpGanho: 73, data: diasAtras(1.4) },
+      { id: 'hs-7', exerciseId: 'solo-004', wpm: 40, precisao: 90, tempoSegundos: 236, acertos: 54, erros: 6, concluida: true, xpGanho: 73, data: diasAtras(1.4) },
       // 50 + round(25 * 0,95) = 74
-      { id: 'hs-8', exerciseId: 'solo-009', wpm: 38, precisao: 95, tempoSegundos: 96, acertos: 57, erros: 3, concluida: true, xpGanho: 74, data: diasAtras(1.1) },
+      { id: 'hs-8', exerciseId: 'solo-003', wpm: 38, precisao: 95, tempoSegundos: 96, acertos: 57, erros: 3, concluida: true, xpGanho: 74, data: diasAtras(1.1) },
       // 50 + round(25 * 0,88) = 72
-      { id: 'hs-9', exerciseId: 'solo-015', wpm: 39, precisao: 88, tempoSegundos: 88, acertos: 44, erros: 6, concluida: true, xpGanho: 72, data: diasAtras(0.3) },
+      { id: 'hs-9', exerciseId: 'solo-005', wpm: 39, precisao: 88, tempoSegundos: 88, acertos: 44, erros: 6, concluida: true, xpGanho: 72, data: diasAtras(0.3) },
       // 50 + round(25 * 0,92) = 73
-      { id: 'hs-10', exerciseId: 'solo-015', wpm: 41, precisao: 92, tempoSegundos: 84, acertos: 46, erros: 4, concluida: true, xpGanho: 73, data: diasAtras(0.1) },
+      { id: 'hs-10', exerciseId: 'solo-005', wpm: 41, precisao: 92, tempoSegundos: 84, acertos: 46, erros: 4, concluida: true, xpGanho: 73, data: diasAtras(0.1) },
     ],
   },
 };
@@ -1377,8 +1379,33 @@ function estadoDoExercicio(sessoes: Sessao[]): EstadoExercicioDaSala {
   return sessoes.some((s) => s.concluida) ? 'feito' : 'tempo_esgotado';
 }
 
+// A regra de liberação, a mesma de back/src/sessoes/liberacao.ts: só a
+// primeira não concluída fica aberta; as concluídas podem ser refeitas.
+function concluidasEntre(sessoes: { exerciseId: string; concluida: boolean }[]): Set<string> {
+  return new Set(sessoes.filter((s) => s.concluida).map((s) => s.exerciseId));
+}
+
+function estaBloqueada(id: string, idsEmOrdem: string[], concluidas: Set<string>): boolean {
+  return !concluidas.has(id) && id !== idsEmOrdem.find((outro) => !concluidas.has(outro));
+}
+
+function exigirLiberada(id: string, idsEmOrdem: string[], concluidas: Set<string>): void {
+  if (estaBloqueada(id, idsEmOrdem, concluidas)) {
+    throw erro(403, 'Esta atividade ainda está bloqueada: conclua a anterior primeiro.', 'ATIVIDADE_BLOQUEADA');
+  }
+}
+
+function idsDaSala(turmaId: string): string[] {
+  return (dados.atribuicoes[turmaId] ?? []).map((atribuicao) => atribuicao.exerciseId);
+}
+
+function idsDoPercurso(): string[] {
+  return ordemDoPercurso(dados.missoes).map((missao) => missao.exerciseId);
+}
+
 function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
   const sessoes = sessoesNaSala(turmaId, alunoId);
+  const concluidasDaSala = concluidasEntre(sessoes);
   const lista: ExercicioDaSala[] = [];
   for (const atribuicao of dados.atribuicoes[turmaId] ?? []) {
     const ex = dados.exercicios.find((e) => e.id === atribuicao.exerciseId);
@@ -1397,6 +1424,7 @@ function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
       atribuidoEm: atribuicao.atribuidoEm ?? null,
       prazo: atribuicao.prazo,
       estado: estadoDoExercicio(doExercicio),
+      bloqueada: estaBloqueada(ex.id, idsDaSala(turmaId), concluidasDaSala),
       melhorWpm: contam.length ? Math.max(...contam.map((s) => s.wpm)) : null,
       melhorPrecisao: contam.length ? Math.max(...contam.map((s) => s.precisao)) : null,
       ultimaSessao: ultimaData(doExercicio),
@@ -1872,15 +1900,18 @@ const rotas: [string, RegExp, Handler][] = [
     'GET',
     montarRegex('/solo/missoes'),
     (params, corpo, token) => {
-      campanhaDoToken(token);
-      // Devolve TODAS as 76 lições, na ordem do percurso, e nenhuma vem
-      // bloqueada: a tabela ExerciciosSolo não tem nível mínimo e a conta
-      // não guarda progresso por lição — não há com o que trancar nada.
-      // O nível de uma lição é AGRUPAMENTO na tela, não requisito.
+      const campanha = campanhaDoToken(token);
+      // Devolve TODAS as 76 lições, e `bloqueada` sai da ordem do percurso e
+      // do histórico da campanha, como no back.
       //
       // Só o `texto` sai fora: em lista ele seria ~30 KB de texto que
       // nenhum cartão mostra. Ele volta no detalhe, em /solo/missoes/:id.
-      return dados.missoes.map(({ texto, ...licao }) => licao);
+      const ids = idsDoPercurso();
+      const concluidas = concluidasEntre(dados.historicoSolo[campanha.campanhaId] ?? []);
+      return dados.missoes.map(({ texto, ...licao }) => ({
+        ...licao,
+        bloqueada: estaBloqueada(licao.exerciseId, ids, concluidas),
+      }));
     },
   ],
   // Era /solo/campanhas/:id/historico. O id saiu da URL: a campanha é a
@@ -1946,6 +1977,7 @@ const rotas: [string, RegExp, Handler][] = [
       const exercicioId = corpo?.exercicio_id ?? corpo?.exerciseId;
       const missao = dados.missoes.find((m) => m.exerciseId === exercicioId);
       if (!missao) throw erro(404, 'Lição não encontrada.', 'NAO_ENCONTRADO');
+      exigirLiberada(missao.exerciseId, idsDoPercurso(), concluidasEntre(dados.historicoSolo[campanha.campanhaId] ?? []));
 
       // O XP base é o mesmo para toda lição e vem do config, não de uma
       // coluna por exercício: ExerciciosSolo não tem XPConcessao. Antes
@@ -2591,6 +2623,7 @@ const rotas: [string, RegExp, Handler][] = [
         alunoId,
         turmaId
       ).id;
+      exigirLiberada(exerciseId, idsDaSala(turmaId), concluidasEntre(sessoesNaSala(turmaId, alunoId)));
       const anteriores = dados.sessoes.filter(
         (s) => s.alunoId === alunoId && s.exerciseId === exerciseId
       );

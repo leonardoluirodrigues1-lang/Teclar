@@ -287,6 +287,10 @@ confere(
   lista[2].estado === 'nao_feito' && lista[2].melhorWpm === null && lista[2].melhorPrecisao === null && lista[2].ultimaSessao === null,
 );
 confere(
+  'sala: o concluído e o próximo abertos; tempo esgotado no ex2 não libera o ex3',
+  lista[0].bloqueada === false && lista[1].bloqueada === false && lista[2].bloqueada === true,
+);
+confere(
   'sala: nenhum colega no texto da resposta (nem nome, nem id)',
   !r.texto.includes('Rui') && !r.texto.includes('Bia') && !r.texto.includes(rui.id) && !r.texto.includes(bia.id),
 );
@@ -327,6 +331,7 @@ confere(
   'exercício arquivado sai da sala (2 exercícios, 1 feito)',
   r.corpo.lista.length === 2 && !r.corpo.lista.some((ex) => ex.id === ex2.id) && r.corpo.exerciciosTotal === 2 && r.corpo.exerciciosFeitos === 1,
 );
+confere('exercício arquivado sai da sequência: sem o ex2, o ex3 libera', r.corpo.lista.every((ex) => ex.bloqueada === false));
 r = await chamar('GET', '/aluno/historico', null, tokenLia);
 const noArquivado = r.corpo.itens.find((s) => s.id === liaS4.id);
 confere('exercício arquivado: a sessão continua no histórico, com o título', r.corpo.total === 4 && noArquivado?.tituloExercicio === ex2.titulo);

@@ -12,10 +12,11 @@
 //                        uma faísca menor na quina;
 //   · a próxima a fazer — face clara, ícone de teclado, anel de luz e o
 //                        balão "Começar" em cima;
-//   · ainda não feita  — face escura, número apagado.
-// NÃO existe bloqueio: toda pedra é um link para o treino, sempre. Não há
-// nível mínimo na tabela ExerciciosSolo — trancar seria regra que o banco
-// não tem.
+//   · bloqueada        — face escura e apagada, com cadeado e sem clique;
+//   · ainda não feita  — face escura, número apagado: só quando o histórico
+//                        falhou e não dá para saber o que já foi feito.
+// Quem diz o que está bloqueado é o back (Missao.bloqueada): as lições abrem
+// na ordem do percurso, e a regra vale também ao gravar a sessão.
 //
 // De onde vem cada dado (rotas que já existiam):
 //   · campanha  — GET /solo/campanha. Sem campanha, a pessoa vai para o
@@ -55,7 +56,8 @@ import {
 } from '../utils/percurso.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
-import { IconeTeclado } from '../componentes/IconesDoTutorial.js';
+import { IconeCadeado, IconeTeclado } from '../componentes/IconesDoTutorial.js';
+import { AvisoBloqueada } from '../componentes/AvisoBloqueada.js';
 
 // Vizinho desta em pages/solo/: é lá que mora o convite de começar.
 const ROTA_DASHBOARD = 'dashboard.html';
@@ -178,18 +180,20 @@ function IconeTrofeu() {
 
 // Pedra
 
-type EstadoDaPedra = 'feita' | 'proxima' | 'nova';
+type EstadoDaPedra = 'feita' | 'proxima' | 'nova' | 'bloqueada';
 
 const TEXTO_DO_ESTADO: Record<EstadoDaPedra, string> = {
   feita: 'concluída',
   proxima: 'a próxima a fazer',
   nova: 'ainda não feita',
+  bloqueada: 'bloqueada',
 };
 
 // Sem histórico (progresso null) nada é marcado: a tela não inventa
 // progresso a partir de não saber. Com tudo concluído, o percurso manda
 // "repetir a última" — aí não há próxima a fazer, e nenhuma pedra acende.
 function estadoDaPedra(licao: Missao, progresso: ProgressoDoPercurso | null): EstadoDaPedra {
+  if (licao.bloqueada) return 'bloqueada';
   if (progresso == null) return 'nova';
   const { proxima } = progresso;
   if (!proxima.repetir && proxima.licao.exerciseId === licao.exerciseId) return 'proxima';
@@ -224,6 +228,7 @@ interface PropsConteudo {
 // feita, e quantas vezes ela repete não serve mais para nada.
 function ConteudoDaPedra({ estado, posicao, repeticoes, nova }: PropsConteudo) {
   if (estado === 'feita') return <Estrela tamanho={30} forma="escura" nasce={nova} />;
+  if (estado === 'bloqueada') return <IconeCadeado />;
   return (
     <>
       {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
@@ -265,7 +270,9 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra
     `Lição ${posicao} de ${totalNoNivel} do nível ${licao.nivel}, ${TEXTO_DO_ESTADO[estado]}` +
     (repete ? `, ${licao.repeticoes} repetições` : '');
   // Face clara: o relevo claro de css/base/luz.css.
-  const classeTecla = estado === 'nova' ? 'tecla' : 'tecla tecla-clara';
+  const classeTecla = estado === 'nova' || estado === 'bloqueada' ? 'tecla' : 'tecla tecla-clara';
+  const classes = `pedra pedra-${estado} ${classeTecla}`;
+  const conteudo = <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} nova={nova} />;
 
   return (
     <div className="caminho-passo" style={{ left: ponto.x, top: ponto.y }}>
@@ -279,9 +286,15 @@ function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra
       )}
       {/* A pedra concluída troca o número pela estrela. Quem ouve não
           perde nada: o rótulo já diz a posição e "concluída". */}
-      <a className={`pedra pedra-${estado} ${classeTecla}`} href={hrefDoTreino(licao)} aria-label={rotulo}>
-        <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} nova={nova} />
-      </a>
+      {estado === 'bloqueada' ? (
+        <span className={classes} role="img" aria-label={rotulo}>
+          {conteudo}
+        </span>
+      ) : (
+        <a className={classes} href={hrefDoTreino(licao)} aria-label={rotulo}>
+          {conteudo}
+        </a>
+      )}
       {estado === 'feita' && (
         <span className="caminho-faisca">
           <Estrela tamanho={14} nasce={nova} />
@@ -544,7 +557,10 @@ function Caminho() {
 
   return (
     <MolduraSolo ativo="caminho" esconderMenu={mostrarTutorial && carga.estado === 'pronto'}>
-      <main className="caminho">{renderizarCorpo()}</main>
+      <main className="caminho">
+        <AvisoBloqueada />
+        {renderizarCorpo()}
+      </main>
     </MolduraSolo>
   );
 }

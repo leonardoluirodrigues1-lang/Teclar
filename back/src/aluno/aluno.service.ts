@@ -22,6 +22,7 @@ import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
 import { contarDiasSeguidos, diaDe } from '../sessoes/dias-seguidos.js';
+import { atribuicoesDaSala, estaBloqueada, sequenciaDaSala } from '../sessoes/liberacao.js';
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 
@@ -65,6 +66,7 @@ export interface ExercicioDaSala {
   atribuidoEm: string | null;
   prazo: string | null;
   estado: EstadoDoExercicio;
+  bloqueada: boolean;
   melhorWpm: number | null;
   melhorPrecisao: number | null;
   ultimaSessao: string | null;
@@ -241,16 +243,10 @@ export class AlunoService {
   // estado e a melhor marca DESTE aluno. O texto não vai: só a contagem de
   // caracteres, feita aqui porque é o back que tem o texto.
   private async exerciciosDaSala(turmaId: string, alunoId: string): Promise<ExercicioDaSala[]> {
-    const atribuicoes = await this.banco.atribuicoesprof.findMany({
-      where: { ClassID: turmaId, exerciciosprof: { Ativo: true } },
-      include: { exerciciosprof: true },
-      // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
-      // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
-      // em ordem alfabética, e o id para dois títulos iguais.
-      orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
-    });
+    const atribuicoes = await atribuicoesDaSala(this.banco, turmaId);
     const linhas = await this.banco.sessionsprof.findMany({ where: { AlunoID: alunoId, ClassID: turmaId } });
     const sessoes = linhas.map(sessaoNaForma);
+    const sequencia = await sequenciaDaSala(this.banco, turmaId, alunoId);
 
     return atribuicoes.map((atribuicao) => {
       const exercicio = atribuicao.exerciciosprof;
@@ -268,6 +264,7 @@ export class AlunoService {
         atribuidoEm: soData(atribuicao.Data_Atribuicao),
         prazo: atribuicao.Prazo?.toISOString() ?? null,
         estado: estadoDoExercicio(doExercicio),
+        bloqueada: estaBloqueada(exercicio.ExerciseID, sequencia),
         melhorWpm: maiorOuNull(contam.map((sessao) => sessao.wpm)),
         melhorPrecisao: maiorOuNull(contam.map((sessao) => sessao.precisao)),
         ultimaSessao: ultimaData(doExercicio),

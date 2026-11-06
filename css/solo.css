@@ -1525,6 +1525,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .pedra-nova:hover { color: rgba(255, 255, 255, 0.75); }
 
+/* Bloqueada: apagada, com cadeado, e não se aperta. */
+.pedra-bloqueada { opacity: 0.45; pointer-events: none; }
+
 /* Concluída: face clara, número escuro. */
 .pedra-feita {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.76));

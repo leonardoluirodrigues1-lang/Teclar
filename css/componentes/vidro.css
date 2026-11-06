@@ -36,3 +36,18 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .vidro { background: rgba(18, 18, 18, 0.94); }
 }
+
+/* O aviso de atividade bloqueada, no caminho do Solo e na sala do aluno. */
+.aviso-bloqueada {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 50;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+  transform: translateX(-50%);
+}

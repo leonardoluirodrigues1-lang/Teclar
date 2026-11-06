@@ -355,10 +355,10 @@ async function inserirSessoes(tx: Transacao): Promise<void> {
       // turma-1
       sessao('ses-1', 'al-43-t1', 'ex-prof-1', 'turma-1', 40, 95, 76, 4, 58, true, new Date('2026-02-18T14:10:00Z')),
       sessao('ses-2', 'al-43-t1', 'ex-prof-2', 'turma-1', 36, 92, 80, 7, 61, true, new Date('2026-02-19T09:30:00Z')),
-      sessao('ses-4', 'al-44', 'ex-prof-2', 'turma-1', 29, 88, 81, 11, 96, true, diasAtras(6)),
-      sessao('ses-5', 'al-44', 'ex-prof-1', 'turma-1', 24, 81, 77, 18, 120, false, diasAtras(3)),
-      sessao('ses-6', 'al-49', 'ex-prof-1', 'turma-1', 33, 79, 79, 21, 104, true, diasAtras(2)),
-      sessao('ses-7', 'al-49', 'ex-prof-2', 'turma-1', 30, 76, 86, 27, 131, true, diasAtras(9)),
+      sessao('ses-4', 'al-44', 'ex-prof-1', 'turma-1', 29, 88, 81, 11, 96, true, diasAtras(3)),
+      sessao('ses-5', 'al-44', 'ex-prof-1', 'turma-1', 24, 81, 77, 18, 120, false, diasAtras(6)),
+      sessao('ses-6', 'al-49', 'ex-prof-2', 'turma-1', 33, 79, 79, 21, 104, true, diasAtras(2)),
+      sessao('ses-7', 'al-49', 'ex-prof-1', 'turma-1', 30, 76, 86, 27, 131, true, diasAtras(9)),
       // turma-2
       sessao('ses-8', 'al-43', 'ex-prof-3', 'turma-2', 28, 84, 126, 24, 178, true, diasAtras(26)),
       sessao('ses-9', 'al-43', 'ex-prof-3', 'turma-2', 31, 86, 129, 21, 165, true, diasAtras(22)),
@@ -392,7 +392,7 @@ const COLEGAS_DA_TURMA_2 = [
   { id: 'al-51', wpm: 44, precisao: 94, seguidos: 10, antes: [12, 13], estourou: null },
   { id: 'al-52', wpm: 47, precisao: 93, seguidos: 9, antes: [11], estourou: null },
   { id: 'al-53', wpm: 42, precisao: 92, seguidos: 8, antes: [10, 12], estourou: null },
-  { id: 'al-54', wpm: 43, precisao: 90, seguidos: 7, antes: [9], estourou: 11 },
+  { id: 'al-54', wpm: 43, precisao: 90, seguidos: 7, antes: [9], estourou: 8 },
   { id: 'al-55', wpm: 31, precisao: 86, seguidos: 3, antes: [6, 8, 13], estourou: 5 },
 ];
 
@@ -406,14 +406,15 @@ const PPM_DE_QUEM_ESTOUROU = 20;
 type Colega = (typeof COLEGAS_DA_TURMA_2)[number];
 
 // As sessões concluídas, da mais recente para a mais antiga. Os exercícios
-// vão de dois em dois (3, 3, 5, 5...), e a variação alterna a cada sessão
-// (+, -, +, -...): assim cada exercício recebe sessões acima e abaixo da
-// média, e os dois ficam concluídos (licoes = 2 no ranking).
+// vão de dois em dois a partir da MAIS ANTIGA (3, 3, 5, 5...), para o
+// exercício 5 só vir depois do 3 concluído, e a variação alterna a cada
+// sessão (+, -, +, -...): assim cada exercício recebe sessões acima e abaixo
+// da média, e os dois ficam concluídos (licoes = 2 no ranking).
 function sessoesDoColega(colega: Colega) {
   const sequencia = Array.from({ length: colega.seguidos }, (_, i) => i);
   const dias = [...sequencia, ...colega.antes];
   const sessoes = dias.map((dia, i) => {
-    const exercicioId = Math.floor(i / 2) % 2 === 0 ? 'ex-prof-3' : 'ex-prof-5';
+    const exercicioId = Math.floor((dias.length - 1 - i) / 2) % 2 === 0 ? 'ex-prof-3' : 'ex-prof-5';
     const wpm = colega.wpm + desvio(i, dias.length, VARIACAO_DO_PPM);
     const precisao = colega.precisao + desvio(i, dias.length, VARIACAO_DA_PRECISAO);
     return sessaoMedida(`ses-${colega.id}-${i + 1}`, colega.id, exercicioId, wpm, precisao, true, diasAtras(dia));

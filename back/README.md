@@ -129,6 +129,8 @@ turma-2 sai com os mesmos pontos do mock (146, 134, 132, 122, 118, 86), com
 a Ana em 7º e a Helena, que nunca treinou, em 8º com "—" no relatório. Os
 dias seguidos contam a partir do dia em que o seed roda: rode o seed no dia
 da demonstração (no dia seguinte ainda vale; depois a sequência vira 0).
+Todas as sessões do seed respeitam a liberação em ordem, e os testes sujam os
+dados de demonstração: rode o seed de novo antes de mostrar a tela.
 
 ## Login e token
 
@@ -246,7 +248,8 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   não bastaria: dois pedidos simultâneos passariam os dois por ela.
 - `GET /solo/missoes` não traz o texto das lições: seriam uns 30 KB que
   nenhum cartão mostra. ExerciciosSolo.NivelMinimo existe desde a v7, mas
-  nenhuma rota o usa ainda (ver `naoUsadas` no `api.contrato.ts`).
+  nenhuma rota o usa ainda (ver `naoUsadas` no `api.contrato.ts`): o
+  `bloqueada` da lista sai da ordem do caminho, não do nível.
 - XP e nível são calculados no back (`src/solo/xp.ts`), nunca na tela: se
   a tela mandasse o XP, bastava mandar outro número para subir de nível.
   O XP por nível vem da tabela Configuracoes (o mesmo número que
@@ -288,6 +291,17 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   banco, e usar o mesmo nome no banco, no back e no front evita tradução
   entre as camadas.
 
+- As atividades liberam em ordem (`src/sessoes/liberacao.ts`, uma regra só
+  para o Solo e para o aluno; o professor não entra nela). Quem grava fora de
+  ordem recebe 403 `ATIVIDADE_BLOQUEADA`: a tela só esconde, quem garante é o
+  back. Não há coluna de progresso: tudo sai das sessões, e "concluída" é ter
+  ao menos uma com `Concluida = true`. Tempo esgotado não libera a seguinte,
+  mas continua contando em `exerciciosFeitos`.
+- A ordem do Solo existe em dois lugares (`ordemDoPercurso` aqui e em
+  `js/utils/percurso.ts`) porque o build do back não enxerga `js/`. O
+  `testar-solo.mjs` confere o caso que os distingue da ordem do número: a 49
+  vem depois da 8.
+
 **Pendência do mock**
 
 - O mock ainda não valida o nome no `POST /turmas` (só no PATCH); a tela
@@ -306,7 +320,7 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 | `src/atribuicoes/` | Qual exercício foi dado a qual turma (`/turmas/:id/atribuicoes`) |
 | `src/alunos/` | A lista de alunos de uma turma: importar, remover, zerar senha, desempenho |
 | `src/exercicios/` | A biblioteca de exercícios do professor |
-| `src/sessoes/` | Gravar e reler sessão; e o que as outras rotas reaproveitam: a forma da sessão e as médias (`sessao-escola.ts`), a conferência do pacote do motor (`medidas-da-sessao.ts`) e os dias seguidos (`dias-seguidos.ts`) |
+| `src/sessoes/` | Gravar e reler sessão; e o que as outras rotas reaproveitam: a forma da sessão e as médias (`sessao-escola.ts`), a conferência do pacote do motor (`medidas-da-sessao.ts`), os dias seguidos (`dias-seguidos.ts`) e a liberação em ordem (`liberacao.ts`) |
 | `src/relatorios/` | Os quatro relatórios do professor |
 | `src/ranking/` | O ranking da turma, visto pelo aluno (anonimizado aqui, no back) |
 | `src/solo/` | O mundo Solo: a campanha, as lições, e o progresso (sessões, XP, histórico, indicadores, estatísticas); a conta do XP fica em `xp.ts` |

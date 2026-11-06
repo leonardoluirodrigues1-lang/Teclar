@@ -1753,10 +1753,20 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   border: 2px solid var(--cor-texto, #fff);
   box-shadow: var(--relevo-tecla), 0 0 22px rgba(255, 255, 255, 0.35);
 }
-/* Os seguintes: apagados. Continuam links — apagado é "a seguir". */
-.no-depois .pedra,
-.no-depois .no-titulo,
-.no-depois .no-estado { opacity: 0.35; }
+/* Os seguintes: apagados, com cadeado, e não se apertam. */
+.no-bloqueado .pedra,
+.no-bloqueado .no-titulo,
+.no-bloqueado .no-estado { opacity: 0.35; }
+.no-bloqueado .pedra { pointer-events: none; }
+.no-bloqueado .pedra svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* --- ranking -------------------------------------------------------------- */
 /* A linha dele, em qualquer posição: um fundo a mais. */

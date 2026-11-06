@@ -10,6 +10,7 @@ import { ForbiddenException, Injectable, NotFoundException, UnauthorizedExceptio
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { exigirLiberada, sequenciaDaSala } from './liberacao.js';
 import { validarMedidas } from './medidas-da-sessao.js';
 import type { CorpoComMedidas } from './medidas-da-sessao.js';
 import { sessaoNaForma } from './sessao-escola.js';
@@ -57,9 +58,9 @@ export class SessoesService {
   constructor(private readonly banco: BancoService) {}
 
   // POST /sessoes. A ordem das conferências é de propósito: primeiro quem
-  // pede (403, 400 de identidade, 401), depois o corpo (400), e só então a
-  // turma e o exercício (404) — assim um 404 nunca sai para um corpo que
-  // nem seria aceito.
+  // pede (403, 400 de identidade, 401), depois o corpo (400), a turma e o
+  // exercício (404) — assim um 404 nunca sai para um corpo que nem seria
+  // aceito — e só então a ordem das atividades (403).
   async registrar(identidade: Identidade, corpo: CorpoDaSessao): Promise<RespostaSessaoEscola> {
     if (identidade.tipo !== 'aluno') {
       throw new ForbiddenException({
@@ -79,6 +80,7 @@ export class SessoesService {
       throw naoEncontrado('Exercício não encontrado nesta turma.');
     }
     await this.exigirAtribuido(turmaId, exercicioId);
+    exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.ID));
 
     const melhorAntes = await this.melhorPpmAnterior(aluno.ID, exercicioId);
     const gravada = await this.banco.sessionsprof.create({

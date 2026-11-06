@@ -18,6 +18,7 @@ import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
+import { exigirLiberada, sequenciaDoSolo } from '../sessoes/liberacao.js';
 import { validarMedidas } from '../sessoes/medidas-da-sessao.js';
 import type { CorpoComMedidas } from '../sessoes/medidas-da-sessao.js';
 import { mediaInteira } from '../sessoes/sessao-escola.js';
@@ -91,8 +92,9 @@ export class ProgressoService {
   constructor(private readonly banco: BancoService) {}
 
   // POST /solo/sessoes. A ordem das conferências é a do POST /sessoes:
-  // primeiro quem pede (403), depois o corpo (400), e só então a campanha
-  // e a lição (404) — um 404 nunca sai para um corpo que nem seria aceito.
+  // primeiro quem pede (403), depois o corpo (400), a campanha e a lição
+  // (404) — um 404 nunca sai para um corpo que nem seria aceito — e só então
+  // a ordem das lições (403).
   async registrar(identidade: Identidade, corpo: CorpoDaSessaoSolo): Promise<RespostaSessaoSolo> {
     jogadorDoToken(identidade);
     recusarIdentidadeNoCorpo(corpo);
@@ -100,6 +102,7 @@ export class ProgressoService {
     const medidas = validarMedidas(corpo);
     const campanha = await campanhaDoToken(this.banco, identidade);
     await this.exigirLicao(licaoId);
+    exigirLiberada(licaoId, await sequenciaDoSolo(this.banco, campanha.CampanhaID));
 
     const melhorAntes = await this.melhorPpmAnterior(campanha.CampanhaID, licaoId);
     const xpGanho = xpDaSessao(medidas.Concluida, medidas.Precisao);

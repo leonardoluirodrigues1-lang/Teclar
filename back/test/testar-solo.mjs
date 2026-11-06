@@ -13,6 +13,8 @@
 //     fora das colunas), o XP e o nível calculados no back, o recorde;
 //   - o PROGRESSO NÃO REGRIDE: refazer uma lição pior não tira a lição das
 //     concluídas, não baixa a melhor marca, não tira XP nem nível;
+//   - as lições liberam na ordem do caminho: 403 ATIVIDADE_BLOQUEADA ao pular,
+//     tempo esgotado não libera, voltar a uma concluída é permitido;
 //   - histórico, indicadores e estatísticas batendo com as sessões.
 //
 // Como rodar (em back/):
@@ -26,6 +28,7 @@
 // dist/): o CASCADE leva a campanha e as sessões junto.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { BancoService } from '../dist/banco/banco.service.js';
 
 const URL = 'http://localhost:3000/api';
@@ -182,9 +185,10 @@ confere(
       repeticoes: 10,
       tempoLimiteSegundos: 472,
       tamanhoCaracteres: 59,
+      bloqueada: false,
     }),
 );
-confere('GET /solo/missoes: nenhuma vem com cadeado (sem campo de bloqueio)', missoes.every((m) => Object.keys(m).length === 8));
+confere('GET /solo/missoes: sem sessão, só a primeira está liberada', missoes.filter((m) => !m.bloqueada).map((m) => m.exerciseId).join() === 'solo-001');
 
 r = await chamar('GET', '/solo/missoes/solo-001', null, novo);
 confere(
@@ -337,6 +341,39 @@ confere(
   'estatísticas: o JOIN em ExerciciosSolo dá título e nível; solo-002 com 2 tentativas, melhor 25 PPM e 80%',
   licao2.titulo === missoes[1].titulo && licao2.nivel === 1 && licao2.tentativas === 2 && licao2.melhorWpm === 25 && licao2.melhorPrecisao === 80,
 );
+
+// ============================================================================
+// As lições liberam em ordem (a 1 e a 2 já estão concluídas pelas jogadas acima)
+// ============================================================================
+
+const liberadas = async () => (await chamar('GET', '/solo/missoes', null, novo)).corpo.filter((m) => !m.bloqueada).map((m) => m.exerciseId).join();
+const sessoesAntes = await banco.sessionssolo.count({ where: { CampanhaID: campanha.campanhaId } });
+r = await chamar('POST', '/solo/sessoes', sessao('solo-004', 30, 90, true), novo);
+confere('ordem: pular a solo-003 dá 403 ATIVIDADE_BLOQUEADA, com mensagem', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA') && typeof r.corpo.mensagem === 'string');
+confere('ordem: o 403 não gravou sessão', (await banco.sessionssolo.count({ where: { CampanhaID: campanha.campanhaId } })) === sessoesAntes);
+r = await chamar('POST', '/solo/sessoes', sessao('solo-003', 20, 90, false), novo);
+confere('ordem: a próxima liberada aceita sessão com o tempo esgotado', r.status === 200);
+confere('ordem: as concluídas e a próxima estão liberadas', (await liberadas()) === 'solo-001,solo-002,solo-003');
+r = await chamar('POST', '/solo/sessoes', sessao('solo-004', 30, 90, true), novo);
+confere('ordem: tempo esgotado não libera a seguinte', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
+r = await chamar('POST', '/solo/sessoes', sessao('solo-003', 30, 90, true), novo);
+confere('ordem: concluir a solo-003 grava', r.status === 200);
+r = await chamar('POST', '/solo/sessoes', sessao('solo-004', 30, 90, true), novo);
+confere('ordem: concluída a solo-003, a solo-004 libera', r.status === 200);
+r = await chamar('POST', '/solo/sessoes', sessao('solo-002', 30, 90, true), novo);
+confere('ordem: voltar a uma concluída é permitido', r.status === 200);
+
+// A ordem é a do caminho: depois da 8 vem a 49, que também é do nível 1 (a
+// 9 já é do nível 2). As lições 5 a 8 vão direto no banco, sem XP.
+for (const numero of ['005', '006', '007', '008']) {
+  await banco.sessionssolo.create({
+    data: { ID: randomUUID(), CampanhaID: campanha.campanhaId, ExerciseID: `solo-${numero}`, Concluida: true },
+  });
+}
+r = await chamar('POST', '/solo/sessoes', sessao('solo-009', 30, 90, true), novo);
+confere('ordem do caminho: depois da solo-008, a solo-009 (nível 2) está bloqueada', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
+r = await chamar('POST', '/solo/sessoes', sessao('solo-049', 30, 90, true), novo);
+confere('ordem do caminho: depois da solo-008 vem a solo-049 (nível 1)', r.status === 200);
 
 // ============================================================================
 // DELETE /solo/campanhas/:id (o dono)

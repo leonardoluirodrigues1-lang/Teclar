@@ -176,7 +176,7 @@ confere('a turma do aluno vem no login (sessao.turmaAtiva)', sessao.turmaAtiva()
 const salas = await api.escola.aluno.salas();
 confere('escola.aluno.salas: uma sala, nada feito', salas.length === 1 && salas[0].exerciciosFeitos === 0 && salas[0].exerciciosTotal === 1);
 const sala = await api.escola.aluno.sala(turma.id);
-confere('escola.aluno.sala: exercício não feito', sala.lista[0].id === exercicio.id && sala.lista[0].estado === 'nao_feito');
+confere('escola.aluno.sala: exercício não feito e liberado', sala.lista[0].id === exercicio.id && sala.lista[0].estado === 'nao_feito' && sala.lista[0].bloqueada === false);
 const paraTreinar = await api.exercicios.obter(exercicio.id, turma.id);
 confere('exercicios.obter (aluno, com ?turma=) traz o texto', paraTreinar.texto === TEXTO);
 await confereErro('exercicios.obter (aluno) de exercício fora da turma', api.exercicios.obter(descartavel.id, turma.id), 404, 'NAO_ENCONTRADO');
@@ -242,6 +242,8 @@ confere('solo.campanha (por id)', (await api.solo.campanha(campanha.campanhaId))
 
 const missoes = await api.solo.missoes();
 confere('solo.missoes: as 76 lições sem texto', missoes.length === 76 && missoes[0].texto === undefined);
+confere('solo.missoes: só a primeira liberada', missoes[0].bloqueada === false && missoes[1].bloqueada === true);
+await confereErro('solo.registrarSessao em lição bloqueada', api.solo.registrarSessao({ ...medidas, exercicio_id: missoes[1].exerciseId }), 403, 'ATIVIDADE_BLOQUEADA');
 const primeira = await api.solo.missao(missoes[0].exerciseId);
 confere('solo.missao traz o texto', typeof primeira.texto === 'string' && primeira.texto.length > 0);
 
