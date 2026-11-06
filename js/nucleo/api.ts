@@ -411,10 +411,16 @@ function registradorDe(mundo: Mundo) {
   return mundo === 'solo' ? api.solo.registrarSessao : api.sessoes.registrar;
 }
 
+// 401 entra aqui porque a sessão é boa, o token é que venceu: ela é enviada
+// quando a pessoa entrar de novo.
 function falhaPassageira(erro: unknown): boolean {
   const status = (erro as ErroDaApi | null)?.status;
-  return status === 0 || status === 429 || status >= 500;
+  return status === 0 || status === 401 || status === 429 || status >= 500;
 }
+
+// A fila sobrevive a sair da conta: sem um limite, a sessão de quem nunca
+// volta ficaria no navegador para sempre.
+const VALIDADE_DO_ITEM_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function enviarFila(): Promise<ResultadoSincronizacao> {
   const fila = lerFila();
@@ -424,8 +430,9 @@ async function enviarFila(): Promise<ResultadoSincronizacao> {
   let parou = false;
 
   for (const item of fila) {
-    // O token some ao fechar o navegador, mas a fila fica: item de outra
-    // pessoa, enviado com este token, gravaria a sessão dela na conta errada.
+    if (Date.now() - item.em > VALIDADE_DO_ITEM_MS) continue;
+    // A fila fica depois que a pessoa sai: item de outra pessoa, enviado com
+    // este token, gravaria a sessão dela na conta errada.
     if (parou || item.usuarioId !== usuarioId) {
       sobraram.push(item);
       continue;

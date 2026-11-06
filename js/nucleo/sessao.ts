@@ -276,14 +276,12 @@ function atualizarUsuario(campos: Partial<Usuario>): Usuario | null {
 
 // Apaga TUDO o que pertence à pessoa que estava logada e esfria o cache.
 // A campanha ativa e a turma ativa moram dentro do objeto usuário, então
-// saem junto. A fila de sessões pendentes é apagada à parte: são resultados
-// de treino de quem saiu, e reenviá-los com o token do próximo a entrar
-// gravaria sessão de uma pessoa na conta de outra.
+// saem junto. A fila de sessões pendentes fica: cada item guarda de quem é, e
+// só é reenviado quando essa mesma pessoa entrar de novo (ver filaSessoes).
 // O modo fica de propósito (ver modo()): é amarrado ao id da conta.
 function sair(): void {
   sessionStorage.removeItem(CHAVES.TOKEN);
   sessionStorage.removeItem(CHAVES.USUARIO);
-  localStorage.removeItem(CHAVES.FILA_SESSOES);
   cacheUsuario = null;
 }
 

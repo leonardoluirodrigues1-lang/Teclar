@@ -284,7 +284,25 @@ const CHAVE_DA_FILA = CONFIG.CHAVES_STORAGE.FILA_SESSOES;
 localStorage.setItem(CHAVE_DA_FILA, JSON.stringify(JSON.parse(localStorage.getItem(CHAVE_DA_FILA)).map((item, i) => (i === 0 ? { ...item, usuarioId: 'outra-pessoa' } : item))));
 const soADele = await filaSessoes.sincronizar();
 confere('sincronizar envia só a sessão de quem está logado', soADele.enviadas === 1 && soADele.restantes === 1 && (await api.solo.historico()).total === 3);
+// Item com mais de 7 dias é descartado, mesmo sendo de outra pessoa.
+const OITO_DIAS = 8 * 24 * 60 * 60 * 1000;
+localStorage.setItem(CHAVE_DA_FILA, JSON.stringify([...JSON.parse(localStorage.getItem(CHAVE_DA_FILA)), { dados: { ...medidas, exercicio_id: primeira.exerciseId }, mundo: 'solo', em: Date.now() - OITO_DIAS, usuarioId: 'outra-pessoa' }]));
+confere('sincronizar descarta o item vencido e guarda o outro', (await filaSessoes.sincronizar()).restantes === 1 && filaSessoes.pendentes() === 1);
 filaSessoes.limpar();
+
+// Sair da conta mantém a fila: a sessão só vai quando a mesma pessoa voltar.
+const donoDaFila = { email: sessao.usuario().email, senha: SENHA };
+CONFIG.BASE_URL = 'http://localhost:1/api';
+await filaSessoes.enviar({ ...medidas, exercicio_id: primeira.exerciseId }, 'solo');
+CONFIG.BASE_URL = urlCerta;
+sessao.sair();
+confere('sair da conta mantém a fila', filaSessoes.pendentes() === 1);
+await entrarCom(api.auth.cadastrar({ nome: 'Outra Conta', email: `teste-outra-${marca}@teclar.dev`, senha: SENHA }));
+const comOutraConta = await filaSessoes.sincronizar();
+confere('outra conta não envia a sessão de quem saiu', comOutraConta.enviadas === 0 && comOutraConta.restantes === 1);
+sessao.sair();
+await entrarCom(api.auth.entrar(donoDaFila));
+confere('a mesma pessoa entra de novo: a sessão chega', (await filaSessoes.sincronizar()).enviadas === 1 && (await api.solo.historico()).total === 4);
 
 confere('solo.apagarCampanha devolve null (204)', (await api.solo.apagarCampanha(campanha.campanhaId)) === null);
 await confereErro('solo.campanha depois de apagada', api.solo.campanha(campanha.campanhaId), 404, 'NAO_ENCONTRADO');
@@ -314,5 +332,12 @@ await confereErro('admin.salvarParametros fora da faixa', api.admin.salvarParame
 sessionStorage.setItem(CONFIG.CHAVES_STORAGE.TOKEN, 'token-que-o-back-nao-reconhece');
 await confereErro('auth.eu com token inválido', api.auth.eu(), 401, 'TOKEN_INVALIDO');
 confere('401 limpa a sessão e manda para o login', !sessao.logado() && redirecionouPara === '/pages/login.html?expirou=1');
+
+// Token vencido ao sincronizar: o item continua na fila, para quando ele voltar.
+const dono = await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
+localStorage.setItem(CONFIG.CHAVES_STORAGE.FILA_SESSOES, JSON.stringify([{ dados: { ...medidas, exercicio_id: primeira.exerciseId }, mundo: 'solo', em: Date.now(), usuarioId: dono.usuario.id }]));
+sessionStorage.setItem(CONFIG.CHAVES_STORAGE.TOKEN, 'token-que-o-back-nao-reconhece');
+const comTokenVencido = await filaSessoes.sincronizar();
+confere('401 ao sincronizar guarda o item', comTokenVencido.enviadas === 0 && filaSessoes.pendentes() === 1);
 
 console.log(`\nTudo certo: ${verificacoes} verificações, as 54 funções do api.ts contra o back.`);
