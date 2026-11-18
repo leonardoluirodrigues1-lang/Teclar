@@ -74,8 +74,8 @@ const leo = await entrar({ email: 'leo@teclar.dev', senha: 'senha123' });
 
 // Preparo: turma A com o exercício 1 atribuído e o 2 não; turma B com o 1.
 const texto = 'Um texto qualquer com mais de vinte letras.';
-const turmaA = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} A` }, prof);
-const turmaB = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} B` }, prof);
+const turmaA = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} A`, semestre: 1 }, prof);
+const turmaB = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} B`, semestre: 1 }, prof);
 const ex1 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} 1`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof);
 const ex2 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} 2`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
 await preparar('POST', `/turmas/${turmaA.id}/atribuicoes`, { exercicioIds: [ex1.id] }, prof);
@@ -281,7 +281,7 @@ confere('turma arquivada depois do login: 401 TOKEN_INVALIDO', ehErro(r, 401, 'T
 // Os exercícios liberam na ordem da sala
 // ============================================================================
 
-const turmaOrdem = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} ordem` }, prof);
+const turmaOrdem = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} ordem`, semestre: 1 }, prof);
 const exerciciosOrdem = [];
 for (const numero of [1, 2, 3, 4]) {
   exerciciosOrdem.push(await preparar('POST', '/exercicios', { titulo: `Teste ${agora} ordem ${numero}`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof));

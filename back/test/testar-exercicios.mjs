@@ -192,8 +192,8 @@ confere('ex-prof-6 continua intacto para o dono', r.status === 200 && r.corpo.ti
 // ============================================================================
 
 // Preparo: o exercício em duas turmas de teste, com um aluno e uma sessão.
-const turmaA = (await chamar('POST', '/turmas', { nome: `Teste exercícios ${agora} A` }, prof)).corpo;
-const turmaB = (await chamar('POST', '/turmas', { nome: `Teste exercícios ${agora} B` }, prof)).corpo;
+const turmaA = (await chamar('POST', '/turmas', { nome: `Teste exercícios ${agora} A`, semestre: 1 }, prof)).corpo;
+const turmaB = (await chamar('POST', '/turmas', { nome: `Teste exercícios ${agora} B`, semestre: 1 }, prof)).corpo;
 for (const turma of [turmaA, turmaB]) {
   r = await chamar('POST', `/turmas/${turma.id}/atribuicoes`, { exercicioIds: [criado.id] }, prof);
   assert.equal(r.status, 200, 'preparo: atribuir');

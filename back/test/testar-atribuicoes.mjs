@@ -73,7 +73,7 @@ const prof = await entrar({ email: 'prof@teclar.dev', senha: 'senha123' });
 const aluno = await entrar({ codigo: 'K7M2QX', nome: 'Ana Pires', senha: 'aluno2026' });
 
 // Preparo: uma turma e três exercícios do professor u-2.
-let r = await chamar('POST', '/turmas', { nome: `Teste atribuições ${agora}` }, prof);
+let r = await chamar('POST', '/turmas', { nome: `Teste atribuições ${agora}`, semestre: 1 }, prof);
 const turma = r.corpo;
 const exercicios = [];
 for (const [letra, dificuldade] of [['A', 'facil'], ['B', 'medio'], ['C', 'dificil']]) {

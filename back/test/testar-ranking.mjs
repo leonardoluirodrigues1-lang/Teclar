@@ -106,7 +106,7 @@ const anaDoSeed = await entrar({ codigo: 'K7M2QX', nome: 'Ana Pires', senha: 'al
 
 // Preparo: a turma, três exercícios atribuídos e seis alunos.
 const texto = 'Um texto qualquer com mais de vinte letras.';
-const turma = await preparar('POST', '/turmas', { nome: `Teste ranking ${agora}` }, prof);
+const turma = await preparar('POST', '/turmas', { nome: `Teste ranking ${agora}`, semestre: 1 }, prof);
 const exercicios = [];
 for (const numero of [1, 2, 3]) {
   exercicios.push(
@@ -218,13 +218,13 @@ r = await chamar('GET', rota, null, tokens['Rita Alves']);
 confere('lição de exercício arquivado continua contando (Rita: 3 lições, 115)', r.corpo[0].licoes === 3 && r.corpo[0].pontos === 115);
 
 // Não há rota que desative aluno; o teste desliga a Sara no banco.
-await banco.alunos.update({ where: { ID: sara.id }, data: { Ativo: false } });
+await banco.alunosturmas.update({ where: { AlunoID: sara.id }, data: { Ativo: false } });
 r = await chamar('GET', rota, null, tokens['Rita Alves']);
 confere(
   'aluno desativado sai do ranking (Ativo = TRUE é o do aluno)',
   r.corpo.length === 5 && !r.texto.includes('Sara') && r.corpo[1].nome === 'Xavier Faria' && r.corpo[3].nome === null,
 );
-await banco.alunos.update({ where: { ID: sara.id }, data: { Ativo: true } });
+await banco.alunosturmas.update({ where: { AlunoID: sara.id }, data: { Ativo: true } });
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id} (${turma.codigo})`);

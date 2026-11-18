@@ -73,7 +73,7 @@ const prof = await entrar({ email: 'prof@teclar.dev', senha: 'senha123' });
 const aluno = await entrar({ codigo: 'K7M2QX', nome: 'Ana Pires', senha: 'aluno2026' });
 
 // A turma do teste, do professor u-2.
-let r = await chamar('POST', '/turmas', { nome: `Teste alunos ${Date.now()}` }, prof);
+let r = await chamar('POST', '/turmas', { nome: `Teste alunos ${Date.now()}`, semestre: 1 }, prof);
 confere('preparo: turma de teste criada', r.status === 200);
 const turma = r.corpo;
 
@@ -132,7 +132,7 @@ confere('importar: vazio, curto e não-texto caem em falhas', motivos[''] === 'N
 confere('importar: 5 falhas no total', primeira.falhas.length === 5);
 
 const [ana, bruno, carla] = primeira.adicionados;
-const nasLinhas = await banco.alunos.findMany({ where: { ClassID: turma.id } });
+const nasLinhas = await banco.alunosturmas.findMany({ where: { ClassID: turma.id } });
 confere('importar: no banco, SenhaHash NULL em todos', nasLinhas.length === 3 && nasLinhas.every((a) => a.SenhaHash === null));
 
 // Já na turma: a comparação ignora maiúscula e acento, e devolve o nome
@@ -150,7 +150,7 @@ r = await importar(Array.from({ length: 501 }, (_, i) => `Aluno ${i}`));
 confere('importar: 501 nomes 400', ehErro(r, 400, 'DADOS_INVALIDOS'));
 r = await importar(['Eva Souza'], { professorId: 'u-2' });
 confere('importar: professorId no corpo 400', ehErro(r, 400, 'DADOS_INVALIDOS'));
-confere('importar: nada gravado nos 400', (await banco.alunos.count({ where: { ClassID: turma.id } })) === 4);
+confere('importar: nada gravado nos 400', (await banco.alunosturmas.count({ where: { ClassID: turma.id } })) === 4);
 
 // ============================================================================
 // GET .../alunos
@@ -263,9 +263,20 @@ for (const [metodo, sufixo] of [['DELETE', ''], ['POST', '/zerar-senha'], ['GET'
   confere(`${metodo} aluno de outra turma da mesma conta${sufixo}: 404`, ehErro(r, 404, 'NAO_ENCONTRADO'));
 }
 
-const intactos = await banco.alunos.findMany({ where: { ID: { in: ['al-44', 'al-43-t5'] } } });
+const intactos = await banco.alunosturmas.findMany({ where: { AlunoID: { in: ['al-44', 'al-43-t5'] } } });
 confere('os 404 não mexeram em ninguém (al-44 e al-43-t5 com senha)', intactos.length === 2 && intactos.every((a) => a.SenhaHash !== null));
-confere('nada foi importado na turma-5', (await banco.alunos.count({ where: { ClassID: 'turma-5', Nome: 'Intruso' } })) === 0);
+confere('nada foi importado na turma-5', (await banco.alunosturmas.count({ where: { ClassID: 'turma-5', Nome: 'Intruso' } })) === 0);
+
+// Dois importar simultâneos com o mesmo nome novo: um grava, o outro cai em
+// jaEstavam (pela consulta ou pelo UNIQUE, que desfaz a transação). Em
+// nenhum caso sobra um ID em alunos sem matrícula.
+const [corrida1, corrida2] = await Promise.all([importar(['Zeca Lima']), importar(['Zeca Lima'])]);
+confere(
+  'importar simultâneo: um adiciona, o outro já estava',
+  corrida1.corpo.adicionados.length + corrida2.corpo.adicionados.length === 1 &&
+    corrida1.corpo.jaEstavam.length + corrida2.corpo.jaEstavam.length === 1,
+);
+confere('importar: nenhum ID sem matrícula', (await banco.alunos.count({ where: { alunosturmas: { is: null } } })) === 0);
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id} (${turma.codigo})`);

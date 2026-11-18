@@ -371,7 +371,7 @@ confere('dias seguidos: sessão às 22h de Brasília conta no mesmo dia de Bras�
 // alfabética: a sala e a lista do professor vêm pelo título. Um quarto,
 // atribuído depois e com título que viria antes no alfabeto, fica no fim:
 // a data continua mandando, o título só desempata.
-const turmaDoEmpate = await preparar('POST', '/turmas', { nome: `Teste empate ${agora}` }, prof);
+const turmaDoEmpate = await preparar('POST', '/turmas', { nome: `Teste empate ${agora}`, semestre: 1 }, prof);
 const exC = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} C`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
 const exA = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} A`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
 const exB = await preparar('POST', '/exercicios', { titulo: `Empate ${agora} B`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
