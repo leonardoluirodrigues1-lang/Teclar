@@ -70,7 +70,7 @@ const SEM_SESSOES: Agregados = { totalSessoes: 0, wpmMedio: null, precisaoMedia:
 // arquivo errado (uma planilha inteira) vire milhares de INSERTs.
 const MAXIMO_DE_NOMES = 500;
 
-// Alunos.Nome é VARCHAR(150). O mínimo é o mesmo do cadastro de conta.
+// alunosturmas.Nome é VARCHAR(150). O mínimo é o mesmo do cadastro de conta.
 const NOME_MINIMO = 2;
 const NOME_MAXIMO = 150;
 
@@ -83,12 +83,12 @@ export class AlunosService {
     const professorId = professorDoToken(identidade);
     await turmaDaConta(this.banco, professorId, turmaId);
 
-    const alunos = await this.banco.alunos.findMany({
+    const alunos = await this.banco.alunosturmas.findMany({
       where: { ClassID: turmaId, Ativo: true },
       orderBy: { Nome: 'asc' },
     });
     const agregados = await this.agregadosDaTurma(turmaId);
-    return alunos.map((aluno) => alunoNaForma(aluno, agregados.get(aluno.ID) ?? SEM_SESSOES));
+    return alunos.map((aluno) => alunoNaForma(aluno, agregados.get(aluno.AlunoID) ?? SEM_SESSOES));
   }
 
   // POST /turmas/:turmaId/alunos/importar. Importação parcial vale: cada
@@ -138,9 +138,8 @@ export class AlunosService {
     return resultado;
   }
 
-  // DELETE /turmas/:turmaId/alunos/:alunoId. Apaga a linha de Alunos, e o
-  // MySQL apaga as sessões dele junto (SessionsProf.AlunoID tem ON DELETE
-  // CASCADE). Ele deixa de conseguir entrar na hora: o login não acha mais
+  // DELETE /turmas/:turmaId/alunos/:alunoId. Apaga o ID em alunos, e o
+  // MySQL apaga em cascata a matrícula (alunosturmas) e as sessões dela. Ele deixa de conseguir entrar na hora: o login não acha mais
   // o nome. Se for importado de novo, volta como linha nova, sem senha nem
   // histórico.
   async remover(identidade: Identidade, turmaId: string, alunoId: string): Promise<void> {
@@ -159,7 +158,7 @@ export class AlunosService {
     const professorId = professorDoToken(identidade);
     await turmaDaConta(this.banco, professorId, turmaId);
     await this.alunoDaTurma(turmaId, alunoId);
-    await this.banco.alunos.update({ where: { ID: alunoId }, data: { SenhaHash: null } });
+    await this.banco.alunosturmas.update({ where: { AlunoID: alunoId }, data: { SenhaHash: null } });
   }
 
   // GET /turmas/:turmaId/alunos/:alunoId/desempenho. Os agregados saem da
@@ -189,7 +188,7 @@ export class AlunosService {
   // O aluno, só se for desta turma. De outra turma é o mesmo 404 de aluno
   // que não existe.
   private async alunoDaTurma(turmaId: string, alunoId: string) {
-    const aluno = await this.banco.alunos.findFirst({ where: { ID: alunoId, ClassID: turmaId } });
+    const aluno = await this.banco.alunosturmas.findFirst({ where: { AlunoID: alunoId, ClassID: turmaId } });
     if (!aluno) {
       throw new NotFoundException({ mensagem: 'Aluno não encontrado nesta turma.', codigo: 'NAO_ENCONTRADO' });
     }
@@ -198,7 +197,7 @@ export class AlunosService {
 
   // Chave de comparação -> nome como está gravado.
   private async nomesDaTurma(turmaId: string): Promise<Map<string, string>> {
-    const alunos = await this.banco.alunos.findMany({ where: { ClassID: turmaId }, select: { Nome: true } });
+    const alunos = await this.banco.alunosturmas.findMany({ where: { ClassID: turmaId }, select: { Nome: true } });
     return new Map(alunos.map((aluno) => [chaveDoNome(aluno.Nome), aluno.Nome]));
   }
 
@@ -209,15 +208,19 @@ export class AlunosService {
   // o INSERT recusa (P2002) e o nome vai para jaEstavam, como deveria.
   private async adicionar(turmaId: string, nome: string, resultado: ResultadoImportacao): Promise<void> {
     try {
-      const novo = await this.banco.alunos.create({
-        data: { ID: randomUUID(), ClassID: turmaId, Nome: nome, SenhaHash: null },
+      // O ID e a matrícula nascem juntos: se o nome colidir, a transação
+      // desfaz o ID e não sobra aluno sem matrícula.
+      const novo = await this.banco.$transaction(async (tx) => {
+        const id = randomUUID();
+        await tx.alunos.create({ data: { ID: id } });
+        return tx.alunosturmas.create({ data: { ClassID: turmaId, AlunoID: id, Nome: nome, SenhaHash: null } });
       });
       resultado.adicionados.push(alunoNaForma(novo, SEM_SESSOES));
     } catch (erro) {
       if (!(erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002')) {
         throw erro;
       }
-      const gravado = await this.banco.alunos.findFirst({ where: { ClassID: turmaId, Nome: nome } });
+      const gravado = await this.banco.alunosturmas.findFirst({ where: { ClassID: turmaId, Nome: nome } });
       resultado.jaEstavam.push(gravado?.Nome ?? nome);
     }
   }
@@ -256,11 +259,11 @@ export class AlunosService {
 
 // Funções soltas: não dependem do banco nem do Nest.
 
-type LinhaDeAluno = { ID: string; Nome: string; SenhaHash: string | null; Data_Cadastro: Date | null };
+type LinhaDeAluno = { AlunoID: string; Nome: string; SenhaHash: string | null; Data_Cadastro: Date | null };
 
 function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
   return {
-    id: aluno.ID,
+    id: aluno.AlunoID,
     nome: aluno.Nome,
     // Só a data ("2026-02-01"), como o contrato pede.
     entrouEm: aluno.Data_Cadastro ? diaDe(aluno.Data_Cadastro) : '',

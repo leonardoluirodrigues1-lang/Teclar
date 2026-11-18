@@ -75,7 +75,7 @@ export class RelatoriosService {
     await turmaDaConta(this.banco, professorId, turmaId);
     const daTurma = sessoesDaTurma(turmaId);
 
-    const totalAlunos = await this.banco.alunos.count({ where: { ClassID: turmaId, Ativo: true } });
+    const totalAlunos = await this.banco.alunosturmas.count({ where: { ClassID: turmaId, Ativo: true } });
     const comSessao = await this.banco.sessionsprof.findMany({
       where: daTurma,
       select: { AlunoID: true },
@@ -177,7 +177,7 @@ export class RelatoriosService {
   async sessoesDoAluno(identidade: Identidade, turmaId: string, alunoId: string): Promise<Paginado<SessaoDoAluno>> {
     const professorId = professorDoToken(identidade);
     await turmaDaConta(this.banco, professorId, turmaId);
-    const aluno = await this.banco.alunos.findFirst({ where: { ID: alunoId, ClassID: turmaId } });
+    const aluno = await this.banco.alunosturmas.findFirst({ where: { AlunoID: alunoId, ClassID: turmaId } });
     if (!aluno) {
       throw new NotFoundException({ mensagem: 'Aluno não encontrado nesta turma.', codigo: 'NAO_ENCONTRADO' });
     }
@@ -202,7 +202,7 @@ export class RelatoriosService {
   }
 }
 
-// As sessões que os relatórios contam: as da turma, dos alunos ativos dela.
+// As sessões que os relatórios contam: as da turma, das matrículas ativas dela.
 function sessoesDaTurma(turmaId: string) {
-  return { ClassID: turmaId, alunos: { Ativo: true } };
+  return { ClassID: turmaId, alunosturmas: { Ativo: true } };
 }

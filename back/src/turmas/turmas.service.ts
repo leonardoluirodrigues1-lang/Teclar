@@ -68,7 +68,8 @@ export interface CodigoDaTurma {
 // As duas contagens de toda resposta, feitas pelo banco (COUNT), nunca
 // pela tela: alunos ativos da turma e exercícios atribuídos a ela.
 const COM_CONTAGENS = {
-  _count: { select: { alunos: { where: { Ativo: true } }, atribuicoesprof: true } },
+  professoresturmas: { select: { ProfessorID: true } },
+  _count: { select: { alunosturmas: { where: { Ativo: true } }, atribuicoesprof: true } },
 } satisfies Prisma.classesprofInclude;
 
 type TurmaComContagens = Prisma.classesprofGetPayload<{ include: typeof COM_CONTAGENS }>;
@@ -104,7 +105,7 @@ export class TurmasService {
   async listar(identidade: Identidade, ativa: string | undefined): Promise<Turma[]> {
     const professorId = professorDoToken(identidade);
     const turmas = await this.banco.classesprof.findMany({
-      where: { ProfessorID: professorId, Ativa: ativa !== 'false' },
+      where: { professoresturmas: { ProfessorID: professorId }, Ativa: ativa !== 'false' },
       include: COM_CONTAGENS,
       orderBy: { Data_Criacao: 'asc' },
     });
@@ -121,18 +122,24 @@ export class TurmasService {
     const semestre = semestreDaTurma(corpo?.semestre);
     await this.exigirNomeLivre(professorId, nome);
 
+    // Turma e vínculo com o professor na mesma transação: sem o vínculo a
+    // turma ficaria sem dono. O sorteio do código fica fora, para a
+    // colisão (P2002) desfazer a transação inteira e sortear outro.
     const turma = await comCodigoNovo((codigo) =>
-      this.banco.classesprof.create({
-        data: {
-          ClassID: randomUUID(),
-          Codigo: codigo,
-          ProfessorID: professorId,
-          NomeTurma: nome,
-          Ano: ano,
-          Semestre: semestre,
-          CapaSemente: sortearCapa(),
-        },
-        include: COM_CONTAGENS,
+      this.banco.$transaction(async (tx) => {
+        const classId = randomUUID();
+        await tx.classesprof.create({
+          data: {
+            ClassID: classId,
+            Codigo: codigo,
+            NomeTurma: nome,
+            Ano: ano,
+            Semestre: semestre,
+            CapaSemente: sortearCapa(),
+          },
+        });
+        await tx.professoresturmas.create({ data: { ClassID: classId, ProfessorID: professorId } });
+        return tx.classesprof.findUniqueOrThrow({ where: { ClassID: classId }, include: COM_CONTAGENS });
       }),
     );
     return turmaNaForma(turma);
@@ -191,7 +198,7 @@ export class TurmasService {
 
   // POST /turmas/:id/codigo/novo. O código antigo para de valer na hora,
   // porque o login procura a turma por ClassesProf.Codigo e ele não está
-  // mais lá. As senhas dos alunos ficam em Alunos e nem são tocadas.
+  // mais lá. As senhas ficam nas matrículas (alunosturmas) e nem são tocadas.
   async novoCodigo(identidade: Identidade, id: string): Promise<CodigoDaTurma> {
     const professorId = professorDoToken(identidade);
     await turmaDaConta(this.banco, professorId, id);
@@ -215,7 +222,7 @@ export class TurmasService {
   // com UNIQUE (ProfessorID, essa coluna) e tratar o P2002.
   private async exigirNomeLivre(professorId: string, nome: string, exceto?: string): Promise<void> {
     const outra = await this.banco.classesprof.findFirst({
-      where: { ProfessorID: professorId, NomeTurma: nome, Ativa: true, ClassID: { not: exceto } },
+      where: { professoresturmas: { ProfessorID: professorId }, NomeTurma: nome, Ativa: true, ClassID: { not: exceto } },
     });
     if (outra) {
       throw nomeEmUso();
@@ -231,9 +238,9 @@ function turmaNaForma(linha: TurmaComContagens): Turma {
   const turma: Turma = {
     id: linha.ClassID,
     codigo: linha.Codigo,
-    professorId: linha.ProfessorID,
+    professorId: linha.professoresturmas?.ProfessorID ?? '',
     nome: linha.NomeTurma ?? '',
-    totalAlunos: linha._count.alunos,
+    totalAlunos: linha._count.alunosturmas,
     totalExercicios: linha._count.atribuicoesprof,
     ativa: linha.Ativa,
     // Só a data ("2026-02-01"), como o contrato pede.

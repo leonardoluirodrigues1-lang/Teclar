@@ -74,17 +74,17 @@ export class SessoesService {
     const turmaId = idDoCorpo(corpo?.turma_id, 'turma_id');
     const medidas = validarMedidas(corpo);
 
-    // turma_id tem de ser a turma DELE (Alunos.ClassID): na v8 o aluno está
-    // numa turma só. Turma de outro é 404, não 403.
+    // turma_id tem de ser a turma da matrícula do token (alunosturmas.ClassID):
+    // cada AlunoID tem uma matrícula só. A FK composta (ClassID, AlunoID) também recusa. Turma de outro é 404, não 403.
     if (turmaId !== aluno.ClassID) {
       throw naoEncontrado('Exercício não encontrado nesta turma.');
     }
     await this.exigirAtribuido(turmaId, exercicioId);
-    exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.ID));
+    exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.AlunoID));
 
-    const melhorAntes = await this.melhorPpmAnterior(aluno.ID, exercicioId);
+    const melhorAntes = await this.melhorPpmAnterior(aluno.AlunoID, exercicioId);
     const gravada = await this.banco.sessionsprof.create({
-      data: { ID: randomUUID(), AlunoID: aluno.ID, ExerciseID: exercicioId, ClassID: turmaId, ...medidas },
+      data: { ID: randomUUID(), AlunoID: aluno.AlunoID, ExerciseID: exercicioId, ClassID: turmaId, ...medidas },
     });
     const sessao = sessaoEscolaNaForma(gravada);
     // Recorde = PPM maior que o melhor anterior dele NESTE exercício. Na
@@ -121,8 +121,8 @@ export class SessoesService {
   // a sessão acabou. É o mesmo 401 do GET /auth/eu, para a tela voltar ao
   // login — e lá ele recebe o motivo de verdade (403 "turma arquivada").
   private async alunoComSessaoValida(alunoId: string) {
-    const aluno = await this.banco.alunos.findUnique({
-      where: { ID: alunoId },
+    const aluno = await this.banco.alunosturmas.findUnique({
+      where: { AlunoID: alunoId },
       include: { classesprof: { select: { Ativa: true } } },
     });
     if (!aluno || aluno.Ativo === false || aluno.classesprof.Ativa === false) {

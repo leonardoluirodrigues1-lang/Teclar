@@ -227,8 +227,9 @@ export class AutenticacaoService {
   }
 
   private async alunoDoToken(id: string): Promise<UsuarioAluno> {
-    const aluno = await this.banco.alunos.findUnique({
-      where: { ID: id },
+    // v10: o id do token é o AlunoID da matrícula (alunosturmas).
+    const aluno = await this.banco.alunosturmas.findUnique({
+      where: { AlunoID: id },
       include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
     });
     // Mesmo raciocínio da conta: aluno removido, desativado, ou com a
@@ -280,7 +281,7 @@ export class AutenticacaoService {
     if (codigo === '' || nome === '') {
       return Promise.resolve(null);
     }
-    return this.banco.alunos.findFirst({
+    return this.banco.alunosturmas.findFirst({
       where: { Nome: nome, classesprof: { Codigo: codigo } },
       include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
     });
@@ -305,11 +306,11 @@ export class AutenticacaoService {
     // se dois aparelhos fizerem o primeiro acesso do mesmo aluno ao mesmo
     // tempo, só um grava. O outro encontra 0 linhas e cai no 401, como se
     // tivesse digitado a senha errada — que, agora, é o que aconteceu.
-    const gravou = await this.banco.alunos.updateMany({
-      where: { ID: aluno.ID, SenhaHash: null },
+    const gravou = await this.banco.alunosturmas.updateMany({
+      where: { AlunoID: aluno.AlunoID, SenhaHash: null },
       data: { SenhaHash: hash },
     });
-    if (gravou.count === 0) {
+    if (gravou.count !== 1) {
       throw credenciaisInvalidas();
     }
 
@@ -318,7 +319,7 @@ export class AutenticacaoService {
   }
 
   private async respostaDoAluno(aluno: AlunoEncontrado): Promise<RespostaLogin> {
-    return { token: await this.emitirToken(aluno.ID, 'aluno'), usuario: usuarioDoAluno(aluno) };
+    return { token: await this.emitirToken(aluno.AlunoID, 'aluno'), usuario: usuarioDoAluno(aluno) };
   }
 
   private emitirToken(id: string, tipo: TipoDeLogin): Promise<string> {
@@ -352,7 +353,7 @@ function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
 // O `usuario` de aluno, igual no login e no /auth/eu.
 function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
   return {
-    id: aluno.ID,
+    id: aluno.AlunoID,
     nome: aluno.Nome,
     tipo: 'aluno',
     turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],

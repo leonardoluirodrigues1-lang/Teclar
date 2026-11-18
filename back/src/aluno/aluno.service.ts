@@ -95,12 +95,11 @@ export interface DesempenhoNaTurma {
 // O número é o do contrato (e o MINIMO_DE_SESSOES do mock).
 const MINIMO_DE_SESSOES_PARA_MEDIA = 3;
 
-// A turma do aluno, com o nome do professor dono dela.
-const TURMA_COM_PROFESSOR = {
-  classesprof: { include: { users: { select: { Nome: true } } } },
-} satisfies Prisma.alunosInclude;
+// A turma da matrícula, com o nome do professor (classesprof -> professoresturmas -> users).
+const PROFESSOR_DA_TURMA = { professoresturmas: { include: { users: { select: { Nome: true } } } } } satisfies Prisma.classesprofInclude;
+const TURMA_COM_PROFESSOR = { classesprof: { include: PROFESSOR_DA_TURMA } } satisfies Prisma.alunosturmasInclude;
 
-type TurmaDoAluno = Prisma.classesprofGetPayload<{ include: { users: { select: { Nome: true } } } }>;
+type TurmaDoAluno = Prisma.classesprofGetPayload<{ include: typeof PROFESSOR_DA_TURMA }>;
 
 @Injectable()
 export class AlunoService {
@@ -115,7 +114,7 @@ export class AlunoService {
       where: { AlunoID: alunoId },
       include: {
         exerciciosprof: { select: { Titulo: true } },
-        classesprof: { select: { NomeTurma: true } },
+        alunosturmas: { select: { classesprof: { select: { NomeTurma: true } } } },
       },
       // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
       // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
@@ -126,7 +125,7 @@ export class AlunoService {
       turmaId: linha.ClassID,
       // Exercício arquivado mantém o título: a linha dele fica no banco.
       tituloExercicio: linha.exerciciosprof.Titulo,
-      nomeTurma: linha.classesprof.NomeTurma,
+      nomeTurma: linha.alunosturmas.classesprof.NomeTurma,
     }));
     return { total: itens.length, pagina: 1, itens };
   }
@@ -156,7 +155,7 @@ export class AlunoService {
   // nela); o histórico continua mostrando as sessões.
   async salas(identidade: Identidade): Promise<SalaDoAluno[]> {
     const alunoId = alunoDoToken(identidade);
-    const aluno = await this.banco.alunos.findUnique({ where: { ID: alunoId }, include: TURMA_COM_PROFESSOR });
+    const aluno = await this.banco.alunosturmas.findUnique({ where: { AlunoID: alunoId }, include: TURMA_COM_PROFESSOR });
     if (!aluno || !aluno.classesprof.Ativa) {
       return [];
     }
@@ -199,7 +198,7 @@ export class AlunoService {
     // A média da sala é sobre as sessões concluídas de TODOS os alunos
     // ativos dela, ele incluído. Sai só a média: nenhum número de colega.
     const daSala = await this.banco.sessionsprof.aggregate({
-      where: { ClassID: turmaId, Concluida: true, alunos: { Ativo: true } },
+      where: { ClassID: turmaId, Concluida: true, alunosturmas: { Ativo: true } },
       _avg: { WPM: true, Precisao: true },
     });
     resposta.mediaSala = {
@@ -212,7 +211,7 @@ export class AlunoService {
   // A turma, se for a do aluno e estiver ativa; senão 404. "Não é sua" e
   // "não existe" dão a mesma resposta.
   private async salaDoAluno(alunoId: string, turmaId: string): Promise<TurmaDoAluno> {
-    const aluno = await this.banco.alunos.findUnique({ where: { ID: alunoId }, include: TURMA_COM_PROFESSOR });
+    const aluno = await this.banco.alunosturmas.findUnique({ where: { AlunoID: alunoId }, include: TURMA_COM_PROFESSOR });
     if (!aluno || aluno.ClassID !== turmaId || !aluno.classesprof.Ativa) {
       throw new NotFoundException({ mensagem: 'Sala não encontrada.', codigo: 'NAO_ENCONTRADO' });
     }
@@ -222,11 +221,11 @@ export class AlunoService {
   // O cabeçalho da sala. exerciciosFeitos = atribuídos em que ele tem
   // sessão (concluída OU com o tempo esgotado: os dois são "já fiz").
   private async resumoDaSala(turma: TurmaDoAluno, lista: ExercicioDaSala[]): Promise<SalaDoAluno> {
-    const totalAlunos = await this.banco.alunos.count({ where: { ClassID: turma.ClassID, Ativo: true } });
+    const totalAlunos = await this.banco.alunosturmas.count({ where: { ClassID: turma.ClassID, Ativo: true } });
     const sala: SalaDoAluno = {
       id: turma.ClassID,
       nome: turma.NomeTurma ?? '',
-      professor: turma.users.Nome,
+      professor: turma.professoresturmas?.users.Nome ?? '',
       totalAlunos,
       exerciciosFeitos: lista.filter((exercicio) => exercicio.estado !== 'nao_feito').length,
       exerciciosTotal: lista.length,
