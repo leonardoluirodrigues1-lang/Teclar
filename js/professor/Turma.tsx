@@ -47,6 +47,7 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
+import { ModalExercicio } from '../componentes/ModalExercicio.js';
 import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
@@ -82,7 +83,8 @@ type ConfigModal =
   | { chave: number; tipo: 'zerar-senha'; aluno: Aluno }
   | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
-  | { chave: number; tipo: 'atribuir'; opener: HTMLElement };
+  | { chave: number; tipo: 'atribuir'; opener: HTMLElement }
+  | { chave: number; tipo: 'criar-exercicio' };
 
 let proximaChave = 0;
 
@@ -442,10 +444,36 @@ function Turma() {
       );
     }
 
+    if (modal.tipo === 'criar-exercicio') {
+      // Cria na biblioteca e já atribui a esta turma. O modal de criar fecha
+      // no sucesso da criação; a atribuição vem logo atrás.
+      return (
+        <ModalExercicio
+          key={modal.chave}
+          exercicio={null}
+          rotuloCriar="Criar e atribuir"
+          aoConcluir={async (salvo) => {
+            try {
+              await api.turmas.atribuir(turmaId, [salvo.id]);
+              const novas = desembrulhar(await api.turmas.atribuicoes(turmaId));
+              flushSync(() => atualizarAtribuicoes(() => novas));
+              toasts.mostrar('Exercício criado e atribuído');
+            } catch (excecao) {
+              toasts.mostrar(`Exercício criado, mas não atribuído: ${mensagemDaFalha(excecao)}`);
+            }
+            btnAtribuir.current?.focus();
+          }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
     return (
       <ModalAtribuir
         key={modal.chave}
         atribuicoes={atribuicoes}
+        // Troca de modal: o de atribuir desmonta e o de criar entra no lugar.
+        aoCriarNovo={() => setModal({ chave: ++proximaChave, tipo: 'criar-exercicio' })}
         aoConcluir={(novas, quantidade) => {
           // flushSync: a tabela precisa estar redesenhada ANTES do teste abaixo.
           flushSync(() => atualizarAtribuicoes(() => novas));
@@ -734,13 +762,14 @@ type Biblioteca =
 interface PropsModalAtribuir {
   atribuicoes: AtribuicaoProfessor[];
   aoConcluir: (atribuicoes: AtribuicaoProfessor[], quantidade: number) => void;
+  aoCriarNovo: () => void;
   aoFechar: () => void;
 }
 
-function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir) {
+function ModalAtribuir({ atribuicoes, aoConcluir, aoCriarNovo, aoFechar }: PropsModalAtribuir) {
   const modal = useRef<ModalHandle>(null);
   const campoBusca = useRef<HTMLInputElement>(null);
-  const linkCriar = useRef<HTMLAnchorElement>(null);
+  const linkCriar = useRef<HTMLButtonElement>(null);
 
   const [biblioteca, setBiblioteca] = useState<Biblioteca>({ estado: 'carregando' });
   const [termo, setTermo] = useState('');
@@ -825,9 +854,9 @@ function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir
       return (
         <>
           <p className="modal-vazio-texto">Você ainda não tem nenhum exercício na biblioteca.</p>
-          <a className="btn btn-solido tecla tecla-clara" href="biblioteca.html" ref={linkCriar}>
-            Criar exercício
-          </a>
+          <button type="button" className="btn btn-solido tecla tecla-clara" ref={linkCriar} onClick={aoCriarNovo}>
+            + Criar novo exercício
+          </button>
         </>
       );
     }
@@ -839,6 +868,9 @@ function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir
 
     return (
       <>
+        <button type="button" className="btn btn-vidro vidro tecla modal-criar-novo" onClick={aoCriarNovo}>
+          + Criar novo exercício
+        </button>
         <div className="modal-busca">
           <input
             type="search"

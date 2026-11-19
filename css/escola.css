@@ -873,6 +873,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .modal-busca {
   margin-bottom: 14px;
 }
+.modal-criar-novo { margin-bottom: 14px; }
 .modal-busca input {
   width: 100%;
   padding: 10px 14px;
