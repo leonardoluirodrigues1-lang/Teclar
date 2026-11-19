@@ -508,7 +508,7 @@ function Turma() {
         papel={SECOES_PROFESSOR.modo}
         voltar={{ href: 'turmas.html', rotulo: 'Turmas' }}
         titulo={turma ? turma.nome ?? 'Turma sem nome' : null}
-        subtitulo={turma ? turma.periodo ?? '' : null}
+        subtitulo={turma ? turma.periodo ?? 'Período não informado' : null}
         acoes={acoes}
         extra={metricas}
         aba={aba}

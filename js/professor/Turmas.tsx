@@ -601,7 +601,7 @@ function Cartao({
       id={turma.id}
       nome={nome}
       href={`turma.html?turma=${encodeURIComponent(turma.id)}`}
-      linha={turma.periodo}
+      linha={turma.periodo ?? SEM_PERIODO}
       capaSemente={turma.capaSemente}
       classe={menuAberto ? 'cartao-com-menu' : undefined}
       fora={menuDoCartao}
@@ -613,6 +613,9 @@ function Cartao({
     </CartaoDeTurma>
   );
 }
+
+// Turma antiga (Semestre NULL) chega com periodo null.
+const SEM_PERIODO = 'Período não informado';
 
 function Metrica({ rotulo, valor }: { rotulo: string; valor: unknown }) {
   return (
@@ -667,7 +670,7 @@ function CartaoArquivado({
       </div>
       <div className="cartao-corpo">
         <h2 className="cartao-nome">{nome}</h2>
-        {turma.periodo && <p className="cartao-periodo">{turma.periodo}</p>}
+        <p className="cartao-periodo">{turma.periodo ?? SEM_PERIODO}</p>
         <button
           type="button"
           className="btn btn-vidro vidro tecla cartao-desarquivar"
