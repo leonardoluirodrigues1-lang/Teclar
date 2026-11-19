@@ -1,7 +1,7 @@
 -- TECLAR v10 | Instalação nova no MySQL
 -- MySQL 8.0.16 ou superior para validar as restrições CHECK.
 -- Use este arquivo para começar com as categorias e configurações padrão.
--- Para trazer os dados de teclardb (v9), use Migrar_Teclar_v9_para_v10.sql.
+-- Não há migração do v9 (só tinha dados de teste): instale do zero e rode o seed.
 -- O banco de destino teclardb_v10 deve ser novo.
 
 CREATE DATABASE teclardb_v10

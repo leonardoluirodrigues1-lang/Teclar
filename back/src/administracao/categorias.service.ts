@@ -7,7 +7,7 @@
 //
 // O nome só não pode repetir entre as categorias ATIVAS: uma apagada pode
 // ter o nome reusado. O banco não consegue dizer "único entre as ativas"
-// (ver o comentário da tabela no DB_Teclar_v9.sql), então quem confere é
+// (o MySQL não tem índice único parcial), então quem confere é
 // esta classe, antes de gravar: 409 CATEGORIA_DUPLICADA.
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';

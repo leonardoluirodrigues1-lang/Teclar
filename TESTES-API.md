@@ -410,7 +410,7 @@ com outro caminho ou outro corpo. As rotas iguais nos dois lados
     `PUT /parametros` exigem administrador, mas a tabela `Users` não tem
     coluna de papel.
     **Correção (feita em 13/10/2026):** coluna `Users.Administrador`
-    (BOOLEAN, FALSE por padrão) no `DB_Teclar_v9.sql`, `prisma db pull`
+    (BOOLEAN, FALSE por padrão) no `DB_Teclar_v10.sql`, `prisma db pull`
     refeito e a conta `ana@teclar.dev` (u-3) marcada no seed. Na mesma
     versão, `Configuracoes.xp_por_nivel` passou de 100 para 200, o valor que
     o front, o mock e o contrato já usavam, e `CampanhasSolo.JogadorID`
@@ -469,7 +469,7 @@ fórmula em CSV). Vale para listas de alunos e relatórios.
     fila de sessões envia de uma vez as que guardou sem internet.
     **Correção (feita em 29/10/2026):** `Data_Sessao` passou a
     `TIMESTAMP(3)` em `SessionsProf` e `SessionsSolo` (no
-    `DB_Teclar_v9.sql` e no `schema.prisma`), e toda lista de sessões
+    `DB_Teclar_v10.sql` e no `schema.prisma`), e toda lista de sessões
     ordena por data e, no empate, por id, no mesmo sentido (histórico do
     aluno, sessões do aluno no relatório, desempenho do aluno, histórico e
     estatísticas do Solo). O `testar-solo.mjs` não espera mais 1 segundo
