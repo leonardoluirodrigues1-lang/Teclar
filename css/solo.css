@@ -98,38 +98,6 @@
 .estado .btn { margin-top: var(--e-5, 24px); }
 
 
-/* O convite é uma coluna centrada. O gap é o respiro do mundo Solo. */
-.lobby-convite {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e-5, 24px);
-  text-align: center;
-}
-
-/* --- estado 1: convite --------------------------------------------------- */
-.lobby-convite-titulo {
-  font-size: var(--fs-xl, 25px);
-  font-weight: var(--peso-leve, 300);
-  letter-spacing: var(--ls-titulo, -0.02em);
-  line-height: var(--lh-apertada, 1.1);
-}
-.lobby-convite-texto {
-  /* Em ch, não em px: a medida acompanha o tamanho da fonte de quem lê. */
-  max-width: 46ch;
-  font-size: 14px;
-  line-height: var(--lh-solta, 1.75);
-  color: var(--cor-texto-suave, #c4c4c4);
-}
-
-/* O aviso de que a criação falhou. Fica ao lado do botão, não no lugar
-   dele: o convite continua de pé e dá para tentar de novo ali mesmo. */
-.lobby-falha {
-  max-width: 46ch;
-  font-size: 13px;
-  color: var(--cor-erro, #ff5a5a);
-}
-
 .lobby-xp {
   width: 100%;
   max-width: 420px;
@@ -167,33 +135,18 @@
   color: var(--cor-texto, #fff);
 }
 
-/* O botão grande do lobby: é a ação da tela, então ocupa a largura da
-   barra em vez do tamanho do texto. */
-.lobby-acao {
-  width: 100%;
-  max-width: 420px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-}
-
 /* ---------------------------------------------------------------------------
    Responsivo — o painel encolhe, nada rola para o lado
 
    Abaixo de 700px o painel perde a largura fixa das peças internas: a barra
-   e o botão passam a valer 100% do que sobrar, e o max-width de 420px deixa
+   passa a valer 100% do que sobrar, e o max-width de 420px deixa
    de ser piso. min-width: 0 nos filhos flex porque, sem ele, um filho se
    recusa a encolher abaixo do conteúdo e empurra a largura da página.
    ------------------------------------------------------------------------- */
 @media (max-width: 700px) {
-  .lobby-convite > * {
-    min-width: 0;
+  .lobby-xp {
     max-width: 100%;
   }
-  .lobby-xp,
-  .lobby-acao {
-    max-width: 100%;
-  }
-  .lobby-convite-titulo { font-size: var(--fs-lg, 20px); }
   /* Os dois atalhos lado a lado ficam apertados no talo da tela; com o gap
      menor eles continuam na mesma linha em vez de quebrar em duas. */
   .lobby-atalhos { gap: var(--e-4, 16px); }
@@ -767,16 +720,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-size: 12px;
   color: rgba(255, 255, 255, 0.62);
 }
-
-/* --- convite (primeira vez, sem campanha) -------------------------------- */
-/* Painel único e centrado. O .lobby-convite lá de cima já empilha e
-   centraliza; aqui ele só ganha o respiro do painel largo. */
-.lobby-convite {
-  justify-content: center;
-  padding-top: 56px;
-  padding-bottom: 56px;
-}
-.lobby-convite .lobby-acao { max-width: 420px; }
 
 /* --- esboço de carregamento ---------------------------------------------- */
 /* Os dois painéis já no lugar, com as peças na altura que terão. Cada

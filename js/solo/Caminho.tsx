@@ -19,17 +19,16 @@
 // na ordem do percurso, e a regra vale também ao gravar a sessão.
 //
 // De onde vem cada dado (rotas que já existiam):
-//   · campanha  — GET /solo/campanha. Sem campanha, a pessoa vai para o
-//                 dashboard, que é quem oferece começar;
+//   · campanha  — GET /solo/campanha. Sem campanha (primeira vez no Solo),
+//                 a tela cria uma (POST /solo/campanha) e segue, sem passar
+//                 por outra tela;
 //   · lições    — GET /solo/missoes. São o conteúdo: se falharem, é erro;
 //   · histórico — GET /solo/historico. Diz o que já foi feito e qual é a
 //                 próxima (utils/percurso.ts, a mesma regra do dashboard).
 //                 Se falhar, as pedras aparecem todas como "não feita".
 //
 // Na primeira vez da conta, antes da trilha, vem o tutorial (./Tutorial.tsx).
-// Ele só aparece depois que os dados chegam e a campanha existe: quem não
-// tem campanha é mandado ao dashboard, e mostrar o tutorial para em seguida
-// trocar de tela no meio dele seria pior.
+// Ele só aparece depois que os dados chegam e a campanha existe.
 //
 // A posição das pedras é calculada a partir do tamanho da área da trilha,
 // e o tracejado entre elas a partir da posição das pedras. Isso só é
@@ -58,9 +57,6 @@ import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 import { useEstrelasNovas } from '../utils/estrelasJaVistas.js';
 import { IconeCadeado, IconeTeclado } from '../componentes/IconesDoTutorial.js';
 import { AvisoBloqueada } from '../componentes/AvisoBloqueada.js';
-
-// Vizinho desta em pages/solo/: é lá que mora o convite de começar.
-const ROTA_DASHBOARD = 'dashboard.html';
 
 // Os dez nomes de nível. A listagem manda só o número do nível; se um
 // nível novo aparecer sem nome aqui, a faixa escreve só "Nível N".
@@ -463,17 +459,11 @@ function Caminho() {
       if (cancelado) return;
       try {
         // A campanha ANTES do resto: sem ela, o back responde 404 às missões
-        // e ao histórico (são da campanha do token), e esse 404 virava o
-        // painel de erro no lugar de mandar para o dashboard.
-        const campanha = await api.solo.campanhaAtual();
+        // e ao histórico (são da campanha do token). Primeira vez no Solo:
+        // cria aqui mesmo. O POST é idempotente (quem já tem recebe a que
+        // existe), então duas abas ao mesmo tempo não criam duas.
+        const campanha = (await api.solo.campanhaAtual()) ?? (await api.solo.criarCampanha());
         if (cancelado) return;
-
-        if (campanha == null) {
-          // Sem campanha não há o que trilhar: o dashboard é quem oferece
-          // começar. replace, para o voltar do navegador não cair aqui.
-          window.location.replace(ROTA_DASHBOARD);
-          return;
-        }
 
         const [licoes, sessoes] = await Promise.all([
           api.solo.missoes().then((m) => desembrulhar<Missao>(m)),
@@ -574,9 +564,8 @@ function Caminho() {
 // Montagem — guarda primeiro, React depois
 
 // Guarda de conta (e grava o modo solo). Devolveu null, redirecionou: a
-// tela para aqui. Quem não tem campanha é mandado ao dashboard no
-// carregar(), depois de o back responder — a sessão local não sabe disso
-// logo depois do login.
+// tela para aqui. Quem não tem campanha ganha uma no carregar(), depois de
+// o back responder — a sessão local não sabe disso logo depois do login.
 const usuario = guarda.soConta('solo');
 
 if (usuario) {

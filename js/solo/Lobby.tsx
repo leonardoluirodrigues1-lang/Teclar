@@ -1,8 +1,8 @@
 // Lobby.tsx — pages/solo/dashboard.html
 // O dashboard do Solo. Deixou de ser a casa do modo (ROTA_INICIAL em
 // js/config.ts agora é o caminho): chega-se aqui pelo botão da pessoa, no
-// topo do caminho, e é para cá que o caminho manda quem ainda não tem
-// campanha.
+// topo do caminho. Quem cai aqui sem campanha (link direto) vai para o
+// caminho, que cria a campanha e mostra o tutorial.
 //
 // O lobby NÃO é uma lista de campanhas, e isso vem do banco, não de gosto:
 // a tabela CampanhasSolo tem quatro colunas — CampanhaID, JogadorID,
@@ -12,11 +12,8 @@
 // seria adivinhação. Então o jogador tem UMA campanha, e esta tela é a
 // porta dela.
 //
-// Dois estados, e a tela mostra um só:
-//   1. sem campanha — primeira vez no Solo: o convite e o botão que cria.
-//   2. com campanha — o painel do personagem, a sequência e o botão.
-// Quem decide qual é GET /solo/campanha: ele devolve null quando não há
-// campanha, e null aqui é ESTADO, não falha (ver api.solo.campanhaAtual).
+// GET /solo/campanha devolve null quando não há campanha; aqui isso manda
+// para o caminho (ver acima), que é quem cria.
 //
 // Nada de personagem é inventado nesta tela: nem campo no formulário (não
 // há formulário), nem chave no localStorage. O que fica guardado é o id da
@@ -195,9 +192,7 @@ function AnelXp({ progresso }: { progresso: ProgressoXp }) {
 // Esqueleto — a altura dos painéis finais
 
 // Os dois painéis e a faixa já ocupam o lugar que terão: quando a
-// campanha chega, nada pula. A medida é a do estado COM campanha, que é o
-// caso de quem volta — o convite da primeira vez acontece uma única vez
-// por conta.
+// campanha chega, nada pula.
 function EsbocoLobby() {
   return (
     <div aria-hidden="true">
@@ -481,7 +476,7 @@ type Carga =
   // eles alimentam some (ou vira "—"), e o resto da tela continua de pé.
   | {
       estado: 'pronto';
-      campanha: Campanha | null;
+      campanha: Campanha;
       sessoes: SessaoSolo[] | null;
       estatisticas: EstatisticasSolo | null;
       indicadores: IndicadoresSolo | null;
@@ -502,8 +497,6 @@ function nullSeFalhar<T>(promessa: Promise<T>): Promise<T | null> {
 function Lobby() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
-  const [criando, setCriando] = useState(false);
-  const [falhaAoCriar, setFalhaAoCriar] = useState<string | null>(null);
 
   // Conta individual tem nome (a tabela Users tem a coluna); nomeExibicao()
   // ainda assim é o caminho certo, porque nunca devolve "undefined".
@@ -531,16 +524,9 @@ function Lobby() {
         sessao.atualizarUsuario({ campanhaAtiva: campanha?.campanhaId ?? null });
 
         if (campanha == null) {
-          // O estado 1 (o convite) só olha a campanha.
-          setCarga({
-            estado: 'pronto',
-            campanha: null,
-            sessoes: null,
-            estatisticas: null,
-            indicadores: null,
-            licoes: null,
-            xpPorNivel: CONFIG.SOLO.XP_POR_NIVEL,
-          });
+          // Primeira vez no Solo: o caminho cria a campanha e abre o
+          // tutorial. replace, para o voltar não cair aqui de novo.
+          window.location.replace(ROTA_CAMINHO);
           return;
         }
 
@@ -592,34 +578,6 @@ function Lobby() {
     [licoes, sessoes]
   );
 
-  // --- começar a campanha ---------------------------------------------------
-
-  async function comecar() {
-    // Clique duplo, Enter repetido, dois toques: o segundo não passa daqui.
-    // O back também protege (quem já tem campanha recebe a que existe, e
-    // nenhuma segunda nasce), mas a trava local evita a segunda requisição
-    // antes de ela sair.
-    if (criando) return;
-    setCriando(true);
-    setFalhaAoCriar(null);
-
-    try {
-      const campanha = await api.solo.criarCampanha();
-      sessao.definirCampanha(campanha.campanhaId);
-      // Sai do lobby direto para o caminho. O botão fica em "criando…"
-      // até a navegação acontecer: soltá-lo aqui piscaria "Começar
-      // campanha" de novo numa tela que já está indo embora.
-      window.location.href = ROTA_CAMINHO;
-    } catch (excecao) {
-      // A falha não apaga o convite: o painel continua de pé, com o aviso
-      // ao lado do botão e o botão clicável de novo. Trocar a tela inteira
-      // por um painel de erro tiraria da frente justamente a única ação
-      // que a pessoa veio fazer.
-      setCriando(false);
-      setFalhaAoCriar(mensagemDaFalha(excecao, MENSAGENS));
-    }
-  }
-
   // --- corpo ----------------------------------------------------------------
 
   function renderizarCorpo() {
@@ -637,38 +595,6 @@ function Lobby() {
       );
     }
 
-    // --- estado 1: ainda não começou ---
-    // Painel único, o mesmo texto de sempre, no acabamento novo. Sem
-    // sequência: não há campanha, e portanto não há histórico nenhum.
-    if (carga.campanha == null) {
-      return (
-        <div className="lobby-topo lobby-topo-unico">
-          <article className="painel vidro lobby-convite">
-            <span className="lobby-rotulo">Modo · Solo</span>
-            <h1 className="lobby-convite-titulo">Sua campanha começa aqui</h1>
-            <p className="lobby-convite-texto">
-              No Solo você treina no seu ritmo: cada missão concluída rende XP, o XP sobe de
-              nível e o nível abre missões novas.
-            </p>
-            <button
-              type="button"
-              className="btn btn-solido tecla tecla-clara lobby-acao"
-              onClick={comecar}
-              disabled={criando}
-            >
-              {criando ? 'Criando…' : 'Começar campanha'}
-            </button>
-            {falhaAoCriar && (
-              <p className="lobby-falha" role="alert">
-                {falhaAoCriar}
-              </p>
-            )}
-          </article>
-        </div>
-      );
-    }
-
-    // --- estado 2: já começou ---
     return (
       <>
         <div className={'lobby-topo' + (dias == null ? ' lobby-topo-unico' : '')}>

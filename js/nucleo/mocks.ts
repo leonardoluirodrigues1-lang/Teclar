@@ -77,11 +77,11 @@
 // prof, escolha Solo, e depois "Ir para Professor" no cabeçalho (ou o
 // contrário pelo menu do avatar).
 //
-// leo e ana existem por causa do lobby do Solo (pages/solo/dashboard.html),
-// que tem dois estados e mostra um só:
+// leo e ana existem por causa do Solo:
 //   leo@teclar.dev  -> entra com camp-1: o painel de "Continuar", com
 //                      nível e barra de XP.
-//   ana@teclar.dev  -> entra sem campanha: o convite "Começar campanha".
+//   ana@teclar.dev  -> entra sem campanha: o caminho cria uma na primeira
+//                      visita e mostra o tutorial.
 // Quem se cadastra pela tela de cadastro também nasce sem campanha.
 //
 // Qualquer outra credencial responde 401. No cadastro, leo@teclar.dev
@@ -190,8 +190,8 @@ export const USUARIOS: {
     campanhaAtiva: 'camp-1',
   },
   // A segunda conta: nunca entrou no Solo. SEM campanhaAtiva de propósito
-  // — é ela que mostra o estado 1 do lobby (o convite). Não invente
-  // campanha para ela aqui; quem cria é o botão da tela.
+  // — é ela que mostra a primeira vez no Solo. Não invente campanha para
+  // ela aqui; quem cria é o caminho (POST /solo/campanha).
   ana: {
     id: 'u-3',
     nome: 'Ana Pires',
@@ -1630,8 +1630,8 @@ function alunoMockPorId(id: string): { turma: Turma; aluno: AlunoMock } | null {
 
 const CONTAS: Conta[] = [
   { email: 'leo@teclar.dev', senha: 'senha123', ativo: true, usuario: USUARIOS.leo },
-  // Segunda conta, sem campanha nenhuma: é ela que mostra o estado de
-  // convite do lobby do Solo. Ver o cabeçalho deste arquivo.
+  // Segunda conta, sem campanha nenhuma: é ela que mostra a primeira vez
+  // no Solo. Ver o cabeçalho deste arquivo.
   { email: 'ana@teclar.dev', senha: 'senha123', ativo: true, usuario: USUARIOS.ana },
   { email: 'prof@teclar.dev', senha: 'senha123', ativo: true, usuario: USUARIOS.prof },
 ];
@@ -1641,8 +1641,8 @@ const normalizarEmail = (valor: unknown): string => String(valor ?? '').trim().t
 // O começo fixo do token de uma sessão. O id entra aqui porque o token
 // precisa dizer QUEM está pedindo, e não só de que tipo: leo e ana são as
 // duas contas e têm campanhas diferentes — uma tem, a outra não. Só com o
-// tipo, /solo/campanha responderia a mesma coisa para as duas e o estado
-// de convite do lobby nunca apareceria.
+// tipo, /solo/campanha responderia a mesma coisa para as duas e a
+// primeira vez no Solo nunca apareceria.
 function prefixoToken(usuario: Usuario): string {
   return `mock-${usuario.tipo}-${usuario.id}-token-`;
 }
