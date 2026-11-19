@@ -23,7 +23,8 @@ const PREFIXO = 'api';
 const ORIGENS_DO_FRONT = [
   'http://127.0.0.1:5500',
   'http://localhost:5500',
-  ...(process.env.CORS_ORIGIN ?? '').split(',').map((o) => o.trim().replace(/\/+$/, '')) // o navegador manda a origem sem barra no fim.filter(Boolean),
+  // A barra do fim sai: o navegador manda a origem sem ela.
+  ...(process.env.CORS_ORIGIN ?? '').split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean),
 ];
 
 async function iniciar(): Promise<void> {
