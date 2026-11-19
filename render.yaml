@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: teclar-api
+    runtime: node
+    rootDir: back
+    region: virginia
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/docs
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

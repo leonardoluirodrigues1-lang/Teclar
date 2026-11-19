@@ -53,6 +53,8 @@ const { CONFIG } = await import('../config.js');
 const { api, filaSessoes, ErroApi } = await import('./api.js');
 const { sessao } = await import('./sessao.js');
 
+// API_URL=https://.../api roda o mesmo teste contra o back publicado.
+if (process.env.API_URL) CONFIG.BASE_URL = process.env.API_URL;
 assert.equal(CONFIG.MOCK, false, 'CONFIG.MOCK precisa ser false (e o api.js recompilado).');
 
 // --- ajudantes --------------------------------------------------------------

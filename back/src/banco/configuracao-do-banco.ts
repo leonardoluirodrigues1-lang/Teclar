@@ -24,5 +24,7 @@ export function configuracaoDoBanco() {
     // Aceitável aqui porque o banco é local; num servidor remoto o certo
     // seria SSL.
     allowPublicKeyRetrieval: true,
+    // ?sslaccept=strict (TiDB Cloud em produção): TLS com certificado conferido.
+    ...(url.searchParams.get('sslaccept') === 'strict' && { ssl: { rejectUnauthorized: true } }),
   };
 }

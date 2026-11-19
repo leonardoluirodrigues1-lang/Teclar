@@ -28,9 +28,10 @@ export const VALIDADE_DO_TOKEN = '8h';
 // assinar um token dizendo ser qualquer pessoa. Sem ele o back nem sobe —
 // melhor do que subir assinando com "undefined".
 export function segredoDoJwt(): string {
-  const segredo = process.env.JWT_SEGREDO;
+  // JWT_SECRET é o nome no Render; JWT_SEGREDO é o do .env local antigo.
+  const segredo = process.env.JWT_SECRET || process.env.JWT_SEGREDO;
   if (!segredo) {
-    throw new Error('JWT_SEGREDO não definido no .env. Veja o .env.example.');
+    throw new Error('JWT_SECRET não definido (ou JWT_SEGREDO no .env). Veja o .env.example.');
   }
   return segredo;
 }

@@ -12,13 +12,19 @@ import { montarSwagger } from './swagger.js';
 // O front chama CONFIG.BASE_URL = 'http://localhost:3000/api' (js/config.ts)
 // mais a rota do contrato: POST /auth/login vira /api/auth/login. Os dois
 // valores abaixo têm de bater com essa URL.
-const PORTA = 3000;
+// O Render informa a porta em PORT; localmente fica a 3000.
+const PORTA = Number(process.env.PORT) || 3000;
 const PREFIXO = 'api';
 
 // O front roda no Live Server do VS Code, que abre em 127.0.0.1 ou em
 // localhost conforme a configuração — para o navegador são origens
 // diferentes, por isso as duas. Qualquer outra origem é barrada pelo CORS.
-const ORIGENS_DO_FRONT = ['http://127.0.0.1:5500', 'http://localhost:5500'];
+// Em produção, CORS_ORIGIN traz a URL da Vercel (várias separadas por vírgula).
+const ORIGENS_DO_FRONT = [
+  'http://127.0.0.1:5500',
+  'http://localhost:5500',
+  ...(process.env.CORS_ORIGIN ?? '').split(',').map((o) => o.trim()).filter(Boolean),
+];
 
 async function iniciar(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

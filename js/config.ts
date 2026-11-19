@@ -26,8 +26,11 @@ export const CONFIG = {
   // nenhuma requisição de rede acontece: serve para rodar o front sem banco.
   MOCK: false,
 
-  // Raiz da API do back (Node + Express + MySQL na porta 3000).
-  BASE_URL: 'http://localhost:3000/api',
+  // Raiz da API do back: o local (porta 3000) quando a página roda em
+  // localhost/127.0.0.1 (Live Server), o do Render em qualquer outro host.
+  BASE_URL: ['localhost', '127.0.0.1'].includes(location.hostname)
+    ? 'http://localhost:3000/api'
+    : 'https://teclar-api.onrender.com/api',
 
   // Atraso artificial dos mocks, em ms. Sem ele os mocks respondem
   // instantaneamente e os estados de carregamento nunca são testados de verdade.

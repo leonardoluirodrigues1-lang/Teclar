@@ -254,13 +254,13 @@ for (const arquivo of ['swagger-ui.css', 'swagger-ui-bundle.js', 'swagger-ui-sta
 // de abrir a porta — por isso confere a mensagem, e não só o código de
 // saída (um EADDRINUSE na porta 3000 também sairia com erro).
 const semSegredo = spawnSync(process.execPath, ['dist/main.js'], {
-  env: { ...process.env, JWT_SEGREDO: '' },
+  env: { ...process.env, JWT_SECRET: '', JWT_SEGREDO: '' },
   encoding: 'utf8',
   timeout: 30_000,
 });
 confere(
-  'jwt: sem JWT_SEGREDO o back não sobe',
-  semSegredo.status !== 0 && (semSegredo.stdout + semSegredo.stderr).includes('JWT_SEGREDO não definido'),
+  'jwt: sem JWT_SECRET o back não sobe',
+  semSegredo.status !== 0 && (semSegredo.stdout + semSegredo.stderr).includes('JWT_SECRET não definido'),
 );
 
 console.log(`\nTudo certo. Conta de teste criada: ${email}`);
