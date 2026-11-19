@@ -186,8 +186,10 @@ ul { list-style: none; }
    A conta fica fixa no canto; o resto rola. É o único elemento fixo da
    tela, por isso o z-index de cabeçalho fixo.
    ------------------------------------------------------------------------- */
+/* absolute, não fixed: fica no topo da página e sobe junto ao rolar. Fixa,
+   passava por cima do "Criar turma" quando o cabeçalho chegava ao topo. */
 .conta-fixa {
-  position: fixed;
+  position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 18px);
   right: 22px;
   z-index: var(--z-fixa, 100);
