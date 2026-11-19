@@ -43,6 +43,7 @@ import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
+import { DICA_PPM_DAS_SESSOES } from '../componentes/TelaDaTurma.js';
 
 // Linhas de esqueleto: a mesma altura que a tabela final terá numa turma de
 // tamanho comum, para nada pular quando os dados chegam.
@@ -558,8 +559,8 @@ function Relatorios() {
               {relatorio ? ativos(relatorio.turma) : '—'}
             </span>
           </div>
-          <div className="metrica-item">
-            <span className="metrica-rotulo">PPM médio</span>
+          <div className="metrica-item" title={DICA_PPM_DAS_SESSOES}>
+            <span className="metrica-rotulo">PPM médio das sessões</span>
             <span className="metrica-valor" id="metrica-ppm">
               {relatorio ? numero(relatorio.turma.wpmMedio) : '—'}
             </span>

@@ -37,6 +37,8 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { SECOES_PROFESSOR } from '../componentes/Nav.js';
 import {
   CascaDaTurma,
+  DICA_PPM_DAS_SESSOES,
+  DICA_PPM_POR_ALUNO,
   focarAba,
   PainelDeRelatorio,
   TrilhaDeExercicios,
@@ -478,8 +480,8 @@ function Turma() {
         <span className="metrica-rotulo">Exercícios atribuídos</span>
         <span className="metrica-valor">{turma ? contagem(atribuicoes.length) : '—'}</span>
       </div>
-      <div className="metrica-item">
-        <span className="metrica-rotulo">PPM médio da turma</span>
+      <div className="metrica-item" title={DICA_PPM_POR_ALUNO}>
+        <span className="metrica-rotulo">PPM médio por aluno</span>
         <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(alunos)) : '—'}</span>
       </div>
       {/* O que o aluno digita no login, junto com o nome. */}
@@ -578,7 +580,7 @@ function AbaRelatorio({ nomeDaTurma }: { nomeDaTurma: string }) {
       { rotulo: 'Exercícios concluídos', valor: contagem(r.exerciciosConcluidos) },
     ],
     [
-      { rotulo: 'PPM médio', valor: numero(r.wpmMedio) },
+      { rotulo: 'PPM médio das sessões', valor: numero(r.wpmMedio), dica: DICA_PPM_DAS_SESSOES },
       { rotulo: 'Precisão média', valor: porcentagem(r.precisaoMedia) },
     ],
   ];
@@ -608,7 +610,7 @@ function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[
     ['Alunos', r.totalAlunos ?? ''],
     ['Alunos ativos (7 dias)', r.alunosAtivos ?? ''],
     ['Exercícios concluídos', r.exerciciosConcluidos ?? ''],
-    ['PPM médio', r.wpmMedio ?? ''],
+    ['PPM médio das sessões', r.wpmMedio ?? ''],
     ['Precisão média (%)', r.precisaoMedia ?? ''],
   ];
 }

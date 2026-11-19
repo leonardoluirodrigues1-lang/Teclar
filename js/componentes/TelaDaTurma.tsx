@@ -285,12 +285,19 @@ function Pedra({ pedra, posicao }: { pedra: PedraDaTrilha; posicao: number }) {
 
 // Painel de relatório
 
+// Duas médias de PPM da turma, as duas certas, com contas diferentes: o
+// topo da turma pesa cada aluno igual; o relatório pesa cada sessão igual.
+export const DICA_PPM_POR_ALUNO = 'Média dos PPM médios de cada aluno que já treinou: cada aluno conta igual.';
+export const DICA_PPM_DAS_SESSOES = 'Média do PPM de todas as sessões da turma: quem treinou mais pesa mais.';
+
 export interface NumeroDoRelatorio {
   rotulo: string;
   /** Já formatado: "41", "94%", "—". */
   valor: string;
   /** A régua (a média da sala ao lado do número do aluno): um tom abaixo. */
   apagado?: boolean;
+  /** Tooltip curto: como o número é calculado. */
+  dica?: string;
 }
 
 interface PropsPainel {
@@ -338,7 +345,7 @@ function Numeros({ grupos }: { grupos: NumeroDoRelatorio[][] }) {
       {grupos.map((grupo, i) => (
         <div key={i} className="relatorio-numeros">
           {grupo.map((numero, j) => (
-            <div key={j} className={numero.apagado ? 'metrica-item relatorio-apagado' : 'metrica-item'}>
+            <div key={j} className={numero.apagado ? 'metrica-item relatorio-apagado' : 'metrica-item'} title={numero.dica}>
               <span className="metrica-rotulo">{numero.rotulo}</span>
               <span className="metrica-valor">{numero.valor}</span>
             </div>
