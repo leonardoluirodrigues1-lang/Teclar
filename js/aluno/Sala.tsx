@@ -330,12 +330,13 @@ function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
   // O back manda as médias nulas abaixo do mínimo. É isso que decide a
   // tela, e não uma conta feita aqui.
   const temMedia = d.minhaMedia !== null && d.mediaSala !== null;
+  const faltam = d.proximoMarco - d.licoes;
 
   return (
     <>
       {/* O nível aparece desde a primeira visita; o mínimo de sessões vale só para as médias. */}
       <p className="nota">
-        Nível {d.nivelAtual} · {d.licoes} de {d.proximoMarco} lições para o próximo nível
+        Nível {d.nivelAtual} · {faltam === 1 ? 'falta 1 lição' : `faltam ${faltam} lições`} para o Nível {d.nivelAtual + 1}
       </p>
       <PainelDeRelatorio
         rotulo="Seu relatório nesta sala"

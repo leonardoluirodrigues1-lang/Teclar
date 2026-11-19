@@ -36,6 +36,7 @@ import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { TopoAluno } from '../componentes/TopoAluno.js';
 import {
+  JANELA_EVOLUCAO,
   evolucaoDe,
   maisRecentesPrimeiro,
   sequenciaDeDias,
@@ -399,7 +400,9 @@ function Historico({ usuario }: PropsHistorico) {
 // ponto — nenhuma tela do aluno vai dizer a ele que caiu.
 
 function textoDaEvolucao(evolucao: Evolucao): string {
-  if (evolucao.tipo === 'insuficiente') return 'Continue treinando para ver sua evolução.';
+  // Não é falta de dado: a conta compara as 5 sessões mais recentes com as
+  // anteriores, então precisa de pelo menos uma a mais que a janela.
+  if (evolucao.tipo === 'insuficiente') return `A evolução aparece a partir de ${JANELA_EVOLUCAO + 1} sessões.`;
   if (evolucao.tipo === 'melhorou') {
     return `Você está ${formatarDecimal(evolucao.diferenca)} PPM mais rápido que no começo.`;
   }
