@@ -1,6 +1,6 @@
 # TECLAR — back-end
 
-API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb`).
+API do TECLAR em NestJS + Prisma, sobre o MySQL local (`teclardb_v10`).
 O que cada rota recebe e devolve está no `CONTRATO-API.md`, na raiz do
 repositório.
 
@@ -46,11 +46,18 @@ dentro.
 
 ## Primeira vez
 
-Precisa de Node 20+ e do MySQL rodando com o banco já criado pelo
-`DB_Teclar_v9.sql` (na raiz do repositório). Banco que já está na v8:
-rode a seção "Se o banco ja esta na v8", no fim do `.sql` (acrescenta
-`Users.Administrador` e corrige `xp_por_nivel` para 200), e depois o
-passo 2 abaixo.
+Precisa de Node 20+ e do MySQL rodando com o banco `teclardb_v10` já
+criado pelo `DB_Teclar_v10.sql` (na raiz do repositório).
+
+- **Instalação do zero** (o caminho normal): `DB_Teclar_v10.sql` e depois
+  os passos abaixo. Já traz tudo, inclusive `licoes_por_nivel`,
+  `TentativaID` e os CHECKs das medidas.
+- **`teclardb_v10` já criado antes desses complementos:** rode uma vez o
+  `ALTER_v10_complementos.sql` (o próprio arquivo diz como conferir os
+  dados antes dos CHECKs) e depois o passo 2.
+- **Banco v9 (`teclardb`):** não há migração. Ele só tinha dados de
+  teste/demonstração; o deploy deve ser **recriado do zero** com
+  `DB_Teclar_v10.sql` + `npm run seed`.
 
 ```bash
 cd back
@@ -104,8 +111,9 @@ Contas (login por e-mail):
 | `ana@teclar.dev` | `senha123` | Sem campanha e sem turma (os estados vazios); a **única administradora** (`Users.Administrador`): só ela usa as rotas de escrita de categorias e parâmetros |
 
 Alunos (login "Sou aluno": código da turma + nome + senha). O aluno é
-**por turma** (banco v8): não tem RP nem conta, e o mesmo nome em duas
-turmas são duas pessoas, cada uma com a sua senha e o seu histórico. Código
+**por matrícula** (banco v10, tabela `alunosturmas`): **matrícula = login**.
+Não tem RP nem conta, e o mesmo nome em duas turmas são duas matrículas,
+cada uma com a sua senha e o seu histórico (zerar uma não afeta a outra). Código
 e nome não diferenciam maiúscula nem acento ("ana pires" entra).
 
 | Código | Nome | Senha | Situação |
@@ -146,7 +154,7 @@ instalação).
 
 ## O banco manda, o Prisma segue
 
-O `DB_Teclar_v9.sql` é a fonte da verdade do banco. Os models do
+O `DB_Teclar_v10.sql` é a fonte da verdade do banco. Os models do
 `prisma/schema.prisma` **não são escritos à mão**: saem do `db pull`.
 Mudou o banco? Muda o `.sql`, roda no MySQL e repete:
 
@@ -155,15 +163,15 @@ npx prisma db pull
 npx prisma generate
 ```
 
-Por isso este projeto não usa `prisma migrate`: as migrações ficam no
-`.sql` (seção de ALTER TABLE no fim dele).
+Por isso este projeto não usa `prisma migrate`: o que muda num banco
+v10 já criado fica em `ALTER_v10_complementos.sql`.
 
-**O nome do banco é `teclardb`, em minúsculas — na URL também.** No
+**O nome do banco é `teclardb_v10`, em minúsculas — na URL também.** No
 Windows o MySQL guarda nomes de banco e de tabela em minúsculas
 (`lower_case_table_names = 1`), e o Prisma compara o banco de cada chave
 estrangeira com o nome da `DATABASE_URL` diferenciando caixa. Com
-`teclarDB` na URL, o `db pull` achava que as 15 FKs eram de "outro banco"
-e trazia o schema sem nenhuma relação. Com `teclardb`, vêm as 15, e as
+`teclarDB` na URL, o `db pull` achava que as FKs eram de "outro banco"
+e trazia o schema sem nenhuma relação. Em minúsculas, vêm todas, e as
 rotas podem usar `include` (ex.: o aluno junto com a turma dele).
 Os models também vêm em minúsculas (`users`, `alunos`...) pelo mesmo motivo.
 
@@ -242,7 +250,7 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   duplicada e F5. Não tem corpo porque CampanhaID, NivelAtual, XPTotal,
   Data_Criacao e Ativo são do back, e JogadorID sai do token.
 - "Um jogador, uma campanha" é garantido pelo banco: UNIQUE em
-  `CampanhasSolo.JogadorID` (banco v9). O back tenta o INSERT direto; se o
+  `CampanhasSolo.JogadorID` (banco v10). O back tenta o INSERT direto; se o
   banco recusar (outra requisição do mesmo jogador criou primeiro), relê
   e devolve a campanha que existe, com 200. Uma consulta antes do INSERT
   não bastaria: dois pedidos simultâneos passariam os dois por ela.
@@ -271,7 +279,7 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 
 **Administração**
 
-- Administrador é a coluna `Users.Administrador` (banco v9), e não um
+- Administrador é a coluna `Users.Administrador` (banco v10), e não um
   perfil: a mesma conta continua jogando e dando aula. A coluna é lida do
   banco a cada pedido, e não guardada no token, para tirar o papel de
   alguém valer na hora.
@@ -290,6 +298,19 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   no guia do professor. O nome vem da coluna `Tempo_Gasto_Segundos` do
   banco, e usar o mesmo nome no banco, no back e no front evita tradução
   entre as camadas.
+- `tentativa_id` (opcional) torna o envio idempotente: a fila do front
+  (`filaSessoes`) gera um por tentativa, e o reenvio com o mesmo id
+  devolve a sessão já gravada (no Solo, sem XP de novo). Quem garante é o
+  UNIQUE do banco (por campanha no Solo, por turma + aluno na Escola), não
+  uma consulta antes do INSERT. No Solo o XP sobe ANTES do INSERT, para
+  travar a campanha: na ordem inversa, dois envios simultâneos davam
+  deadlock pelo lock da FK.
+- O banco recusa medidas fora da faixa (CHECK: precisão 0 a 100; WPM,
+  acertos, erros e tempo ≥ 0) e uma sessão de aluno numa turma que não é a
+  dele (FK composta `(ClassID, AlunoID)` para `alunosturmas`).
+- O nível escolar sai das lições distintas concluídas:
+  `nivelAtual = 1 + floor(licoes / licoes_por_nivel)` (`Configuracoes`,
+  3 por padrão); repetir uma lição não sobe o nível.
 
 - As atividades liberam em ordem (`src/sessoes/liberacao.ts`, uma regra só
   para o Solo e para o aluno; o professor não entra nela). Quem grava fora de

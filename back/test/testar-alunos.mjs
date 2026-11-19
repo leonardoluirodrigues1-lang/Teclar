@@ -216,6 +216,18 @@ confere('zerar: login depois vira primeiro acesso, com a senha nova', r.status =
 r = await loginDoBruno('bruno123');
 confere('zerar: a senha antiga não vale mais', ehErro(r, 401, 'CREDENCIAIS'));
 
+// Ana Pires tem uma matrícula por turma (al-43-t1 na turma-1, al-43 na
+// turma-2): zerar a da turma-2 não mexe na da turma-1, e as senhas divergem.
+const loginDaAna = (codigo, senha) => chamar('POST', '/auth/login', { codigo, nome: 'Ana Pires', senha });
+r = await chamar('POST', '/turmas/turma-2/alunos/al-43/zerar-senha', null, prof);
+confere('Ana: zerar a senha na turma-2 204', ehVazio204(r));
+r = await loginDaAna('R8VD3K', 'outra2026');
+confere('Ana: na turma-2 vira primeiro acesso, com outra senha', r.status === 200 && r.corpo.primeiroAcesso === true);
+r = await loginDaAna('K7M2QX', 'aluno2026');
+confere('Ana: na turma-1 a senha de antes continua valendo', r.status === 200 && !('primeiroAcesso' in r.corpo));
+r = await loginDaAna('K7M2QX', 'outra2026');
+confere('Ana: a senha da turma-2 não abre a turma-1', ehErro(r, 401, 'CREDENCIAIS'));
+
 // ============================================================================
 // DELETE .../alunos/:alunoId — e o CASCADE nas sessões
 // ============================================================================

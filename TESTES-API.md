@@ -3,6 +3,32 @@
 Complemento do Swagger (`/api/docs`) e do `CONTRATO-API.md`: o que foi
 testado no back, o que se observou e o que ainda falta.
 
+## Banco v10 (19/11/2026)
+
+As 11 suítes de `back/test/` rodaram em 19/11/2026 contra o
+`teclardb_v10` (instalado do zero com `DB_Teclar_v10.sql` + `npm run seed`,
+mais `ALTER_v10_complementos.sql`), uma de cada vez, cada uma depois de um
+seed limpo: auth 61, turmas 68, alunos 65, exercicios 54, atribuicoes 38,
+sessoes 67, relatorios 36, ranking 14, solo 104, aluno 47, administracao 70
+(624 verificações, todas ok). O `node js/nucleo/api.back.check.mjs`, com
+`MOCK: false` e a API no ar, deu 101 verificações ok (as 54 funções do
+`api.ts`).
+
+Cenários da página 13 do PDF da v10, e onde estão:
+
+| Cenário | Suíte | Resultado |
+|---|---|---|
+| Ana em duas turmas com senhas diferentes: zerar a da turma-2 não afeta a da turma-1 | `testar-alunos` | Conforme |
+| A FK composta `(ClassID, AlunoID)` recusa uma sessão que cruza turmas | `testar-sessoes` | Conforme |
+| Retirar uma atribuição mantém o histórico | `testar-atribuicoes` | Conforme |
+| Com 2 sessões concluídas as médias ficam null; na 3ª aparecem | `testar-aluno` | Conforme |
+| A 3ª lição distinta sobe o nível; repetir uma lição mantém | `testar-aluno` | Conforme |
+| Reenvio com o mesmo `tentativa_id` (até simultâneo) grava uma sessão e soma o XP uma vez | `testar-solo`, `testar-sessoes` | Conforme |
+| O CHECK recusa precisão 150 | `testar-sessoes` | Conforme |
+
+As datas e o "banco v9" das seções abaixo são de quando cada linha foi
+rodada pela primeira vez.
+
 ## 1. Tabela de testes
 
 **Como foi testado.** Em 06/10/2026, às 22h31, contra o back local
