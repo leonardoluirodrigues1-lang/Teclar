@@ -13,6 +13,9 @@ Dois mundos, com a mesma tela de treino e o mesmo motor de digitação
   dos alunos por CSV e atribui exercícios. O aluno entra com o **código da
   turma, o próprio nome e uma senha**; no primeiro acesso, a senha que ele
   digita é gravada. O aluno não tem e-mail nem conta, e não há convites.
+  **Matrícula = login**: cada matrícula (linha de `alunosturmas`) tem o
+  seu nome, a sua senha e o seu histórico. O mesmo nome em duas turmas são
+  dois logins independentes; zerar a senha de um não mexe no outro.
 
 ## Arquitetura
 
@@ -20,11 +23,11 @@ Dois mundos, com a mesma tela de treino e o mesmo motor de digitação
 |---|---|---|
 | Apresentação | HTML, CSS, TypeScript e React 18 (sem empacotador: o `tsc` gera um `.js` ao lado de cada `.ts`/`.tsx`) | `pages/`, `js/`, `css/` |
 | Aplicação | Node.js com NestJS, login com JWT, senhas com bcrypt | `back/src/` |
-| Persistência | MySQL, acessado pelo Prisma | `DB_Teclar_v9.sql`, `back/prisma/` |
+| Persistência | MySQL, acessado pelo Prisma | `DB_Teclar_v10.sql`, `back/prisma/` |
 
 - `js/nucleo/api.ts` é o único arquivo do front que fala com o back.
 - Quem está logado sai sempre do token, nunca de um id mandado pela tela.
-- `DB_Teclar_v9.sql` é a fonte da verdade do banco; o schema do Prisma é
+- `DB_Teclar_v10.sql` é a fonte da verdade do banco; o schema do Prisma é
   gerado dele (`npx prisma db pull`).
 - O contrato das rotas está em `CONTRATO-API.md` (gerado do `api.ts`) e no
   Swagger, em `http://localhost:3000/api/docs`.
@@ -33,7 +36,13 @@ Dois mundos, com a mesma tela de treino e o mesmo motor de digitação
 
 Precisa de Node.js 20+, MySQL e do VS Code com a extensão **Live Server**.
 
-1. **Banco.** Rode `DB_Teclar_v9.sql` no MySQL. Ele cria o banco `teclardb`.
+1. **Banco.** Instalação do zero: rode `DB_Teclar_v10.sql` no MySQL. Ele
+   cria o banco `teclardb_v10`. Um `teclardb_v10` criado antes de
+   19/11/2026 (sem `licoes_por_nivel`, `TentativaID` e os CHECKs das
+   medidas) roda também, uma vez, o `ALTER_v10_complementos.sql`. Não há
+   migração do v9: o banco antigo só tinha dados de teste/demonstração.
+   **O deploy precisa ser recriado do zero com `DB_Teclar_v10.sql` +
+   `npm run seed`.**
 2. **Back.** Siga `back/README.md` (criar o `.env`, `npx prisma db pull`,
    `npx prisma generate`, `npm run seed`) e suba com:
 

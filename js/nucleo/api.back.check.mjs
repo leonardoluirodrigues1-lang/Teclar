@@ -116,9 +116,9 @@ confere('auth.entrar (conta) devolve o mesmo id do cadastro', loginProf.usuario.
 confere('auth.eu é o dono do token', (await api.auth.eu()).id === cadastroProf.usuario.id);
 
 // Turma
-const turma = await api.turmas.criar(`Turma Teste ${marca}`);
+const turma = await api.turmas.criar(`Turma Teste ${marca}`, 1);
 confere('turmas.criar devolve turma ativa com código', turma.ativa === true && /^[A-HJ-NP-Z2-9]{6}$/.test(turma.codigo));
-await confereErro('turmas.criar com nome repetido', api.turmas.criar(`Turma Teste ${marca}`), 409, 'TURMA_DUPLICADA');
+await confereErro('turmas.criar com nome repetido', api.turmas.criar(`Turma Teste ${marca}`, 1), 409, 'TURMA_DUPLICADA');
 confere('turmas.listar traz a turma nova', (await api.turmas.listar()).some((t) => t.id === turma.id));
 confere('turmas.obter traz ppmMedio null (ninguém treinou)', (await api.turmas.obter(turma.id)).ppmMedio === null);
 confere('turmas.renomear', (await api.turmas.renomear(turma.id, `Turma Renomeada ${marca}`)).nome === `Turma Renomeada ${marca}`);

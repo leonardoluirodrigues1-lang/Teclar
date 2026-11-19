@@ -1,8 +1,8 @@
 // Treino.tsx — pages/treino/treino.html
 // A tela de treino. O motor (typingEngine.ts) faz a conta; aqui só se pinta
 // o estado, se avisa a pessoa com toasts e se decide o que acontece no fim
-// conforme o modo de treino (Solo vai para o resultado; Aluno vê um modal;
-// prévia não grava nada).
+// conforme o modo de treino (a conclusão correta oferece continuar ou
+// refazer; tentativas incompletas seguem para o resultado/modal existente).
 //
 // URL: treino.html?exercicio=<id>[&turma=<id>][&previa=1]
 //
@@ -72,6 +72,7 @@ import type {
   MissaoDetalhe,
   Mundo,
   ResultadoEnvio,
+  SessaoSolo,
   Usuario,
 } from '../nucleo/tipos.js';
 import { MotorDigitacao, type EstadoMotor, type StatusCaractere } from './typingEngine.js';
@@ -79,6 +80,8 @@ import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { Modal, type AcaoModal } from '../componentes/ModalReact.js';
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
 import { BlocoDeMetricas, formatarTempo } from './BlocoDeMetricas.js';
+import { desembrulhar } from '../componentes/listaExercicios.js';
+import { ordemDoPercurso, progressoDoPercurso } from '../utils/percurso.js';
 
 // Onde o resultado da sessão espera a tela de resultado (sessionStorage).
 const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
@@ -87,6 +90,7 @@ const CHAVE_RESULTADO = 'teclar:ultimo_resultado';
 const PRECISAO_MINIMA = CONFIG.METAS.PRECISAO_ALVO;
 const SEQUENCIA_AVISO = 25; // acertos seguidos
 const TEMPO_AVISO_S = 10; // segundos restantes
+const TEMPO_MAXIMO_BUSCA_PROXIMA_MS = 8000;
 
 // Quanto tempo a passagem entre duas repetições fica na tela se ninguém
 // teclar antes.
@@ -174,6 +178,11 @@ interface OpcoesModalFim {
   titulo: string;
   mensagem: string;
   recorde?: boolean;
+}
+
+interface DestinoProximaAtividade {
+  titulo: string;
+  href: string;
 }
 
 interface PropsTreino {
@@ -630,12 +639,16 @@ function Treino({ usuario }: PropsTreino) {
     // Professor testando o próprio exercício: prévia, não conta como sessão.
     if (modoTreino === 'previa') {
       setDicaOculta(true);
-      abrirModalFim({
-        metricas: corpoBase,
-        eyebrow: 'Prévia concluída',
-        titulo: 'Nada foi registrado.',
-        mensagem: 'A prévia do professor não conta como sessão de aluno.',
-      });
+      if (corpoBase.concluida) {
+        abrirModalConclusao(corpoBase, null);
+      } else {
+        abrirModalFim({
+          metricas: corpoBase,
+          eyebrow: 'Prévia concluída',
+          titulo: 'Nada foi registrado.',
+          mensagem: 'A prévia do professor não conta como sessão de aluno.',
+        });
+      }
       return;
     }
 
@@ -672,8 +685,218 @@ function Treino({ usuario }: PropsTreino) {
 
     setDicaOculta(true);
 
+    if (corpo.concluida) {
+      abrirModalConclusao(corpo, resultado);
+      return;
+    }
+
     if (mundo === 'solo') irParaResultado(resultado, corpo);
     else abrirModalAluno(resultado, corpo);
+  }
+
+  async function buscarProximaAtividade(): Promise<DestinoProximaAtividade | null> {
+    if (modoTreino === 'solo') {
+      const [missoes, historico] = await Promise.all([api.solo.missoes(), api.solo.historico()]);
+      const progresso = progressoDoPercurso(
+        ordemDoPercurso(desembrulhar(missoes)),
+        desembrulhar<SessaoSolo>(historico)
+      );
+      if (
+        progresso == null ||
+        progresso.proxima.repetir ||
+        progresso.proxima.licao.exerciseId === exercicioId
+      ) {
+        return null;
+      }
+
+      return {
+        titulo: progresso.proxima.licao.titulo,
+        href: `treino.html?${new URLSearchParams({ exercicio: progresso.proxima.licao.exerciseId })}`,
+      };
+    }
+
+    if (modoTreino === 'aluno') {
+      if (!turmaId) throw new Error('Não foi possível identificar a turma desta atividade.');
+      const sala = await api.escola.aluno.sala(turmaId);
+      const indiceAtual = sala.lista.findIndex((atividade) => atividade.id === exercicioId);
+      if (indiceAtual < 0) throw new Error('A atividade atual não foi encontrada na sequência da turma.');
+
+      const proxima = sala.lista
+        .slice(indiceAtual + 1)
+        .find((atividade) => !atividade.bloqueada && atividade.estado !== 'feito');
+      if (!proxima) return null;
+
+      return {
+        titulo: proxima.titulo,
+        href: `treino.html?${new URLSearchParams({ exercicio: proxima.id, turma: turmaId })}`,
+      };
+    }
+
+    return null;
+  }
+
+  function abrirModalConclusao(
+    metricas: DadosSessaoTreino,
+    resultado: ResultadoEnvio | null
+  ) {
+    const recompensa =
+      modoTreino === 'solo' &&
+      resultado?.ok === true &&
+      'xpGanho' in resultado.resposta
+        ? resultado.resposta
+        : null;
+    const recorde = resultado?.ok === true && resultado.resposta.recordePessoal === true;
+    const mensagemResultado =
+      resultado?.enfileirada === true
+        ? 'Sem conexão agora. A sessão foi guardada e será enviada quando a rede voltar.'
+        : modoTreino === 'previa'
+          ? 'A prévia do professor não conta como sessão de aluno.'
+          : '';
+    const consultaPendente = modoTreino !== 'previa' && resultado?.enfileirada !== true;
+    const consultaIndisponivel = resultado?.enfileirada === true;
+
+    const voltarParaAtividades = () => {
+      pararPassagem();
+      motor.current?.destruir();
+      motor.current = null;
+      location.replace(modoTreino === 'solo' ? '../solo/caminho.html' : guarda.casa());
+    };
+
+    function conteudoConclusao(
+      proxima: DestinoProximaAtividade | null,
+      pendente: boolean,
+      falha: boolean
+    ): ReactNode {
+      return (
+        <div>
+          {mensagemResultado && <p>{mensagemResultado}</p>}
+          {pendente && <p>Verificando a próxima atividade…</p>}
+          {falha && (
+            <p>Não foi possível verificar a próxima atividade agora. Você pode voltar à lista de atividades.</p>
+          )}
+          {modoTreino !== 'previa' && !pendente && !falha && proxima == null && (
+            <p>Você concluiu a sequência de atividades.</p>
+          )}
+          {recompensa && (
+            <p>
+              +{recompensa.xpGanho} XP · Nível {recompensa.nivelAtual}
+              {recompensa.subiuDeNivel ? ' · Novo nível alcançado' : ''}
+            </p>
+          )}
+          {recorde && <p>Novo recorde!</p>}
+          <BlocoDeMetricas
+            wpm={metricas.wpm}
+            precisao={metricas.precisao}
+            erros={metricas.erros}
+            acertos={metricas.acertos}
+            tempoSegundos={metricas.tempo_gasto_segundos}
+          />
+        </div>
+      );
+    }
+
+    function acoesConclusao(
+      proxima: DestinoProximaAtividade | null,
+      pendente: boolean,
+      falha: boolean
+    ): AcaoModal[] {
+      return [
+        ...(proxima
+          ? [
+              {
+                rotulo: `Próxima: ${proxima.titulo}`,
+                principal: true,
+                aoClicar: () => location.replace(proxima.href),
+              },
+            ]
+          : []),
+        {
+          rotulo: 'Refazer atividade',
+          principal: !proxima,
+          aoClicar: reiniciarAtividade,
+        },
+        ...(!pendente && (!proxima || falha)
+          ? [{ rotulo: 'Voltar às atividades', aoClicar: voltarParaAtividades }]
+          : []),
+      ];
+    }
+
+    const chaveConclusao = abrirModal({
+      eyebrow: modoTreino === 'previa' ? 'Prévia concluída' : 'Atividade concluída',
+      titulo: consultaPendente
+        ? 'Atividade concluída.'
+        : consultaIndisponivel
+          ? 'Não foi possível verificar a sequência.'
+          : modoTreino === 'previa'
+            ? 'Prévia concluída.'
+            : 'Sequência concluída.',
+      conteudo: conteudoConclusao(null, consultaPendente, consultaIndisponivel),
+      acoes: acoesConclusao(null, consultaPendente, consultaIndisponivel),
+    });
+
+    if (!consultaPendente) return;
+
+    let temporizadorBusca: ReturnType<typeof setTimeout> | null = null;
+    const buscaComLimite = Promise.race([
+      buscarProximaAtividade(),
+      new Promise<never>((_, rejeitar) => {
+        temporizadorBusca = setTimeout(
+          () => rejeitar(new Error('A busca pela próxima atividade excedeu o tempo limite.')),
+          TEMPO_MAXIMO_BUSCA_PROXIMA_MS
+        );
+      }),
+    ]);
+
+    buscaComLimite
+      .then((proxima) => {
+        setModal((atual) =>
+          atual?.chave === chaveConclusao
+            ? {
+                ...atual,
+                titulo: proxima ? 'Muito bem!' : 'Sequência concluída.',
+                conteudo: conteudoConclusao(proxima, false, false),
+                acoes: acoesConclusao(proxima, false, false),
+              }
+            : atual
+        );
+      })
+      .catch((erro) => {
+        console.error(erro);
+        setModal((atual) =>
+          atual?.chave === chaveConclusao
+            ? {
+                ...atual,
+                titulo: 'Não foi possível verificar a sequência.',
+                conteudo: conteudoConclusao(null, false, true),
+                acoes: acoesConclusao(null, false, true),
+              }
+            : atual
+        );
+      })
+      .finally(() => {
+        if (temporizadorBusca != null) clearTimeout(temporizadorBusca);
+      });
+  }
+
+  function reiniciarAtividade() {
+    pararPassagem();
+    toasts.limpar();
+    motor.current?.destruir();
+    motor.current = null;
+    voltas.current = [];
+    setPassagem(null);
+    setRepeticao(totalVoltas.current > 1 ? { numero: 1, total: totalVoltas.current } : null);
+    setHud(HUD_INICIAL);
+    setPosicao(0);
+    posicaoAtual.current = 0;
+    setStatus([]);
+    statusAtual.current = [];
+    avisos.current = { ...AVISOS_INICIAIS };
+    setDica(DICA_INICIAL);
+    setDicaOculta(false);
+    setSemFoco(false);
+    setIndiceDoAcento(null);
+    criarMotor();
   }
 
   // Solo: guarda a resposta inteira (xpGanho, xpTotal, nivelAtual,
@@ -743,10 +966,11 @@ function Treino({ usuario }: PropsTreino) {
     });
   }
 
-  function abrirModal(config: Omit<ConfigModal, 'chave'>) {
+  function abrirModal(config: Omit<ConfigModal, 'chave'>): number {
     chaveModal.current += 1;
     modalAberto.current = true;
     setModal({ ...config, chave: chaveModal.current });
+    return chaveModal.current;
   }
 
   // --- render ----------------------------------------------------------------

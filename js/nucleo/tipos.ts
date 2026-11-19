@@ -437,6 +437,8 @@ export interface DadosSessaoTreino {
   concluida: boolean;
   exercicio_id?: string;
   turma_id?: string | null;
+  /** Id da tentativa, gerado uma vez pelo filaSessoes: o reenvio devolve o registro original. */
+  tentativa_id?: string;
 }
 
 /** Uma sessão do mundo Escola (GET /sessoes/:id; e a base das linhas de histórico). */
@@ -503,6 +505,8 @@ export interface Parametros {
   precisaoMinima: number;
   tempoLimitePadrao: number;
   xpPorNivel: number;
+  /** Lições distintas por nível escolar (Configuracoes.licoes_por_nivel). */
+  licoesPorNivel: number;
 }
 
 // 9. Fila de sessões (api.ts → filaSessoes)
@@ -745,8 +749,12 @@ export interface SalaDetalhe extends SalaDoAluno {
  */
 export interface DesempenhoNaTurma {
   sessoesConcluidas: number;
-  /** Exercícios diferentes que ele concluiu na sala. */
+  /** Exercícios diferentes que ele concluiu na sala (inclusive os de atribuição retirada). */
   licoes: number;
+  /** Nível escolar: 1 + floor(licoes / licoesPorNivel). Vem desde a primeira visita. */
+  nivelAtual: number;
+  /** Lições distintas em que o próximo nível começa (nivelAtual * licoesPorNivel). */
+  proximoMarco: number;
   diasSeguidos: number;
   minhaMedia: MediaDaSala | null;
   mediaSala: MediaDaSala | null;

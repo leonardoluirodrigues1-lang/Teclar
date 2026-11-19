@@ -61,32 +61,35 @@ export class RankingService {
     if (identidade.tipo !== 'aluno') {
       throw new ForbiddenException({ mensagem: 'Rota só para alunos.', codigo: 'TIPO_INVALIDO' });
     }
-    // O aluno sai do token. Na v8 ele está numa turma só (Alunos.ClassID):
-    // :turmaId que não é a dele é 404, e não 403 — o 403 diria "essa turma
+    // O aluno sai do token, e a turma da matrícula dele (alunosturmas). :turmaId
+    // que não é a dele, ou turma arquivada, é 404, e não 403 — o 403 diria "essa turma
     // existe, só não é sua".
-    const aluno = await this.banco.alunos.findUnique({ where: { ID: identidade.id } });
-    if (!aluno || aluno.ClassID !== turmaId) {
+    const aluno = await this.banco.alunosturmas.findUnique({
+      where: { AlunoID: identidade.id },
+      include: { classesprof: { select: { Ativa: true } } },
+    });
+    if (!aluno || aluno.ClassID !== turmaId || !aluno.classesprof.Ativa) {
       throw new NotFoundException({ mensagem: 'Turma não encontrada.', codigo: 'NAO_ENCONTRADO' });
     }
 
     const pontuacoes = await this.pontuarAlunos(turmaId);
     pontuacoes.sort(compararPontuacoes);
-    return pontuacoes.map((pontuacao, indice) => linhaVistaPor(aluno.ID, pontuacao, indice));
+    return pontuacoes.map((pontuacao, indice) => linhaVistaPor(aluno.AlunoID, pontuacao, indice));
   }
 
   // Os números de cada aluno ativo da turma, inclusive quem nunca treinou
   // (zero lições, ritmo null, zero dias).
   private async pontuarAlunos(turmaId: string): Promise<Pontuacao[]> {
-    const membros = await this.banco.alunos.findMany({ where: { ClassID: turmaId, Ativo: true } });
+    const membros = await this.banco.alunosturmas.findMany({ where: { ClassID: turmaId, Ativo: true } });
     const sessoes = await this.banco.sessionsprof.findMany({
-      where: { ClassID: turmaId, alunos: { Ativo: true } },
+      where: { ClassID: turmaId, alunosturmas: { Ativo: true } },
       select: { AlunoID: true, ExerciseID: true, WPM: true, Concluida: true, Data_Sessao: true },
     });
     return membros.map((membro) =>
       pontuar(
-        membro.ID,
+        membro.AlunoID,
         membro.Nome,
-        sessoes.filter((sessao) => sessao.AlunoID === membro.ID),
+        sessoes.filter((sessao) => sessao.AlunoID === membro.AlunoID),
       ),
     );
   }

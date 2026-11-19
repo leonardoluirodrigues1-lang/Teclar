@@ -69,15 +69,24 @@ export const convencoes: Texto[] = [
   ver a rota.`,
 ];
 
-// Banco: DB_Teclar_v9.sql. Toda coluna que o contrato usa existe nele.
+// Banco: DB_Teclar_v10.sql (+ ALTER_v10_complementos.sql em banco já criado).
+// Toda coluna que o contrato usa existe nele.
 //
-// O aluno, na v8: o professor cria a turma (o back gera ClassesProf.Codigo)
-// e sobe a lista de nomes; cada nome vira uma linha de Alunos DENTRO da
-// turma, com SenhaHash NULL. O aluno entra com o código da turma, o próprio
-// nome e uma senha — no primeiro acesso a senha é gravada, nos seguintes é
-// conferida. Não existe RP, e-mail de aluno nem convite (a ClassMembers
-// saiu): "aluno da turma" é Alunos.ClassID = turma. O mesmo aluno em duas
-// turmas são duas linhas, com logins e históricos separados.
+// Tabelas da escola na v10:
+//   classesprof        a turma (Codigo único, Semestre 1/2, Ativa = arquivada ou não)
+//   professoresturmas  (ClassID PK, ProfessorID): o dono da turma. É o único
+//                      lugar que diz de quem a turma é.
+//   alunos             só o ID: o id do aluno no token (sub).
+//   alunosturmas       a MATRÍCULA: (ClassID, AlunoID) com Nome, SenhaHash,
+//                      Data_Cadastro e Ativo. AlunoID é UNIQUE: um ID, uma turma.
+//   sessionsprof       FK composta (ClassID, AlunoID) -> alunosturmas: a sessão
+//                      nunca cruza turmas.
+//
+// Matrícula = login. O professor cria a turma (o back gera o código) e sobe
+// a lista de nomes; cada nome vira um ID em alunos + uma matrícula com
+// SenhaHash NULL. O aluno entra com o código, o nome e a senha — no primeiro
+// acesso a senha é gravada, nos seguintes é conferida. A mesma criança em
+// duas turmas são duas matrículas, com senhas e históricos separados.
 
 // Colunas que ainda não existem no banco (o contrato já as usa).
 export const colunasPendentes: Texto[] = [];
@@ -104,13 +113,13 @@ export const naoUsadas: Texto[] = [
 
 // Ainda sem lugar no banco (não é coluna pedida, é decisão a tomar).
 // Vazia: o papel de administrador, a última, virou Users.Administrador
-// no banco v9.
+// no banco v10.
 export const pendencias: Texto[] = [];
 
 export const grupos: Grupo[] = [
   {
     nome: 'Autenticação',
-    intro: `Um login para as duas tabelas: Users entra por e-mail; Alunos entra
+    intro: `Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra
 pelo código da turma, o nome e a senha. As três primeiras rotas são
 PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
     rotas: {
@@ -132,7 +141,7 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
   429 MUITAS_TENTATIVAS — 5 senhas erradas no mesmo minuto para a mesma pessoa, do mesmo IP: as próximas tentativas dela, até com a senha certa, até o minuto passar`,
         identidade: `Pública. O token devolvido carrega o id e o tipo de quem entrou.`,
         back: `\`tipo\` é a tabela em que autenticou: \`email\` busca em Users; \`codigo\`
-  busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula,
+  busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula,
   nome aparado com espaços internos reduzidos a um, sem distinguir
   maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha
   enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.`,
@@ -259,11 +268,14 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
         rota: 'POST /solo/sessoes',
         corpo: `DadosSessaoTreino — o que o motor mediu, mais a lição
   { "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 304,
-    "erros": 3, "tempo_gasto_segundos": 96, "concluida": true }`,
+    "erros": 3, "tempo_gasto_segundos": 96, "concluida": true,
+    "tentativa_id": "0b6c…" }
+  tentativa_id (opcional, 1 a 100 caracteres): a fila de envio gera um por
+  tentativa; reenviar o mesmo id na mesma campanha devolve 200 com a sessão já gravada, sem somar XP de novo (o UNIQUE no banco garante isso até com envios simultâneos).`,
         resposta: `200 RespostaSessaoSolo — o id abre a tela de resultado
   { "id": "hs-11", "xpGanho": 74, "xpTotal": 743, "nivelAtual": 4,
     "subiuDeNivel": false, "recordePessoal": true }`,
-        erros: `400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
+        erros: `400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
   403 TIPO_INVALIDO — token de aluno
   403 ATIVIDADE_BLOQUEADA — a lição ainda está bloqueada (ver GET /solo/missoes); nada é gravado
   404 NAO_ENCONTRADO — sem campanha, ou lição inexistente`,
@@ -323,7 +335,7 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
   {
     nome: 'Turmas (professor)',
     intro: `Mundo ESCOLA, lado do professor. A turma é da conta do token
-(Turmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de
+(professoresturmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de
 OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não
 existe, para não confirmar a quem tenta ids que ela existe.`,
     rotas: {
@@ -335,8 +347,8 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
      "periodo": "2026 · 1º semestre", "capaSemente": 7001, "ativa": true,
      "dataCriacao": "2026-02-01" }]`,
         erros: `403 TIPO_INVALIDO — token de aluno`,
-        identidade: `O token: WHERE ProfessorID = conta do token.`,
-        back: `totalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e
+        identidade: `O token: vínculo em professoresturmas (ProfessorID = conta do token).`,
+        back: `totalAlunos = COUNT em alunosturmas (ClassID = turma, Ativo = TRUE) e
   totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa.
   \`periodo\` vem pronto e \`codigo\` é ClassesProf.Codigo.`,
       },
@@ -354,13 +366,13 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
       },
       'turmas.criar': {
         rota: 'POST /turmas',
-        corpo: `{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais
+        corpo: `{ nome, semestre, ano? } — nome com 3 a 100 caracteres; semestre (1 ou 2) obrigatório; ano opcional
   { "nome": "7º Ano C — Tarde", "ano": 2026, "semestre": 1 }`,
         resposta: `200 Turma — já na forma de um item de GET /turmas
   { "id": "turma-9", "codigo": "H3ZT6B", "professorId": "u-2", "nome": "7º Ano C — Tarde",
     "totalAlunos": 0, "totalExercicios": 0, "periodo": "2026 · 1º semestre",
     "ativa": true, "dataCriacao": "2026-10-03" }`,
-        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+        erros: `400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre ausente ou diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
   409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
   403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token vira o ProfessorID. professorId no corpo é recusado com 400,
@@ -456,7 +468,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
      "atribuidoEm": "2026-02-03", "concluidoPor": 3, "totalAlunos": 4 }]`,
         erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
-        back: `concluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com
+        back: `concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com
   sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.`,
         nota: `A visão do aluno é GET /aluno/salas/:id, sem contagem da turma.`,
       },
@@ -489,7 +501,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
     nome: 'Alunos (professor)',
     intro: `O professor administrando a lista de UMA turma dele. A turma tem de ser
 da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha
-de Alunos, porque é sobre ELE que a ação é — não é a identidade de quem
+da matrícula (alunosturmas.AlunoID), porque é sobre ELE que a ação é — não é a identidade de quem
 pede, que continua saindo do token. Aluno de outra turma, mesmo da
 mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.
 
@@ -509,7 +521,7 @@ dele (importar).`,
      "ultimaAtividade": null }]`,
         erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
-        back: `Alunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro,
+        back: `alunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro,
   senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0)
   para quem nunca treinou; a senha nunca sai.`,
       },
@@ -531,7 +543,7 @@ dele (importar).`,
   (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres
   de controle, ou "Nome repetido na lista."), em
   jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha
-  nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a
+  nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a
   rota pode ser chamada de novo com a lista completa.`,
         nota: `É a única entrada do aluno na turma. Aluno removido volta como linha nova,
   sem senha nem histórico.`,
@@ -542,7 +554,7 @@ dele (importar).`,
         erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma`,
         identidade: `O token: a turma tem de ser da conta (senão 404). O
   :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.`,
-        back: `Apaga a linha de Alunos; as sessões dele vão junto (SessionsProf
+        back: `Apaga o ID em alunos; a matrícula (alunosturmas) e as sessões vão junto (SessionsProf
   tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.`,
       },
       'alunos.zerarSenha': {
@@ -552,7 +564,7 @@ dele (importar).`,
         erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma`,
         identidade: `O token: a turma tem de ser da conta (senão 404). O
   :alunoId é o aluno-ALVO, como no DELETE.`,
-        back: `Grava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o
+        back: `Grava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o
   histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.`,
         nota: `Até o próximo login, quem tiver o código e o nome cria a senha; a tela
   avisa disso.`,
@@ -604,7 +616,7 @@ que o aluno já fez não some do relatório por uma ação do professor.`,
      "exerciciosConcluidos": 2, "exerciciosAtribuidos": 3 }]`,
         erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
-        back: `Alunos com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos
+        back: `alunosturmas com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos
   (agregados de todas as sessões dele na turma) mais exerciciosConcluidos
   (exercícios distintos concluídos, inclusive arquivados ou tirados da
   turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca
@@ -655,7 +667,7 @@ feitas.`,
     { "id": "ex-prof-1", "professorId": "u-2", "titulo": "Acentuação em foco",
       "texto": "...", "dificuldade": "medio", "tempoLimiteSegundos": 120, "atribuidoA": 2 } ] }`,
         erros: `403 TIPO_INVALIDO — token de aluno`,
-        identidade: `O token: WHERE ProfessorID = conta do token.`,
+        identidade: `O token: vínculo em professoresturmas (ProfessorID = conta do token).`,
         back: `Só os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está
   atribuído (COUNT em AtribuicoesProf). A tela não conta.`,
         nota: `Sem tamanho de página definido: vem tudo, com pagina = 1.`,
@@ -668,7 +680,7 @@ feitas.`,
         erros: `404 NAO_ENCONTRADO — não existe, é de outra conta, está arquivado, ou (aluno) não está atribuído à turma dele`,
         identidade: `Conta: o exercício tem de ser dela; ?turma= é ignorado.
   Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a
-  dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.`,
+  dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.`,
         nota: `A mesma regra vale no POST /sessoes, para o aluno descobrir na
   ABERTURA do treino, e não depois de digitar o texto inteiro.`,
       },
@@ -726,19 +738,22 @@ grupo "Aluno", em /aluno/.`,
         rota: 'POST /sessoes',
         corpo: `DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
   { "exercicio_id": "ex-prof-7", "turma_id": "turma-1", "wpm": 42, "precisao": 94,
-    "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }`,
+    "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true,
+    "tentativa_id": "0b6c…" }
+  tentativa_id (opcional, 1 a 100 caracteres): a fila de envio gera um por
+  tentativa; reenviar o mesmo id na mesma turma devolve 200 com a sessão já gravada (o UNIQUE no banco garante isso até com envios simultâneos).`,
         resposta: `200 RespostaSessaoEscola — a sessão gravada mais o recorde
   { "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
     "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
     "acertos": 308, "erros": 9, "concluida": true,
     "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }`,
-        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
+        erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
   401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
   403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
   403 ATIVIDADE_BLOQUEADA — o exercício ainda está bloqueado (ver GET /aluno/salas/:turmaId); nada é gravado
   404 NAO_ENCONTRADO — exercício não atribuído à turma (ou arquivado), ou turma_id não é a turma do aluno`,
         identidade: `O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID
-  recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.`,
+  recebe a turma do aluno (alunosturmas.ClassID); turma_id no corpo tem de ser ela.`,
         back: `recordePessoal (PPM maior que o melhor anterior dele no
   exercício) e os agregados do aluno, que passam a contar esta sessão.
   PPM, precisão, acertos e erros vêm do motor da tela e são gravados
@@ -778,11 +793,11 @@ grupo "Aluno", em /aluno/.`,
 grupo "Alunos", que é o PROFESSOR administrando a turma dele.
 
 Regras que o back cumpre em TODAS as rotas daqui:
-  · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe id de aluno
+  · O aluno sai do TOKEN (alunosturmas.AlunoID). Nenhuma rota recebe id de aluno
     na URL: não existe caminho — nem por URL editada à mão — para um
     aluno pedir o histórico, a sala ou o relatório de outro.
   · Token de conta é 403 TIPO_INVALIDO.
-  · Na v8 o aluno está em UMA turma só (Alunos.ClassID): as listas daqui
+  · Na v10 cada AlunoID tem UMA matrícula (alunosturmas.ClassID): as listas daqui
     têm no máximo uma sala, e :turmaId que não é a dele responde 404, e
     não 403 — o 403 diria "essa turma existe, só não é sua".
 
@@ -820,7 +835,7 @@ da conta, e mora em \`solo\`.`,
      "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3 }]`,
         erros: `403 TIPO_INVALIDO — token de conta`,
         identidade: `O token. Não recebe id.`,
-        back: `A turma de Alunos.ClassID, se Turmas.Ativa = true.
+        back: `A turma de alunosturmas.ClassID, se Turmas.Ativa = true.
   exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo
   esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor
   = nome da conta dona.`,
@@ -850,17 +865,21 @@ da conta, e mora em \`solo\`.`,
       'escola.aluno.desempenhoNaTurma': {
         rota: 'GET /turmas/:turmaId/meu-desempenho',
         resposta: `200 DesempenhoNaTurma — o relatório individual dele NA sala
-  { "sessoesConcluidas": 9, "licoes": 2, "diasSeguidos": 3,
+  { "sessoesConcluidas": 9, "licoes": 2, "nivelAtual": 1, "proximoMarco": 3, "diasSeguidos": 3,
     "minhaMedia": { "velocidade": 40, "precisao": 90 },
     "mediaSala":  { "velocidade": 43, "precisao": 92 } }
-  Abaixo de 3 sessões concluídas: { "sessoesConcluidas": 2, "licoes": 2, "diasSeguidos": 0,
+  Abaixo de 3 sessões concluídas: { "sessoesConcluidas": 2, "licoes": 2, "nivelAtual": 1, "proximoMarco": 3, "diasSeguidos": 0,
     "minhaMedia": null, "mediaSala": null }`,
         erros: `404 NAO_ENCONTRADO — a turma não existe ou ele não está nela
   403 TIPO_INVALIDO — token de conta`,
         identidade: `O token. O :turmaId é da turma, nunca de aluno.`,
         back: `Só sessões desta turma: sessoesConcluidas, licoes, diasSeguidos,
   minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3
-  sessões concluídas, as duas médias vêm null.`,
+  sessões concluídas, as duas médias vêm null.
+  nivelAtual = 1 + floor(licoes / K), K = Configuracoes.licoes_por_nivel;
+  proximoMarco = nivelAtual * K. licoes conta os exercícios distintos
+  concluídos, inclusive os de atribuição retirada. O nível vem sempre; o
+  mínimo de 3 sessões vale só para as médias.`,
       },
       'escola.aluno.rankingDaTurma': {
         rota: 'GET /turmas/:turmaId/ranking',
@@ -891,7 +910,7 @@ da conta, e mora em \`solo\`.`,
   {
     nome: 'Administração',
     intro: `Categorias e parâmetros globais (tabela Configuracoes). Administrador é
-a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do
+a conta com Users.Administrador = TRUE (banco v10); a coluna é lida do
 banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma
 rota promove ninguém: quem marca é o banco.`,
     rotas: {
@@ -939,7 +958,7 @@ rota promove ninguém: quem marca é o banco.`,
       'admin.parametros': {
         rota: 'GET /parametros',
         resposta: `200 Parametros — a tabela Configuracoes
-  { "wpmMeta": 40, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200 }`,
+  { "wpmMeta": 40, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200, "licoesPorNivel": 3 }`,
         identidade: `Qualquer token válido: o lobby do Solo lê o xpPorNivel.`,
       },
       'admin.salvarParametros': {
@@ -947,8 +966,8 @@ rota promove ninguém: quem marca é o banco.`,
         corpo: `Partial<Parametros> — só os campos que mudam
   { "wpmMeta": 45 }`,
         resposta: `200 Parametros — como ficou
-  { "wpmMeta": 45, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200 }`,
-        erros: `400 DADOS_INVALIDOS — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima
+  { "wpmMeta": 45, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200, "licoesPorNivel": 3 }`,
+        erros: `400 DADOS_INVALIDOS — campo que não é um dos cinco, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel e licoesPorNivel de 1 para cima
   404 NAO_ENCONTRADO — o token não é de administrador`,
         identidade: `O token, que tem de ser de ADMINISTRADOR. Conta comum ou
   aluno: 404, como se a rota não existisse.`,

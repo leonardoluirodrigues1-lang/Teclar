@@ -111,7 +111,7 @@ const aluno = await entrar({ codigo: 'K7M2QX', nome: 'Ana Pires', senha: 'aluno2
 //   ex1 com tempo limite (60 s), ex2 sem limite (0);
 //   ex3 vai ser TIRADO da turma; ex4 vai ser ARQUIVADO.
 const texto = 'Um texto qualquer com mais de vinte letras.';
-const turma = await preparar('POST', '/turmas', { nome: `Teste relatórios ${agora}` }, prof);
+const turma = await preparar('POST', '/turmas', { nome: `Teste relatórios ${agora}`, semestre: 1 }, prof);
 const exercicios = [];
 for (const [numero, tempo] of [[1, 60], [2, 0], [3, 0], [4, 0]]) {
   exercicios.push(

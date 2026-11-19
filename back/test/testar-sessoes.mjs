@@ -74,8 +74,8 @@ const leo = await entrar({ email: 'leo@teclar.dev', senha: 'senha123' });
 
 // Preparo: turma A com o exercício 1 atribuído e o 2 não; turma B com o 1.
 const texto = 'Um texto qualquer com mais de vinte letras.';
-const turmaA = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} A` }, prof);
-const turmaB = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} B` }, prof);
+const turmaA = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} A`, semestre: 1 }, prof);
+const turmaB = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} B`, semestre: 1 }, prof);
 const ex1 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} 1`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof);
 const ex2 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} 2`, texto, dificuldade: 'facil', tempoLimiteSegundos: 0 }, prof);
 await preparar('POST', `/turmas/${turmaA.id}/atribuicoes`, { exercicioIds: [ex1.id] }, prof);
@@ -260,6 +260,25 @@ confere('obter: sessão do Solo de outra conta 404', ehErro(r, 404, 'NAO_ENCONTR
 r = await chamar('GET', `/sessoes/${doLeo.ID}`, null, um);
 confere('obter: aluno não lê sessão do Solo 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
 
+// tentativa_id: dois envios simultâneos da mesma tentativa gravam UMA sessão.
+const tentativa = { ...SESSAO, tentativa_id: `t-${agora}` };
+const [envio1, envio2] = await Promise.all([chamar('POST', '/sessoes', tentativa, um), chamar('POST', '/sessoes', tentativa, um)]);
+confere('tentativa: os dois envios simultâneos devolvem a mesma sessão', envio1.status === 200 && envio2.status === 200 && envio1.corpo.id === envio2.corpo.id);
+confere('tentativa: uma linha só no banco', (await banco.sessionsprof.count({ where: { TentativaID: tentativa.tentativa_id } })) === 1);
+r = await chamar('POST', '/sessoes', tentativa, um);
+confere('tentativa: reenvio depois devolve o original', r.status === 200 && r.corpo.id === envio1.corpo.id);
+await banco.sessionsprof.delete({ where: { ID: envio1.corpo.id } });
+
+// A FK composta (ClassID, AlunoID) recusa no banco uma sessão que cruza turmas.
+const cruzada = await banco.sessionsprof
+  .create({ data: { ID: `cruzada-${agora}`, AlunoID: alunoUm.id, ExerciseID: ex1.id, ClassID: turmaB.id, WPM: 10, Precisao: 90 } })
+  .then(() => null, (erro) => erro);
+confere('FK composta: sessão do aluno da turma A na turma B é recusada', cruzada !== null);
+const foraDoCheck = await banco.sessionsprof
+  .create({ data: { ID: `check-${agora}`, AlunoID: alunoUm.id, ExerciseID: ex1.id, ClassID: turmaA.id, WPM: 10, Precisao: 150 } })
+  .then(() => null, (erro) => erro);
+confere('CHECK: precisão 150 é recusada pelo banco', foraDoCheck !== null);
+
 // ============================================================================
 // Exercício arquivado e turma arquivada
 // ============================================================================
@@ -281,7 +300,7 @@ confere('turma arquivada depois do login: 401 TOKEN_INVALIDO', ehErro(r, 401, 'T
 // Os exercícios liberam na ordem da sala
 // ============================================================================
 
-const turmaOrdem = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} ordem` }, prof);
+const turmaOrdem = await preparar('POST', '/turmas', { nome: `Teste sessões ${agora} ordem`, semestre: 1 }, prof);
 const exerciciosOrdem = [];
 for (const numero of [1, 2, 3, 4]) {
   exerciciosOrdem.push(await preparar('POST', '/exercicios', { titulo: `Teste ${agora} ordem ${numero}`, texto, dificuldade: 'facil', tempoLimiteSegundos: 60 }, prof));

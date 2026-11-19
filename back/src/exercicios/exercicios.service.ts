@@ -178,7 +178,7 @@ export class ExerciciosService {
     if (!turmaId) {
       throw naoEncontrado();
     }
-    const aluno = await this.banco.alunos.findFirst({ where: { ID: alunoId, ClassID: turmaId } });
+    const aluno = await this.banco.alunosturmas.findFirst({ where: { AlunoID: alunoId, ClassID: turmaId } });
     const atribuicao = await this.banco.atribuicoesprof.findUnique({
       where: { ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: id } },
       include: { exerciciosprof: { include: COM_ATRIBUIDO_A } },

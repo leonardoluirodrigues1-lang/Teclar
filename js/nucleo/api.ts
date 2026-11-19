@@ -275,7 +275,7 @@ export const api = {
 
     listarArquivadas: () => get<Turma[]>('/turmas?ativa=false'),
 
-    criar: (nome: string) => post<Turma>('/turmas', { nome }),
+    criar: (nome: string, semestre: 1 | 2) => post<Turma>('/turmas', { nome, semestre }),
 
     obter: (id: string) => get<TurmaDetalhe>(`/turmas/${id}`),
 
@@ -406,6 +406,12 @@ function escreverFila(fila: ItemFila[]): void {
   localStorage.setItem(CHAVE_FILA, JSON.stringify(fila));
 }
 
+// crypto.randomUUID só existe em contexto seguro (https/localhost); em http o
+// fallback basta, porque o id só precisa ser único por campanha ou matrícula.
+function novaTentativa(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 // Escolhe o endpoint de gravação conforme o mundo.
 function registradorDe(mundo: Mundo) {
   return mundo === 'solo' ? api.solo.registrarSessao : api.sessoes.registrar;
@@ -424,6 +430,12 @@ const VALIDADE_DO_ITEM_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function enviarFila(): Promise<ResultadoSincronizacao> {
   const fila = lerFila();
+  // Item de antes do tentativa_id ganha um agora, gravado antes do envio:
+  // se a resposta se perder, o próximo reenvio usa o mesmo id.
+  if (fila.some((item) => !item.dados.tentativa_id)) {
+    for (const item of fila) item.dados.tentativa_id ??= novaTentativa();
+    escreverFila(fila);
+  }
   const usuarioId = sessao.usuario()?.id;
   const sobraram: ItemFila[] = [];
   let enviadas = 0;
@@ -459,6 +471,8 @@ export const filaSessoes = {
   // na fila e devolve { ok:false, enfileirada:true, pendentes:n }. Qualquer
   // outro erro sobe.
   async enviar(dados: DadosSessaoTreino, mundo: Mundo): Promise<ResultadoEnvio> {
+    // O id da tentativa nasce aqui, uma vez: é o mesmo no envio e em todo reenvio da fila.
+    dados = { ...dados, tentativa_id: dados.tentativa_id ?? novaTentativa() };
     // Lido antes do envio: no 401, o req() já saiu da conta quando o catch roda.
     const usuarioId = sessao.usuario()?.id;
     try {

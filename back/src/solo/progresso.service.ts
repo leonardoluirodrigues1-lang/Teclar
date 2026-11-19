@@ -22,7 +22,7 @@ import { exigirLiberada, sequenciaDoSolo } from '../sessoes/liberacao.js';
 import { validarMedidas } from '../sessoes/medidas-da-sessao.js';
 import type { CorpoComMedidas } from '../sessoes/medidas-da-sessao.js';
 import { mediaInteira } from '../sessoes/sessao-escola.js';
-import { sessaoSoloNaForma } from '../sessoes/sessoes.service.js';
+import { ehRepetido, sessaoSoloNaForma } from '../sessoes/sessoes.service.js';
 import type { SessaoSolo } from '../sessoes/sessoes.service.js';
 import { campanhaDoToken, jogadorDoToken } from './campanha-do-token.js';
 import { nivelDoXp, xpDaSessao } from './xp.js';
@@ -101,6 +101,11 @@ export class ProgressoService {
     const licaoId = licaoDoCorpo(corpo?.exercicio_id);
     const medidas = validarMedidas(corpo);
     const campanha = await campanhaDoToken(this.banco, identidade);
+    // Reenvio da mesma tentativa (fila): devolve a gravada, sem XP de novo.
+    const repetida = await this.tentativaGravada(campanha.CampanhaID, medidas.TentativaID);
+    if (repetida) {
+      return repetida;
+    }
     await this.exigirLicao(licaoId);
     exigirLiberada(licaoId, await sequenciaDoSolo(this.banco, campanha.CampanhaID));
 
@@ -112,19 +117,42 @@ export class ProgressoService {
     // A sessão e o XP numa transação: ou os dois ficam, ou nenhum. O XP soma
     // com increment (UPDATE ... SET XPTotal = XPTotal + ?), e não com o
     // valor lido antes: duas sessões gravadas ao mesmo tempo não perdem XP.
-    const { sessao, xpTotal, nivelAtual } = await this.banco.$transaction(async (tx) => {
-      const gravada = await tx.sessionssolo.create({
-        data: { ID: randomUUID(), CampanhaID: campanha.CampanhaID, ExerciseID: licaoId, XPGanho: xpGanho, ...medidas },
+    // Dois envios simultâneos da mesma tentativa: o UPDATE do XP vem primeiro
+    // e trava a campanha (INSERT antes dele daria deadlock pelo lock da FK), o
+    // segundo espera, o UNIQUE (CampanhaID, TentativaID) recusa o INSERT dele,
+    // a transação desfaz o XP dele e ele devolve o primeiro.
+    let gravacao;
+    try {
+      gravacao = await this.banco.$transaction(async (tx) => {
+        const comXp = await tx.campanhassolo.update({
+          where: { CampanhaID: campanha.CampanhaID },
+          data: { XPTotal: { increment: xpGanho } },
+        });
+        const gravada = await tx.sessionssolo.create({
+          data: {
+            ID: randomUUID(),
+            CampanhaID: campanha.CampanhaID,
+            ExerciseID: licaoId,
+            XPGanho: xpGanho,
+            ...medidas,
+          },
+        });
+        const xpNovo = comXp.XPTotal ?? xpGanho;
+        const nivelNovo = nivelDoXp(xpNovo, xpPorNivel);
+        await tx.campanhassolo.update({
+          where: { CampanhaID: campanha.CampanhaID },
+          data: { NivelAtual: nivelNovo },
+        });
+        return { sessao: gravada, xpTotal: xpNovo, nivelAtual: nivelNovo };
       });
-      const comXp = await tx.campanhassolo.update({
-        where: { CampanhaID: campanha.CampanhaID },
-        data: { XPTotal: { increment: xpGanho } },
-      });
-      const xpNovo = comXp.XPTotal ?? xpGanho;
-      const nivelNovo = nivelDoXp(xpNovo, xpPorNivel);
-      await tx.campanhassolo.update({ where: { CampanhaID: campanha.CampanhaID }, data: { NivelAtual: nivelNovo } });
-      return { sessao: gravada, xpTotal: xpNovo, nivelAtual: nivelNovo };
-    });
+    } catch (erro) {
+      const original = ehRepetido(erro) ? await this.tentativaGravada(campanha.CampanhaID, medidas.TentativaID) : null;
+      if (!original) {
+        throw erro;
+      }
+      return original;
+    }
+    const { sessao, xpTotal, nivelAtual } = gravacao;
 
     return {
       // O id abre a tela de resultado (?sessao=<id>).
@@ -136,6 +164,31 @@ export class ProgressoService {
       // Recorde = PPM maior que o melhor anterior NESTA lição. Na primeira
       // vez o "melhor anterior" é 0, como no POST /sessoes da Escola.
       recordePessoal: medidas.WPM > melhorAntes,
+    };
+  }
+
+  // A sessão já gravada com esta tentativa, na forma da resposta, com o XP e o
+  // nível de agora; null sem tentativa ou sem registro.
+  private async tentativaGravada(campanhaId: string, tentativa: string | null): Promise<RespostaSessaoSolo | null> {
+    if (tentativa === null) {
+      return null;
+    }
+    const linha = await this.banco.sessionssolo.findFirst({
+      where: { CampanhaID: campanhaId, TentativaID: tentativa },
+    });
+    if (!linha) {
+      return null;
+    }
+    const campanha = await this.banco.campanhassolo.findUniqueOrThrow({
+      where: { CampanhaID: campanhaId },
+    });
+    return {
+      id: linha.ID,
+      xpGanho: linha.XPGanho,
+      xpTotal: campanha.XPTotal ?? 0,
+      nivelAtual: campanha.NivelAtual ?? 1,
+      subiuDeNivel: false,
+      recordePessoal: false,
     };
   }
 
@@ -182,7 +235,9 @@ export class ProgressoService {
     const linhas = await this.banco.sessionssolo.findMany({
       where: { CampanhaID: campanha.CampanhaID },
       // O JOIN em ExerciciosSolo, para título e nível de cada lição.
-      include: { exerciciossolo: { select: { Titulo: true, Nivel: true, Ordem: true } } },
+      include: {
+        exerciciossolo: { select: { Titulo: true, Nivel: true, Ordem: true } },
+      },
       // Data_Sessao guarda milissegundos, e o ID desempata o que ainda empatar
       // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
       orderBy: [{ exerciciossolo: { Ordem: 'asc' } }, { Data_Sessao: 'asc' }, { ID: 'asc' }],
@@ -199,15 +254,22 @@ export class ProgressoService {
   }
 
   private sessoesDaCampanha(campanhaId: string) {
-    return this.banco.sessionssolo.findMany({ where: { CampanhaID: campanhaId } });
+    return this.banco.sessionssolo.findMany({
+      where: { CampanhaID: campanhaId },
+    });
   }
 
   // Lição desativada (Ativo = false) não recebe sessão nova, como o
   // exercício arquivado na Escola; as sessões antigas nela ficam.
   private async exigirLicao(licaoId: string): Promise<void> {
-    const licao = await this.banco.exerciciossolo.findFirst({ where: { ExerciseID: licaoId, Ativo: true } });
+    const licao = await this.banco.exerciciossolo.findFirst({
+      where: { ExerciseID: licaoId, Ativo: true },
+    });
     if (!licao) {
-      throw new NotFoundException({ mensagem: 'Lição não encontrada.', codigo: 'NAO_ENCONTRADO' });
+      throw new NotFoundException({
+        mensagem: 'Lição não encontrada.',
+        codigo: 'NAO_ENCONTRADO',
+      });
     }
   }
 
@@ -226,10 +288,12 @@ export class ProgressoService {
   // Sem a linha, o banco está incompleto: melhor um erro claro do que um
   // nível calculado com um número inventado aqui.
   private async lerXpPorNivel(): Promise<number> {
-    const linha = await this.banco.configuracoes.findUnique({ where: { Chave: CHAVE_XP_POR_NIVEL } });
+    const linha = await this.banco.configuracoes.findUnique({
+      where: { Chave: CHAVE_XP_POR_NIVEL },
+    });
     const valor = Number(linha?.Valor);
     if (!Number.isInteger(valor) || valor <= 0) {
-      throw new Error(`Configuracoes.${CHAVE_XP_POR_NIVEL} ausente ou inválido. Veja o DB_Teclar_v9.sql.`);
+      throw new Error(`Configuracoes.${CHAVE_XP_POR_NIVEL} ausente ou inválido. Veja o DB_Teclar_v10.sql.`);
     }
     return valor;
   }
@@ -238,7 +302,9 @@ export class ProgressoService {
 // Funções soltas: não dependem do banco nem do Nest.
 
 type SessaoComLicao = Prisma.sessionssoloGetPayload<{
-  include: { exerciciossolo: { select: { Titulo: true; Nivel: true; Ordem: true } } };
+  include: {
+    exerciciossolo: { select: { Titulo: true; Nivel: true; Ordem: true } };
+  };
 }>;
 
 // Uma linha por lição TENTADA (lição nunca tentada não aparece), na ordem

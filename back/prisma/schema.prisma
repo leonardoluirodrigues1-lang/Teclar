@@ -10,16 +10,8 @@ datasource db {
 }
 
 model alunos {
-  ID            String         @id @db.VarChar(100)
-  ClassID       String         @db.VarChar(100)
-  Nome          String         @db.VarChar(150)
-  SenhaHash     String?        @db.VarChar(255)
-  Data_Cadastro DateTime?      @default(now()) @db.Timestamp(0)
-  Ativo         Boolean?       @default(true)
-  classesprof   classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "fk_aluno_turma")
-  sessionsprof  sessionsprof[]
-
-  @@unique([ClassID, Nome], map: "uq_aluno_turma_nome")
+  ID           String        @id @db.VarChar(100)
+  alunosturmas alunosturmas?
 }
 
 model atribuicoesprof {
@@ -54,21 +46,17 @@ model categorias {
 }
 
 model classesprof {
-  ClassID         String            @id @db.VarChar(100)
-  Codigo          String            @unique(map: "Codigo") @db.VarChar(12)
-  ProfessorID     String            @db.VarChar(100)
-  NomeTurma       String?           @db.VarChar(100)
-  Ano             Int?
-  Semestre        Int?
-  Ativa           Boolean           @default(true)
-  CapaSemente     Int?
-  Data_Criacao    DateTime?         @default(now()) @db.Timestamp(0)
-  alunos          alunos[]
-  atribuicoesprof atribuicoesprof[]
-  users           users             @relation(fields: [ProfessorID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "classesprof_ibfk_1")
-  sessionsprof    sessionsprof[]
-
-  @@index([ProfessorID], map: "ProfessorID")
+  ClassID           String             @id @db.VarChar(100)
+  Codigo            String             @unique(map: "Codigo") @db.VarChar(12)
+  NomeTurma         String?            @db.VarChar(100)
+  Ano               Int?
+  Semestre          Int?
+  Ativa             Boolean            @default(true)
+  CapaSemente       Int?
+  Data_Criacao      DateTime?          @default(now()) @db.Timestamp(0)
+  alunosturmas      alunosturmas[]
+  atribuicoesprof   atribuicoesprof[]
+  professoresturmas professoresturmas?
 }
 
 model configuracoes {
@@ -127,13 +115,15 @@ model sessionsprof {
   Tempo_Gasto_Segundos Int?
   Concluida            Boolean        @default(true)
   Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
-  alunos               alunos         @relation(fields: [AlunoID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_1")
+  TentativaID          String?        @db.VarChar(100)
+  alunosturmas         alunosturmas   @relation(fields: [ClassID, AlunoID], references: [ClassID, AlunoID], onDelete: Cascade, onUpdate: NoAction, map: "fk_sessoes_prof_matricula")
   exerciciosprof       exerciciosprof @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_2")
-  classesprof          classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_3")
 
+  @@unique([ClassID, AlunoID, TentativaID], map: "uq_sessoes_prof_tentativa")
   @@index([ExerciseID], map: "ExerciseID")
   @@index([AlunoID, Data_Sessao], map: "idx_sessoes_prof_aluno")
   @@index([ClassID, Data_Sessao], map: "idx_sessoes_prof_turma")
+  @@index([ClassID, AlunoID], map: "idx_sessoes_prof_matricula")
 }
 
 model sessionssolo {
@@ -148,26 +138,52 @@ model sessionssolo {
   Concluida            Boolean        @default(true)
   XPGanho              Int            @default(0)
   Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
+  TentativaID          String?        @db.VarChar(100)
   campanhassolo        campanhassolo  @relation(fields: [CampanhaID], references: [CampanhaID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_1")
   exerciciossolo       exerciciossolo @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_2")
 
+  @@unique([CampanhaID, TentativaID], map: "uq_sessoes_solo_tentativa")
   @@index([ExerciseID], map: "ExerciseID")
   @@index([CampanhaID, Data_Sessao], map: "idx_sessoes_solo_campanha")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
-  ID             String           @id @db.VarChar(100)
-  Nome           String           @db.VarChar(150)
-  Email          String           @unique(map: "Email") @db.VarChar(150)
-  GoogleID       String?          @unique(map: "GoogleID") @db.VarChar(100)
-  SenhaHash      String?          @db.VarChar(255)
-  Data_Cadastro  DateTime?        @default(now()) @db.Timestamp(0)
-  Ativo          Boolean?         @default(true)
-  Administrador  Boolean          @default(false)
-  campanhassolo  campanhassolo?
-  classesprof    classesprof[]
-  exerciciosprof exerciciosprof[]
+  ID                String              @id @db.VarChar(100)
+  Nome              String              @db.VarChar(150)
+  Email             String              @unique(map: "Email") @db.VarChar(150)
+  GoogleID          String?             @unique(map: "GoogleID") @db.VarChar(100)
+  SenhaHash         String?             @db.VarChar(255)
+  Data_Cadastro     DateTime?           @default(now()) @db.Timestamp(0)
+  Ativo             Boolean?            @default(true)
+  Administrador     Boolean             @default(false)
+  campanhassolo     campanhassolo?
+  exerciciosprof    exerciciosprof[]
+  professoresturmas professoresturmas[]
+}
+
+model alunosturmas {
+  ClassID       String         @db.VarChar(100)
+  AlunoID       String         @unique(map: "uq_alunos_turmas_aluno") @db.VarChar(100)
+  Nome          String         @db.VarChar(150)
+  SenhaHash     String?        @db.VarChar(255)
+  Data_Cadastro DateTime?      @default(now()) @db.Timestamp(0)
+  Ativo         Boolean        @default(true)
+  alunos        alunos         @relation(fields: [AlunoID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "fk_alunos_turmas_aluno")
+  classesprof   classesprof    @relation(fields: [ClassID], references: [ClassID], onUpdate: NoAction, map: "fk_alunos_turmas_turma")
+  sessionsprof  sessionsprof[]
+
+  @@id([ClassID, AlunoID])
+  @@unique([ClassID, Nome], map: "uq_aluno_turma_nome")
+}
+
+model professoresturmas {
+  ClassID     String      @id @db.VarChar(100)
+  ProfessorID String      @db.VarChar(100)
+  users       users       @relation(fields: [ProfessorID], references: [ID], onUpdate: NoAction, map: "fk_professores_turmas_conta")
+  classesprof classesprof @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "fk_professores_turmas_turma")
+
+  @@index([ProfessorID], map: "idx_professores_turmas_professor")
 }
 
 enum exerciciossolo_Dificuldade {

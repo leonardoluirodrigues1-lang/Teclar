@@ -1,10 +1,11 @@
 // seed.ts
-// Dados de teste para o teclardb. Rodar com:  npm run seed
+// Dados de teste para o teclardb_v10. Rodar com:  npm run seed
+// Só numa base descartável: nunca rode o seed numa cópia com dados reais.
 //
 // ATENÇÃO: APAGA tudo das tabelas que ele preenche (contas, alunos, turmas,
 // exercícios, sessões) antes de inserir. É para o banco de desenvolvimento.
 // Categorias e Configuracoes ficam como estão: quem as semeia é o
-// DB_Teclar_v9.sql.
+// DB_Teclar_v10.sql.
 //
 // Idempotente: rodar duas vezes dá o mesmo banco, porque cada rodada
 // começa limpando e os ids são fixos ('u-1', 'turma-1'...), não gerados.
@@ -14,8 +15,8 @@
 // back contarem a mesma história. As 76 lições do Solo nem são copiadas:
 // vêm do mesmo arquivo que o mock lê (js/nucleo/licoes.ts).
 //
-// O aluno segue o banco v8: nasce DENTRO de uma turma (Alunos.ClassID),
-// sem RP e sem conta, e entra com o código da turma, o nome e a senha.
+// O aluno segue o banco v10: é uma matrícula (alunosturmas) com nome, senha
+// e histórico próprios, e entra com o código da turma, o nome e a senha.
 // SenhaHash NULL é o aluno que ainda não fez o primeiro acesso.
 //
 // As credenciais estão no README do back.
@@ -64,9 +65,11 @@ async function limparTabelas(tx: Transacao): Promise<void> {
   await tx.sessionsprof.deleteMany();
   await tx.sessionssolo.deleteMany();
   await tx.atribuicoesprof.deleteMany();
+  await tx.alunosturmas.deleteMany();
+  await tx.professoresturmas.deleteMany();
   await tx.alunos.deleteMany();
-  await tx.exerciciosprof.deleteMany();
   await tx.classesprof.deleteMany();
+  await tx.exerciciosprof.deleteMany();
   await tx.campanhassolo.deleteMany();
   await tx.exerciciossolo.deleteMany();
   await tx.users.deleteMany();
@@ -263,7 +266,6 @@ async function inserirTurmas(tx: Transacao): Promise<void> {
     data: TURMAS.map((turma) => ({
       ClassID: turma.id,
       Codigo: turma.codigo,
-      ProfessorID: turma.professor,
       NomeTurma: turma.nome,
       Ano: turma.ano,
       Semestre: turma.semestre,
@@ -271,6 +273,9 @@ async function inserirTurmas(tx: Transacao): Promise<void> {
       Ativa: turma.ativa,
       Data_Criacao: meioDiaEmBrasilia(turma.criada),
     })),
+  });
+  await tx.professoresturmas.createMany({
+    data: TURMAS.map((turma) => ({ ClassID: turma.id, ProfessorID: turma.professor })),
   });
 
   // As atribuições do mock. A turma-1 tem 8 (a trilha longa, que
@@ -300,8 +305,8 @@ function atribuicao(turmaId: string, exercicioId: string, data: string) {
   return { ClassID: turmaId, ExerciseID: exercicioId, Data_Atribuicao: meioDiaEmBrasilia(data) };
 }
 
-// Os alunos do mock, turma por turma (banco v8: o aluno nasce dentro da
-// turma). O `senha` diz se ele já fez o primeiro acesso:
+// Os alunos do mock, turma por turma (banco v10: cada aluno é uma matrícula
+// em alunosturmas). O `senha` diz se ele já fez o primeiro acesso:
 //   true   SenhaHash = hash de SENHA_DOS_ALUNOS (já entrou)
 //   false  SenhaHash NULL (nunca entrou: o próximo login grava a senha)
 //
@@ -331,9 +336,11 @@ const ALUNOS = [
 ];
 
 async function inserirAlunos(tx: Transacao, senhaHash: string): Promise<void> {
-  await tx.alunos.createMany({
+  // v10: o ID em alunos e a matrícula (nome, senha, data) em alunosturmas.
+  await tx.alunos.createMany({ data: ALUNOS.map((aluno) => ({ ID: aluno.id })) });
+  await tx.alunosturmas.createMany({
     data: ALUNOS.map((aluno) => ({
-      ID: aluno.id,
+      AlunoID: aluno.id,
       ClassID: aluno.turma,
       Nome: aluno.nome,
       SenhaHash: aluno.senha ? senhaHash : null,

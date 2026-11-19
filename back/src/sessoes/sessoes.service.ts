@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { exigirLiberada, sequenciaDaSala } from './liberacao.js';
 import { validarMedidas } from './medidas-da-sessao.js';
 import type { CorpoComMedidas } from './medidas-da-sessao.js';
@@ -74,18 +74,43 @@ export class SessoesService {
     const turmaId = idDoCorpo(corpo?.turma_id, 'turma_id');
     const medidas = validarMedidas(corpo);
 
-    // turma_id tem de ser a turma DELE (Alunos.ClassID): na v8 o aluno está
-    // numa turma só. Turma de outro é 404, não 403.
+    // turma_id tem de ser a turma da matrícula do token (alunosturmas.ClassID):
+    // cada AlunoID tem uma matrícula só. A FK composta (ClassID, AlunoID) também recusa. Turma de outro é 404, não 403.
     if (turmaId !== aluno.ClassID) {
       throw naoEncontrado('Exercício não encontrado nesta turma.');
     }
+    // Reenvio da mesma tentativa (fila): devolve a gravada, antes das
+    // conferências de atribuição e ordem, que podem ter mudado desde então.
+    const repetida = await this.tentativaGravada(turmaId, aluno.AlunoID, medidas.TentativaID);
+    if (repetida) {
+      return repetida;
+    }
     await this.exigirAtribuido(turmaId, exercicioId);
-    exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.ID));
+    exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.AlunoID));
 
-    const melhorAntes = await this.melhorPpmAnterior(aluno.ID, exercicioId);
-    const gravada = await this.banco.sessionsprof.create({
-      data: { ID: randomUUID(), AlunoID: aluno.ID, ExerciseID: exercicioId, ClassID: turmaId, ...medidas },
-    });
+    const melhorAntes = await this.melhorPpmAnterior(aluno.AlunoID, exercicioId);
+    let gravada: LinhaDeSessao;
+    try {
+      gravada = await this.banco.sessionsprof.create({
+        data: {
+          ID: randomUUID(),
+          AlunoID: aluno.AlunoID,
+          ExerciseID: exercicioId,
+          ClassID: turmaId,
+          ...medidas,
+        },
+      });
+    } catch (erro) {
+      // Dois envios simultâneos da mesma tentativa: o UNIQUE recusa o segundo,
+      // que devolve o registro do primeiro.
+      const original = ehRepetido(erro)
+        ? await this.tentativaGravada(turmaId, aluno.AlunoID, medidas.TentativaID)
+        : null;
+      if (!original) {
+        throw erro;
+      }
+      return original;
+    }
     const sessao = sessaoEscolaNaForma(gravada);
     // Recorde = PPM maior que o melhor anterior dele NESTE exercício. Na
     // primeira vez o "melhor anterior" é 0, como no mock: a primeira sessão
@@ -101,7 +126,9 @@ export class SessoesService {
   // treino de outra pessoa nem confirmar que ele existe.
   async obter(identidade: Identidade, id: string): Promise<SessaoEscola | SessaoSolo> {
     if (identidade.tipo === 'aluno') {
-      const daEscola = await this.banco.sessionsprof.findFirst({ where: { ID: id, AlunoID: identidade.id } });
+      const daEscola = await this.banco.sessionsprof.findFirst({
+        where: { ID: id, AlunoID: identidade.id },
+      });
       if (daEscola) {
         return sessaoEscolaNaForma(daEscola);
       }
@@ -121,14 +148,29 @@ export class SessoesService {
   // a sessão acabou. É o mesmo 401 do GET /auth/eu, para a tela voltar ao
   // login — e lá ele recebe o motivo de verdade (403 "turma arquivada").
   private async alunoComSessaoValida(alunoId: string) {
-    const aluno = await this.banco.alunos.findUnique({
-      where: { ID: alunoId },
+    const aluno = await this.banco.alunosturmas.findUnique({
+      where: { AlunoID: alunoId },
       include: { classesprof: { select: { Ativa: true } } },
     });
     if (!aluno || aluno.Ativo === false || aluno.classesprof.Ativa === false) {
-      throw new UnauthorizedException({ mensagem: 'Token inválido ou expirado.', codigo: 'TOKEN_INVALIDO' });
+      throw new UnauthorizedException({
+        mensagem: 'Token inválido ou expirado.',
+        codigo: 'TOKEN_INVALIDO',
+      });
     }
     return aluno;
+  }
+
+  // A sessão já gravada com esta tentativa, na forma da resposta; null sem
+  // tentativa ou sem registro. recordePessoal false: o recorde foi do 1º envio.
+  private async tentativaGravada(turmaId: string, alunoId: string, tentativa: string | null) {
+    if (tentativa === null) {
+      return null;
+    }
+    const linha = await this.banco.sessionsprof.findFirst({
+      where: { ClassID: turmaId, AlunoID: alunoId, TentativaID: tentativa },
+    });
+    return linha ? { ...sessaoEscolaNaForma(linha), recordePessoal: false } : null;
   }
 
   // O exercício tem de estar atribuído à turma e não pode estar arquivado.
@@ -136,7 +178,9 @@ export class SessoesService {
   // as sessões antigas num exercício arquivado ficam, mas nova não nasce.
   private async exigirAtribuido(turmaId: string, exercicioId: string): Promise<void> {
     const atribuicao = await this.banco.atribuicoesprof.findUnique({
-      where: { ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: exercicioId } },
+      where: {
+        ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: exercicioId },
+      },
       include: { exerciciosprof: { select: { Ativo: true } } },
     });
     if (!atribuicao || !atribuicao.exerciciosprof.Ativo) {
@@ -156,6 +200,11 @@ export class SessoesService {
 }
 
 // Funções soltas: não dependem do banco nem do Nest.
+
+// P2002 é o código do Prisma para "violou um UNIQUE".
+export function ehRepetido(erro: unknown): boolean {
+  return erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002';
+}
 
 function sessaoEscolaNaForma(linha: LinhaDeSessao): SessaoEscola {
   return { ...sessaoNaForma(linha), turmaId: linha.ClassID };

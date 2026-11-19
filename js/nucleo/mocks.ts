@@ -354,6 +354,8 @@ export const dados: BancoMock = {
     tempoLimitePadrao: 60,
     // Mesmo motivo do bônus de precisão: um número só, morando no config.
     xpPorNivel: CONFIG.SOLO.XP_POR_NIVEL,
+    // Lições distintas por nível escolar (Configuracoes.licoes_por_nivel).
+    licoesPorNivel: 3,
   },
 
   // camp-1 é do jogador u-1 (leo@teclar.dev); camp-2 é de u-2
@@ -1068,6 +1070,20 @@ function mediaDecimal(numeros: number[]): number | null {
   if (numeros.length === 0) return null;
   const soma = numeros.reduce((total, n) => total + n, 0);
   return Math.round((soma / numeros.length) * 10) / 10;
+}
+
+// tentativa_id do corpo (a fila de envio gera um por tentativa): reenvio com o
+// mesmo id devolve a sessão gravada, como o UNIQUE do back. A chave inclui a
+// campanha, ou a turma + aluno, como os UNIQUE de SessionsSolo/SessionsProf.
+const tentativasGravadas = new Map<string, string>();
+
+function tentativaDoCorpo(corpo: any): string | null {
+  const t = corpo?.tentativa_id;
+  if (t === undefined || t === null) return null;
+  if (typeof t !== 'string' || t.length < 1 || t.length > 100) {
+    throw erro(400, 'tentativa_id deve ter de 1 a 100 caracteres.', 'DADOS_INVALIDOS');
+  }
+  return t;
 }
 
 function gerarId(prefixo: string): string {
@@ -1977,6 +1993,22 @@ const rotas: [string, RegExp, Handler][] = [
       const exercicioId = corpo?.exercicio_id ?? corpo?.exerciseId;
       const missao = dados.missoes.find((m) => m.exerciseId === exercicioId);
       if (!missao) throw erro(404, 'Lição não encontrada.', 'NAO_ENCONTRADO');
+      const tentativa = tentativaDoCorpo(corpo);
+      const chaveTentativa = `solo:${campanha.campanhaId}:${tentativa}`;
+      const jaGravada = tentativa
+        ? (dados.historicoSolo[campanha.campanhaId] ?? []).find((h) => h.id === tentativasGravadas.get(chaveTentativa))
+        : undefined;
+      if (jaGravada) {
+        // Reenvio: a sessão original, sem XP de novo.
+        return {
+          id: jaGravada.id,
+          xpGanho: jaGravada.xpGanho,
+          xpTotal: campanha.xpTotal,
+          nivelAtual: campanha.nivelAtual,
+          subiuDeNivel: false,
+          recordePessoal: false,
+        };
+      }
       exigirLiberada(missao.exerciseId, idsDoPercurso(), concluidasEntre(dados.historicoSolo[campanha.campanhaId] ?? []));
 
       // O XP base é o mesmo para toda lição e vem do config, não de uma
@@ -2022,6 +2054,7 @@ const rotas: [string, RegExp, Handler][] = [
         data: agora(),
       };
       historico.push(registro);
+      if (tentativa) tentativasGravadas.set(chaveTentativa, registro.id);
 
       // O id vai junto: a tela de resultado é aberta com ?sessao=<id>.
       return {
@@ -2057,12 +2090,17 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token) => {
       const professorId = contaDoToken(token).id;
       recusarProfessorId(corpo);
+      // Semestre obrigatório na criação (v10), como o back.
+      if (corpo?.semestre !== 1 && corpo?.semestre !== 2) {
+        throw erro(400, 'O semestre precisa ser 1 ou 2.', 'DADOS_INVALIDOS');
+      }
       const nova: Turma = {
         id: gerarId('turma'),
         codigo: gerarCodigo(),
         professorId,
         nome: corpo?.nome ?? 'Nova turma',
-          totalAlunos: 0,
+        periodo: `${corpo.semestre}º semestre`,
+        totalAlunos: 0,
         totalExercicios: 0,
         ativa: true,
         dataCriacao: hoje(),
@@ -2544,9 +2582,12 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token): DesempenhoNaTurma => {
       const { turma, aluno } = salaDoToken(params[0], token);
       const meus = numerosNaSala(turma.id, aluno.id);
+      const nivelAtual = 1 + Math.floor(meus.licoes / dados.parametros.licoesPorNivel);
       const resposta: DesempenhoNaTurma = {
         sessoesConcluidas: meus.concluidas.length,
         licoes: meus.licoes,
+        nivelAtual,
+        proximoMarco: nivelAtual * dados.parametros.licoesPorNivel,
         diasSeguidos: meus.diasSeguidos,
         minhaMedia: null,
         mediaSala: null,
@@ -2623,6 +2664,10 @@ const rotas: [string, RegExp, Handler][] = [
         alunoId,
         turmaId
       ).id;
+      const tentativa = tentativaDoCorpo(corpo);
+      const chaveTentativa = `escola:${turmaId}:${alunoId}:${tentativa}`;
+      const jaGravada = tentativa ? dados.sessoes.find((s) => s.id === tentativasGravadas.get(chaveTentativa)) : undefined;
+      if (jaGravada) return { ...jaGravada, recordePessoal: false };
       exigirLiberada(exerciseId, idsDaSala(turmaId), concluidasEntre(sessoesNaSala(turmaId, alunoId)));
       const anteriores = dados.sessoes.filter(
         (s) => s.alunoId === alunoId && s.exerciseId === exerciseId
@@ -2645,6 +2690,7 @@ const rotas: [string, RegExp, Handler][] = [
       // Os agregados do aluno saem das sessões na hora (linhaDoAluno):
       // não há número guardado para atualizar.
       dados.sessoes.push(nova);
+      if (tentativa) tentativasGravadas.set(chaveTentativa, nova.id);
 
       return { ...nova, recordePessoal: nova.wpm > melhorAntes };
     },

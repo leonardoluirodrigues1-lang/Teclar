@@ -54,7 +54,7 @@ export class AtribuicoesService {
       // em ordem alfabética, e o id para dois títulos iguais.
       orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
-    const totalAlunos = await this.banco.alunos.count({ where: { ClassID: turmaId, Ativo: true } });
+    const totalAlunos = await this.banco.alunosturmas.count({ where: { ClassID: turmaId, Ativo: true } });
     const concluintes = await this.concluintesPorExercicio(turmaId);
 
     return atribuicoes.map((linha) => ({
@@ -124,7 +124,7 @@ export class AtribuicoesService {
   // exercício. Aluno que concluiu duas vezes conta uma.
   private async concluintesPorExercicio(turmaId: string): Promise<Map<string, number>> {
     const pares = await this.banco.sessionsprof.findMany({
-      where: { ClassID: turmaId, Concluida: true, alunos: { Ativo: true } },
+      where: { ClassID: turmaId, Concluida: true, alunosturmas: { Ativo: true } },
       select: { ExerciseID: true, AlunoID: true },
       distinct: ['ExerciseID', 'AlunoID'],
     });

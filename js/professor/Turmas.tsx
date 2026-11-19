@@ -310,7 +310,8 @@ function Turmas() {
           valor=""
           rotuloAcao="Criar turma"
           textoOcupado="Criando…"
-          enviar={(nome) => api.turmas.criar(nome)}
+          comSemestre
+          enviar={(nome, semestre) => api.turmas.criar(nome, semestre)}
           aoConcluir={(nova) => aoCriar(nova, modal.opener)}
           aoFechar={fechar}
         />
@@ -709,7 +710,9 @@ interface PropsModalNome {
   valor: string;
   rotuloAcao: string;
   textoOcupado: string;
-  enviar: (nome: string) => Promise<Turma>;
+  /** Mostra o seletor de semestre (só ao criar: o back exige o semestre). */
+  comSemestre?: boolean;
+  enviar: (nome: string, semestre: 1 | 2) => Promise<Turma>;
   aoConcluir: (resposta: Turma) => void;
   aoFechar: () => void;
 }
@@ -720,6 +723,7 @@ function ModalNome({
   valor,
   rotuloAcao,
   textoOcupado,
+  comSemestre = false,
   enviar,
   aoConcluir,
   aoFechar,
@@ -729,6 +733,8 @@ function ModalNome({
   const [id] = useState(() => `campo-turma-${Date.now().toString(36)}`);
 
   const [nome, setNome] = useState(valor);
+  // Começa no semestre do calendário (jan–jun = 1º); o professor troca se preciso.
+  const [semestre, setSemestre] = useState<1 | 2>(() => (new Date().getMonth() < 6 ? 1 : 2));
   const [erro, setErro] = useState<string | null>(null);
   // Uma requisição por vez: segura o clique repetido e o Enter repetido.
   // O ref é a trava síncrona; o estado é o que o botão mostra.
@@ -750,7 +756,7 @@ function ModalNome({
     setErro(null);
 
     try {
-      const resposta = await enviar(nome.trim());
+      const resposta = await enviar(nome.trim(), semestre);
       modal.current?.fechar();
       aoConcluir(resposta);
     } catch (excecao) {
@@ -816,6 +822,20 @@ function ModalNome({
         <p className="erro-campo" id={`${id}-erro`} aria-live="polite">
           {erro}
         </p>
+        {comSemestre && (
+          <>
+            <label htmlFor={`${id}-semestre`}>Semestre</label>
+            <select
+              id={`${id}-semestre`}
+              value={semestre}
+              disabled={ocupado}
+              onChange={(evento) => setSemestre(evento.target.value === '2' ? 2 : 1)}
+            >
+              <option value="1">1º semestre</option>
+              <option value="2">2º semestre</option>
+            </select>
+          </>
+        )}
       </form>
     </Modal>
   );

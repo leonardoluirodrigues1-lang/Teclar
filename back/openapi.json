@@ -8,7 +8,7 @@
   "tags": [
     {
       "name": "Autenticação",
-      "description": "Um login para as duas tabelas: Users entra por e-mail; Alunos entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
+      "description": "Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
     },
     {
       "name": "Solo",
@@ -16,11 +16,11 @@
     },
     {
       "name": "Turmas (professor)",
-      "description": "Mundo ESCOLA, lado do professor. A turma é da conta do token (Turmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não existe, para não confirmar a quem tenta ids que ela existe."
+      "description": "Mundo ESCOLA, lado do professor. A turma é da conta do token (professoresturmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não existe, para não confirmar a quem tenta ids que ela existe."
     },
     {
       "name": "Alunos (professor)",
-      "description": "O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha de Alunos, porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id. O aluno não tem e-mail, então não existe \"esqueci minha senha\" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar)."
+      "description": "O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha da matrícula (alunosturmas.AlunoID), porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id. O aluno não tem e-mail, então não existe \"esqueci minha senha\" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar)."
     },
     {
       "name": "Relatórios (professor)",
@@ -36,11 +36,11 @@
     },
     {
       "name": "Aluno",
-      "description": "O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo \"Alunos\", que é o PROFESSOR administrando a turma dele. Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe id de aluno na URL: não existe caminho — nem por URL editada à mão — para um aluno pedir o histórico, a sala ou o relatório de outro. · Token de conta é 403 TIPO_INVALIDO. · Na v8 o aluno está em UMA turma só (Alunos.ClassID): as listas daqui têm no máximo uma sala, e :turmaId que não é a dele responde 404, e não 403 — o 403 diria \"essa turma existe, só não é sua\". `escola.aluno`, e não só `aluno`: é o aluno do mundo Escola. O Solo é da conta, e mora em `solo`."
+      "description": "O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo \"Alunos\", que é o PROFESSOR administrando a turma dele. Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (alunosturmas.AlunoID). Nenhuma rota recebe id de aluno na URL: não existe caminho — nem por URL editada à mão — para um aluno pedir o histórico, a sala ou o relatório de outro. · Token de conta é 403 TIPO_INVALIDO. · Na v10 cada AlunoID tem UMA matrícula (alunosturmas.ClassID): as listas daqui têm no máximo uma sala, e :turmaId que não é a dele responde 404, e não 403 — o 403 diria \"essa turma existe, só não é sua\". `escola.aluno`, e não só `aluno`: é o aluno do mundo Escola. O Solo é da conta, e mora em `solo`."
     },
     {
       "name": "Administração",
-      "description": "Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco."
+      "description": "Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v10); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco."
     }
   ],
   "paths": {
@@ -51,7 +51,7 @@
         ],
         "operationId": "auth.entrar",
         "summary": "entrar: RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha",
-        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.",
+        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.",
         "parameters": [],
         "requestBody": {
           "description": "Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)",
@@ -828,7 +828,8 @@
                     "acertos": 304,
                     "erros": 3,
                     "tempo_gasto_segundos": 96,
-                    "concluida": true
+                    "concluida": true,
+                    "tentativa_id": "0b6c…"
                   }
                 }
               }
@@ -857,7 +858,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)",
+            "description": "`DADOS_INVALIDOS` — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1172,7 +1173,7 @@
         ],
         "operationId": "turmas.listar_turmas.listarArquivadas",
         "summary": "listar / listarArquivadas",
-        "description": "### listar\n\n**Chamada no front:** `api.turmas.listar`\n\n**Resposta:** 200 Turma[] — só as com ativa = true, array puro (lista curta)\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\ntotalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.\n\n### listarArquivadas\n\n**Chamada no front:** `api.turmas.listarArquivadas`\n\n**Resposta:** 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas\n\n**Identidade:**\n\nO token, como em GET /turmas.\n\n**Notas:**\n\nÉ a mesma rota de listar(); só o filtro muda. Serve ao \"Mostrar arquivadas\" da tela de turmas.",
+        "description": "### listar\n\n**Chamada no front:** `api.turmas.listar`\n\n**Resposta:** 200 Turma[] — só as com ativa = true, array puro (lista curta)\n\n**Identidade:**\n\nO token: vínculo em professoresturmas (ProfessorID = conta do token).\n\n**Regras de negócio no back (a tela não calcula):**\n\ntotalAlunos = COUNT em alunosturmas (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.\n\n### listarArquivadas\n\n**Chamada no front:** `api.turmas.listarArquivadas`\n\n**Resposta:** 200 Turma[] — só as arquivadas (Turmas.Ativa = false), mesma forma de item de GET /turmas\n\n**Identidade:**\n\nO token, como em GET /turmas.\n\n**Notas:**\n\nÉ a mesma rota de listar(); só o filtro muda. Serve ao \"Mostrar arquivadas\" da tela de turmas.",
         "parameters": [
           {
             "name": "ativa",
@@ -1272,10 +1273,10 @@
         ],
         "operationId": "turmas.criar",
         "summary": "criar: Turma — já na forma de um item de GET /turmas",
-        "description": "**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. professorId no corpo é recusado com 400, nunca ignorado: ignorar faria quem mandou achar que escolheu o professor.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.\n\n**Notas:**\n\nSem ano e semestre, a turma vem sem `periodo`. O nome só é único entre as turmas ATIVAS da conta (a mesma regra de Categorias): turma arquivada não bloqueia o nome, e o professor recria \"9º Ano A — Manhã\" no ano seguinte.",
+        "description": "**Chamada no front:** `api.turmas.criar`\n\n**Corpo:** { nome, semestre, ano? } — nome com 3 a 100 caracteres; semestre (1 ou 2) obrigatório; ano opcional\n\n**Resposta:** 200 Turma — já na forma de um item de GET /turmas\n\n**Identidade:**\n\nO token vira o ProfessorID. professorId no corpo é recusado com 400, nunca ignorado: ignorar faria quem mandou achar que escolheu o professor.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNasce com Ativa = true e código de 6 caracteres de A-Z e 2-9, sem I, O, 0 e 1, único (ClassesProf.Codigo é UNIQUE). Grava ano e semestre em ClassesProf.Ano e Semestre (NULL quando não vêm) e monta `periodo` com eles.\n\n**Notas:**\n\nSem ano e semestre, a turma vem sem `periodo`. O nome só é único entre as turmas ATIVAS da conta (a mesma regra de Categorias): turma arquivada não bloqueia o nome, e o professor recria \"9º Ano A — Manhã\" no ano seguinte.",
         "parameters": [],
         "requestBody": {
-          "description": "{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais",
+          "description": "{ nome, semestre, ano? } — nome com 3 a 100 caracteres; semestre (1 ou 2) obrigatório; ano opcional",
           "content": {
             "application/json": {
               "schema": {
@@ -1319,7 +1320,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)",
+            "description": "`DADOS_INVALIDOS` — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre ausente ou diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)",
             "content": {
               "application/json": {
                 "examples": {
@@ -1782,7 +1783,7 @@
         ],
         "operationId": "turmas.atribuicoes",
         "summary": "atribuicoes: AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
-        "description": "**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
+        "description": "**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
         "parameters": [
           {
             "name": "id",
@@ -2051,7 +2052,7 @@
         ],
         "operationId": "alunos.daTurma",
         "summary": "daTurma: Aluno[] — os alunos da turma, na ordem alfabética do nome",
-        "description": "**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAlunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
+        "description": "**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
         "parameters": [
           {
             "name": "id",
@@ -2144,7 +2145,7 @@
         ],
         "operationId": "alunos.importar",
         "summary": "importar: ResultadoImportacao — cada nome cai numa das três listas",
-        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
+        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
         "parameters": [
           {
             "name": "id",
@@ -2282,7 +2283,7 @@
         ],
         "operationId": "alunos.remover",
         "summary": "remover: (sem corpo)",
-        "description": "**Chamada no front:** `api.alunos.remover`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga a linha de Alunos; as sessões dele vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.",
+        "description": "**Chamada no front:** `api.alunos.remover`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga o ID em alunos; a matrícula (alunosturmas) e as sessões vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.",
         "parameters": [
           {
             "name": "id",
@@ -2352,7 +2353,7 @@
         ],
         "operationId": "alunos.zerarSenha",
         "summary": "zerarSenha: (sem corpo)",
-        "description": "**Chamada no front:** `api.alunos.zerarSenha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.\n\n**Notas:**\n\nAté o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.",
+        "description": "**Chamada no front:** `api.alunos.zerarSenha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.\n\n**Notas:**\n\nAté o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.",
         "parameters": [
           {
             "name": "id",
@@ -2601,7 +2602,7 @@
         ],
         "operationId": "relatorios.porAluno",
         "summary": "porAluno: RelatorioAluno[] — uma linha por aluno da turma, inclusive quem nunca treinou",
-        "description": "**Chamada no front:** `api.relatorios.porAluno`\n\n**Resposta:** 200 RelatorioAluno[] — uma linha por aluno da turma, inclusive quem nunca treinou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAlunos com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos (agregados de todas as sessões dele na turma) mais exerciciosConcluidos (exercícios distintos concluídos, inclusive arquivados ou tirados da turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca treinou: totalSessoes 0 e médias null.",
+        "description": "**Chamada no front:** `api.relatorios.porAluno`\n\n**Resposta:** 200 RelatorioAluno[] — uma linha por aluno da turma, inclusive quem nunca treinou\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosturmas com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos (agregados de todas as sessões dele na turma) mais exerciciosConcluidos (exercícios distintos concluídos, inclusive arquivados ou tirados da turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca treinou: totalSessoes 0 e médias null.",
         "parameters": [
           {
             "name": "id",
@@ -2868,7 +2869,7 @@
         ],
         "operationId": "exercicios.listar",
         "summary": "listar: Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()",
-        "description": "**Chamada no front:** `api.exercicios.listar`\n\n**Resposta:** 200 Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()\n\n**Identidade:**\n\nO token: WHERE ProfessorID = conta do token.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.\n\n**Notas:**\n\nSem tamanho de página definido: vem tudo, com pagina = 1.",
+        "description": "**Chamada no front:** `api.exercicios.listar`\n\n**Resposta:** 200 Paginado<Exercicio> — paginado no contrato; quem lê passa por desembrulhar()\n\n**Identidade:**\n\nO token: vínculo em professoresturmas (ProfessorID = conta do token).\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está atribuído (COUNT em AtribuicoesProf). A tela não conta.\n\n**Notas:**\n\nSem tamanho de página definido: vem tudo, com pagina = 1.",
         "parameters": [],
         "responses": {
           "200": {
@@ -3051,7 +3052,7 @@
         ],
         "operationId": "exercicios.obter",
         "summary": "obter: ExercicioDetalhe — mesma forma de um item da listagem",
-        "description": "**Chamada no front:** `api.exercicios.obter`\n\n**Resposta:** 200 ExercicioDetalhe — mesma forma de um item da listagem\n\n**Identidade:**\n\nConta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.\n\n**Notas:**\n\nA mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.",
+        "description": "**Chamada no front:** `api.exercicios.obter`\n\n**Resposta:** 200 ExercicioDetalhe — mesma forma de um item da listagem\n\n**Identidade:**\n\nConta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.\n\n**Notas:**\n\nA mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.",
         "parameters": [
           {
             "name": "id",
@@ -3314,7 +3315,7 @@
         ],
         "operationId": "sessoes.registrar",
         "summary": "registrar: RespostaSessaoEscola — a sessão gravada mais o recorde",
-        "description": "**Chamada no front:** `api.sessoes.registrar`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma\n\n**Resposta:** 200 RespostaSessaoEscola — a sessão gravada mais o recorde\n\n**Identidade:**\n\nO token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.\n\n**Regras de negócio no back (a tela não calcula):**\n\nrecordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem arredondado, então tempo 0) é gravada com PPM 0: sem velocidade mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.\n\n**Notas:**\n\nusuario_id, alunoId e professorId no corpo são recusados com 400, nunca ignorados.",
+        "description": "**Chamada no front:** `api.sessoes.registrar`\n\n**Corpo:** DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma\n\n**Resposta:** 200 RespostaSessaoEscola — a sessão gravada mais o recorde\n\n**Identidade:**\n\nO token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (alunosturmas.ClassID); turma_id no corpo tem de ser ela.\n\n**Regras de negócio no back (a tela não calcula):**\n\nrecordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem arredondado, então tempo 0) é gravada com PPM 0: sem velocidade mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.\n\n**Notas:**\n\nusuario_id, alunoId e professorId no corpo são recusados com 400, nunca ignorados.",
         "parameters": [],
         "requestBody": {
           "description": "DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma",
@@ -3334,7 +3335,8 @@
                     "acertos": 308,
                     "erros": 9,
                     "tempo_gasto_segundos": 88,
-                    "concluida": true
+                    "concluida": true,
+                    "tentativa_id": "0b6c…"
                   }
                 }
               }
@@ -3369,7 +3371,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)",
+            "description": "`DADOS_INVALIDOS` — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)",
             "content": {
               "application/json": {
                 "examples": {
@@ -3707,7 +3709,7 @@
         ],
         "operationId": "escola.aluno.salas",
         "summary": "salas: SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele",
-        "description": "**Chamada no front:** `api.escola.aluno.salas`\n\n**Resposta:** 200 SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.\n\n**Notas:**\n\nLista com no máximo um item.",
+        "description": "**Chamada no front:** `api.escola.aluno.salas`\n\n**Resposta:** 200 SalaDoAluno[] — a turma dele (uma só; nenhuma se estiver arquivada), com o progresso dele\n\n**Identidade:**\n\nO token. Não recebe id.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA turma de alunosturmas.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.\n\n**Notas:**\n\nLista com no máximo um item.",
         "parameters": [],
         "responses": {
           "200": {
@@ -3892,7 +3894,7 @@
         ],
         "operationId": "escola.aluno.desempenhoNaTurma",
         "summary": "desempenhoNaTurma: DesempenhoNaTurma — o relatório individual dele NA sala",
-        "description": "**Chamada no front:** `api.escola.aluno.desempenhoNaTurma`\n\n**Resposta:** 200 DesempenhoNaTurma — o relatório individual dele NA sala\n\n**Identidade:**\n\nO token. O :turmaId é da turma, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null.",
+        "description": "**Chamada no front:** `api.escola.aluno.desempenhoNaTurma`\n\n**Resposta:** 200 DesempenhoNaTurma — o relatório individual dele NA sala\n\n**Identidade:**\n\nO token. O :turmaId é da turma, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nSó sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null. nivelAtual = 1 + floor(licoes / K), K = Configuracoes.licoes_por_nivel; proximoMarco = nivelAtual * K. licoes conta os exercícios distintos concluídos, inclusive os de atribuição retirada. O nível vem sempre; o mínimo de 3 sessões vale só para as médias.",
         "parameters": [
           {
             "name": "turmaId",
@@ -3914,6 +3916,8 @@
                     "value": {
                       "sessoesConcluidas": 9,
                       "licoes": 2,
+                      "nivelAtual": 1,
+                      "proximoMarco": 3,
                       "diasSeguidos": 3,
                       "minhaMedia": {
                         "velocidade": 40,
@@ -3930,6 +3934,8 @@
                     "value": {
                       "sessoesConcluidas": 2,
                       "licoes": 2,
+                      "nivelAtual": 1,
+                      "proximoMarco": 3,
                       "diasSeguidos": 0,
                       "minhaMedia": null,
                       "mediaSala": null
@@ -4502,7 +4508,8 @@
                       "wpmMeta": 40,
                       "precisaoMinima": 90,
                       "tempoLimitePadrao": 60,
-                      "xpPorNivel": 200
+                      "xpPorNivel": 200,
+                      "licoesPorNivel": 3
                     }
                   }
                 }
@@ -4570,7 +4577,8 @@
                       "wpmMeta": 45,
                       "precisaoMinima": 90,
                       "tempoLimitePadrao": 60,
-                      "xpPorNivel": 200
+                      "xpPorNivel": 200,
+                      "licoesPorNivel": 3
                     }
                   }
                 }
@@ -4578,7 +4586,7 @@
             }
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima",
+            "description": "`DADOS_INVALIDOS` — campo que não é um dos cinco, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel e licoesPorNivel de 1 para cima",
             "content": {
               "application/json": {
                 "examples": {

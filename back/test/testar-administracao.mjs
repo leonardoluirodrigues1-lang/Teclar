@@ -87,10 +87,11 @@ confere(
 
 const parametrosNoComeco = (await chamar('GET', '/parametros', null, aluno)).corpo;
 confere(
-  'GET /parametros: aluno lê os quatro, como números (xpPorNivel 200 do banco v9)',
-  Object.keys(parametrosNoComeco).join() === 'wpmMeta,precisaoMinima,tempoLimitePadrao,xpPorNivel' &&
+  'GET /parametros: aluno lê os cinco, como números (xpPorNivel 200 e licoesPorNivel 3 do banco v10)',
+  Object.keys(parametrosNoComeco).join() === 'wpmMeta,precisaoMinima,tempoLimitePadrao,xpPorNivel,licoesPorNivel' &&
     Object.values(parametrosNoComeco).every((v) => typeof v === 'number') &&
-    parametrosNoComeco.xpPorNivel === 200,
+    parametrosNoComeco.xpPorNivel === 200 &&
+    parametrosNoComeco.licoesPorNivel === 3,
 );
 
 // ============================================================================
@@ -234,6 +235,8 @@ const PARAMETROS_INVALIDOS = [
   ['tempoLimitePadrao 3601', { tempoLimitePadrao: 3601 }],
   ['tempoLimitePadrao -1', { tempoLimitePadrao: -1 }],
   ['xpPorNivel 0 (é divisor do nível)', { xpPorNivel: 0 }],
+  ['licoesPorNivel 0 (é divisor do nível escolar)', { licoesPorNivel: 0 }],
+  ['licoesPorNivel 2,5', { licoesPorNivel: 2.5 }],
   ['campo desconhecido "xpNivel"', { xpNivel: 300 }],
   ['campo "toString" (vem do protótipo)', { toString: 1 }],
   ['um campo válido junto com um inválido', { wpmMeta: 50, xpPorNivel: 0 }],
