@@ -24,6 +24,7 @@ import type { Paginado } from '../relatorios/relatorios.service.js';
 import { contarDiasSeguidos, diaDe } from '../sessoes/dias-seguidos.js';
 import { atribuicoesDaSala, estaBloqueada, sequenciaDaSala } from '../sessoes/liberacao.js';
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
+import { lerLicoesPorNivel, nivelDe } from '../sessoes/nivel-escolar.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 
 // Uma linha do histórico (SessaoDoHistorico no front): a sessão, a turma,
@@ -184,14 +185,10 @@ export class AlunoService {
     const linhas = await this.banco.sessionsprof.findMany({ where: { AlunoID: alunoId, ClassID: turmaId } });
     const concluidas = linhas.map(sessaoNaForma).filter((sessao) => sessao.concluida);
     // Exercícios DIFERENTES concluídos, inclusive os de atribuição já retirada.
-    const licoes = new Set(concluidas.map((sessao) => sessao.exerciseId)).size;
-    const porNivel = await this.lerLicoesPorNivel();
-    const nivelAtual = 1 + Math.floor(licoes / porNivel);
+    const nivel = nivelDe(new Set(concluidas.map((sessao) => sessao.exerciseId)).size, await lerLicoesPorNivel(this.banco));
     const resposta: DesempenhoNaTurma = {
       sessoesConcluidas: concluidas.length,
-      licoes,
-      nivelAtual,
-      proximoMarco: nivelAtual * porNivel,
+      ...nivel,
       diasSeguidos: contarDiasSeguidos(linhas),
       minhaMedia: null,
       mediaSala: null,
@@ -215,17 +212,6 @@ export class AlunoService {
       precisao: arredondarOuNull(daSala._avg.Precisao),
     };
     return resposta;
-  }
-
-  // K do nível escolar. Sem a linha (ou inválida) o banco está incompleto:
-  // erro claro, como o xp_por_nivel do Solo. Veja o ALTER_v10_complementos.sql.
-  private async lerLicoesPorNivel(): Promise<number> {
-    const linha = await this.banco.configuracoes.findUnique({ where: { Chave: 'licoes_por_nivel' } });
-    const valor = Number(linha?.Valor);
-    if (!Number.isInteger(valor) || valor <= 0) {
-      throw new Error('Configuracoes.licoes_por_nivel ausente ou inválido. Veja o DB_Teclar_v10.sql.');
-    }
-    return valor;
   }
 
   // A turma, se for a do aluno e estiver ativa; senão 404. "Não é sua" e

@@ -767,6 +767,11 @@ function Treino({ usuario }: PropsTreino) {
         ? resultado.resposta
         : null;
     const recorde = resultado?.ok === true && resultado.resposta.recordePessoal === true;
+    // Aluno: nível escolar que o POST /sessoes devolve (o do Solo vem na recompensa).
+    const novoNivel =
+      modoTreino === 'aluno' && resultado?.ok === true && resultado.resposta.subiuDeNivel === true
+        ? resultado.resposta.nivelAtual
+        : null;
     const mensagemResultado =
       resultado?.enfileirada === true
         ? 'Sem conexão agora. A sessão foi guardada e será enviada quando a rede voltar.'
@@ -813,6 +818,7 @@ function Treino({ usuario }: PropsTreino) {
             </p>
           )}
           {recorde && <p>Novo recorde!</p>}
+          {novoNivel != null && <p>Você subiu para o Nível {novoNivel}!</p>}
           <BlocoDeMetricas
             wpm={metricas.wpm}
             precisao={metricas.precisao}

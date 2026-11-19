@@ -1328,13 +1328,14 @@ tentativa; reenviar o mesmo id na mesma turma devolve 200 com a sessão já grav
 
 **Resposta:**
 
-200 RespostaSessaoEscola — a sessão gravada mais o recorde
+200 RespostaSessaoEscola — a sessão gravada, o recorde e o nível escolar
 
 ```json
 { "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
   "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
   "acertos": 308, "erros": 9, "concluida": true,
-  "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }
+  "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true,
+  "nivelAtual": 2, "subiuDeNivel": true, "proximoMarco": 6 }
 ```
 
 **Erros:**
@@ -1351,7 +1352,7 @@ O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma
 
 **Regras de negócio no back (a tela não calcula):**
 
-recordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem arredondado, então tempo 0) é gravada com PPM 0: sem velocidade mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.
+recordePessoal (PPM maior que o melhor anterior dele no exercício) e os agregados do aluno, que passam a contar esta sessão. nivelAtual e proximoMarco pela mesma regra do GET /turmas/:turmaId/meu-desempenho (1 + floor(lições / licoes_por_nivel), lições = exercícios diferentes concluídos na turma), já contando esta sessão; subiuDeNivel quando ela fez o nível passar do anterior. Reenvio da mesma tentativa_id: o nível de agora, com subiuDeNivel e recordePessoal false. PPM, precisão, acertos e erros vêm do motor da tela e são gravados como chegaram; o back só confere que cabem nas colunas (WPM e Precisao são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem arredondado, então tempo 0) é gravada com PPM 0: sem velocidade mensurável, e o PPM alto não vira recorde nem puxa média. Na primeira sessão do aluno no exercício, o melhor anterior é 0. Exercício arquivado não recebe sessão nova, mas as antigas nele ficam.
 
 **Notas:**
 

@@ -1397,6 +1397,13 @@ function estadoDoExercicio(sessoes: Sessao[]): EstadoExercicioDaSala {
 
 // A regra de liberação, a mesma de back/src/sessoes/liberacao.ts: só a
 // primeira não concluída fica aberta; as concluídas podem ser refeitas.
+// Nível escolar: 1 + floor(licoes / licoes_por_nivel), como o back
+// (back/src/sessoes/nivel-escolar.ts). meu-desempenho e POST /sessoes.
+function nivelEscolar(licoes: number): { nivelAtual: number; proximoMarco: number } {
+  const nivelAtual = 1 + Math.floor(licoes / dados.parametros.licoesPorNivel);
+  return { nivelAtual, proximoMarco: nivelAtual * dados.parametros.licoesPorNivel };
+}
+
 function concluidasEntre(sessoes: { exerciseId: string; concluida: boolean }[]): Set<string> {
   return new Set(sessoes.filter((s) => s.concluida).map((s) => s.exerciseId));
 }
@@ -2582,12 +2589,10 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token): DesempenhoNaTurma => {
       const { turma, aluno } = salaDoToken(params[0], token);
       const meus = numerosNaSala(turma.id, aluno.id);
-      const nivelAtual = 1 + Math.floor(meus.licoes / dados.parametros.licoesPorNivel);
       const resposta: DesempenhoNaTurma = {
         sessoesConcluidas: meus.concluidas.length,
         licoes: meus.licoes,
-        nivelAtual,
-        proximoMarco: nivelAtual * dados.parametros.licoesPorNivel,
+        ...nivelEscolar(meus.licoes),
         diasSeguidos: meus.diasSeguidos,
         minhaMedia: null,
         mediaSala: null,
@@ -2667,12 +2672,16 @@ const rotas: [string, RegExp, Handler][] = [
       const tentativa = tentativaDoCorpo(corpo);
       const chaveTentativa = `escola:${turmaId}:${alunoId}:${tentativa}`;
       const jaGravada = tentativa ? dados.sessoes.find((s) => s.id === tentativasGravadas.get(chaveTentativa)) : undefined;
-      if (jaGravada) return { ...jaGravada, recordePessoal: false };
+      // Reenvio: o nível de agora, sem festa (a do 1º envio já foi).
+      if (jaGravada) {
+        return { ...jaGravada, recordePessoal: false, ...nivelEscolar(numerosNaSala(turmaId, alunoId).licoes), subiuDeNivel: false };
+      }
       exigirLiberada(exerciseId, idsDaSala(turmaId), concluidasEntre(sessoesNaSala(turmaId, alunoId)));
       const anteriores = dados.sessoes.filter(
         (s) => s.alunoId === alunoId && s.exerciseId === exerciseId
       );
       const melhorAntes = Math.max(0, ...anteriores.map((s) => s.wpm));
+      const nivelAntes = nivelEscolar(numerosNaSala(turmaId, alunoId).licoes).nivelAtual;
 
       const nova: Sessao = {
         id: gerarId('ses'),
@@ -2692,7 +2701,8 @@ const rotas: [string, RegExp, Handler][] = [
       dados.sessoes.push(nova);
       if (tentativa) tentativasGravadas.set(chaveTentativa, nova.id);
 
-      return { ...nova, recordePessoal: nova.wpm > melhorAntes };
+      const nivel = nivelEscolar(numerosNaSala(turmaId, alunoId).licoes);
+      return { ...nova, recordePessoal: nova.wpm > melhorAntes, ...nivel, subiuDeNivel: nivel.nivelAtual > nivelAntes };
     },
   ],
   // GET /sessoes e GET /sessoes/indicadores saíram daqui: eram a lista e o

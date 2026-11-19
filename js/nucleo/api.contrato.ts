@@ -742,11 +742,12 @@ grupo "Aluno", em /aluno/.`,
     "tentativa_id": "0b6c…" }
   tentativa_id (opcional, 1 a 100 caracteres): a fila de envio gera um por
   tentativa; reenviar o mesmo id na mesma turma devolve 200 com a sessão já gravada (o UNIQUE no banco garante isso até com envios simultâneos).`,
-        resposta: `200 RespostaSessaoEscola — a sessão gravada mais o recorde
+        resposta: `200 RespostaSessaoEscola — a sessão gravada, o recorde e o nível escolar
   { "id": "ses-31", "exerciseId": "ex-prof-7", "alunoId": "al-9f3k2",
     "turmaId": "turma-1", "wpm": 42, "precisao": 94, "tempoSegundos": 88,
     "acertos": 308, "erros": 9, "concluida": true,
-    "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true }`,
+    "data": "2026-10-03T14:20:00.000Z", "recordePessoal": true,
+    "nivelAtual": 2, "subiuDeNivel": true, "proximoMarco": 6 }`,
         erros: `400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
   401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
   403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
@@ -756,6 +757,12 @@ grupo "Aluno", em /aluno/.`,
   recebe a turma do aluno (alunosturmas.ClassID); turma_id no corpo tem de ser ela.`,
         back: `recordePessoal (PPM maior que o melhor anterior dele no
   exercício) e os agregados do aluno, que passam a contar esta sessão.
+  nivelAtual e proximoMarco pela mesma regra do GET
+  /turmas/:turmaId/meu-desempenho (1 + floor(lições / licoes_por_nivel),
+  lições = exercícios diferentes concluídos na turma), já contando esta
+  sessão; subiuDeNivel quando ela fez o nível passar do anterior. Reenvio
+  da mesma tentativa_id: o nível de agora, com subiuDeNivel e
+  recordePessoal false.
   PPM, precisão, acertos e erros vêm do motor da tela e são gravados
   como chegaram; o back só confere que cabem nas colunas (WPM e Precisao
   são DECIMAL(5,2), o resto INT). Sessão com menos de 1 s (o tempo vem

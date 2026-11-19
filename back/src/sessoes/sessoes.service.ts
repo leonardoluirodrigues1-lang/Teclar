@@ -11,6 +11,7 @@ import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { exigirLiberada, sequenciaDaSala } from './liberacao.js';
+import { licoesConcluidas, lerLicoesPorNivel, nivelDe } from './nivel-escolar.js';
 import { validarMedidas } from './medidas-da-sessao.js';
 import type { CorpoComMedidas } from './medidas-da-sessao.js';
 import { sessaoNaForma } from './sessao-escola.js';
@@ -34,8 +35,12 @@ export interface SessaoEscola extends Sessao {
   turmaId: string;
 }
 
+// Nível pela regra do meu-desempenho (nivel-escolar.ts), já com esta sessão.
 export interface RespostaSessaoEscola extends SessaoEscola {
   recordePessoal: boolean;
+  nivelAtual: number;
+  subiuDeNivel: boolean;
+  proximoMarco: number;
 }
 
 // A sessão do Solo (tabela SessionsSolo), como GET /sessoes/:id devolve
@@ -89,6 +94,8 @@ export class SessoesService {
     exigirLiberada(exercicioId, await sequenciaDaSala(this.banco, turmaId, aluno.AlunoID));
 
     const melhorAntes = await this.melhorPpmAnterior(aluno.AlunoID, exercicioId);
+    const licoesAntes = await licoesConcluidas(this.banco, aluno.AlunoID, turmaId);
+    const porNivel = await lerLicoesPorNivel(this.banco);
     let gravada: LinhaDeSessao;
     try {
       gravada = await this.banco.sessionsprof.create({
@@ -112,10 +119,21 @@ export class SessoesService {
       return original;
     }
     const sessao = sessaoEscolaNaForma(gravada);
+    // Nível: só sobe se esta sessão concluiu um exercício que ainda não
+    // contava como lição.
+    const antes = nivelDe(licoesAntes.size, porNivel);
+    const licoesDepois = sessao.concluida ? new Set(licoesAntes).add(exercicioId).size : licoesAntes.size;
+    const depois = nivelDe(licoesDepois, porNivel);
     // Recorde = PPM maior que o melhor anterior dele NESTE exercício. Na
     // primeira vez o "melhor anterior" é 0, como no mock: a primeira sessão
     // com PPM acima de zero já é recorde.
-    return { ...sessao, recordePessoal: sessao.wpm > melhorAntes };
+    return {
+      ...sessao,
+      recordePessoal: sessao.wpm > melhorAntes,
+      nivelAtual: depois.nivelAtual,
+      subiuDeNivel: depois.nivelAtual > antes.nivelAtual,
+      proximoMarco: depois.proximoMarco,
+    };
   }
 
   // GET /sessoes/:id. Só o DONO lê, e a tabela depende de quem pede:
@@ -162,15 +180,25 @@ export class SessoesService {
   }
 
   // A sessão já gravada com esta tentativa, na forma da resposta; null sem
-  // tentativa ou sem registro. recordePessoal false: o recorde foi do 1º envio.
-  private async tentativaGravada(turmaId: string, alunoId: string, tentativa: string | null) {
+  // tentativa ou sem registro. recordePessoal e subiuDeNivel false: a festa
+  // foi do 1º envio. O nível é o de agora.
+  private async tentativaGravada(
+    turmaId: string,
+    alunoId: string,
+    tentativa: string | null,
+  ): Promise<RespostaSessaoEscola | null> {
     if (tentativa === null) {
       return null;
     }
     const linha = await this.banco.sessionsprof.findFirst({
       where: { ClassID: turmaId, AlunoID: alunoId, TentativaID: tentativa },
     });
-    return linha ? { ...sessaoEscolaNaForma(linha), recordePessoal: false } : null;
+    if (!linha) {
+      return null;
+    }
+    const licoes = await licoesConcluidas(this.banco, alunoId, turmaId);
+    const { nivelAtual, proximoMarco } = nivelDe(licoes.size, await lerLicoesPorNivel(this.banco));
+    return { ...sessaoEscolaNaForma(linha), recordePessoal: false, nivelAtual, subiuDeNivel: false, proximoMarco };
   }
 
   // O exercício tem de estar atribuído à turma e não pode estar arquivado.

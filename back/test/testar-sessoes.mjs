@@ -1,7 +1,8 @@
 // testar-sessoes.mjs
 // Teste de fumaça das duas rotas de /sessoes, feito por HTTP (fetch) contra
 // o back rodando, sem navegador. Cobre:
-//   POST /sessoes — o aluno sai do token; recordePessoal; os agregados do
+//   POST /sessoes — o aluno sai do token; recordePessoal; nivelAtual,
+//     subiuDeNivel e proximoMarco (a regra do meu-desempenho); os agregados do
 //     aluno passam a contar a sessão; os 400 (ids de pessoa no corpo e
 //     medidas fora das colunas); 404 para turma que não é a dele, exercício
 //     não atribuído e exercício arquivado; 401 para turma arquivada depois
@@ -229,7 +230,8 @@ confere('resumo: a sessão sub-1 s não vira o melhor PPM (0, não 250)', r.stat
 // ============================================================================
 
 r = await chamar('GET', `/sessoes/${primeira.id}`, null, um);
-const { recordePessoal, ...semRecorde } = primeira;
+// recorde e nível são da resposta do POST, não da sessão.
+const { recordePessoal, nivelAtual, subiuDeNivel, proximoMarco, ...semRecorde } = primeira;
 confere('obter: o dono lê a sessão, igual à gravada', r.status === 200 && JSON.stringify(r.corpo) === JSON.stringify(semRecorde));
 r = await chamar('GET', `/sessoes/${primeira.id}`, null, dois);
 confere('obter: sessão de outro aluno 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
@@ -315,19 +317,31 @@ const abertosDaSala = async () => (await chamar('GET', `/aluno/salas/${turmaOrde
 confere('ordem: sem sessão, só o primeiro está aberto', (await abertosDaSala()) === o1.id);
 r = await chamar('POST', '/sessoes', noExercicio(o2), ordem);
 confere('ordem: pular o primeiro dá 403 ATIVIDADE_BLOQUEADA, com mensagem', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA') && typeof r.corpo.mensagem === 'string');
-await chamar('POST', '/sessoes', noExercicio(o1), ordem);
+r = await chamar('POST', '/sessoes', noExercicio(o1), ordem);
+// Nível escolar (licoes_por_nivel 3 no seed): 1 + floor(lições / 3).
+const nivelDe = (resposta) => [resposta.corpo.nivelAtual, resposta.corpo.subiuDeNivel, resposta.corpo.proximoMarco].join();
+confere('nível: 1ª lição concluída -> nível 1, não subiu, marco 3', nivelDe(r) === '1,false,3', r.corpo);
 r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
 confere('ordem: gravar na 3 sem concluir a 2 dá 403', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
 r = await chamar('POST', '/sessoes', noExercicio(o2, false), ordem);
 confere('ordem: o próximo aceita sessão com o tempo esgotado', r.status === 200);
+confere('nível: sessão não concluída não conta lição (1,false,3)', nivelDe(r) === '1,false,3', r.corpo);
 r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
 confere('ordem: tempo esgotado não libera o seguinte', ehErro(r, 403, 'ATIVIDADE_BLOQUEADA'));
 r = await chamar('POST', '/sessoes', noExercicio(o2), ordem);
 confere('ordem: concluir a 2 grava', r.status === 200);
-r = await chamar('POST', '/sessoes', noExercicio(o3), ordem);
+confere('nível: 2ª lição -> ainda nível 1 (1,false,3)', nivelDe(r) === '1,false,3', r.corpo);
+const subida = { ...noExercicio(o3), tentativa_id: `nivel-${agora}` };
+r = await chamar('POST', '/sessoes', subida, ordem);
 confere('ordem: concluída a 2, a 3 libera', r.status === 200);
+confere('nível: 3ª lição -> subiu para o nível 2, marco 6', nivelDe(r) === '2,true,6', r.corpo);
+r = await chamar('POST', '/sessoes', subida, ordem);
+confere('nível: reenvio da mesma tentativa_id -> nível 2 com subiuDeNivel false', nivelDe(r) === '2,false,6', r.corpo);
+const desempenho = (await chamar('GET', `/turmas/${turmaOrdem.id}/meu-desempenho`, null, ordem)).corpo;
+confere('nível: o mesmo do meu-desempenho', desempenho.nivelAtual === 2 && desempenho.proximoMarco === 6, desempenho);
 r = await chamar('POST', '/sessoes', noExercicio(o1), ordem);
 confere('ordem: voltar a um concluído é permitido', r.status === 200);
+confere('nível: refazer lição já contada não sobe (2,false,6)', nivelDe(r) === '2,false,6', r.corpo);
 confere('ordem: abertos os concluídos e o próximo', (await abertosDaSala()) === [o1.id, o2.id, o3.id, o4.id].join());
 
 // O atribuído depois entra no fim; o removido ou arquivado sai da sequência.

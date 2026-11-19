@@ -459,9 +459,14 @@ export interface Sessao {
   data: string;
 }
 
-/** Resposta de POST /sessoes: a sessão gravada mais o recorde. */
+/** Resposta de POST /sessoes: a sessão gravada, o recorde e o nível
+ *  escolar já contando ela (a regra do meu-desempenho). No reenvio da
+ *  mesma tentativa_id, subiuDeNivel e recordePessoal vêm false. */
 export interface RespostaSessaoEscola extends Sessao {
   recordePessoal: boolean;
+  nivelAtual: number;
+  subiuDeNivel: boolean;
+  proximoMarco: number;
 }
 
 /**
