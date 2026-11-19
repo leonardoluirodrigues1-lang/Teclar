@@ -155,9 +155,10 @@ await gravarSessao(rui, ex1, 60, 100, true, new Date());
 await gravarSessao(rui, ex2, 50, 90, true, emBrasilia(5, 12));
 await gravarSessao(rui, ex2, 40, 80, true, emBrasilia(6, 12));
 
-const tokenLia = await entrar({ codigo: turma.codigo, nome: 'Lia Souza', senha: 'senha1234' });
-const tokenRui = await entrar({ codigo: turma.codigo, nome: 'Rui Lopes', senha: 'senha1234' });
-const tokenBia = await entrar({ codigo: turma.codigo, nome: 'Bia Melo', senha: 'senha1234' });
+// Cada um entra com a senha provisória que a importação devolveu.
+const tokenLia = await entrar({ codigo: turma.codigo, nome: 'Lia Souza', senha: lia.senhaProvisoria });
+const tokenRui = await entrar({ codigo: turma.codigo, nome: 'Rui Lopes', senha: rui.senhaProvisoria });
+const tokenBia = await entrar({ codigo: turma.codigo, nome: 'Bia Melo', senha: bia.senhaProvisoria });
 
 // ============================================================================
 // 401, 403 e 404
@@ -395,8 +396,8 @@ await banco.atribuicoesprof.update({
   where: { ClassID_ExerciseID: { ClassID: turmaDoEmpate.id, ExerciseID: ex0.id } },
   data: { Data_Atribuicao: new Date(Date.now() + UM_DIA) },
 });
-await preparar('POST', `/turmas/${turmaDoEmpate.id}/alunos/importar`, { nomes: ['Ivo Teste'] }, prof);
-const tokenIvo = await entrar({ codigo: turmaDoEmpate.codigo, nome: 'Ivo Teste', senha: 'senha1234' });
+const [ivo] = (await preparar('POST', `/turmas/${turmaDoEmpate.id}/alunos/importar`, { nomes: ['Ivo Teste'] }, prof)).adicionados;
+const tokenIvo = await entrar({ codigo: turmaDoEmpate.codigo, nome: 'Ivo Teste', senha: ivo.senhaProvisoria });
 
 const ordemEsperada = [exA.id, exB.id, exC.id, ex0.id];
 r = await chamar('GET', `/aluno/salas/${turmaDoEmpate.id}`, null, tokenIvo);

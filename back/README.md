@@ -38,7 +38,7 @@ Ao implementar uma rota, ponha a chamada dela (ex.: `'conta.rp'`) na lista
 `ROTAS_IMPLEMENTADAS` do `gerar-contrato.mjs` e rode o comando acima: o
 "(ainda não implementada)" sai do resumo dela.
 
-O contrato tem 54 chamadas, e o Swagger mostra 50 rotas: o
+O contrato tem 55 chamadas, e o Swagger mostra 51 rotas: o
 `PATCH /turmas/:id` serve a quatro chamadas (renomear, trocar a capa,
 arquivar, desarquivar) e o `GET /turmas` a duas (com e sem
 `?ativa=false`). Cada uma dessas aparece uma vez, com as variantes
@@ -55,6 +55,8 @@ criado pelo `DB_Teclar_v10.sql` (na raiz do repositório).
 - **`teclardb_v10` já criado antes desses complementos:** rode uma vez o
   `ALTER_v10_complementos.sql` (o próprio arquivo diz como conferir os
   dados antes dos CHECKs) e depois o passo 2.
+- **`teclardb_v10` já criado antes da senha provisória do aluno:** rode
+  uma vez o `ALTER_v10_senha_provisoria.sql` e depois o passo 2.
 - **Banco v9 (`teclardb`):** não há migração. Ele só tinha dados de
   teste/demonstração; o deploy deve ser **recriado do zero** com
   `DB_Teclar_v10.sql` + `npm run seed`.
@@ -121,8 +123,8 @@ e nome não diferenciam maiúscula nem acento ("ana pires" entra).
 | `R8VD3K` | Ana Pires | `aluno2026` | Turma-2: o aluno de teste (3 sessões) |
 | `K7M2QX` | Ana Pires | `aluno2026` | Turma-1: **outra** Ana, outro histórico (2 sessões) |
 | `D6YG2S` | Ana Pires | `aluno2026` | Turma-5 (de leo): a terceira Ana |
-| `K7M2QX` | Davi Moreira | qualquer, de 4 a 20 caracteres | **Primeiro acesso**: SenhaHash NULL, a senha digitada é gravada |
-| `H3ZT6B` | Júlia Campos | qualquer, de 4 a 20 caracteres | **Primeiro acesso** |
+| `K7M2QX` | Davi Moreira | `davi26` (senha provisória) | **Primeiro acesso**: entra com a provisória e cai em "Crie sua senha". Uso único: para repetir a demo, rode `npm run seed` de novo (ou gere outra provisória na turma) |
+| `H3ZT6B` | Júlia Campos | nenhuma | Sem senha e sem provisória: não entra até o professor gerar uma ("Senha provisória" na turma) |
 
 Os outros alunos (Caio, Marina, Helena, os colegas do ranking da turma-2,
 Igor) também entram com `aluno2026`. A turma-8 (`P4WN8R`) está arquivada e
@@ -209,15 +211,22 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 
 **Aluno, turma e código**
 
+- O aluno entra a primeira vez com uma **senha provisória**: a importação
+  gera uma para cada aluno novo (6 letras e números, bcrypt em
+  `SenhaProvisoriaHash`, validade de 7 dias em `SenhaProvisoriaExpira`) e a
+  devolve em texto uma vez só, para o professor imprimir. O login com ela a
+  apaga (uso único) e responde `usuario.precisaTrocarSenha: true`; o aluno
+  cria a dele em `POST /aluno/senha`. Sem `SenhaHash` e sem provisória
+  válida, nenhuma senha entra.
 - O aluno não tem e-mail, então não existe "esqueci minha senha"
   automático. Quem desbloqueia é o professor, em
-  `POST /turmas/:id/alunos/:alunoId/zerar-senha`. Até o aluno entrar de
-  novo, qualquer um com o código e o nome dele pode criar a senha: a tela
-  avisa para zerar só com o aluno por perto.
+  `POST /turmas/:id/alunos/:alunoId/senha-provisoria`: a senha antiga deixa
+  de valer e sai uma provisória nova.
+- Banco já criado antes disso: rode `ALTER_v10_senha_provisoria.sql` (na
+  raiz) uma vez, antes do seed.
 - `POST /turmas/:id/codigo/novo` existe para o código que vaza (foto da
-  lousa no grupo errado): sem ele, qualquer um com o código e um nome da
-  lista faria o primeiro acesso no lugar do aluno. O código só diz qual é a
-  turma, por isso as senhas continuam valendo.
+  lousa no grupo errado). O código só diz qual é a turma, por isso as senhas
+  continuam valendo.
 - O código da turma não usa I, O, 0 e 1 porque eles se confundem ao ditar.
 - Turma é arquivada, nunca excluída: SessionsProf aponta para a turma com
   ON DELETE CASCADE, e apagar a turma apagaria o histórico de treino de

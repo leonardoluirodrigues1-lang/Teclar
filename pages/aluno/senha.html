@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclar &mdash; Crie sua senha</title>
+<meta name="description" content="Crie a sua senha do Teclar.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
+<link rel="stylesheet" href="../../css/base/movimento.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/toasts.css">
+<link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/base/reset.css">
+<link rel="stylesheet" href="../../css/auth.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+</head>
+<body>
+
+<div class="fundo grao" aria-hidden="true">
+  <div class="disco disco-canto-superior-esquerdo"></div>
+  <div class="fundo-estrelas"></div>
+</div>
+
+<header class="topo">
+  <a class="pilula-marca vidro tecla" href="../../index.html" aria-label="Voltar para a p&aacute;gina inicial">
+    <span class="seta" aria-hidden="true">&larr;</span>
+    <span class="marca">TECLAR</span>
+  </a>
+</header>
+
+<!-- O React monta o conte&uacute;do aqui dentro. A raiz &eacute; o pr&oacute;prio
+     <main class="tela"> de antes, para o CSS n&atilde;o mudar. -->
+<main id="raiz" class="tela entrada-da-pagina"></main>
+
+<!-- Host dos toasts ("Sua sess&atilde;o expirou"): js/componentes/toast.ts, fora da raiz. -->
+<div id="toasts"></div>
+
+<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
+<!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
+<script type="module" src="../../js/utils/respiracaoDaLuz.js"></script>
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
+<script type="module" src="../../js/aluno/Senha.js"></script>
+</body>
+</html>

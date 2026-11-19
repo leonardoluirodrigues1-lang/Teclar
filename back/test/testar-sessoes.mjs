@@ -82,12 +82,12 @@ const ex2 = await preparar('POST', '/exercicios', { titulo: `Teste ${agora} 2`, 
 await preparar('POST', `/turmas/${turmaA.id}/atribuicoes`, { exercicioIds: [ex1.id] }, prof);
 await preparar('POST', `/turmas/${turmaB.id}/atribuicoes`, { exercicioIds: [ex1.id] }, prof);
 const importadosA = await preparar('POST', `/turmas/${turmaA.id}/alunos/importar`, { nomes: ['Aluno Um', 'Aluno Dois'] }, prof);
-await preparar('POST', `/turmas/${turmaB.id}/alunos/importar`, { nomes: ['Aluno Três'] }, prof);
-const [alunoUm] = importadosA.adicionados;
-// O primeiro login de cada um grava a senha (primeiro acesso).
-const um = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Um', senha: 'um1234' });
-const dois = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Dois', senha: 'dois1234' });
-const tres = await entrar({ codigo: turmaB.codigo, nome: 'Aluno Três', senha: 'tres1234' });
+const importadosB = await preparar('POST', `/turmas/${turmaB.id}/alunos/importar`, { nomes: ['Aluno Três'] }, prof);
+const [alunoUm, alunoDois] = importadosA.adicionados;
+// Cada um entra com a senha provisória que a importação devolveu.
+const um = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Um', senha: alunoUm.senhaProvisoria });
+const dois = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Dois', senha: alunoDois.senhaProvisoria });
+const tres = await entrar({ codigo: turmaB.codigo, nome: 'Aluno Três', senha: importadosB.adicionados[0].senhaProvisoria });
 
 // Um corpo válido; cada caso de erro muda um pedaço dele.
 const SESSAO = {
@@ -218,8 +218,8 @@ confere('registrar: sessão legítima curta (5 s, 72 PPM) passa', r.status === 2
 // velocidade mensurável — e não vira recorde, nem o "melhor PPM" do resumo,
 // que olha também as não concluídas. Num aluno novo, para o melhor dele
 // começar em zero.
-await preparar('POST', `/turmas/${turmaA.id}/alunos/importar`, { nomes: ['Aluno Quatro'] }, prof);
-const quatro = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Quatro', senha: 'quatro1234' });
+const [alunoQuatro] = (await preparar('POST', `/turmas/${turmaA.id}/alunos/importar`, { nomes: ['Aluno Quatro'] }, prof)).adicionados;
+const quatro = await entrar({ codigo: turmaA.codigo, nome: 'Aluno Quatro', senha: alunoQuatro.senhaProvisoria });
 r = await chamar('POST', '/sessoes', { ...SESSAO, acertos: 20, erros: 0, tempo_gasto_segundos: 0, wpm: 250, concluida: false }, quatro);
 confere('registrar: abandonada sub-1 s com PPM 250 grava com PPM 0', r.status === 200 && r.corpo.wpm === 0 && r.corpo.recordePessoal === false);
 r = await chamar('GET', '/aluno/resumo', null, quatro);
@@ -309,8 +309,8 @@ for (const numero of [1, 2, 3, 4]) {
 }
 const [o1, o2, o3, o4] = exerciciosOrdem;
 await preparar('POST', `/turmas/${turmaOrdem.id}/atribuicoes`, { exercicioIds: [o1.id, o2.id, o3.id, o4.id] }, prof);
-await preparar('POST', `/turmas/${turmaOrdem.id}/alunos/importar`, { nomes: ['Aluno Ordem'] }, prof);
-const ordem = await entrar({ codigo: turmaOrdem.codigo, nome: 'Aluno Ordem', senha: 'ordem1234' });
+const [alunoOrdem] = (await preparar('POST', `/turmas/${turmaOrdem.id}/alunos/importar`, { nomes: ['Aluno Ordem'] }, prof)).adicionados;
+const ordem = await entrar({ codigo: turmaOrdem.codigo, nome: 'Aluno Ordem', senha: alunoOrdem.senhaProvisoria });
 const noExercicio = (exercicio, concluida = true) => ({ ...SESSAO, exercicio_id: exercicio.id, turma_id: turmaOrdem.id, concluida });
 const abertosDaSala = async () => (await chamar('GET', `/aluno/salas/${turmaOrdem.id}`, null, ordem)).corpo.lista.filter((ex) => !ex.bloqueada).map((ex) => ex.id).join();
 

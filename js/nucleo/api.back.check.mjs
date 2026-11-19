@@ -1,13 +1,13 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 54 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 55 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
 //
 // Cobre os três fluxos inteiros, cada um com uma conta nova:
 //   Professor: cadastro, turma, alunos, exercício, atribuição, relatório.
-//   Aluno:     primeiro acesso, treino (exercício + sessão), histórico, ranking.
+//   Aluno:     primeiro acesso (senha provisória e senha nova), treino (exercício + sessão), histórico, ranking.
 //   Solo:      cadastro, campanha, missões, sessão, histórico e estatísticas.
 // E, no fim, administração (com a conta admin do seed), a fila de sessões
 // quando a rede cai e o 401 que derruba a sessão.
@@ -135,8 +135,10 @@ await confereErro('turmas.obter de turma que não existe', api.turmas.obter('tur
 // Alunos: Bia vai treinar; Caio só ocupa lugar no ranking
 const importacao = await api.alunos.importar(turma.id, ['Bia Teste', 'Caio Teste', 'bia teste', '']);
 confere('alunos.importar adiciona dois e recusa repetido e vazio', importacao.adicionados.length === 2 && importacao.falhas.length === 2);
+confere('alunos.importar devolve a senha provisória de cada um', importacao.adicionados.every((a) => /^[a-z2-9]{6}$/.test(a.senhaProvisoria) && a.provisoriaAte === a.expiraEm));
+const provisoriaDaBia = importacao.adicionados.find((a) => a.nome === 'Bia Teste').senhaProvisoria;
 const alunos = await api.alunos.daTurma(turma.id);
-confere('alunos.daTurma em ordem alfabética, sem senha', alunos.map((a) => a.nome).join() === 'Bia Teste,Caio Teste' && alunos.every((a) => a.senhaDefinida === false));
+confere('alunos.daTurma em ordem alfabética, sem senha', alunos.map((a) => a.nome).join() === 'Bia Teste,Caio Teste' && alunos.every((a) => a.senhaDefinida === false && typeof a.provisoriaAte === 'string'));
 const bia = alunos[0];
 const caio = alunos[1];
 
@@ -170,9 +172,13 @@ await confereErro('sessoes.registrar com token de conta', api.sessoes.registrar(
 
 await api.auth.sair();
 sessao.sair();
-await confereErro('auth.entrar (aluno) com o código antigo', api.auth.entrar({ codigo: turma.codigo, nome: 'Bia Teste', senha: 'bia2026' }), 401, 'CREDENCIAIS');
-const loginBia = await entrarCom(api.auth.entrar({ codigo, nome: 'bia  teste', senha: 'bia2026' }));
-confere('primeiro acesso do aluno', loginBia.primeiroAcesso === true && loginBia.usuario.tipo === 'aluno');
+await confereErro('auth.entrar (aluno) com o código antigo', api.auth.entrar({ codigo: turma.codigo, nome: 'Bia Teste', senha: provisoriaDaBia }), 401, 'CREDENCIAIS');
+await confereErro('auth.entrar (aluno) sem senha própria, senha qualquer', api.auth.entrar({ codigo, nome: 'Bia Teste', senha: 'bia2026' }), 401, 'CREDENCIAIS');
+const loginBia = await entrarCom(api.auth.entrar({ codigo, nome: 'bia  teste', senha: provisoriaDaBia }));
+confere('primeiro acesso: entra com a provisória e precisaTrocarSenha', loginBia.usuario.precisaTrocarSenha === true && loginBia.usuario.tipo === 'aluno');
+confere('escola.aluno.criarSenha devolve null (204)', (await api.escola.aluno.criarSenha('bia2026')) === null);
+await confereErro('escola.aluno.criarSenha de novo', api.escola.aluno.criarSenha('outra2026'), 409, 'SENHA_JA_CRIADA');
+confere('auth.eu sem precisaTrocarSenha depois de criar', !('precisaTrocarSenha' in (await api.auth.eu())));
 confere('a turma do aluno vem no login (sessao.turmaAtiva)', sessao.turmaAtiva() === turma.id);
 
 const salas = await api.escola.aluno.salas();
@@ -223,7 +229,8 @@ confere('relatorios.sessoesDoAluno com título', sessoesBia.total === 2 && sesso
 confere('alunos.desempenho', (await api.alunos.desempenho(turma.id, bia.id)).totalSessoes === 2);
 confere('turmas.atribuicoes conta a Bia como concluinte', (await api.turmas.atribuicoes(turma.id))[0].concluidoPor === 1);
 confere('turmas.obter: ppmMedio de quem treinou', (await api.turmas.obter(turma.id)).ppmMedio === 35);
-confere('alunos.zerarSenha devolve null (204)', (await api.alunos.zerarSenha(turma.id, bia.id)) === null);
+const gerada = await api.alunos.gerarSenhaProvisoria(turma.id, bia.id);
+confere('alunos.gerarSenhaProvisoria devolve a senha e a validade', /^[a-z2-9]{6}$/.test(gerada.senhaProvisoria) && !Number.isNaN(Date.parse(gerada.expiraEm)));
 confere('alunos.remover devolve null (204)', (await api.alunos.remover(turma.id, caio.id)) === null);
 confere('alunos.daTurma sem o removido', (await api.alunos.daTurma(turma.id)).length === 1);
 await confereErro('alunos.remover de quem já saiu', api.alunos.remover(turma.id, caio.id), 404, 'NAO_ENCONTRADO');
@@ -359,4 +366,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 54 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 55 funções do api.ts contra o back.`);

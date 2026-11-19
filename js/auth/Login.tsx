@@ -27,7 +27,7 @@ import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
-import { Modal } from '../componentes/ModalReact.js';
+
 import type { RespostaLogin } from '../nucleo/tipos.js';
 import {
   validarEmail,
@@ -71,7 +71,7 @@ function Login() {
   // Primeiro acesso do aluno: a senha que ele digitou acabou de ser gravada.
   // O aviso fica entre o login e o dashboard, porque ele não tem e-mail para
   // recuperar a senha: se esquecer, só o professor desbloqueia.
-  const [avisoPrimeiroAcesso, setAvisoPrimeiroAcesso] = useState(false);
+
 
   const email = useRef<HTMLInputElement>(null);
   const senha = useRef<HTMLInputElement>(null);
@@ -206,11 +206,8 @@ function Login() {
       // O `tipo` da resposta (conta ou aluno) é o que roteia: o
       // guarda.entrar() lê daí o destino: aluno na sala dele, conta na tela de modo.
       sessao.entrar(resposta);
-      if (resposta.primeiroAcesso) {
-        // Quem sai da tela é o "Continuar" do aviso (ver aoFechar abaixo).
-        setAvisoPrimeiroAcesso(true);
-        return;
-      }
+      // Aluno que entrou com a senha provisória vai para "Crie sua senha"
+      // (o guarda decide, pelo usuario.precisaTrocarSenha).
       guarda.entrar();
       // Não libera o botão: a página está sendo substituída.
     } catch (excecao) {
@@ -289,7 +286,7 @@ function Login() {
         <h1 id="titulo-aluno">Entrar</h1>
         <p className="descricao">
           Digite o código que o professor passou e o seu nome completo, igual ao da chamada. Na primeira vez,
-          invente uma senha (de 4 a 20 letras ou números) e guarde.
+          use a senha que o professor te deu. Depois você cria a sua.
         </p>
 
         <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
@@ -368,19 +365,6 @@ function Login() {
         </button>
       </section>
 
-      {/* Linguagem de criança: frases curtas, nada de "senha cadastrada".
-          Esc também fecha, e fechar de qualquer jeito segue para o dashboard. */}
-      {avisoPrimeiroAcesso && (
-        <Modal
-          eyebrow="Primeira vez"
-          titulo="Essa é a sua senha agora"
-          acoes={[{ rotulo: 'Continuar', principal: true }]}
-          aoFechar={() => guarda.entrar()}
-        >
-          <p>Você vai usar essa senha toda vez que entrar.</p>
-          <p>Guarde bem. Se esquecer, peça ajuda ao professor.</p>
-        </Modal>
-      )}
     </div>
   );
 }

@@ -167,6 +167,8 @@ model alunosturmas {
   AlunoID       String         @unique(map: "uq_alunos_turmas_aluno") @db.VarChar(100)
   Nome          String         @db.VarChar(150)
   SenhaHash     String?        @db.VarChar(255)
+  SenhaProvisoriaHash   String?   @db.VarChar(255)
+  SenhaProvisoriaExpira DateTime? @db.Timestamp(0)
   Data_Cadastro DateTime?      @default(now()) @db.Timestamp(0)
   Ativo         Boolean        @default(true)
   alunos        alunos         @relation(fields: [AlunoID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "fk_alunos_turmas_aluno")

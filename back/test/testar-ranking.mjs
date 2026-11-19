@@ -138,10 +138,10 @@ await gravarSessao(tito, ex1, 30, true, 5);
 await gravarSessao(tito, ex1, 34, true, 4);
 await gravarSessao(ugo, ex1, 20, false, 1);
 
-// O primeiro login de cada um grava a senha (primeiro acesso).
+// Cada um entra com a senha provisória que a importação devolveu.
 const tokens = {};
-for (const nome of NOMES) {
-  tokens[nome] = await entrar({ codigo: turma.codigo, nome, senha: 'senha1234' });
+for (const aluno of importados.adicionados) {
+  tokens[aluno.nome] = await entrar({ codigo: turma.codigo, nome: aluno.nome, senha: aluno.senhaProvisoria });
 }
 const rota = `/turmas/${turma.id}/ranking`;
 

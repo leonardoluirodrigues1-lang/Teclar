@@ -45,10 +45,10 @@
 //                                      exercício, e só 2 sessões concluídas
 //                                      (o relatório mostra quanto falta).
 //   D6YG2S   Ana Pires     aluno2026   turma-5 (de leo): nenhum feito.
-//   K7M2QX   Davi Moreira  (qualquer)  PRIMEIRO ACESSO: SenhaHash NULL, a
-//                                      senha digitada é gravada (4 a 20
-//                                      caracteres). Até o F5, a seguinte é
-//                                      conferida.
+//   K7M2QX   Davi Moreira  davi26      PRIMEIRO ACESSO: sem senha, com a
+//                                      provisória davi26 (uso único). Entra
+//                                      com precisaTrocarSenha e cria a dele
+//                                      em POST /aluno/senha. Até o F5.
 //
 // Código e nome não diferenciam maiúscula nem acento ("ana pires" entra),
 // como a collation do banco. Os demais alunos das turmas também entram com
@@ -58,13 +58,12 @@
 //
 //   Alunos        ganha ClassID e perde UserID: o aluno nasce dentro da
 //                 turma, da lista de nomes que o professor sobe
-//                 (POST /turmas/:id/alunos/importar), com SenhaHash NULL.
+//                 (POST /turmas/:id/alunos/importar), sem senha e com uma provisória.
 //   ClassMembers  saiu. Não há RP, convite nem e-mail de aluno.
 //   ClassesProf   ganha Codigo, gerado pelo back (gerarCodigo() imita).
 //
-// Quem esqueceu a senha não tem "esqueci minha senha": o professor zera
-// (POST /turmas/:id/alunos/:alunoId/zerar-senha) e o próximo login vira
-// primeiro acesso de novo.
+// Quem esqueceu a senha não tem "esqueci minha senha": o professor gera
+// uma provisória (POST /turmas/:id/alunos/:alunoId/senha-provisoria).
 //
 // DONO. ClassesProf e ExerciciosProf têm ProfessorID, e com conta única é
 // isso — e só isso — que faz uma conta ser professora. Toda turma e todo
@@ -113,6 +112,7 @@ import type {
   DesempenhoNaTurma,
   LinhaDoRanking,
   ResultadoImportacao,
+  SenhaProvisoriaGerada,
   SalaDetalhe,
   SalaDoAluno,
   ExercicioDaSala,
@@ -259,6 +259,23 @@ interface AlunoMock {
   nome: string;
   entrouEm: string;
   senha: string | null;
+  /** A senha provisória em texto (o mock não tem hash) e a validade (ISO). */
+  provisoria?: { senha: string; expira: string } | null;
+}
+
+const VALIDADE_DA_PROVISORIA_DIAS = 7;
+
+// Como o back (senha-do-aluno.ts): 6 letras e números sem os confundíveis.
+function novaProvisoria(): { senha: string; expira: string } {
+  const letras = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let senha = '';
+  for (let i = 0; i < 6; i++) senha += letras[Math.floor(Math.random() * letras.length)];
+  const expira = new Date(Math.floor(Date.now() / 1000) * 1000 + VALIDADE_DA_PROVISORIA_DIAS * 86400000);
+  return { senha, expira: expira.toISOString() };
+}
+
+function provisoriaValida(aluno: AlunoMock): boolean {
+  return aluno.senha === null && !!aluno.provisoria && Date.parse(aluno.provisoria.expira) > Date.now();
 }
 
 // A senha dos alunos de teste. Segue a regra do primeiro acesso (4 a 20
@@ -540,7 +557,13 @@ export const dados: BancoMock = {
       { id: 'al-44', nome: 'Caio Ferreira', entrouEm: '2026-02-01', senha: SENHA_ALUNO_DE_TESTE },
       // Nunca treinou e nunca entrou: é a linha apagada, com travessão em
       // todo número, e o caminho do primeiro acesso no login.
-      { id: 'al-45', nome: 'Davi Moreira', entrouEm: '2026-02-24', senha: null },
+      {
+        id: 'al-45',
+        nome: 'Davi Moreira',
+        entrouEm: '2026-02-24',
+        senha: null,
+        provisoria: { senha: 'davi26', expira: new Date(Date.now() + 365 * 86400000).toISOString() },
+      },
       // A de precisão média abaixo de 85%, o destaque discreto do
       // relatório. Treinou há 2 dias (ses-6), então entra em "alunos
       // ativos" em qualquer dia que a tela for aberta.
@@ -1207,6 +1230,7 @@ function linhaDoAluno(turmaId: string, aluno: AlunoMock): Aluno {
     nome: aluno.nome,
     entrouEm: aluno.entrouEm,
     senhaDefinida: aluno.senha !== null,
+    provisoriaAte: provisoriaValida(aluno) ? aluno.provisoria.expira : null,
     totalSessoes: minhas.length,
     wpmMedio: media(concluidas.map((s) => s.wpm)),
     precisaoMedia: media(concluidas.map((s) => s.precisao)),
@@ -1590,7 +1614,18 @@ interface Conta {
 // O `usuario` do aluno, como o login devolve: a turma vai junto, para a
 // tela não pedir de novo.
 function usuarioDoAluno(turma: Turma, aluno: AlunoMock): Usuario {
-  return { id: aluno.id, nome: aluno.nome, tipo: 'aluno', turmas: [{ id: turma.id, nome: turma.nome }] };
+  const usuario: Usuario = { id: aluno.id, nome: aluno.nome, tipo: 'aluno', turmas: [{ id: turma.id, nome: turma.nome }] };
+  if (aluno.senha === null) usuario.precisaTrocarSenha = true;
+  return usuario;
+}
+
+// O AlunoMock (e a turma dele) pelo id, em qualquer turma.
+function alunoMockPorId(id: string): { turma: Turma; aluno: AlunoMock } | null {
+  for (const turma of dados.turmas) {
+    const aluno = (dados.alunos[turma.id] ?? []).find((a) => a.id === id);
+    if (aluno) return { turma, aluno };
+  }
+  return null;
 }
 
 const CONTAS: Conta[] = [
@@ -1647,25 +1682,20 @@ function exigirConta(conta: Conta | undefined): RespostaLogin {
 
 // Login do aluno: código da turma + nome + senha. Código, nome ou senha
 // errados dão o MESMO 401, para o login não dizer quem está em qual turma.
-// REGRA DO PRIMEIRO ACESSO: senha null (SenhaHash NULL) quer dizer que ele
-// ainda não entrou — a senha enviada é validada e GRAVADA, e a resposta
-// leva primeiroAcesso: true. Com senha gravada, ela é só conferida.
-// `senha` já chega aparada (ver a rota).
+// Sem senha própria, só a provisória válida entra, e uma vez só (o login a
+// apaga); o usuario volta com precisaTrocarSenha. `senha` já chega aparada.
 function entrarComoAluno(corpo: any, senha: string): RespostaLogin {
   const codigo = String(corpo?.codigo ?? '').trim().toUpperCase();
   const turma = dados.turmas.find((t) => t.codigo === codigo);
   const chave = chaveDoNome(corpo?.nome);
   const aluno = turma && (dados.alunos[turma.id] ?? []).find((a) => chaveDoNome(a.nome) === chave);
-  if (!aluno || (aluno.senha !== null && aluno.senha !== senha)) {
+  const confere = aluno && (aluno.senha !== null ? aluno.senha === senha : provisoriaValida(aluno) && aluno.provisoria.senha === senha);
+  if (!confere) {
     throw erro(401, 'Código, nome ou senha não conferem.', 'CREDENCIAIS');
   }
   if (!turma.ativa) throw erro(403, 'Esta turma foi arquivada.', 'CONTA_INATIVA');
-  if (aluno.senha !== null) return sessaoDe(usuarioDoAluno(turma, aluno));
-
-  const problema = validarSenhaAluno(senha);
-  if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
-  aluno.senha = senha;
-  return { ...sessaoDe(usuarioDoAluno(turma, aluno)), primeiroAcesso: true };
+  if (aluno.senha === null) aluno.provisoria = null; // uso único
+  return sessaoDe(usuarioDoAluno(turma, aluno));
 }
 
 // A sessão pelo id, só se for de quem pede: token de aluno lê as sessões
@@ -1822,7 +1852,10 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token) => {
       const usuario = usuarioDoToken(token);
       if (!usuario) throw erro(401, 'Token inválido ou expirado.', 'TOKEN_INVALIDO');
-      return usuario;
+      if (usuario.tipo !== 'aluno') return usuario;
+      // Aluno: o precisaTrocarSenha é o de agora, não o do login.
+      const achado = alunoMockPorId(usuario.id);
+      return achado ? usuarioDoAluno(achado.turma, achado.aluno) : usuario;
     },
   ],
   ['POST', montarRegex('/auth/logout'), () => null],
@@ -2229,23 +2262,28 @@ const rotas: [string, RegExp, Handler][] = [
           resultado.jaEstavam.push(existente.nome);
           continue;
         }
-        const novo: AlunoMock = { id: gerarId('al'), nome, entrouEm: hoje(), senha: null };
+        const novo: AlunoMock = { id: gerarId('al'), nome, entrouEm: hoje(), senha: null, provisoria: novaProvisoria() };
         lista.push(novo);
-        resultado.adicionados.push(linhaDoAluno(turma.id, novo));
+        resultado.adicionados.push({
+          ...linhaDoAluno(turma.id, novo),
+          senhaProvisoria: novo.provisoria.senha,
+          expiraEm: novo.provisoria.expira,
+        });
       }
       turma.totalAlunos = lista.length;
       return resultado;
     },
   ],
-  // Volta a senha para null: o próximo login dele é primeiro acesso. Zerar
-  // quem já está sem senha não é erro.
+  // Apaga a senha e grava uma provisória nova (a anterior deixa de valer).
   [
     'POST',
-    montarRegex('/turmas/:turmaId/alunos/:alunoId/zerar-senha'),
-    (params, corpo, token) => {
+    montarRegex('/turmas/:turmaId/alunos/:alunoId/senha-provisoria'),
+    (params, corpo, token): SenhaProvisoriaGerada => {
       const turma = turmaDaConta(params[0], token);
-      alunoDaTurma(turma.id, params[1]).senha = null;
-      return null;
+      const aluno = alunoDaTurma(turma.id, params[1]);
+      aluno.senha = null;
+      aluno.provisoria = novaProvisoria();
+      return { senhaProvisoria: aluno.provisoria.senha, expiraEm: aluno.provisoria.expira };
     },
   ],
   [
@@ -2527,6 +2565,21 @@ const rotas: [string, RegExp, Handler][] = [
   // id de aluno: o aluno sai do TOKEN (alunoDoToken). Não há como pedir o
   // histórico de outra pessoa editando a URL — não existe parâmetro para
   // isso, que é a única forma segura de não existir o caminho.
+  // Cria a senha de quem entrou pela provisória. Quem já tem: 409.
+  [
+    'POST',
+    montarRegex('/aluno/senha'),
+    (params, corpo, token) => {
+      const achado = alunoMockPorId(alunoDoToken(token).id);
+      const senha = String(corpo?.novaSenha ?? '').trim();
+      const problema = validarSenhaAluno(senha);
+      if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
+      if (!achado || achado.aluno.senha !== null) throw erro(409, 'Você já criou a sua senha.', 'SENHA_JA_CRIADA');
+      achado.aluno.senha = senha;
+      achado.aluno.provisoria = null;
+      return null;
+    },
+  ],
   [
     'GET',
     montarRegex('/aluno/historico'),

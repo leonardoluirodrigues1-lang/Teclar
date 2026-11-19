@@ -128,25 +128,27 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
         corpo: `Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)
   { "email": "prof@teclar.dev", "senha": "senha123" }
   { "codigo": "K7M2QX", "nome": "Ana Pires", "senha": "aninha2026" }`,
-        resposta: `200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha
+        resposta: `200 RespostaLogin — usuario.precisaTrocarSenha só vem (true) no aluno que entrou com a senha provisória
   { "token": "eyJhbGciOi...",
     "usuario": { "id": "u-2", "nome": "Henrique Lima", "email": "prof@teclar.dev",
                  "tipo": "conta", "campanhaAtiva": "camp-2" } }
-  Aluno: { "token": "...", "primeiroAcesso": true,
+  Aluno: { "token": "...",
            "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-           "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }`,
-        erros: `400 DADOS_INVALIDOS — primeiro acesso de aluno com senha fora de 4 a 20 caracteres
-  401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
+           "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }],
+           "precisaTrocarSenha": true } }`,
+        erros: `401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
   403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada
   429 MUITAS_TENTATIVAS — 5 senhas erradas no mesmo minuto para a mesma pessoa, do mesmo IP: as próximas tentativas dela, até com a senha certa, até o minuto passar`,
         identidade: `Pública. O token devolvido carrega o id e o tipo de quem entrou.`,
         back: `\`tipo\` é a tabela em que autenticou: \`email\` busca em Users; \`codigo\`
   busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula,
   nome aparado com espaços internos reduzidos a um, sem distinguir
-  maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha
-  enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.`,
+  maiúscula e acento). Com SenhaHash, confere com ele. Sem SenhaHash, só a
+  senha provisória entra: confere com SenhaProvisoriaHash se SenhaProvisoriaExpira
+  ainda não passou e, se bate, APAGA a provisória (uso único) e responde com
+  usuario.precisaTrocarSenha: true. Sem hash nenhum, nenhuma senha entra.`,
         nota: `Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas
-  pontas antes de gravar ou conferir o hash.
+  pontas antes de conferir o hash.
   Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o
   e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e
   acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o
@@ -517,12 +519,13 @@ dele (importar).`,
      "senhaDefinida": true, "totalSessoes": 12, "wpmMedio": 39, "precisaoMedia": 91,
      "ultimaAtividade": "2026-10-03T12:00:00.000Z" },
    { "id": "al-2m8qd", "nome": "Davi Moreira", "entrouEm": "2026-02-24",
-     "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null, "precisaoMedia": null,
-     "ultimaAtividade": null }]`,
+     "senhaDefinida": false, "provisoriaAte": "2026-10-12T15:00:00.000Z", "totalSessoes": 0,
+     "wpmMedio": null, "precisaoMedia": null, "ultimaAtividade": null }]`,
         erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `alunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro,
-  senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0)
+  senhaDefinida = SenhaHash IS NOT NULL; provisoriaAte = SenhaProvisoriaExpira se não há
+  SenhaHash e a provisória ainda vale, senão null. Agregados prontos, null (nunca 0)
   para quem nunca treinou; a senha nunca sai.`,
       },
       'alunos.importar': {
@@ -531,8 +534,9 @@ dele (importar).`,
   { "nomes": ["Ana Pires", "Bruno Sato", "ana  pires", "", "Carla Nunes"] }`,
         resposta: `200 ResultadoImportacao — cada nome cai numa das três listas
   { "adicionados": [{ "id": "al-7c1pz", "nome": "Bruno Sato", "entrouEm": "2026-10-05",
-      "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null,
-      "precisaoMedia": null, "ultimaAtividade": null }],
+      "senhaDefinida": false, "provisoriaAte": "2026-10-12T15:00:00.000Z", "totalSessoes": 0,
+      "wpmMedio": null, "precisaoMedia": null, "ultimaAtividade": null,
+      "senhaProvisoria": "k7m2qx", "expiraEm": "2026-10-12T15:00:00.000Z" }],
     "jaEstavam": ["Ana Pires"],
     "falhas": [{ "nome": "ana  pires", "motivo": "Nome repetido na lista." },
                { "nome": "", "motivo": "Nome vazio." }] }`,
@@ -543,7 +547,9 @@ dele (importar).`,
   (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres
   de controle, ou "Nome repetido na lista."), em
   jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha
-  nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a
+  nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL e uma senha provisória
+  (bcrypt em SenhaProvisoriaHash, validade de 7 dias), na mesma transação. A provisória em texto
+  vai só nesta resposta (senhaProvisoria, expiraEm). Importação parcial é permitida, e a
   rota pode ser chamada de novo com a lista completa.`,
         nota: `É a única entrada do aluno na turma. Aluno removido volta como linha nova,
   sem senha nem histórico.`,
@@ -557,17 +563,19 @@ dele (importar).`,
         back: `Apaga o ID em alunos; a matrícula (alunosturmas) e as sessões vão junto (SessionsProf
   tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.`,
       },
-      'alunos.zerarSenha': {
-        rota: 'POST /turmas/:id/alunos/:alunoId/zerar-senha',
+      'alunos.gerarSenhaProvisoria': {
+        rota: 'POST /turmas/:id/alunos/:alunoId/senha-provisoria',
         corpo: `Nenhum.`,
-        resposta: `204 (sem corpo)`,
+        resposta: `200 SenhaProvisoriaGerada — a senha em texto, uma vez só
+  { "senhaProvisoria": "k7m2qx", "expiraEm": "2026-10-12T15:00:00.000Z" }`,
         erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma`,
         identidade: `O token: a turma tem de ser da conta (senão 404). O
   :alunoId é o aluno-ALVO, como no DELETE.`,
-        back: `Grava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o
-  histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.`,
-        nota: `Até o próximo login, quem tiver o código e o nome cria a senha; a tela
-  avisa disso.`,
+        back: `Gera 6 letras e números (sem 0/o, 1/l/i), grava o bcrypt em SenhaProvisoriaHash,
+  SenhaProvisoriaExpira = agora + 7 dias e SenhaHash = NULL (a senha antiga deixa de valer;
+  uma provisória anterior também). O histórico fica.`,
+        nota: `É o "esqueci a senha" do aluno, que não tem e-mail. O próximo login com a
+  provisória a consome e pede a senha nova (POST /aluno/senha).`,
       },
       'alunos.desempenho': {
         rota: 'GET /turmas/:id/alunos/:alunoId/desempenho',
@@ -811,6 +819,18 @@ Regras que o back cumpre em TODAS as rotas daqui:
 \`escola.aluno\`, e não só \`aluno\`: é o aluno do mundo Escola. O Solo é
 da conta, e mora em \`solo\`.`,
     rotas: {
+      'escola.aluno.criarSenha': {
+        rota: 'POST /aluno/senha',
+        corpo: `{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas
+  { "novaSenha": "minhasenha" }`,
+        resposta: `204 (sem corpo)`,
+        erros: `400 DADOS_INVALIDOS — senha fora de 4 a 20 caracteres
+  403 TIPO_INVALIDO — token de conta
+  409 SENHA_JA_CRIADA — o aluno já tem senha (trocar é com o professor, que gera outra provisória)`,
+        identidade: `O token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.`,
+        back: `UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL
+  (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.`,
+      },
       'escola.aluno.historico': {
         rota: 'GET /aluno/historico',
         resposta: `200 Paginado<SessaoDoHistorico> — todas as sessões dele, da mais recente para a mais antiga

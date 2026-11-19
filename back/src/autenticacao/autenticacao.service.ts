@@ -6,8 +6,9 @@
 //   conta (Users)  -> { email, senha }
 //   aluno (Alunos) -> { codigo, nome, senha }
 // É a presença de `codigo` no corpo que diz qual tabela procurar.
-// Responde { token, usuario } e, só no primeiro acesso do aluno,
-// primeiroAcesso: true.
+// Responde { token, usuario }. Aluno que entrou com a senha provisória vem
+// com usuario.precisaTrocarSenha: true (e o /auth/eu repete isso até ele
+// criar a senha dele em POST /aluno/senha).
 //
 // Credencial errada é sempre o mesmo 401 CREDENCIAIS, exista a conta ou
 // não, e no aluno sem dizer se o errado foi o código, o nome ou a senha:
@@ -30,7 +31,7 @@ import bcrypt from 'bcryptjs';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regras-do-cadastro.js';
-import { problemaNaSenhaDoAluno } from './senha-do-aluno.js';
+import { provisoriaValida } from './senha-do-aluno.js';
 import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
@@ -71,6 +72,8 @@ interface UsuarioAluno {
   // Uma turma só (o aluno é por turma), mas em lista: é a forma que o
   // contrato e a tela já usam.
   turmas: { id: string; nome: string }[];
+  // true enquanto o aluno não criou a senha dele (entrou pela provisória).
+  precisaTrocarSenha?: true;
 }
 
 export type Usuario = UsuarioConta | UsuarioAluno;
@@ -78,8 +81,6 @@ export type Usuario = UsuarioConta | UsuarioAluno;
 export interface RespostaLogin {
   token: string;
   usuario: Usuario;
-  // Só vem, e só true, quando a senha do aluno acabou de ser gravada.
-  primeiroAcesso?: true;
 }
 
 // Custo do bcrypt ao gravar a senha do primeiro acesso: o mesmo do seed.
@@ -252,9 +253,11 @@ export class AutenticacaoService {
       throw credenciaisInvalidas();
     }
 
-    // SenhaHash NULL: o aluno nunca entrou (ou o professor zerou a senha).
+    // SenhaHash NULL: o aluno ainda não criou a senha dele. Só a provisória
+    // do professor, dentro da validade, abre o login — nunca uma senha
+    // qualquer.
     if (aluno.SenhaHash === null) {
-      return this.primeiroAcesso(aluno, senha);
+      return this.entrarComProvisoria(aluno, senha);
     }
 
     const senhaCerta = await senhaConfere(senha, aluno.SenhaHash);
@@ -287,35 +290,28 @@ export class AutenticacaoService {
     });
   }
 
-  // REGRA DO PRIMEIRO ACESSO: a senha enviada é validada e GRAVADA, e a
-  // resposta leva primeiroAcesso: true. Não há senha para conferir: quem
-  // chega primeiro com o código e o nome define a senha. É por isso que o
-  // professor tem o "zerar senha" e o "gerar código novo".
-  private async primeiroAcesso(aluno: AlunoEncontrado, senha: string): Promise<RespostaLogin> {
-    // Antes de gravar qualquer coisa: turma arquivada ou aluno desativado
-    // não ganha senha nova.
-    exigirAlunoLiberado(aluno);
-
-    const problema = problemaNaSenhaDoAluno(senha);
-    if (problema !== null) {
-      throw senhaForaDaRegra(problema);
-    }
-
-    const hash = await bcrypt.hash(senha, CUSTO_BCRYPT);
-    // updateMany com SenhaHash: null no filtro, e não um update pelo ID:
-    // se dois aparelhos fizerem o primeiro acesso do mesmo aluno ao mesmo
-    // tempo, só um grava. O outro encontra 0 linhas e cai no 401, como se
-    // tivesse digitado a senha errada — que, agora, é o que aconteceu.
-    const gravou = await this.banco.alunosturmas.updateMany({
-      where: { AlunoID: aluno.AlunoID, SenhaHash: null },
-      data: { SenhaHash: hash },
-    });
-    if (gravou.count !== 1) {
+  // A senha provisória (ver senha-do-aluno.ts): confere com o hash dela e,
+  // se bate e está no prazo, APAGA a provisória (uso único) e entra com
+  // precisaTrocarSenha. Sem provisória válida, gasta o tempo do bcrypt e
+  // responde o mesmo 401 de senha errada.
+  private async entrarComProvisoria(aluno: AlunoEncontrado, senha: string): Promise<RespostaLogin> {
+    const valida = provisoriaValida(aluno.SenhaProvisoriaHash, aluno.SenhaProvisoriaExpira);
+    const senhaCerta = await senhaConfere(senha, valida ? aluno.SenhaProvisoriaHash : null);
+    if (!senhaCerta) {
       throw credenciaisInvalidas();
     }
+    exigirAlunoLiberado(aluno);
 
-    const resposta = await this.respostaDoAluno(aluno);
-    return { ...resposta, primeiroAcesso: true };
+    // updateMany com o hash no filtro: dois aparelhos com a mesma
+    // provisória ao mesmo tempo, só um a consome; o outro cai no 401.
+    const consumiu = await this.banco.alunosturmas.updateMany({
+      where: { AlunoID: aluno.AlunoID, SenhaHash: null, SenhaProvisoriaHash: aluno.SenhaProvisoriaHash },
+      data: { SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null },
+    });
+    if (consumiu.count !== 1) {
+      throw credenciaisInvalidas();
+    }
+    return this.respostaDoAluno(aluno);
   }
 
   private async respostaDoAluno(aluno: AlunoEncontrado): Promise<RespostaLogin> {
@@ -352,12 +348,17 @@ function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
 
 // O `usuario` de aluno, igual no login e no /auth/eu.
 function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
-  return {
+  const usuario: UsuarioAluno = {
     id: aluno.AlunoID,
     nome: aluno.Nome,
     tipo: 'aluno',
     turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],
   };
+  // Sem senha própria: entrou pela provisória e ainda não criou a dele.
+  if (aluno.SenhaHash === null) {
+    usuario.precisaTrocarSenha = true;
+  }
+  return usuario;
 }
 
 // Funções soltas: não dependem do banco nem do Nest.
@@ -423,9 +424,6 @@ function contaDesativada(): ForbiddenException {
   return new ForbiddenException({ mensagem: 'Conta desativada.', codigo: 'CONTA_INATIVA' });
 }
 
-function senhaForaDaRegra(mensagem: string): BadRequestException {
-  return dadosInvalidos(mensagem);
-}
 
 function emailEmUso(): ConflictException {
   return new ConflictException({ mensagem: 'Este e-mail já tem conta.', codigo: 'EMAIL_EM_USO' });

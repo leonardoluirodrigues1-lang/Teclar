@@ -39,6 +39,7 @@ import type {
   RespostaLogin,
   LinhaDoRanking,
   ResultadoImportacao,
+  SenhaProvisoriaGerada,
   CodigoDaTurma,
   SalaDetalhe,
   SalaDoAluno,
@@ -309,8 +310,8 @@ export const api = {
     remover: (turmaId: string, alunoId: string) =>
       del(`/turmas/${turmaId}/alunos/${alunoId}`),
 
-    zerarSenha: (turmaId: string, alunoId: string) =>
-      post<null>(`/turmas/${turmaId}/alunos/${alunoId}/zerar-senha`),
+    gerarSenhaProvisoria: (turmaId: string, alunoId: string) =>
+      post<SenhaProvisoriaGerada>(`/turmas/${turmaId}/alunos/${alunoId}/senha-provisoria`),
 
     desempenho: (turmaId: string, alunoId: string) =>
       get<DesempenhoAluno>(`/turmas/${turmaId}/alunos/${alunoId}/desempenho`),
@@ -349,6 +350,8 @@ export const api = {
 
   escola: {
     aluno: {
+      criarSenha: (novaSenha: string) => post<null>('/aluno/senha', { novaSenha }),
+
       historico: () => get<Paginado<SessaoDoHistorico>>('/aluno/historico'),
 
       resumo: () => get<ResumoDoAluno>('/aluno/resumo'),

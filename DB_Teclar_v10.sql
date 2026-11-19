@@ -120,7 +120,9 @@ CREATE TABLE teclardb_v10.alunosturmas (
     ClassID VARCHAR(100) NOT NULL,
     AlunoID VARCHAR(100) NOT NULL,
     Nome VARCHAR(150) NOT NULL,
-    SenhaHash VARCHAR(255) NULL,             -- NULL até o primeiro acesso ou após redefinição
+    SenhaHash VARCHAR(255) NULL,             -- NULL até o aluno criar a senha dele
+    SenhaProvisoriaHash VARCHAR(255) NULL,   -- bcrypt da senha provisória do professor; uso único (o login apaga)
+    SenhaProvisoriaExpira TIMESTAMP NULL,    -- validade da provisória
     Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Ativo BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (ClassID, AlunoID),

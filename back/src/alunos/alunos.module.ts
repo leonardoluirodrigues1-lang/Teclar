@@ -1,7 +1,7 @@
 // Grupo "Alunos (professor)" do CONTRATO-API.md. Pronto inteiro:
 //   GET /turmas/:id/alunos, POST /turmas/:id/alunos/importar,
 //   DELETE /turmas/:id/alunos/:alunoId,
-//   POST /turmas/:id/alunos/:alunoId/zerar-senha,
+//   POST /turmas/:id/alunos/:alunoId/senha-provisoria,
 //   GET /turmas/:id/alunos/:alunoId/desempenho
 //
 // Importa o AutenticacaoModule pelo GuardaDoToken (e o JwtService de que

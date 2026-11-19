@@ -120,6 +120,8 @@ export const ROTA_MODO = '/pages/modo.html';
 export const ROTA_LOGIN = '/pages/login.html';
 export const ROTA_CADASTRO = '/pages/cadastro.html';
 export const ROTA_LANDING = '/index.html';
+/** "Crie sua senha": a única tela do aluno que entrou com a provisória. */
+export const ROTA_SENHA_ALUNO = '/pages/aluno/senha.html';
 
 /** A casa de cada modo da conta e a do aluno. */
 export const ROTA_INICIAL = {

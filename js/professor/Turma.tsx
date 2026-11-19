@@ -30,6 +30,7 @@ import type {
   ErroDaApi,
   Exercicio,
   RelatorioTurma,
+  SenhaProvisoriaGerada,
   TurmaDetalhe,
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
@@ -48,6 +49,7 @@ import {
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { ModalExercicio } from '../componentes/ModalExercicio.js';
+import { imprimirSenhas } from '../utils/imprimirSenhas.js';
 import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
@@ -80,7 +82,8 @@ type Carga =
 
 type ConfigModal =
   | { chave: number; tipo: 'remover-aluno'; aluno: Aluno }
-  | { chave: number; tipo: 'zerar-senha'; aluno: Aluno }
+  | { chave: number; tipo: 'senha-provisoria'; aluno: Aluno }
+  | { chave: number; tipo: 'mostrar-provisoria'; aluno: Aluno; gerada: SenhaProvisoriaGerada }
   | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
   | { chave: number; tipo: 'atribuir'; opener: HTMLElement }
@@ -238,13 +241,11 @@ function Turma() {
     const semSenha = alunos.filter((a) => !a.senhaDefinida).length;
     return (
       <>
-        {/* shortcut: qualquer um que saiba o código e o nome cria a senha no primeiro acesso;
-            senha provisória dada pelo professor fecha isso, quando for prioridade. */}
         {semSenha > 0 && (
           <p className="aviso-convite" role="note">
-            {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Faça o
-            primeiro acesso deles em sala, com você por perto: quem entrar primeiro com o código e o nome cria a
-            senha.
+            {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Cada
+            um entra a primeira vez com a senha provisória (vale uma vez, por 7 dias) e depois cria a sua. Perdeu a
+            folha? Use "Senha provisória" na linha do aluno.
           </p>
         )}
         <Tabela
@@ -271,7 +272,12 @@ function Turma() {
     },
     {
       rotulo: 'Acesso',
-      celula: (a) => (a.senhaDefinida ? 'Senha criada' : 'Não criou senha'),
+      celula: (a) =>
+        a.senhaDefinida
+          ? 'Senha criada'
+          : a.provisoriaAte
+            ? `Provisória até ${formatarData(a.provisoriaAte)}`
+            : 'Sem senha (gere uma provisória)',
     },
     { rotulo: 'Na lista desde', celula: (a) => formatarData(a.entrouEm) },
     { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
@@ -290,17 +296,14 @@ function Turma() {
       rotulo: 'Ação',
       celula: (aluno) => (
         <>
-          {/* Sem senha não há o que zerar: o próximo login já é o primeiro. */}
-          {aluno.senhaDefinida && (
-            <button
-              type="button"
-              className="tabela-acao"
-              aria-label={`Zerar a senha de ${aluno.nome}`}
-              onClick={() => setModal({ chave: ++proximaChave, tipo: 'zerar-senha', aluno })}
-            >
-              Zerar senha
-            </button>
-          )}
+          <button
+            type="button"
+            className="tabela-acao"
+            aria-label={`Gerar senha provisória para ${aluno.nome}`}
+            onClick={() => setModal({ chave: ++proximaChave, tipo: 'senha-provisoria', aluno })}
+          >
+            Senha provisória
+          </button>
           <button
             type="button"
             className="tabela-acao"
@@ -373,28 +376,63 @@ function Turma() {
       );
     }
 
-    if (modal.tipo === 'zerar-senha') {
+    if (modal.tipo === 'senha-provisoria') {
       const { aluno } = modal;
       return (
         <ModalRemover
           key={modal.chave}
           eyebrow={aluno.nome}
-          titulo="Zerar a senha?"
+          titulo="Gerar senha provisória?"
           texto={
-            'A senha atual deixa de valer. No próximo login, com o código da turma e o nome, a senha que ' +
-            'ele digitar vira a nova. Até lá, qualquer pessoa com o código e o nome dele pode criar essa ' +
-            'senha: zere com o aluno por perto. O histórico não muda.'
+            (aluno.senhaDefinida ? 'A senha atual dele deixa de valer. ' : '') +
+            'A senha provisória aparece uma vez só, para você entregar ao aluno. Ela vale um login, por 7 dias; ' +
+            'depois ele cria a dele. Se já havia outra provisória, ela deixa de valer. O histórico não muda.'
           }
-          rotuloAcao="Zerar senha"
-          rotuloOcupado="Zerando…"
-          enviar={() => api.alunos.zerarSenha(turmaId, aluno.id)}
-          aoConcluir={() => {
-            atualizarAlunos((lista) => lista.map((a) => (a.id === aluno.id ? { ...a, senhaDefinida: false } : a)));
-            toasts.mostrar('Senha zerada');
-            focarAba('participantes');
+          rotuloAcao="Gerar senha"
+          rotuloOcupado="Gerando…"
+          enviar={() => api.alunos.gerarSenhaProvisoria(turmaId, aluno.id)}
+          aoConcluir={(resposta) => {
+            const gerada = resposta as SenhaProvisoriaGerada;
+            atualizarAlunos((lista) =>
+              lista.map((a) => (a.id === aluno.id ? { ...a, senhaDefinida: false, provisoriaAte: gerada.expiraEm } : a))
+            );
+            setModal({ chave: ++proximaChave, tipo: 'mostrar-provisoria', aluno, gerada });
           }}
           aoFechar={fechar}
         />
+      );
+    }
+
+    if (modal.tipo === 'mostrar-provisoria') {
+      const { aluno, gerada } = modal;
+      return (
+        <Modal
+          key={modal.chave}
+          eyebrow={aluno.nome}
+          titulo="Senha provisória"
+          acoes={[
+            {
+              rotulo: 'Imprimir',
+              fecha: false,
+              aoClicar: () => {
+                if (!imprimirSenhas({ nome: turma?.nome ?? '', codigo: turma?.codigo ?? '' }, [{ nome: aluno.nome, ...gerada }])) {
+                  toasts.mostrar('O navegador bloqueou a janela de impressão');
+                }
+              },
+            },
+            { rotulo: 'Pronto', principal: true },
+          ]}
+          aoFechar={() => {
+            fechar();
+            focarAba('participantes');
+          }}
+        >
+          <p className="senha-provisoria col-mono">{gerada.senhaProvisoria}</p>
+          <p>
+            Código da turma <strong className="col-mono">{turma?.codigo}</strong>. Vale um login, até{' '}
+            {formatarData(gerada.expiraEm)}. Ela não aparece de novo: anote ou imprima agora.
+          </p>
+        </Modal>
       );
     }
 
@@ -677,7 +715,7 @@ function valorOrdenavelAluno(aluno: Aluno, campo: string): string | number | nul
   return null;
 }
 
-// Modal de confirmação — remover aluno, zerar senha, código novo e remover
+// Modal de confirmação — remover aluno, senha provisória, código novo e remover
 // atribuição
 
 interface PropsModalRemover {

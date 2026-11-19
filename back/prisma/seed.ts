@@ -17,7 +17,8 @@
 //
 // O aluno segue o banco v10: é uma matrícula (alunosturmas) com nome, senha
 // e histórico próprios, e entra com o código da turma, o nome e a senha.
-// SenhaHash NULL é o aluno que ainda não fez o primeiro acesso.
+// SenhaHash NULL é o aluno que ainda não criou a senha dele: só entra com
+// a senha provisória do professor (Davi tem uma, conhecida, para a demo).
 //
 // As credenciais estão no README do back.
 import 'dotenv/config';
@@ -39,6 +40,10 @@ const CUSTO_BCRYPT = 10;
 // tivesse criado no primeiro acesso.
 const SENHA_DAS_CONTAS = 'senha123';
 const SENHA_DOS_ALUNOS = 'aluno2026';
+// A provisória do Davi Moreira (turma-1), para a demo do primeiro acesso.
+// Uso único: depois de um login com ela, rode o seed de novo para repetir.
+const PROVISORIA_DO_DAVI = 'davi26';
+const VALIDADE_DA_PROVISORIA_DO_SEED_DIAS = 365;
 
 // Data de "n dias atrás", para as sessões recentes continuarem recentes em
 // qualquer dia que o seed rodar (o relatório conta quem treinou na semana).
@@ -308,7 +313,8 @@ function atribuicao(turmaId: string, exercicioId: string, data: string) {
 // Os alunos do mock, turma por turma (banco v10: cada aluno é uma matrícula
 // em alunosturmas). O `senha` diz se ele já fez o primeiro acesso:
 //   true   SenhaHash = hash de SENHA_DOS_ALUNOS (já entrou)
-//   false  SenhaHash NULL (nunca entrou: o próximo login grava a senha)
+//   false  SenhaHash NULL (ainda não criou a senha; só a provisória entra)
+// `provisoria`, quando existe, é a senha provisória em texto (vira hash).
 //
 // Ana Pires está em TRÊS turmas, e são três linhas independentes —
 // al-43-t1, al-43 e al-43-t5 —, cada uma com a sua senha e o seu
@@ -317,7 +323,7 @@ const ALUNOS = [
   // turma-1 (K7M2QX): a dos relatórios. Davi nunca entrou.
   { id: 'al-43-t1', turma: 'turma-1', nome: 'Ana Pires', entrou: '2026-02-01', senha: true },
   { id: 'al-44', turma: 'turma-1', nome: 'Caio Ferreira', entrou: '2026-02-01', senha: true },
-  { id: 'al-45', turma: 'turma-1', nome: 'Davi Moreira', entrou: '2026-02-24', senha: false },
+  { id: 'al-45', turma: 'turma-1', nome: 'Davi Moreira', entrou: '2026-02-24', senha: false, provisoria: true },
   { id: 'al-49', turma: 'turma-1', nome: 'Marina Duarte Alves', entrou: '2026-02-05', senha: true },
   // turma-2 (R8VD3K): a do aluno de teste (al-43) e dos colegas do ranking.
   { id: 'al-46', turma: 'turma-2', nome: 'Helena Rocha', entrou: '2026-02-10', senha: true },
@@ -335,7 +341,8 @@ const ALUNOS = [
   { id: 'al-43-t5', turma: 'turma-5', nome: 'Ana Pires', entrou: '2026-03-12', senha: true },
 ];
 
-async function inserirAlunos(tx: Transacao, senhaHash: string): Promise<void> {
+async function inserirAlunos(tx: Transacao, senhaHash: string, provisoriaHash: string): Promise<void> {
+  const expira = new Date(Date.now() + VALIDADE_DA_PROVISORIA_DO_SEED_DIAS * 24 * 60 * 60 * 1000);
   // v10: o ID em alunos e a matrícula (nome, senha, data) em alunosturmas.
   await tx.alunos.createMany({ data: ALUNOS.map((aluno) => ({ ID: aluno.id })) });
   await tx.alunosturmas.createMany({
@@ -344,6 +351,8 @@ async function inserirAlunos(tx: Transacao, senhaHash: string): Promise<void> {
       ClassID: aluno.turma,
       Nome: aluno.nome,
       SenhaHash: aluno.senha ? senhaHash : null,
+      SenhaProvisoriaHash: 'provisoria' in aluno ? provisoriaHash : null,
+      SenhaProvisoriaExpira: 'provisoria' in aluno ? expira : null,
       Data_Cadastro: meioDiaEmBrasilia(aluno.entrou),
     })),
   });
@@ -497,6 +506,7 @@ async function semear(): Promise<void> {
   // propósito, e a transação deve ficar aberta o mínimo possível.
   const hashDasContas = await bcrypt.hash(SENHA_DAS_CONTAS, CUSTO_BCRYPT);
   const hashDosAlunos = await bcrypt.hash(SENHA_DOS_ALUNOS, CUSTO_BCRYPT);
+  const hashDaProvisoria = await bcrypt.hash(PROVISORIA_DO_DAVI, CUSTO_BCRYPT);
 
   try {
     // Uma transação só: se qualquer insert falhar, a limpeza também é
@@ -508,7 +518,7 @@ async function semear(): Promise<void> {
         await inserirSolo(tx);
         await inserirExercicios(tx);
         await inserirTurmas(tx);
-        await inserirAlunos(tx, hashDosAlunos);
+        await inserirAlunos(tx, hashDosAlunos, hashDaProvisoria);
         await inserirSessoes(tx);
       },
       // O padrão do Prisma é 5 s; 76 lições + o resto passam disso numa

@@ -66,15 +66,15 @@ export interface Usuario {
   turmas?: TurmaDoUsuario[];
   /** Escola: turma em uso. Gravado por sessao.definirTurma(). */
   turmaAtiva?: string | null;
+  /** Aluno que entrou com a senha provisória e ainda não criou a dele
+   *  (POST /aluno/senha). Enquanto true, o guarda só abre aluno/senha.html. */
+  precisaTrocarSenha?: boolean;
 }
 
 /** Resposta de POST /auth/login e de POST /auth/cadastro. */
 export interface RespostaLogin {
   token: string;
   usuario: Usuario;
-  /** Só no login de aluno, e só true: a senha enviada acabou de ser
-   *  gravada (Alunos.SenhaHash era NULL). A tela avisa para guardá-la. */
-  primeiroAcesso?: boolean;
 }
 
 /** Corpo de POST /auth/login. Conta entra por e-mail; aluno entra pelo
@@ -328,6 +328,9 @@ export interface Aluno {
   /** false: ainda não fez o primeiro acesso, ou o professor zerou a senha
    *  (Alunos.SenhaHash NULL). O próximo login dele grava a senha. */
   senhaDefinida: boolean;
+  /** Até quando vale a senha provisória (ISO); null sem provisória válida
+   *  (já usada, vencida ou nunca gerada). */
+  provisoriaAte: string | null;
   totalSessoes: number;
   wpmMedio: number | null;
   precisaoMedia: number | null;
@@ -336,8 +339,16 @@ export interface Aluno {
 
 /** Resposta de POST /turmas/:id/alunos/importar. Importação parcial é
  *  permitida: cada nome da lista cai numa das três listas. */
+/** Resposta de POST /turmas/:id/alunos/:alunoId/senha-provisoria. A senha
+ *  em texto só sai aqui (e na importação), uma vez. */
+export interface SenhaProvisoriaGerada {
+  senhaProvisoria: string;
+  expiraEm: string;
+}
+
 export interface ResultadoImportacao {
-  adicionados: Aluno[];
+  /** Cada aluno novo já nasce com uma senha provisória. */
+  adicionados: (Aluno & SenhaProvisoriaGerada)[];
   /** Nomes que já estavam na turma, na forma em que estão gravados. */
   jaEstavam: string[];
   falhas: { nome: string; motivo: string }[];

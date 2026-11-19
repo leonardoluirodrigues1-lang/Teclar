@@ -26,7 +26,9 @@ import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { ErroDaApi, ResultadoImportacao } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
-import { parsearCsv, separarCabecalho, gerarCsv, decodificarCsv } from '../utils/csv.js';
+import { parsearCsv, separarCabecalho, gerarCsv, decodificarCsv, baixarCsv, slug } from '../utils/csv.js';
+import { imprimirSenhas, type LinhaDeSenha } from '../utils/imprimirSenhas.js';
+import { formatarData } from '../utils/formato.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
@@ -81,6 +83,14 @@ interface Recente {
   seq: number;
   nome: string;
   situacao: string;
+  /** Só do recém-adicionado: a provisória, para o botão Imprimir. */
+  senha?: LinhaDeSenha;
+}
+
+// Nome e código da turma: vão na folha de senhas provisórias.
+interface TurmaDaFolha {
+  nome: string;
+  codigo: string;
 }
 
 type Passo = 'escolher' | 'conferir' | 'resultado';
@@ -211,7 +221,8 @@ function Alunos() {
               <strong className="col-mono">{codigo}</strong>
             </>
           ) : null}
-          , o próprio nome e uma senha que ele mesmo cria na primeira vez.
+          , o próprio nome e a senha provisória que aparece aqui ao adicionar (vale uma vez, por 7 dias). Depois
+          ele cria a dele.
         </p>
 
         <div className="abas" role="tablist" aria-label="Formas de adicionar">
@@ -249,10 +260,10 @@ function Alunos() {
             O que foi digitado ou importado numa aba sobrevive à troca. */}
         <div id="conteudo" role="tabpanel" aria-labelledby={abaAtual === 'um' ? 'aba-um' : 'aba-csv'}>
           <section id="painel-um" hidden={abaAtual !== 'um'}>
-            <UmPorUm />
+            <UmPorUm turma={{ nome: nomeTurma, codigo: codigo ?? '' }} />
           </section>
           <section id="painel-csv" hidden={abaAtual !== 'csv'}>
-            <ImportarCsv />
+            <ImportarCsv turma={{ nome: nomeTurma, codigo: codigo ?? '' }} />
           </section>
         </div>
       </main>
@@ -262,7 +273,7 @@ function Alunos() {
 
 // Aba 1 — um por um
 
-function UmPorUm() {
+function UmPorUm({ turma }: { turma: TurmaDaFolha }) {
   const campo = useRef<HTMLInputElement>(null);
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -300,7 +311,12 @@ function UmPorUm() {
         return;
       }
       const recente: Recente = adicionado
-        ? { seq: proximoSeq.current++, nome: adicionado.nome, situacao: 'Adicionado, ainda sem senha' }
+        ? {
+            seq: proximoSeq.current++,
+            nome: adicionado.nome,
+            situacao: `Senha provisória: ${adicionado.senhaProvisoria} (vale até ${formatarData(adicionado.expiraEm)})`,
+            senha: adicionado,
+          }
         : { seq: proximoSeq.current++, nome: resposta.jaEstavam?.[0] ?? nome, situacao: 'Já estava na turma' };
       setRecentes((lista) => [recente, ...lista]);
       toasts.mostrar(adicionado ? 'Aluno adicionado' : 'Já estava na turma');
@@ -381,6 +397,18 @@ function UmPorUm() {
                 <span className="item-convidado-rotulo">Situação</span>
                 <span className="item-convidado-valor">{recente.situacao}</span>
               </div>
+              {recente.senha && (
+                <button
+                  type="button"
+                  className="tabela-acao"
+                  aria-label={`Imprimir a senha provisória de ${recente.nome}`}
+                  onClick={() => {
+                    if (!imprimirSenhas(turma, [recente.senha])) toasts.mostrar('O navegador bloqueou a janela de impressão');
+                  }}
+                >
+                  Imprimir
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -431,7 +459,7 @@ function CampoCopia({ copia }: { copia: Copia }) {
 
 // Aba 2 — importar CSV. Três passos na mesma página.
 
-function ImportarCsv() {
+function ImportarCsv({ turma }: { turma: TurmaDaFolha }) {
   const arquivo = useRef<HTMLInputElement>(null);
   const btnImportar = useRef<HTMLButtonElement>(null);
   const tituloResultado = useRef<HTMLHeadingElement>(null);
@@ -723,7 +751,7 @@ function ImportarCsv() {
         </h2>
         <div id="resultado">
           {resultado && (
-            <ResultadoImportado resultado={resultado} aoImportarOutro={importarOutroArquivo} />
+            <ResultadoImportado resultado={resultado} turma={turma} aoImportarOutro={importarOutroArquivo} />
           )}
         </div>
       </section>
@@ -796,9 +824,11 @@ const colunasPrevia: ColunaTabela<LinhaConferida>[] = [
 // correção sair completo.
 function ResultadoImportado({
   resultado: { resposta, puladas },
+  turma,
   aoImportarOutro,
 }: {
   resultado: Resultado;
+  turma: TurmaDaFolha;
   aoImportarOutro: () => void;
 }) {
   const { adicionados = [], jaEstavam = [], falhas = [] } = resposta ?? {};
@@ -819,9 +849,39 @@ function ResultadoImportado({
       {adicionados.length > 0 && (
         <Grupo
           titulo="Adicionados"
-          texto="Já estão na turma. Cada um cria a própria senha no primeiro acesso, com o código da turma e o nome."
+          texto={
+            'Já estão na turma. Cada um entra a primeira vez com o código da turma, o nome e a senha provisória ' +
+            'abaixo (vale uma vez, por 7 dias), e depois cria a sua. Ela não aparece de novo: imprima ou baixe agora.'
+          }
         >
-          <p className="item-falha-id">{adicionados.map((a) => a.nome).join(', ')}</p>
+          <ul className="lista-falhas">
+            {adicionados.map((a) => (
+              <ItemFalha key={a.id} id={a.nome} motivo={`senha provisória: ${a.senhaProvisoria}`} />
+            ))}
+          </ul>
+          <div className="resultado-acoes">
+            <button
+              type="button"
+              className="btn btn-solido tecla tecla-clara"
+              onClick={() => {
+                if (!imprimirSenhas(turma, adicionados)) toasts.mostrar('O navegador bloqueou a janela de impressão');
+              }}
+            >
+              Imprimir senhas
+            </button>
+            <button
+              type="button"
+              className="btn btn-vidro vidro tecla"
+              onClick={() =>
+                baixarCsv(`senhas-${slug(turma.nome)}.csv`, [
+                  ['nome', 'codigo_da_turma', 'senha_provisoria', 'vale_ate'],
+                  ...adicionados.map((a) => [a.nome, turma.codigo, a.senhaProvisoria, formatarData(a.expiraEm)]),
+                ])
+              }
+            >
+              Baixar senhas (CSV)
+            </button>
+          </div>
         </Grupo>
       )}
 

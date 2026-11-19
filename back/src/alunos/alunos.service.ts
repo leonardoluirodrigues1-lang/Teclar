@@ -3,7 +3,7 @@
 //   GET    /turmas/:turmaId/alunos                         a lista, com agregados
 //   POST   /turmas/:turmaId/alunos/importar                a única entrada do aluno
 //   DELETE /turmas/:turmaId/alunos/:alunoId                remove (e leva as sessões)
-//   POST   /turmas/:turmaId/alunos/:alunoId/zerar-senha    volta ao primeiro acesso
+//   POST   /turmas/:turmaId/alunos/:alunoId/senha-provisoria  senha nova de uso único
 //   GET    /turmas/:turmaId/alunos/:alunoId/desempenho     agregados e sessões
 //
 // A turma tem de ser da conta do token (senão 404). O :alunoId é o
@@ -12,6 +12,7 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
+import { gerarSenhaProvisoria, provisoriaValida } from '../autenticacao/senha-do-aluno.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
@@ -29,20 +30,28 @@ export interface CorpoDaImportacao {
 }
 
 // Um aluno na forma do tipo Aluno do front (js/nucleo/tipos.ts). A senha
-// nunca sai: só senhaDefinida.
+// nunca sai: só senhaDefinida e até quando vale a provisória (null sem
+// provisória válida).
 export interface Aluno {
   id: string;
   nome: string;
   entrouEm: string;
   senhaDefinida: boolean;
+  provisoriaAte: string | null;
   totalSessoes: number;
   wpmMedio: number | null;
   precisaoMedia: number | null;
   ultimaAtividade: string | null;
 }
 
+// A senha provisória sai em texto UMA vez, na resposta de quem a gerou.
+export interface SenhaProvisoriaGerada {
+  senhaProvisoria: string;
+  expiraEm: string;
+}
+
 export interface ResultadoImportacao {
-  adicionados: Aluno[];
+  adicionados: (Aluno & SenhaProvisoriaGerada)[];
   jaEstavam: string[];
   falhas: { nome: string; motivo: string }[];
 }
@@ -149,16 +158,21 @@ export class AlunosService {
     await this.banco.alunos.delete({ where: { ID: alunoId } });
   }
 
-  // POST /turmas/:turmaId/alunos/:alunoId/zerar-senha. O aluno não tem
+  // POST /turmas/:turmaId/alunos/:alunoId/senha-provisoria. O aluno não tem
   // e-mail, então não existe "esqueci a senha" automático: é assim que o
-  // professor o desbloqueia. Com SenhaHash NULL, o próximo login vira
-  // primeiro acesso e grava a senha nova; o histórico fica. Zerar quem já
-  // está sem senha não é erro.
-  async zerarSenha(identidade: Identidade, turmaId: string, alunoId: string): Promise<void> {
+  // professor o desbloqueia. Apaga a senha dele (a antiga deixa de entrar),
+  // grava uma provisória nova (a anterior, se havia, deixa de valer) e a
+  // devolve em texto, uma vez só. O histórico fica.
+  async gerarSenhaProvisoria(identidade: Identidade, turmaId: string, alunoId: string): Promise<SenhaProvisoriaGerada> {
     const professorId = professorDoToken(identidade);
     await turmaDaConta(this.banco, professorId, turmaId);
     await this.alunoDaTurma(turmaId, alunoId);
-    await this.banco.alunosturmas.update({ where: { AlunoID: alunoId }, data: { SenhaHash: null } });
+    const provisoria = await gerarSenhaProvisoria();
+    await this.banco.alunosturmas.update({
+      where: { AlunoID: alunoId },
+      data: { SenhaHash: null, SenhaProvisoriaHash: provisoria.hash, SenhaProvisoriaExpira: provisoria.expira },
+    });
+    return { senhaProvisoria: provisoria.senha, expiraEm: provisoria.expira.toISOString() };
   }
 
   // GET /turmas/:turmaId/alunos/:alunoId/desempenho. Os agregados saem da
@@ -201,8 +215,8 @@ export class AlunosService {
     return new Map(alunos.map((aluno) => [chaveDoNome(aluno.Nome), aluno.Nome]));
   }
 
-  // Grava uma linha nova, com SenhaHash NULL (o primeiro login grava a
-  // senha). Quem decide de verdade se o nome já existe é o UNIQUE
+  // Grava uma linha nova, sem senha e com uma provisória, que vai em texto
+  // na resposta para o professor imprimir. Quem decide de verdade se o nome já existe é o UNIQUE
   // (ClassID, Nome) do banco: se a chave daqui e a collation discordarem
   // num caso raro, ou outra importação gravar o mesmo nome ao mesmo tempo,
   // o INSERT recusa (P2002) e o nome vai para jaEstavam, como deveria.
@@ -210,12 +224,27 @@ export class AlunosService {
     try {
       // O ID e a matrícula nascem juntos: se o nome colidir, a transação
       // desfaz o ID e não sobra aluno sem matrícula.
+      // bcrypt fora da transação: não segura a conexão durante o hash.
+      const provisoria = await gerarSenhaProvisoria();
       const novo = await this.banco.$transaction(async (tx) => {
         const id = randomUUID();
         await tx.alunos.create({ data: { ID: id } });
-        return tx.alunosturmas.create({ data: { ClassID: turmaId, AlunoID: id, Nome: nome, SenhaHash: null } });
+        return tx.alunosturmas.create({
+          data: {
+            ClassID: turmaId,
+            AlunoID: id,
+            Nome: nome,
+            SenhaHash: null,
+            SenhaProvisoriaHash: provisoria.hash,
+            SenhaProvisoriaExpira: provisoria.expira,
+          },
+        });
       });
-      resultado.adicionados.push(alunoNaForma(novo, SEM_SESSOES));
+      resultado.adicionados.push({
+        ...alunoNaForma(novo, SEM_SESSOES),
+        senhaProvisoria: provisoria.senha,
+        expiraEm: provisoria.expira.toISOString(),
+      });
     } catch (erro) {
       if (!(erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002')) {
         throw erro;
@@ -259,7 +288,14 @@ export class AlunosService {
 
 // Funções soltas: não dependem do banco nem do Nest.
 
-type LinhaDeAluno = { AlunoID: string; Nome: string; SenhaHash: string | null; Data_Cadastro: Date | null };
+type LinhaDeAluno = {
+  AlunoID: string;
+  Nome: string;
+  SenhaHash: string | null;
+  SenhaProvisoriaHash: string | null;
+  SenhaProvisoriaExpira: Date | null;
+  Data_Cadastro: Date | null;
+};
 
 function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
   return {
@@ -268,6 +304,10 @@ function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
     // Só a data ("2026-02-01"), como o contrato pede.
     entrouEm: aluno.Data_Cadastro ? diaDe(aluno.Data_Cadastro) : '',
     senhaDefinida: aluno.SenhaHash !== null,
+    provisoriaAte:
+      aluno.SenhaHash === null && provisoriaValida(aluno.SenhaProvisoriaHash, aluno.SenhaProvisoriaExpira)
+        ? (aluno.SenhaProvisoriaExpira as Date).toISOString()
+        : null,
     ...agregados,
   };
 }

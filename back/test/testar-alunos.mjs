@@ -5,8 +5,9 @@
 //     nunca treinou), senha nunca sai.
 //   POST   .../alunos/importar — as três listas; repetido na lista e já na
 //     turma comparados sem maiúscula nem acento; importação parcial; 400.
-//   POST   .../alunos/:alunoId/zerar-senha — o aluno FAZ LOGIN depois e
-//     cai no primeiro acesso, com a senha nova.
+//   POST   .../alunos/:alunoId/senha-provisoria — e a senha provisória de
+//     ponta a ponta: login com ela (uso único, validade, sem hash nenhuma
+//     senha entra), /auth/eu com precisaTrocarSenha e POST /aluno/senha.
 //   DELETE .../alunos/:alunoId — as sessões dele somem junto (CASCADE,
 //     conferido no banco) e o login dele para de funcionar.
 //   GET    .../alunos/:alunoId/desempenho — sessões e médias batendo.
@@ -18,7 +19,7 @@
 //   2. npm run build && npm run start:prod   (em outro terminal)
 //   3. npm run test:alunos
 //
-// Só lê as turmas do seed: importa, zera e remove numa turma que ele mesmo
+// Só lê as turmas do seed: importa, gera provisória e remove numa turma que ele mesmo
 // cria. Grava no banco direto (pelo BancoService do dist/) uma sessão,
 // porque ainda não há rota de sessão do mundo Escola — é ela que prova o
 // CASCADE do DELETE. Cada execução cria uma turma "Teste alunos <horário>";
@@ -85,7 +86,7 @@ const CINCO_ROTAS = [
   ['GET', '/turmas/turma-1/alunos'],
   ['POST', '/turmas/turma-1/alunos/importar', { nomes: ['Intruso'] }],
   ['DELETE', '/turmas/turma-1/alunos/al-44'],
-  ['POST', '/turmas/turma-1/alunos/al-44/zerar-senha'],
+  ['POST', '/turmas/turma-1/alunos/al-44/senha-provisoria'],
   ['GET', '/turmas/turma-1/alunos/al-44/desempenho'],
 ];
 
@@ -115,6 +116,9 @@ confere(
   primeira.adicionados.every(
     (a) =>
       a.senhaDefinida === false &&
+      /^[a-z2-9]{6}$/.test(a.senhaProvisoria) &&
+      a.provisoriaAte === a.expiraEm &&
+      Math.abs(Date.parse(a.expiraEm) - Date.now() - 7 * 24 * 3600 * 1000) < 60 * 1000 &&
       a.totalSessoes === 0 &&
       a.wpmMedio === null &&
       a.precisaoMedia === null &&
@@ -170,7 +174,9 @@ confere(
   'listar turma-1: agregados prontos para quem treinou',
   anaDoSeed.totalSessoes > 0 && Number.isInteger(anaDoSeed.wpmMedio) && !Number.isNaN(Date.parse(anaDoSeed.ultimaAtividade)),
 );
-confere('listar turma-1: Davi Moreira ainda sem senha', r.corpo.find((a) => a.id === 'al-45')?.senhaDefinida === false);
+const davi = r.corpo.find((a) => a.id === 'al-45');
+confere('listar turma-1: Davi Moreira sem senha, com a provisória do seed', davi?.senhaDefinida === false && typeof davi.provisoriaAte === 'string');
+confere('listar: provisoriaAte null para quem tem senha', anaDoSeed.provisoriaAte === null);
 
 // ============================================================================
 // GET .../desempenho
@@ -192,41 +198,93 @@ confere(
 );
 
 // ============================================================================
-// POST .../zerar-senha — com login de verdade
+// Senha provisória — com login de verdade
 // ============================================================================
 
 const loginDoBruno = (senha) => chamar('POST', '/auth/login', { codigo: turma.codigo, nome: 'Bruno Sato', senha });
+const criarSenha = (novaSenha, token) => chamar('POST', '/aluno/senha', { novaSenha }, token);
+const linhaDe = async (alvo) => (await chamar('GET', `/turmas/${turma.id}/alunos`, null, prof)).corpo.find((a) => a.id === alvo.id);
 
+r = await loginDoBruno('qualquer123');
+confere('provisória: sem senha própria, uma senha qualquer NÃO entra', ehErro(r, 401, 'CREDENCIAIS'));
+r = await loginDoBruno(bruno.senhaProvisoria);
+confere('provisória: entra com ela, com precisaTrocarSenha', r.status === 200 && r.corpo.usuario.precisaTrocarSenha === true);
+const tokenDoBruno = r.corpo.token;
+r = await loginDoBruno(bruno.senhaProvisoria);
+confere('provisória: uso único, o segundo login com ela é 401', ehErro(r, 401, 'CREDENCIAIS'));
+confere('provisória: depois do uso, a lista mostra provisoriaAte null', (await linhaDe(bruno)).provisoriaAte === null);
+r = await chamar('GET', '/auth/eu', null, tokenDoBruno);
+confere('provisória: /auth/eu repete precisaTrocarSenha', r.status === 200 && r.corpo.precisaTrocarSenha === true);
+
+r = await chamar('POST', '/aluno/senha', { novaSenha: 'bruno123' });
+confere('/aluno/senha: sem token 401', ehErro(r, 401, 'TOKEN_INVALIDO'));
+r = await criarSenha('bruno123', prof);
+confere('/aluno/senha: token de conta 403 TIPO_INVALIDO', ehErro(r, 403, 'TIPO_INVALIDO'));
+r = await criarSenha('ab', tokenDoBruno);
+confere('/aluno/senha: curta demais 400 DADOS_INVALIDOS', ehErro(r, 400, 'DADOS_INVALIDOS'));
+r = await criarSenha(' bruno123 ', tokenDoBruno);
+confere('/aluno/senha: 204 sem corpo', ehVazio204(r));
+r = await criarSenha('outra456', tokenDoBruno);
+confere('/aluno/senha: de novo 409 SENHA_JA_CRIADA', ehErro(r, 409, 'SENHA_JA_CRIADA'));
 r = await loginDoBruno('bruno123');
-confere('zerar: preparo, primeiro acesso do Bruno grava a senha', r.status === 200 && r.corpo.primeiroAcesso === true);
+confere('/aluno/senha: a senha criada entra, sem precisaTrocarSenha', r.status === 200 && !('precisaTrocarSenha' in r.corpo.usuario));
+r = await chamar('GET', '/auth/eu', null, r.corpo.token);
+confere('/aluno/senha: /auth/eu sem precisaTrocarSenha', r.status === 200 && !('precisaTrocarSenha' in r.corpo));
+confere('/aluno/senha: lista mostra senhaDefinida true', (await linhaDe(bruno)).senhaDefinida === true);
+
+// O professor gera outra: a senha do Bruno deixa de valer.
+r = await chamar('POST', `/turmas/${turma.id}/alunos/${bruno.id}/senha-provisoria`, null, prof);
+const primeiraGerada = r.corpo;
+confere(
+  'gerar: 200 com a senha em texto e a validade',
+  r.status === 200 && /^[a-z2-9]{6}$/.test(primeiraGerada.senhaProvisoria) && !Number.isNaN(Date.parse(primeiraGerada.expiraEm)),
+);
+const linhaDoBruno = await linhaDe(bruno);
+confere(
+  'gerar: lista mostra sem senha e provisoriaAte = expiraEm',
+  linhaDoBruno.senhaDefinida === false && linhaDoBruno.provisoriaAte === primeiraGerada.expiraEm,
+);
+const noBanco = await banco.alunosturmas.findUnique({ where: { AlunoID: bruno.id } });
+confere(
+  'gerar: no banco só o hash, nunca o texto',
+  noBanco.SenhaProvisoriaHash.startsWith('$2') && noBanco.SenhaProvisoriaHash !== primeiraGerada.senhaProvisoria,
+);
 r = await loginDoBruno('bruno123');
-confere('zerar: preparo, segundo login já confere a senha', r.status === 200 && !('primeiroAcesso' in r.corpo));
+confere('gerar: a senha antiga não vale mais', ehErro(r, 401, 'CREDENCIAIS'));
+r = await chamar('POST', `/turmas/${turma.id}/alunos/${bruno.id}/senha-provisoria`, null, prof);
+const segundaGerada = r.corpo;
+r = await loginDoBruno(primeiraGerada.senhaProvisoria);
+confere('gerar de novo: a provisória anterior deixa de valer', ehErro(r, 401, 'CREDENCIAIS'));
+r = await loginDoBruno(segundaGerada.senhaProvisoria);
+confere('gerar de novo: a nova entra', r.status === 200 && r.corpo.usuario.precisaTrocarSenha === true);
 
-r = await chamar('POST', `/turmas/${turma.id}/alunos/${bruno.id}/zerar-senha`, null, prof);
-confere('zerar: 204 sem corpo', ehVazio204(r));
-r = await chamar('GET', `/turmas/${turma.id}/alunos`, null, prof);
-confere('zerar: lista mostra senhaDefinida false', r.corpo.find((a) => a.id === bruno.id).senhaDefinida === false);
-
-r = await chamar('POST', `/turmas/${turma.id}/alunos/${bruno.id}/zerar-senha`, null, prof);
-confere('zerar: zerar quem já está sem senha 204 igual', ehVazio204(r));
-
-// A prova: o login seguinte é primeiro acesso, com QUALQUER senha nova.
-r = await loginDoBruno('nova4567');
-confere('zerar: login depois vira primeiro acesso, com a senha nova', r.status === 200 && r.corpo.primeiroAcesso === true);
-r = await loginDoBruno('bruno123');
-confere('zerar: a senha antiga não vale mais', ehErro(r, 401, 'CREDENCIAIS'));
+// Validade: a provisória vencida não entra (a da Ana deste teste, vencida no banco).
+await banco.alunosturmas.update({ where: { AlunoID: ana.id }, data: { SenhaProvisoriaExpira: new Date(Date.now() - 1000) } });
+r = await chamar('POST', '/auth/login', { codigo: turma.codigo, nome: 'Ana Pires', senha: ana.senhaProvisoria });
+confere('validade: provisória vencida 401', ehErro(r, 401, 'CREDENCIAIS'));
+confere('validade: lista mostra provisoriaAte null', (await linhaDe(ana)).provisoriaAte === null);
+// Sem hash nenhum (nem senha, nem provisória): nenhuma senha entra.
+await banco.alunosturmas.update({ where: { AlunoID: ana.id }, data: { SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null } });
+r = await chamar('POST', '/auth/login', { codigo: turma.codigo, nome: 'Ana Pires', senha: 'qualquer123' });
+confere('sem hash: senha qualquer 401', ehErro(r, 401, 'CREDENCIAIS'));
 
 // Ana Pires tem uma matrícula por turma (al-43-t1 na turma-1, al-43 na
-// turma-2): zerar a da turma-2 não mexe na da turma-1, e as senhas divergem.
+// turma-2): a provisória da turma-2 não mexe na da turma-1. No fim, a
+// senha da turma-2 volta a ser a do seed, para as outras suítes.
 const loginDaAna = (codigo, senha) => chamar('POST', '/auth/login', { codigo, nome: 'Ana Pires', senha });
-r = await chamar('POST', '/turmas/turma-2/alunos/al-43/zerar-senha', null, prof);
-confere('Ana: zerar a senha na turma-2 204', ehVazio204(r));
-r = await loginDaAna('R8VD3K', 'outra2026');
-confere('Ana: na turma-2 vira primeiro acesso, com outra senha', r.status === 200 && r.corpo.primeiroAcesso === true);
+async function trocarSenhaDaAnaNaTurma2(nova) {
+  const gerada = (await chamar('POST', '/turmas/turma-2/alunos/al-43/senha-provisoria', null, prof)).corpo;
+  const login = await loginDaAna('R8VD3K', gerada.senhaProvisoria);
+  return criarSenha(nova, login.corpo.token);
+}
+r = await trocarSenhaDaAnaNaTurma2('outra2026');
+confere('Ana: na turma-2, provisória e senha nova', ehVazio204(r));
 r = await loginDaAna('K7M2QX', 'aluno2026');
-confere('Ana: na turma-1 a senha de antes continua valendo', r.status === 200 && !('primeiroAcesso' in r.corpo));
+confere('Ana: na turma-1 a senha de antes continua valendo', r.status === 200 && !('precisaTrocarSenha' in r.corpo.usuario));
 r = await loginDaAna('K7M2QX', 'outra2026');
 confere('Ana: a senha da turma-2 não abre a turma-1', ehErro(r, 401, 'CREDENCIAIS'));
+r = await trocarSenhaDaAnaNaTurma2('aluno2026');
+confere('Ana: a turma-2 volta à senha do seed', ehVazio204(r) && (await loginDaAna('R8VD3K', 'aluno2026')).status === 200);
 
 // ============================================================================
 // DELETE .../alunos/:alunoId — e o CASCADE nas sessões
@@ -260,7 +318,7 @@ const ROTAS_DA_TURMA_5 = [
   ['GET', '/turmas/turma-5/alunos'],
   ['POST', '/turmas/turma-5/alunos/importar', { nomes: ['Intruso'] }],
   ['DELETE', '/turmas/turma-5/alunos/al-43-t5'],
-  ['POST', '/turmas/turma-5/alunos/al-43-t5/zerar-senha'],
+  ['POST', '/turmas/turma-5/alunos/al-43-t5/senha-provisoria'],
   ['GET', '/turmas/turma-5/alunos/al-43-t5/desempenho'],
   ['GET', '/turmas/nao-existe/alunos'],
 ];
@@ -270,7 +328,7 @@ for (const [metodo, rota, corpo] of ROTAS_DA_TURMA_5) {
 }
 
 // al-44 é da turma-1, da MESMA conta: mesmo assim, fora da turma da URL é 404.
-for (const [metodo, sufixo] of [['DELETE', ''], ['POST', '/zerar-senha'], ['GET', '/desempenho']]) {
+for (const [metodo, sufixo] of [['DELETE', ''], ['POST', '/senha-provisoria'], ['GET', '/desempenho']]) {
   r = await chamar(metodo, `/turmas/${turma.id}/alunos/al-44${sufixo}`, null, prof);
   confere(`${metodo} aluno de outra turma da mesma conta${sufixo}: 404`, ehErro(r, 404, 'NAO_ENCONTRADO'));
 }

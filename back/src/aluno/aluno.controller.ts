@@ -5,7 +5,7 @@
 // /aluno e o relatório individual em /turmas/:turmaId/meu-desempenho. Cada
 // rota escreve o caminho inteiro, para ficar à vista. O GuardaDoToken fica
 // na classe, como nos outros controllers.
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
@@ -16,6 +16,12 @@ import type { DesempenhoNaTurma, ResumoDoAluno, SalaDetalhe, SalaDoAluno, Sessao
 @UseGuards(GuardaDoToken)
 export class AlunoController {
   constructor(private readonly aluno: AlunoService) {}
+
+  @Post('aluno/senha')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  criarSenha(@Req() requisicao: RequisicaoComIdentidade, @Body() corpo: { novaSenha?: unknown }): Promise<void> {
+    return this.aluno.criarSenha(requisicao.identidade, corpo);
+  }
 
   @Get('aluno/historico')
   historico(@Req() requisicao: RequisicaoComIdentidade): Promise<Paginado<SessaoDoHistorico>> {

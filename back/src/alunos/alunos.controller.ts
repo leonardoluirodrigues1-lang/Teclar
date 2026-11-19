@@ -7,7 +7,13 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, 
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { AlunosService } from './alunos.service.js';
-import type { Aluno, CorpoDaImportacao, DesempenhoAluno, ResultadoImportacao } from './alunos.service.js';
+import type {
+  Aluno,
+  CorpoDaImportacao,
+  DesempenhoAluno,
+  ResultadoImportacao,
+  SenhaProvisoriaGerada,
+} from './alunos.service.js';
 
 @Controller('turmas/:turmaId/alunos')
 @UseGuards(GuardaDoToken)
@@ -40,14 +46,15 @@ export class AlunosController {
     return this.alunos.remover(requisicao.identidade, turmaId, alunoId);
   }
 
-  @Post(':alunoId/zerar-senha')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  zerarSenha(
+  // 200 com a senha em texto: é a única vez que ela sai do back.
+  @Post(':alunoId/senha-provisoria')
+  @HttpCode(HttpStatus.OK)
+  gerarSenhaProvisoria(
     @Req() requisicao: RequisicaoComIdentidade,
     @Param('turmaId') turmaId: string,
     @Param('alunoId') alunoId: string,
-  ): Promise<void> {
-    return this.alunos.zerarSenha(requisicao.identidade, turmaId, alunoId);
+  ): Promise<SenhaProvisoriaGerada> {
+    return this.alunos.gerarSenhaProvisoria(requisicao.identidade, turmaId, alunoId);
   }
 
   @Get(':alunoId/desempenho')

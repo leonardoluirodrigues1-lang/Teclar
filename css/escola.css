@@ -874,6 +874,13 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   margin-bottom: 14px;
 }
 .modal-criar-novo { margin-bottom: 14px; }
+/* A senha provisória no modal da turma: grande, para ditar ou copiar. */
+.senha-provisoria {
+  margin-bottom: 12px;
+  font-size: 32px;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
 .modal-busca input {
   width: 100%;
   padding: 10px 14px;

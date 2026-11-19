@@ -5,7 +5,7 @@
 // que a pessoa veja uma tela quebrada, sem dado e sem sentido. Nada impede
 // alguém de burlar este arquivo — e tudo bem, porque a API vai recusar.
 
-import { ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, rotaInicial } from '../config.js';
+import { ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, ROTA_SENHA_ALUNO, rotaInicial } from '../config.js';
 import { api } from './api.js';
 import { sessao } from './sessao.js';
 import type { Usuario, Mundo, Modo, TipoSessao } from './tipos.js';
@@ -41,6 +41,7 @@ function mandarParaLogin(): void {
 // Sem sessão, a landing. A conta não passa por aqui logo depois do login: ver
 // destinoAoEntrar().
 function casa(): string {
+  if (precisaCriarSenha(sessao.usuario())) return ROTA_SENHA_ALUNO;
   const tipo = sessao.tipo();
   return tipo ? rotaInicial(tipo, sessao.modo(), sessao.turmaAtiva()) : ROTA_LANDING;
 }
@@ -66,7 +67,18 @@ function exigir(tipoExigido?: TipoSessao | null): Usuario | null {
     return null;
   }
 
+  // Aluno que entrou com a senha provisória: só a tela de criar a senha
+  // abre até ele criar a dele.
+  if (precisaCriarSenha(usuario) && window.location.pathname !== ROTA_SENHA_ALUNO) {
+    irPara(ROTA_SENHA_ALUNO);
+    return null;
+  }
+
   return usuario;
+}
+
+function precisaCriarSenha(usuario: Usuario | null): boolean {
+  return usuario?.tipo === 'aluno' && usuario.precisaTrocarSenha === true;
 }
 
 // Telas do Solo e do Professor: exigem sessão de conta e, ao abrir, gravam

@@ -50,8 +50,8 @@
           "Autenticação"
         ],
         "operationId": "auth.entrar",
-        "summary": "entrar: RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha",
-        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.",
+        "summary": "entrar: RespostaLogin — usuario.precisaTrocarSenha só vem (true) no aluno que entrou com a senha provisória",
+        "description": "**Chamada no front:** `api.auth.entrar`\n\n**Corpo:** Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)\n\n**Resposta:** 200 RespostaLogin — usuario.precisaTrocarSenha só vem (true) no aluno que entrou com a senha provisória\n\n**Identidade:**\n\nPública. O token devolvido carrega o id e o tipo de quem entrou.\n\n**Regras de negócio no back (a tela não calcula):**\n\n`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Com SenhaHash, confere com ele. Sem SenhaHash, só a senha provisória entra: confere com SenhaProvisoriaHash se SenhaProvisoriaExpira ainda não passou e, se bate, APAGA a provisória (uso único) e responde com usuario.precisaTrocarSenha: true. Sem hash nenhum, nenhuma senha entra.\n\n**Notas:**\n\nCódigo, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.",
         "parameters": [],
         "requestBody": {
           "description": "Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)",
@@ -82,7 +82,7 @@
         },
         "responses": {
           "200": {
-            "description": "RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha",
+            "description": "RespostaLogin — usuario.precisaTrocarSenha só vem (true) no aluno que entrou com a senha provisória",
             "content": {
               "application/json": {
                 "examples": {
@@ -103,7 +103,6 @@
                     "summary": "Aluno",
                     "value": {
                       "token": "...",
-                      "primeiroAcesso": true,
                       "usuario": {
                         "id": "al-9f3k2",
                         "nome": "Ana Pires",
@@ -113,24 +112,9 @@
                             "id": "turma-1",
                             "nome": "9º Ano A — Manhã"
                           }
-                        ]
+                        ],
+                        "precisaTrocarSenha": true
                       }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "`DADOS_INVALIDOS` — primeiro acesso de aluno com senha fora de 4 a 20 caracteres",
-            "content": {
-              "application/json": {
-                "examples": {
-                  "exemplo1": {
-                    "summary": "DADOS_INVALIDOS",
-                    "value": {
-                      "mensagem": "...",
-                      "codigo": "DADOS_INVALIDOS"
                     }
                   }
                 }
@@ -2052,7 +2036,7 @@
         ],
         "operationId": "alunos.daTurma",
         "summary": "daTurma: Aluno[] — os alunos da turma, na ordem alfabética do nome",
-        "description": "**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
+        "description": "**Chamada no front:** `api.alunos.daTurma`\n\n**Resposta:** 200 Aluno[] — os alunos da turma, na ordem alfabética do nome\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL; provisoriaAte = SenhaProvisoriaExpira se não há SenhaHash e a provisória ainda vale, senão null. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.",
         "parameters": [
           {
             "name": "id",
@@ -2087,6 +2071,7 @@
                         "nome": "Davi Moreira",
                         "entrouEm": "2026-02-24",
                         "senhaDefinida": false,
+                        "provisoriaAte": "2026-10-12T15:00:00.000Z",
                         "totalSessoes": 0,
                         "wpmMedio": null,
                         "precisaoMedia": null,
@@ -2145,7 +2130,7 @@
         ],
         "operationId": "alunos.importar",
         "summary": "importar: ResultadoImportacao — cada nome cai numa das três listas",
-        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
+        "description": "**Chamada no front:** `api.alunos.importar`\n\n**Corpo:** { nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes\n\n**Resposta:** 200 ResultadoImportacao — cada nome cai numa das três listas\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou \"Nome repetido na lista.\"), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL e uma senha provisória (bcrypt em SenhaProvisoriaHash, validade de 7 dias), na mesma transação. A provisória em texto vai só nesta resposta (senhaProvisoria, expiraEm). Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.\n\n**Notas:**\n\nÉ a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.",
         "parameters": [
           {
             "name": "id",
@@ -2195,10 +2180,13 @@
                           "nome": "Bruno Sato",
                           "entrouEm": "2026-10-05",
                           "senhaDefinida": false,
+                          "provisoriaAte": "2026-10-12T15:00:00.000Z",
                           "totalSessoes": 0,
                           "wpmMedio": null,
                           "precisaoMedia": null,
-                          "ultimaAtividade": null
+                          "ultimaAtividade": null,
+                          "senhaProvisoria": "k7m2qx",
+                          "expiraEm": "2026-10-12T15:00:00.000Z"
                         }
                       ],
                       "jaEstavam": [
@@ -2346,14 +2334,14 @@
         ]
       }
     },
-    "/api/turmas/{id}/alunos/{alunoId}/zerar-senha": {
+    "/api/turmas/{id}/alunos/{alunoId}/senha-provisoria": {
       "post": {
         "tags": [
           "Alunos (professor)"
         ],
-        "operationId": "alunos.zerarSenha",
-        "summary": "zerarSenha: (sem corpo)",
-        "description": "**Chamada no front:** `api.alunos.zerarSenha`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.\n\n**Notas:**\n\nAté o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.",
+        "operationId": "alunos.gerarSenhaProvisoria",
+        "summary": "gerarSenhaProvisoria: SenhaProvisoriaGerada — a senha em texto, uma vez só",
+        "description": "**Chamada no front:** `api.alunos.gerarSenhaProvisoria`\n\n**Resposta:** 200 SenhaProvisoriaGerada — a senha em texto, uma vez só\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, como no DELETE.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGera 6 letras e números (sem 0/o, 1/l/i), grava o bcrypt em SenhaProvisoriaHash, SenhaProvisoriaExpira = agora + 7 dias e SenhaHash = NULL (a senha antiga deixa de valer; uma provisória anterior também). O histórico fica.\n\n**Notas:**\n\nÉ o \"esqueci a senha\" do aluno, que não tem e-mail. O próximo login com a provisória a consome e pede a senha nova (POST /aluno/senha).",
         "parameters": [
           {
             "name": "id",
@@ -2373,8 +2361,21 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "(sem corpo)"
+          "200": {
+            "description": "SenhaProvisoriaGerada — a senha em texto, uma vez só",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "senhaProvisoria": "k7m2qx",
+                      "expiraEm": "2026-10-12T15:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
@@ -3537,6 +3538,109 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/senha": {
+      "post": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.criarSenha",
+        "summary": "criarSenha: (sem corpo)",
+        "description": "**Chamada no front:** `api.escola.aluno.criarSenha`\n\n**Corpo:** { novaSenha } — de 4 a 20 caracteres, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "novaSenha": "minhasenha"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — senha fora de 4 a 20 caracteres",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`SENHA_JA_CRIADA` — o aluno já tem senha (trocar é com o professor, que gera outra provisória)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "SENHA_JA_CRIADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "SENHA_JA_CRIADA"
                     }
                   }
                 }

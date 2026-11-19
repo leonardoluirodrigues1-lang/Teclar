@@ -285,11 +285,19 @@ const exercicio = (
   )
 ).corpo;
 await chamar('POST', `/turmas/${detalhada.id}/atribuicoes`, { exercicioIds: [exercicio.id] }, prof);
-await chamar('POST', `/turmas/${detalhada.id}/alunos/importar`, { nomes: ['Lia Souza', 'Rui Lopes', 'Caio Prado', 'Bia Melo'] }, prof);
+const importadosDetalhada = (
+  await chamar('POST', `/turmas/${detalhada.id}/alunos/importar`, { nomes: ['Lia Souza', 'Rui Lopes', 'Caio Prado', 'Bia Melo'] }, prof)
+).corpo.adicionados;
 
-// O aluno entra (primeiro acesso grava a senha) e treina pela rota.
+// O aluno entra com a provisória da importação (uso único: o token fica
+// guardado para a segunda sessão) e treina pela rota.
+const tokensDetalhada = {};
 async function treinar(nome, wpm, concluida) {
-  const login = await chamar('POST', '/auth/login', { codigo: detalhada.codigo, nome, senha: 'senha1234' });
+  if (!tokensDetalhada[nome]) {
+    const senha = importadosDetalhada.find((a) => a.nome === nome).senhaProvisoria;
+    tokensDetalhada[nome] = (await chamar('POST', '/auth/login', { codigo: detalhada.codigo, nome, senha })).corpo.token;
+  }
+  const login = { corpo: { token: tokensDetalhada[nome] } };
   const sessao = {
     exercicio_id: exercicio.id,
     turma_id: detalhada.id,

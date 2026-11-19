@@ -6,6 +6,7 @@
 //   GET /aluno/salas                        a turma dele, com o progresso dele
 //   GET /aluno/salas/:turmaId               a sala e o estado de cada exercício
 //   GET /turmas/:turmaId/meu-desempenho     o relatório individual dele na sala
+//   POST /aluno/senha                       cria a senha dele (depois da provisória)
 //
 // Vale para todas:
 //   - O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe id de aluno:
@@ -16,7 +17,10 @@
 //     a dele, ou que está arquivada, é 404 — e não 403, que diria "essa
 //     turma existe, só não é sua".
 //   - Nenhum número de colega sai daqui, só a média da sala inteira.
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import bcrypt from 'bcryptjs';
+import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno } from '../autenticacao/senha-do-aluno.js';
+import { dadosInvalidos } from '../dados-invalidos.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -113,6 +117,28 @@ export class AlunoService {
   // GET /aluno/historico. Da mais recente para a mais antiga: a ordem é
   // parte do contrato, e a tela não reordena. Sem tamanho de página
   // definido: vem tudo, com pagina = 1.
+  // POST /aluno/senha. Só para quem ainda não tem senha própria (entrou pela
+  // provisória, que o login já consumiu): o token é a prova. Quem já tem
+  // senha recebe 409 — trocar uma senha existente é com o professor, que
+  // gera outra provisória. A senha vai aparada, como o login confere.
+  async criarSenha(identidade: Identidade, corpo: { novaSenha?: unknown }): Promise<void> {
+    const alunoId = alunoDoToken(identidade);
+    const senha = String(corpo?.novaSenha ?? '').trim();
+    const problema = problemaNaSenhaDoAluno(senha);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
+    }
+    const hash = await bcrypt.hash(senha, CUSTO_BCRYPT_ALUNO);
+    // SenhaHash null no filtro: duas abas ao mesmo tempo, só uma grava.
+    const gravou = await this.banco.alunosturmas.updateMany({
+      where: { AlunoID: alunoId, SenhaHash: null, Ativo: true },
+      data: { SenhaHash: hash, SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null },
+    });
+    if (gravou.count !== 1) {
+      throw new ConflictException({ mensagem: 'Você já criou a sua senha.', codigo: 'SENHA_JA_CRIADA' });
+    }
+  }
+
   async historico(identidade: Identidade): Promise<Paginado<SessaoDoHistorico>> {
     const alunoId = alunoDoToken(identidade);
     const linhas = await this.banco.sessionsprof.findMany({

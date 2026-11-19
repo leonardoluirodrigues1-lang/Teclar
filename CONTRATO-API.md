@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-54 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+55 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -30,11 +30,11 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **Autenticação**: `POST /auth/login`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
-- **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/zerar-senha`, `GET /turmas/:id/alunos/:alunoId/desempenho`
+- **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `POST /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
@@ -56,20 +56,20 @@ Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)
 
 **Resposta:**
 
-200 RespostaLogin — primeiroAcesso só vem (true) no aluno que acabou de criar a senha
+200 RespostaLogin — usuario.precisaTrocarSenha só vem (true) no aluno que entrou com a senha provisória
 
 ```json
 { "token": "eyJhbGciOi...",
   "usuario": { "id": "u-2", "nome": "Henrique Lima", "email": "prof@teclar.dev",
                "tipo": "conta", "campanhaAtiva": "camp-2" } }
-Aluno: { "token": "...", "primeiroAcesso": true,
+Aluno: { "token": "...",
          "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-         "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }
+         "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }],
+         "precisaTrocarSenha": true } }
 ```
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — primeiro acesso de aluno com senha fora de 4 a 20 caracteres
 - 401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
 - 403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada
 - 429 MUITAS_TENTATIVAS — 5 senhas erradas no mesmo minuto para a mesma pessoa, do mesmo IP: as próximas tentativas dela, até com a senha certa, até o minuto passar
@@ -80,11 +80,11 @@ Pública. O token devolvido carrega o id e o tipo de quem entrou.
 
 **Regras de negócio no back (a tela não calcula):**
 
-`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.
+`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Com SenhaHash, confere com ele. Sem SenhaHash, só a senha provisória entra: confere com SenhaProvisoriaHash se SenhaProvisoriaExpira ainda não passou e, se bate, APAGA a provisória (uso único) e responde com usuario.precisaTrocarSenha: true. Sem hash nenhum, nenhuma senha entra.
 
 **Notas:**
 
-Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de gravar ou conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.
+Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.
 
 ### `POST /auth/cadastro`
 
@@ -884,8 +884,8 @@ Chamada no front: `api.alunos.daTurma`
    "senhaDefinida": true, "totalSessoes": 12, "wpmMedio": 39, "precisaoMedia": 91,
    "ultimaAtividade": "2026-10-03T12:00:00.000Z" },
  { "id": "al-2m8qd", "nome": "Davi Moreira", "entrouEm": "2026-02-24",
-   "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null, "precisaoMedia": null,
-   "ultimaAtividade": null }]
+   "senhaDefinida": false, "provisoriaAte": "2026-10-12T15:00:00.000Z", "totalSessoes": 0,
+   "wpmMedio": null, "precisaoMedia": null, "ultimaAtividade": null }]
 ```
 
 **Erros:**
@@ -898,7 +898,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-alunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.
+alunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL; provisoriaAte = SenhaProvisoriaExpira se não há SenhaHash e a provisória ainda vale, senão null. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.
 
 ### `POST /turmas/:id/alunos/importar`
 
@@ -918,8 +918,9 @@ Chamada no front: `api.alunos.importar`
 
 ```json
 { "adicionados": [{ "id": "al-7c1pz", "nome": "Bruno Sato", "entrouEm": "2026-10-05",
-    "senhaDefinida": false, "totalSessoes": 0, "wpmMedio": null,
-    "precisaoMedia": null, "ultimaAtividade": null }],
+    "senhaDefinida": false, "provisoriaAte": "2026-10-12T15:00:00.000Z", "totalSessoes": 0,
+    "wpmMedio": null, "precisaoMedia": null, "ultimaAtividade": null,
+    "senhaProvisoria": "k7m2qx", "expiraEm": "2026-10-12T15:00:00.000Z" }],
   "jaEstavam": ["Ana Pires"],
   "falhas": [{ "nome": "ana  pires", "motivo": "Nome repetido na lista." },
              { "nome": "", "motivo": "Nome vazio." }] }
@@ -936,7 +937,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
+Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL e uma senha provisória (bcrypt em SenhaProvisoriaHash, validade de 7 dias), na mesma transação. A provisória em texto vai só nesta resposta (senhaProvisoria, expiraEm). Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
 
 **Notas:**
 
@@ -964,9 +965,9 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO �
 
 Apaga o ID em alunos; a matrícula (alunosturmas) e as sessões vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.
 
-### `POST /turmas/:id/alunos/:alunoId/zerar-senha`
+### `POST /turmas/:id/alunos/:alunoId/senha-provisoria`
 
-Chamada no front: `api.alunos.zerarSenha`
+Chamada no front: `api.alunos.gerarSenhaProvisoria`
 
 **Corpo:**
 
@@ -974,7 +975,11 @@ Nenhum.
 
 **Resposta:**
 
-204 (sem corpo)
+200 SenhaProvisoriaGerada — a senha em texto, uma vez só
+
+```json
+{ "senhaProvisoria": "k7m2qx", "expiraEm": "2026-10-12T15:00:00.000Z" }
+```
 
 **Erros:**
 
@@ -986,11 +991,11 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, c
 
 **Regras de negócio no back (a tela não calcula):**
 
-Grava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.
+Gera 6 letras e números (sem 0/o, 1/l/i), grava o bcrypt em SenhaProvisoriaHash, SenhaProvisoriaExpira = agora + 7 dias e SenhaHash = NULL (a senha antiga deixa de valer; uma provisória anterior também). O histórico fica.
 
 **Notas:**
 
-Até o próximo login, quem tiver o código e o nome cria a senha; a tela avisa disso.
+É o "esqueci a senha" do aluno, que não tem e-mail. O próximo login com a provisória a consome e pede a senha nova (POST /aluno/senha).
 
 ### `GET /turmas/:id/alunos/:alunoId/desempenho`
 
@@ -1410,6 +1415,36 @@ não 403 — o 403 diria "essa turma existe, só não é sua".
 ```
 
  `escola.aluno`, e não só `aluno`: é o aluno do mundo Escola. O Solo é da conta, e mora em `solo`.
+
+### `POST /aluno/senha`
+
+Chamada no front: `api.escola.aluno.criarSenha`
+
+**Corpo:**
+
+{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas
+
+```json
+{ "novaSenha": "minhasenha" }
+```
+
+**Resposta:**
+
+204 (sem corpo)
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — senha fora de 4 a 20 caracteres
+- 403 TIPO_INVALIDO — token de conta
+- 409 SENHA_JA_CRIADA — o aluno já tem senha (trocar é com o professor, que gera outra provisória)
+
+**Identidade:**
+
+O token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.
+
+**Regras de negócio no back (a tela não calcula):**
+
+UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.
 
 ### `GET /aluno/historico`
 
