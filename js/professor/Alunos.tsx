@@ -26,7 +26,7 @@ import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { ErroDaApi, ResultadoImportacao } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
-import { parsearCsv, separarCabecalho, gerarCsv } from '../utils/csv.js';
+import { parsearCsv, separarCabecalho, gerarCsv, decodificarCsv } from '../utils/csv.js';
 import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
@@ -40,8 +40,9 @@ const TAMANHO_MAXIMO = 1024 * 1024;
 const LINHAS_NA_PREVIA = 10;
 
 // O nome que a coluna pode ter no cabeçalho (é por ele que
-// separarCabecalho decide). Tudo o mais na primeira linha é dado.
-const COLUNAS_CONHECIDAS = ['nome'];
+// separarCabecalho decide e acha a coluna). Sem nenhum deles, a primeira
+// linha é dado e o nome vem da primeira coluna.
+const COLUNAS_CONHECIDAS = ['nome', 'aluno', 'estudante'];
 
 // Como o CSV SAI daqui: ";", igual ao export do relatório — o Excel em
 // português abre vírgula tudo numa coluna só. BOM só no ARQUIVO baixado
@@ -469,23 +470,24 @@ function ImportarCsv() {
       return;
     }
 
-    // FileReader em UTF-8: o front lê o texto, parseia e manda JSON. O
-    // arquivo cru nunca vai para o back.
-    const leitor = new FileReader();
-    leitor.addEventListener('load', () => {
-      const conferidas = conferir(String(leitor.result ?? ''));
-      if (conferidas.length === 0) {
-        setErroArquivo('O arquivo não tem nenhum nome.');
+    // Bytes, não texto: decodificarCsv tenta UTF-8 e cai para windows-1252
+    // (o CSV do Excel BR). O front parseia e manda JSON; o arquivo cru
+    // nunca vai para o back.
+    escolhido.arrayBuffer().then(
+      (bytes) => {
+        const conferidas = conferir(decodificarCsv(bytes));
+        if (conferidas.length === 0) {
+          setErroArquivo('O arquivo não tem nenhum nome.');
+          arquivo.current.value = '';
+          return;
+        }
+        mostrarPrevia(conferidas);
+      },
+      () => {
+        setErroArquivo('Não foi possível ler o arquivo.');
         arquivo.current.value = '';
-        return;
       }
-      mostrarPrevia(conferidas);
-    });
-    leitor.addEventListener('error', () => {
-      setErroArquivo('Não foi possível ler o arquivo.');
-      arquivo.current.value = '';
-    });
-    leitor.readAsText(escolhido, 'UTF-8');
+    );
   }
 
   function limparArquivo() {
@@ -633,7 +635,8 @@ function ImportarCsv() {
               Escolher arquivo
             </button>
             <p className="soltar-ajuda" id="soltar-ajuda">
-              Uma coluna só, <code>nome</code>. Até 1 MB.
+              Uma coluna <code>nome</code> (ou <code>aluno</code>); as outras colunas são ignoradas. Sem
+              cabeçalho, vale a primeira coluna. Até 1 MB.
             </p>
             <p className="erro-campo" id="erro-arquivo" aria-live="polite">
               {erroArquivo}
@@ -729,8 +732,8 @@ function ImportarCsv() {
 }
 
 // Texto do arquivo -> linhas conferidas. A regra de cada linha:
-//   · uma coluna só, o nome (célula vazia sobrando no fim é tolerada — o
-//     Excel costuma deixar um ";" a mais);
+//   · o nome vem da coluna nome/aluno/estudante do cabeçalho, ou da
+//     primeira coluna sem cabeçalho; as outras colunas são ignoradas;
 //   · de 2 a 150 caracteres, depois de aparar e juntar os espaços;
 //   · não repetido dentro do arquivo, sem diferenciar maiúscula nem acento
 //     (o primeiro vale, os outros não) — é como o banco compara.
@@ -739,7 +742,7 @@ function conferir(texto: string): LinhaConferida[] {
   const { linhas: brutas } = parsearCsv(texto);
   // primeiraLinha: número da linha de dados[0] como a planilha numera —
   // já descontando cabeçalho e linhas em branco antes dele.
-  const { dados, primeiraLinha } = separarCabecalho(brutas, COLUNAS_CONHECIDAS);
+  const { coluna, dados, primeiraLinha } = separarCabecalho(brutas, COLUNAS_CONHECIDAS);
 
   const vistos = new Map<string, number>();
   const conferidas: LinhaConferida[] = [];
@@ -750,15 +753,12 @@ function conferir(texto: string): LinhaConferida[] {
     // registro: some, mas conta na numeração, que é a da planilha.
     if (celulas.every((c) => c === '')) return;
 
-    const nome = normalizarNome(celulas[0]);
+    const nome = normalizarNome(celulas[coluna] ?? '');
     const chave = chaveDoNome(nome);
     let motivo: string | null = null;
 
-    // "Vazio" é a linha que tem conteúdo, mas não na primeira coluna.
+    // "Vazio" é a linha que tem conteúdo, mas não na coluna do nome.
     if (nome === '') motivo = 'Nome vazio';
-    // Uma segunda coluna preenchida (sobrenome separado, turma ao lado)
-    // também é formato errado: o arquivo é de uma coluna só.
-    else if (celulas.length > 1) motivo = 'Mais de uma coluna';
     else if (validarNomeDoAluno(nome)) motivo = validarNomeDoAluno(nome);
     else if (vistos.has(chave)) motivo = `Nome repetido no arquivo (igual à linha ${vistos.get(chave)})`;
     else vistos.set(chave, numero);
@@ -856,9 +856,9 @@ function ResultadoImportado({
             className="btn btn-vidro vidro tecla"
             onClick={() => {
               // CSV pronto para reimportar: cabeçalho e as linhas como vieram
-              // (as do back, pelo nome; as puladas, com as células brutas).
+              // (as do back e as puladas, pelo nome).
               const csv = gerarCsv(
-                [['nome'], ...falhas.map((f) => [f.nome]), ...puladas.map((l) => l.celulas)],
+                [['nome'], ...falhas.map((f) => [f.nome]), ...puladas.map((l) => [l.nome])],
                 CSV_COPIA
               );
               copiarTexto(csv, setCopia, ++vez.current);
@@ -913,9 +913,10 @@ function MetricaResultado({ rotulo, valor }: { rotulo: string; valor: number }) 
 // --- modelo -----------------------------------------------------------------
 
 // Gerado aqui, com Blob: não há o que pedir ao back para um arquivo de
-// três linhas. O cabeçalho e dois nomes de exemplo.
+// três linhas. O cabeçalho (com uma coluna extra, para mostrar que pode) e
+// dois nomes de exemplo.
 function baixarModelo() {
-  const csv = gerarCsv([['nome'], ['Ana Pires'], ['Bruno Sato']], CSV_ARQUIVO);
+  const csv = gerarCsv([['nome', 'matricula'], ['Ana Pires', '1001'], ['Bruno Sato', '1002']], CSV_ARQUIVO);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

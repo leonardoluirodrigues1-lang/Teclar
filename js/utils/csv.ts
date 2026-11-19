@@ -4,8 +4,9 @@
 // baixarCsv(), no fim, que entrega o arquivo ao navegador.
 //
 // O que ele aguenta, porque é o que chega de verdade de uma planilha:
-//   · separador vírgula OU ponto e vírgula — o Excel em português salva
-//     com ";" e ninguém avisa;
+//   · separador vírgula, ponto e vírgula OU tab — o Excel em português
+//     salva com ";" e ninguém avisa; "Texto (separado por tabulações)" usa tab;
+//   · arquivo em windows-1252 (o "CSV" do Excel BR) — decodificarCsv();
 //   · BOM (U+FEFF) no começo — o Excel põe, e sem tirar a primeira coluna
 //     vira "\uFEFFmatricula" e nunca casa com "matricula";
 //   · campo entre aspas, com o separador dentro e com aspas duplicadas
@@ -21,15 +22,26 @@
 // faz essa decisão a partir de uma lista de nomes conhecidos.
 
 const BOM = '\uFEFF';
-const SEPARADORES: readonly string[] = [',', ';'];
+const SEPARADORES: readonly string[] = [',', ';', '	'];
 
-/** Os dois separadores que o parser aceita. */
-export type Separador = ',' | ';';
+/** Os separadores que o parser aceita. */
+export type Separador = ',' | ';' | '	';
+
+/**
+ * Bytes do arquivo -> texto. Tenta UTF-8; se aparecer o caractere de
+ * substituição (U+FFFD), o arquivo não era UTF-8 — quase sempre é o
+ * windows-1252 do Excel BR — e decodifica de novo assim. Sem BOM na saída.
+ */
+export function decodificarCsv(bytes: ArrayBuffer | Uint8Array): string {
+  const utf8 = new TextDecoder('utf-8').decode(bytes);
+  const texto = utf8.includes('�') ? new TextDecoder('windows-1252').decode(bytes) : utf8;
+  return texto.startsWith(BOM) ? texto.slice(1) : texto;
+}
 
 /**
  * Descobre o separador olhando só a primeira linha com conteúdo: conta
- * vírgulas e pontos e vírgulas FORA de aspas e fica com o que aparecer
- * mais. Empate ou nenhum dos dois: vírgula, o padrão do formato.
+ * vírgulas, pontos e vírgulas e tabs FORA de aspas e fica com o que
+ * aparecer mais. Empate ou nenhum: vírgula, o padrão do formato.
  */
 export function detectarSeparador(texto: string | null | undefined): Separador {
   const primeira = String(texto ?? '')
@@ -38,13 +50,13 @@ export function detectarSeparador(texto: string | null | undefined): Separador {
     .find((l) => l.trim() !== '');
   if (!primeira) return ',';
 
-  const contagem: Record<Separador, number> = { ',': 0, ';': 0 };
+  const contagem: Record<Separador, number> = { ',': 0, ';': 0, '	': 0 };
   let dentroDeAspas = false;
   for (const ch of primeira) {
     if (ch === '"') dentroDeAspas = !dentroDeAspas;
     else if (!dentroDeAspas && ch in contagem) contagem[ch as Separador]++;
   }
-  return contagem[';'] > contagem[','] ? ';' : ',';
+  return (Object.keys(contagem) as Separador[]).reduce((a, b) => (contagem[b] > contagem[a] ? b : a));
 }
 
 /**
@@ -133,12 +145,12 @@ function normalizar(texto: unknown): string {
 
 /**
  * Decide se a primeira linha com conteúdo é cabeçalho. É cabeçalho quando
- * a PRIMEIRA célula dela, normalizada, é um dos nomes conhecidos —
- * "matricula;nome" ainda é cabeçalho, mesmo com uma coluna a mais que a
- * tela vai recusar linha a linha. Uma primeira linha "20251043" não é nome
- * de coluna, então é dado, e nada se perde.
+ * ALGUMA célula dela, normalizada, é um dos nomes conhecidos —
+ * "matricula;nome" é cabeçalho e a coluna é a segunda. Uma primeira linha
+ * "20251043" não é nome de coluna, então é dado, e nada se perde.
  *
- * Devolve { cabecalho: string[] | null, dados, primeiraLinha }, em que
+ * Devolve { cabecalho: string[] | null, coluna, dados, primeiraLinha }, em
+ * que coluna é o índice da primeira célula conhecida (0 sem cabeçalho) e
  * primeiraLinha é o número (a partir de 1, como na planilha) da linha do
  * arquivo que corresponde a dados[0] — linhas em branco antes do cabeçalho
  * e o próprio cabeçalho já contados.
@@ -146,17 +158,19 @@ function normalizar(texto: unknown): string {
 export function separarCabecalho(
   linhas: string[][],
   colunasConhecidas?: string[] | null
-): { cabecalho: string[] | null; dados: string[][]; primeiraLinha: number } {
+): { cabecalho: string[] | null; coluna: number; dados: string[][]; primeiraLinha: number } {
   const conhecidas = new Set((colunasConhecidas ?? []).map(normalizar));
   const indice = linhas.findIndex((l) => l.some((c) => c !== ''));
-  if (indice < 0) return { cabecalho: null, dados: [], primeiraLinha: 1 };
+  if (indice < 0) return { cabecalho: null, coluna: 0, dados: [], primeiraLinha: 1 };
 
   const primeira = linhas[indice];
-  const ehCabecalho = conhecidas.has(normalizar(primeira[0]));
+  const coluna = primeira.findIndex((c) => conhecidas.has(normalizar(c)));
+  const ehCabecalho = coluna >= 0;
   const inicio = ehCabecalho ? indice + 1 : indice;
 
   return {
     cabecalho: ehCabecalho ? primeira : null,
+    coluna: Math.max(coluna, 0),
     dados: linhas.slice(inicio),
     primeiraLinha: inicio + 1,
   };
