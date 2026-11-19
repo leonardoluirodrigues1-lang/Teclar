@@ -360,8 +360,9 @@ async function inserirSessoes(tx: Transacao): Promise<void> {
   await tx.sessionsprof.createMany({
     data: [
       // turma-1
-      sessao('ses-1', 'al-43-t1', 'ex-prof-1', 'turma-1', 40, 95, 76, 4, 58, true, new Date('2026-02-18T14:10:00Z')),
-      sessao('ses-2', 'al-43-t1', 'ex-prof-2', 'turma-1', 36, 92, 80, 7, 61, true, new Date('2026-02-19T09:30:00Z')),
+      // Anteontem e ontem: a Ana da turma-1 chega à demo ativa e com 2 dias seguidos.
+      sessao('ses-1', 'al-43-t1', 'ex-prof-1', 'turma-1', 40, 95, 76, 4, 58, true, diasAtras(2)),
+      sessao('ses-2', 'al-43-t1', 'ex-prof-2', 'turma-1', 36, 92, 80, 7, 61, true, diasAtras(1)),
       sessao('ses-4', 'al-44', 'ex-prof-1', 'turma-1', 29, 88, 81, 11, 96, true, diasAtras(3)),
       sessao('ses-5', 'al-44', 'ex-prof-1', 'turma-1', 24, 81, 77, 18, 120, false, diasAtras(6)),
       sessao('ses-6', 'al-49', 'ex-prof-2', 'turma-1', 33, 79, 79, 21, 104, true, diasAtras(2)),

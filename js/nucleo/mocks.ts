@@ -731,7 +731,7 @@ export const dados: BancoMock = {
   // e o JOIN com AtribuicoesProf continua: sessão de exercício desatribuído
   // não entra no relatório.
   //
-  // As datas dos últimos três são relativas a hoje (diasAtras): é o que
+  // As datas são relativas a hoje (diasAtras), como no seed: é o que
   // mantém "alunos ativos" — quem treinou nos últimos 7 dias — mostrando
   // algo diferente de zero em qualquer dia que a tela for aberta.
   sessoes: [
@@ -745,7 +745,7 @@ export const dados: BancoMock = {
       acertos: 76,
       erros: 4,
       concluida: true,
-      data: '2026-02-18T14:10:00.000Z',
+      data: diasAtras(2),
     },
     {
       id: 'ses-2',
@@ -757,7 +757,7 @@ export const dados: BancoMock = {
       acertos: 80,
       erros: 7,
       concluida: true,
-      data: '2026-02-19T09:30:00.000Z',
+      data: diasAtras(1),
     },
     {
       id: 'ses-3',
