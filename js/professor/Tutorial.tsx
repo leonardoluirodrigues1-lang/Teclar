@@ -173,7 +173,7 @@ function DesenhoConvite() {
       <Boneco x={368} y={172} escala={1.25} forte />
       <rect className="desenho-traco desenho-traco-forte" x="306" y="214" width="124" height="40" rx="11" />
       <text className="desenho-rotulo desenho-rotulo-forte" x="368" y="238" textAnchor="middle">
-        K7M2QX
+        AB12CD
       </text>
       <text className="desenho-rotulo" x="368" y="282" textAnchor="middle">
         O CÓDIGO DA SALA
