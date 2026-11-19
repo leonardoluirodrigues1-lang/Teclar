@@ -8,6 +8,6 @@
 -- Sem SenhaHash e sem provisória válida, nenhuma senha entra.
 USE teclardb_v10;
 
-ALTER TABLE alunosturmas
-    ADD COLUMN SenhaProvisoriaHash VARCHAR(255) NULL AFTER SenhaHash,
-    ADD COLUMN SenhaProvisoriaExpira TIMESTAMP NULL AFTER SenhaProvisoriaHash;
+-- Dois ALTER, e não um: o TiDB recusa AFTER apontando para coluna criada no mesmo ALTER.
+ALTER TABLE alunosturmas ADD COLUMN SenhaProvisoriaHash VARCHAR(255) NULL AFTER SenhaHash;
+ALTER TABLE alunosturmas ADD COLUMN SenhaProvisoriaExpira TIMESTAMP NULL AFTER SenhaProvisoriaHash;
