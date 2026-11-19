@@ -450,7 +450,9 @@ function Treino({ usuario }: PropsTreino) {
     motor.current = new MotorDigitacao({
       texto: carregado.texto,
       modo: CONFIG.TREINO.MODO_PADRAO, // preferência do sistema, não do exercício
-      tempoLimiteSegundos: carregado.tempoLimiteSegundos ?? 0, // 0 = sem limite; vale POR volta
+      // O tempo da lição é o TOTAL de todas as voltas (como o professor o
+      // calculou no CSV); cada volta tem a sua parte. 0 = sem limite.
+      tempoLimiteSegundos: Math.ceil((carregado.tempoLimiteSegundos ?? 0) / totalVoltas.current),
       aoAtualizar: atualizar,
       aoTerminar: terminarVolta,
     });

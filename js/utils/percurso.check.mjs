@@ -52,3 +52,16 @@ const PERCURSO = ordemDoPercurso(LICOES);
 assert.equal(progressoDoPercurso([], []), null, 'sem lição nenhuma, não há próxima');
 
 console.log('percurso.check: ok');
+
+// O tempo das lições do Solo (js/nucleo/licoes.ts) é o total de todas as
+// voltas, e os níveis 9 e 10 não pedem mais de 50 PPM.
+{
+  const { LICOES } = await import('../nucleo/licoes.js');
+  for (const [ordem, nivel, reps, tempo, texto] of LICOES) {
+    if (nivel < 9) continue;
+    const ppm = (texto.length * reps * 12) / tempo;
+    assert.ok(ppm <= 50.5, `lição ${ordem} pede ${ppm.toFixed(1)} PPM`);
+  }
+  const [, , reps1, tempo1] = LICOES[0];
+  assert.equal(Math.ceil(tempo1 / reps1), 48, 'lição 1: 472 s em 10 voltas = 48 s por volta');
+}
