@@ -74,7 +74,13 @@ CREATE TABLE teclardb_v10.sessionssolo (
     Concluida BOOLEAN NOT NULL DEFAULT TRUE,
     XPGanho INT NOT NULL DEFAULT 0,
     Data_Sessao TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
+    TentativaID VARCHAR(100) NULL,           -- gerado pelo front; reenvio devolve o original
     INDEX idx_sessoes_solo_campanha (CampanhaID, Data_Sessao),
+    CONSTRAINT uq_sessoes_solo_tentativa UNIQUE (CampanhaID, TentativaID),
+    CONSTRAINT chk_sessoes_solo_medidas CHECK (
+        (Precisao IS NULL OR Precisao BETWEEN 0 AND 100) AND (WPM IS NULL OR WPM >= 0)
+        AND (Acertos IS NULL OR Acertos >= 0) AND (Erros IS NULL OR Erros >= 0)
+        AND (Tempo_Gasto_Segundos IS NULL OR Tempo_Gasto_Segundos >= 0)),
     FOREIGN KEY (CampanhaID) REFERENCES teclardb_v10.campanhassolo(CampanhaID) ON DELETE CASCADE,
     FOREIGN KEY (ExerciseID) REFERENCES teclardb_v10.exerciciossolo(ExerciseID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -164,7 +170,13 @@ CREATE TABLE teclardb_v10.sessionsprof (
     Tempo_Gasto_Segundos INT,
     Concluida BOOLEAN NOT NULL DEFAULT TRUE,
     Data_Sessao TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
+    TentativaID VARCHAR(100) NULL,           -- gerado pelo front; reenvio devolve o original
     INDEX idx_sessoes_prof_matricula (ClassID, AlunoID),
+    CONSTRAINT uq_sessoes_prof_tentativa UNIQUE (ClassID, AlunoID, TentativaID),
+    CONSTRAINT chk_sessoes_prof_medidas CHECK (
+        (Precisao IS NULL OR Precisao BETWEEN 0 AND 100) AND (WPM IS NULL OR WPM >= 0)
+        AND (Acertos IS NULL OR Acertos >= 0) AND (Erros IS NULL OR Erros >= 0)
+        AND (Tempo_Gasto_Segundos IS NULL OR Tempo_Gasto_Segundos >= 0)),
     INDEX idx_sessoes_prof_aluno (AlunoID, Data_Sessao),
     INDEX idx_sessoes_prof_turma (ClassID, Data_Sessao),
     CONSTRAINT fk_sessoes_prof_matricula FOREIGN KEY (ClassID, AlunoID)

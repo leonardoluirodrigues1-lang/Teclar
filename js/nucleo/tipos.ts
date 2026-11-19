@@ -437,6 +437,8 @@ export interface DadosSessaoTreino {
   concluida: boolean;
   exercicio_id?: string;
   turma_id?: string | null;
+  /** Id da tentativa, gerado uma vez pelo filaSessoes: o reenvio devolve o registro original. */
+  tentativa_id?: string;
 }
 
 /** Uma sessão do mundo Escola (GET /sessoes/:id; e a base das linhas de histórico). */

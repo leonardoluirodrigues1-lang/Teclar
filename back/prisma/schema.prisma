@@ -115,9 +115,11 @@ model sessionsprof {
   Tempo_Gasto_Segundos Int?
   Concluida            Boolean        @default(true)
   Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
+  TentativaID          String?        @db.VarChar(100)
   alunosturmas         alunosturmas   @relation(fields: [ClassID, AlunoID], references: [ClassID, AlunoID], onDelete: Cascade, onUpdate: NoAction, map: "fk_sessoes_prof_matricula")
   exerciciosprof       exerciciosprof @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionsprof_ibfk_2")
 
+  @@unique([ClassID, AlunoID, TentativaID], map: "uq_sessoes_prof_tentativa")
   @@index([ExerciseID], map: "ExerciseID")
   @@index([AlunoID, Data_Sessao], map: "idx_sessoes_prof_aluno")
   @@index([ClassID, Data_Sessao], map: "idx_sessoes_prof_turma")
@@ -136,9 +138,11 @@ model sessionssolo {
   Concluida            Boolean        @default(true)
   XPGanho              Int            @default(0)
   Data_Sessao          DateTime?      @default(now()) @db.Timestamp(3)
+  TentativaID          String?        @db.VarChar(100)
   campanhassolo        campanhassolo  @relation(fields: [CampanhaID], references: [CampanhaID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_1")
   exerciciossolo       exerciciossolo @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "sessionssolo_ibfk_2")
 
+  @@unique([CampanhaID, TentativaID], map: "uq_sessoes_solo_tentativa")
   @@index([ExerciseID], map: "ExerciseID")
   @@index([CampanhaID, Data_Sessao], map: "idx_sessoes_solo_campanha")
 }

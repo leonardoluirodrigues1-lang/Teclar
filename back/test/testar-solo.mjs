@@ -379,6 +379,24 @@ confere('ordem do caminho: depois da solo-008 vem a solo-049 (nível 1)', r.stat
 // DELETE /solo/campanhas/:id (o dono)
 // ============================================================================
 
+
+// tentativa_id: dois envios simultâneos da mesma tentativa gravam UMA sessão e
+// dão o XP uma vez; os dois recebem o mesmo registro.
+const xpAntesDaTentativa = (await chamar('GET', '/solo/campanha', null, novo)).corpo.xpTotal;
+const tentativa = { ...sessao('solo-001', 30, 96, true), tentativa_id: `t-${Date.now()}` };
+const [envio1, envio2] = await Promise.all([
+  chamar('POST', '/solo/sessoes', tentativa, novo),
+  chamar('POST', '/solo/sessoes', tentativa, novo),
+]);
+confere('tentativa: os dois envios simultâneos devolvem a mesma sessão', envio1.status === 200 && envio2.status === 200 && envio1.corpo.id === envio2.corpo.id);
+confere('tentativa: uma linha só no banco', (await banco.sessionssolo.count({ where: { TentativaID: tentativa.tentativa_id } })) === 1);
+const xpDepoisDaTentativa = (await chamar('GET', '/solo/campanha', null, novo)).corpo.xpTotal;
+confere('tentativa: o XP somou uma vez', xpDepoisDaTentativa - xpAntesDaTentativa === envio1.corpo.xpGanho);
+r = await chamar('POST', '/solo/sessoes', tentativa, novo);
+confere('tentativa: reenvio depois devolve o original, sem XP', r.corpo.id === envio1.corpo.id && r.corpo.xpTotal === xpDepoisDaTentativa);
+r = await chamar('POST', '/solo/sessoes', { ...tentativa, tentativa_id: '' }, novo);
+confere('tentativa: tentativa_id vazio 400', ehErro(r, 400, 'DADOS_INVALIDOS'));
+
 r = await chamar('DELETE', `/solo/campanhas/${campanha.campanhaId}`, null, novo);
 confere('DELETE /solo/campanhas/:id: o dono apaga, 204 sem corpo', r.status === 204 && r.texto === '');
 r = await chamar('GET', '/solo/campanha', null, novo);

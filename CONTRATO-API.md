@@ -344,7 +344,10 @@ DadosSessaoTreino — o que o motor mediu, mais a lição
 
 ```json
 { "exercicio_id": "solo-009", "wpm": 38, "precisao": 95, "acertos": 304,
-  "erros": 3, "tempo_gasto_segundos": 96, "concluida": true }
+  "erros": 3, "tempo_gasto_segundos": 96, "concluida": true,
+  "tentativa_id": "0b6c…" }
+tentativa_id (opcional, 1 a 100 caracteres): a fila de envio gera um por
+tentativa; reenviar o mesmo id na mesma campanha devolve 200 com a sessão já gravada, sem somar XP de novo (o UNIQUE no banco garante isso até com envios simultâneos).
 ```
 
 **Resposta:**
@@ -358,7 +361,7 @@ DadosSessaoTreino — o que o motor mediu, mais a lição
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
+- 400 DADOS_INVALIDOS — o corpo traz campanha_id, jogadorId, usuario_id, alunoId ou professorId (a campanha sai do token); falta exercicio_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo (as mesmas regras de POST /sessoes)
 - 403 TIPO_INVALIDO — token de aluno
 - 403 ATIVIDADE_BLOQUEADA — a lição ainda está bloqueada (ver GET /solo/missoes); nada é gravado
 - 404 NAO_ENCONTRADO — sem campanha, ou lição inexistente
@@ -1317,7 +1320,10 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 
 ```json
 { "exercicio_id": "ex-prof-7", "turma_id": "turma-1", "wpm": 42, "precisao": 94,
-  "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true }
+  "acertos": 308, "erros": 9, "tempo_gasto_segundos": 88, "concluida": true,
+  "tentativa_id": "0b6c…" }
+tentativa_id (opcional, 1 a 100 caracteres): a fila de envio gera um por
+tentativa; reenviar o mesmo id na mesma turma devolve 200 com a sessão já gravada (o UNIQUE no banco garante isso até com envios simultâneos).
 ```
 
 **Resposta:**
@@ -1333,7 +1339,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
+- 400 DADOS_INVALIDOS — o corpo traz usuario_id, alunoId ou professorId (o aluno sai do token); falta exercicio_id ou turma_id; wpm fora de 0 a 999,99, precisao fora de 0 a 100, acertos, erros ou tempo_gasto_segundos que não é inteiro ≥ 0, ou concluida que não é booleano; tentativa_id vazio, com mais de 100 caracteres ou com caractere de controle; ou sessão impossível (trapaça): concluída com menos de 3 s, wpm acima de 250, ou wpm que não bate com os acertos e o tempo informados (margem de 10%; só conferido com tempo de 1 s para cima)
 - 401 TOKEN_INVALIDO — o aluno foi removido ou desativado, ou a turma dele foi arquivada, depois do login (como em GET /auth/eu)
 - 403 TIPO_INVALIDO — token de conta (o Solo grava em /solo/sessoes; a prévia do professor não grava)
 - 403 ATIVIDADE_BLOQUEADA — o exercício ainda está bloqueado (ver GET /aluno/salas/:turmaId); nada é gravado

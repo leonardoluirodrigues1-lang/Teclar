@@ -4,6 +4,7 @@
 // POST /solo/sessoes (Solo) recebem o mesmo pacote (DadosSessaoTreino no
 // contrato) e gravam nas mesmas colunas, então conferem do mesmo jeito.
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { temCaractereDeControle } from '../texto-limpo.js';
 
 // O pacote como chega da rede: tudo unknown, porque um curl pode mandar
 // qualquer coisa.
@@ -14,6 +15,9 @@ export interface CorpoComMedidas {
   erros?: unknown;
   tempo_gasto_segundos?: unknown;
   concluida?: unknown;
+  // Id da tentativa, gerado UMA vez pelo front e guardado no item da fila:
+  // o reenvio da mesma tentativa devolve o registro original.
+  tentativa_id?: unknown;
 }
 
 // O pacote já conferido, com os nomes das colunas de SessionsProf e
@@ -25,6 +29,7 @@ export interface MedidasValidadas {
   Erros: number;
   Tempo_Gasto_Segundos: number;
   Concluida: boolean;
+  TentativaID: string | null;
 }
 
 // O contrato não traz limite para os números do motor, e os LIMITES do
@@ -63,6 +68,7 @@ export function validarMedidas(corpo: CorpoComMedidas | undefined): MedidasValid
     Erros: inteiroNaoNegativo(corpo?.erros, 'erros'),
     Tempo_Gasto_Segundos: inteiroNaoNegativo(corpo?.tempo_gasto_segundos, 'tempo_gasto_segundos'),
     Concluida: booleano(corpo?.concluida, 'concluida'),
+    TentativaID: tentativaDoCorpo(corpo?.tentativa_id),
   };
   // Menos de 1 s (o tempo vem arredondado em segundos, então isto é tempo 0):
   // não há velocidade mensurável, e o arredondamento impede conferir a
@@ -100,6 +106,18 @@ function conferirPlausibilidade(m: MedidasValidadas): void {
       throw dadosInvalidos('wpm não bate com os acertos e o tempo informados.');
     }
   }
+}
+
+// Opcional (cliente antigo não manda): sem ele, cada envio grava uma sessão.
+// Com ele, texto de 1 a 100 caracteres (a coluna é VARCHAR(100)).
+function tentativaDoCorpo(valor: unknown): string | null {
+  if (valor === undefined || valor === null) {
+    return null;
+  }
+  if (typeof valor !== 'string' || valor.length === 0 || valor.length > 100 || temCaractereDeControle(valor)) {
+    throw dadosInvalidos('tentativa_id precisa ser um texto de 1 a 100 caracteres.');
+  }
+  return valor;
 }
 
 function numeroEntre(valor: unknown, campo: string, maximo: number): number {

@@ -260,6 +260,25 @@ confere('obter: sessão do Solo de outra conta 404', ehErro(r, 404, 'NAO_ENCONTR
 r = await chamar('GET', `/sessoes/${doLeo.ID}`, null, um);
 confere('obter: aluno não lê sessão do Solo 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
 
+// tentativa_id: dois envios simultâneos da mesma tentativa gravam UMA sessão.
+const tentativa = { ...SESSAO, tentativa_id: `t-${agora}` };
+const [envio1, envio2] = await Promise.all([chamar('POST', '/sessoes', tentativa, um), chamar('POST', '/sessoes', tentativa, um)]);
+confere('tentativa: os dois envios simultâneos devolvem a mesma sessão', envio1.status === 200 && envio2.status === 200 && envio1.corpo.id === envio2.corpo.id);
+confere('tentativa: uma linha só no banco', (await banco.sessionsprof.count({ where: { TentativaID: tentativa.tentativa_id } })) === 1);
+r = await chamar('POST', '/sessoes', tentativa, um);
+confere('tentativa: reenvio depois devolve o original', r.status === 200 && r.corpo.id === envio1.corpo.id);
+await banco.sessionsprof.delete({ where: { ID: envio1.corpo.id } });
+
+// A FK composta (ClassID, AlunoID) recusa no banco uma sessão que cruza turmas.
+const cruzada = await banco.sessionsprof
+  .create({ data: { ID: `cruzada-${agora}`, AlunoID: alunoUm.id, ExerciseID: ex1.id, ClassID: turmaB.id, WPM: 10, Precisao: 90 } })
+  .then(() => null, (erro) => erro);
+confere('FK composta: sessão do aluno da turma A na turma B é recusada', cruzada !== null);
+const foraDoCheck = await banco.sessionsprof
+  .create({ data: { ID: `check-${agora}`, AlunoID: alunoUm.id, ExerciseID: ex1.id, ClassID: turmaA.id, WPM: 10, Precisao: 150 } })
+  .then(() => null, (erro) => erro);
+confere('CHECK: precisão 150 é recusada pelo banco', foraDoCheck !== null);
+
 // ============================================================================
 // Exercício arquivado e turma arquivada
 // ============================================================================

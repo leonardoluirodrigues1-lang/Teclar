@@ -1072,6 +1072,20 @@ function mediaDecimal(numeros: number[]): number | null {
   return Math.round((soma / numeros.length) * 10) / 10;
 }
 
+// tentativa_id do corpo (a fila de envio gera um por tentativa): reenvio com o
+// mesmo id devolve a sessão gravada, como o UNIQUE do back. A chave inclui a
+// campanha, ou a turma + aluno, como os UNIQUE de SessionsSolo/SessionsProf.
+const tentativasGravadas = new Map<string, string>();
+
+function tentativaDoCorpo(corpo: any): string | null {
+  const t = corpo?.tentativa_id;
+  if (t === undefined || t === null) return null;
+  if (typeof t !== 'string' || t.length < 1 || t.length > 100) {
+    throw erro(400, 'tentativa_id deve ter de 1 a 100 caracteres.', 'DADOS_INVALIDOS');
+  }
+  return t;
+}
+
 function gerarId(prefixo: string): string {
   return `${prefixo}-${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
 }
@@ -1979,6 +1993,22 @@ const rotas: [string, RegExp, Handler][] = [
       const exercicioId = corpo?.exercicio_id ?? corpo?.exerciseId;
       const missao = dados.missoes.find((m) => m.exerciseId === exercicioId);
       if (!missao) throw erro(404, 'Lição não encontrada.', 'NAO_ENCONTRADO');
+      const tentativa = tentativaDoCorpo(corpo);
+      const chaveTentativa = `solo:${campanha.campanhaId}:${tentativa}`;
+      const jaGravada = tentativa
+        ? (dados.historicoSolo[campanha.campanhaId] ?? []).find((h) => h.id === tentativasGravadas.get(chaveTentativa))
+        : undefined;
+      if (jaGravada) {
+        // Reenvio: a sessão original, sem XP de novo.
+        return {
+          id: jaGravada.id,
+          xpGanho: jaGravada.xpGanho,
+          xpTotal: campanha.xpTotal,
+          nivelAtual: campanha.nivelAtual,
+          subiuDeNivel: false,
+          recordePessoal: false,
+        };
+      }
       exigirLiberada(missao.exerciseId, idsDoPercurso(), concluidasEntre(dados.historicoSolo[campanha.campanhaId] ?? []));
 
       // O XP base é o mesmo para toda lição e vem do config, não de uma
@@ -2024,6 +2054,7 @@ const rotas: [string, RegExp, Handler][] = [
         data: agora(),
       };
       historico.push(registro);
+      if (tentativa) tentativasGravadas.set(chaveTentativa, registro.id);
 
       // O id vai junto: a tela de resultado é aberta com ?sessao=<id>.
       return {
@@ -2633,6 +2664,10 @@ const rotas: [string, RegExp, Handler][] = [
         alunoId,
         turmaId
       ).id;
+      const tentativa = tentativaDoCorpo(corpo);
+      const chaveTentativa = `escola:${turmaId}:${alunoId}:${tentativa}`;
+      const jaGravada = tentativa ? dados.sessoes.find((s) => s.id === tentativasGravadas.get(chaveTentativa)) : undefined;
+      if (jaGravada) return { ...jaGravada, recordePessoal: false };
       exigirLiberada(exerciseId, idsDaSala(turmaId), concluidasEntre(sessoesNaSala(turmaId, alunoId)));
       const anteriores = dados.sessoes.filter(
         (s) => s.alunoId === alunoId && s.exerciseId === exerciseId
@@ -2655,6 +2690,7 @@ const rotas: [string, RegExp, Handler][] = [
       // Os agregados do aluno saem das sessões na hora (linhaDoAluno):
       // não há número guardado para atualizar.
       dados.sessoes.push(nova);
+      if (tentativa) tentativasGravadas.set(chaveTentativa, nova.id);
 
       return { ...nova, recordePessoal: nova.wpm > melhorAntes };
     },

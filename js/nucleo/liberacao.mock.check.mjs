@@ -53,3 +53,16 @@ await responderMock('POST', '/sessoes', noExercicio('ex-prof-7', true), caio);
 await responderMock('POST', '/sessoes', noExercicio('ex-prof-1', true), caio);
 
 console.log('ok - o mock libera as atividades em ordem, como o back');
+
+// tentativa_id: reenvio da mesma tentativa devolve a sessão original, sem XP.
+const tentativaSolo = { ...medidas, exercicio_id: 'solo-001', concluida: true, tentativa_id: 't-mock-1' };
+const primeiro = await responderMock('POST', '/solo/sessoes', tentativaSolo, leo);
+const reenvio = await responderMock('POST', '/solo/sessoes', tentativaSolo, leo);
+assert.equal(reenvio.id, primeiro.id, 'Solo: mesmo id');
+assert.equal(reenvio.xpTotal, primeiro.xpTotal, 'Solo: XP somou uma vez');
+const tentativaEscola = { ...noExercicio('ex-prof-1', true), tentativa_id: 't-mock-2' };
+const escola1 = await responderMock('POST', '/sessoes', tentativaEscola, caio);
+const escola2 = await responderMock('POST', '/sessoes', tentativaEscola, caio);
+assert.equal(escola2.id, escola1.id, 'Escola: mesmo id');
+await assert.rejects(responderMock('POST', '/sessoes', { ...tentativaEscola, tentativa_id: '' }, caio), (erro) => erro.status === 400);
+console.log('ok - o mock trata tentativa_id como o back');
