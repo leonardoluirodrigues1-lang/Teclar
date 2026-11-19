@@ -94,7 +94,7 @@ const TEMPO_MAXIMO_BUSCA_PROXIMA_MS = 8000;
 
 // Quanto tempo a passagem entre duas repetições fica na tela se ninguém
 // teclar antes.
-const PASSAGEM_MS = 1200;
+const PASSAGEM_MS = 1000;
 
 // Teclas que NÃO pulam a passagem: Esc sai da tela (tratado à parte) e um
 // modificador sozinho (Shift para a maiúscula que vem a seguir) não é
@@ -1041,6 +1041,16 @@ function Treino({ usuario }: PropsTreino) {
           <h1 className="hud-titulo" id="hud-titulo">
             {titulo}
           </h1>
+          {/* Uma marca por repetição: quantas são e quantas já foram. O texto
+              "Repetição N de T" acima já diz isso ao leitor de tela. */}
+          {repeticao && (
+            <ol className="hud-repeticoes" aria-hidden="true">
+              {Array.from({ length: repeticao.total }, (_, i) => {
+                const feitas = passagem ? passagem.numero : repeticao.numero - 1;
+                return <li key={i} className={i < feitas ? 'feita' : i === feitas ? 'atual' : undefined} />;
+              })}
+            </ol>
+          )}
         </div>
         <dl className="hud-dir">
           <div className="hud-metrica">
@@ -1154,6 +1164,7 @@ function Treino({ usuario }: PropsTreino) {
             <p className="modal-eyebrow">
               {passagem.concluida ? 'Repetição' : 'Tempo esgotado ·'} {passagem.numero} de{' '}
               {passagem.total}
+              {passagem.concluida && ' ✓'}
             </p>
             <dl className="passagem-metricas">
               <div>
