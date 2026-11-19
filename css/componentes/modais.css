@@ -86,6 +86,8 @@
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 13px;
   letter-spacing: 0.12em;
+  /* Rótulo numa linha só: todos os botões com a mesma altura. */
+  white-space: nowrap;
   cursor: pointer;
   /* box-shadow e transform no mesmo tempo: juntos formam o afundar da
      .tecla (css/base/luz.css). */
@@ -112,6 +114,21 @@
   color: var(--cor-texto, #fff);
 }
 .modal-botao-vidro:hover { background: rgba(255, 255, 255, 0.14); }
+/* Saída secundária: só o texto, um tom abaixo. Mesmo padding = mesma altura. */
+.modal-botao-discreto {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.modal-botao-discreto:hover { color: var(--cor-texto, #fff); }
+/* "A seguir: Lição 02 — ..." logo acima dos botões. */
+.modal-proxima {
+  margin-top: 18px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
 
 @media (max-width: 480px) {
   .modal { padding: 28px 22px; }

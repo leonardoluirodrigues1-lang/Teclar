@@ -59,6 +59,8 @@ const FOCAVEIS =
 export interface AcaoModal {
   rotulo: string;
   principal?: boolean;
+  /** Secundária e apagada: sem fundo nem borda (ex.: "Voltar às atividades"). */
+  discreta?: boolean;
   aoClicar?: () => void;
   /** false: o botão não fecha o modal sozinho (quem fecha é o sucesso). */
   fecha?: boolean;
@@ -78,6 +80,8 @@ interface PropsModal {
   acoes?: AcaoModal[];
   fecharComEsc?: boolean;
   fecharAoClicarFora?: boolean;
+  /** Esc chama esta no lugar de fechar (ex.: Esc = "Voltar às atividades"). */
+  aoEsc?: () => void;
   /** Roda no mesmo frame em que o modal ganha a classe .aberto e o foco
    *  inicial — é onde a tela decide focar um campo em vez do botão. */
   aoAbrir?: () => void;
@@ -92,6 +96,7 @@ function classeDoBotao(acao: AcaoModal): string {
   if (acao.principal) {
     return 'modal-botao modal-botao-solido tecla tecla-clara';
   }
+  if (acao.discreta) return 'modal-botao modal-botao-discreto';
   return 'modal-botao modal-botao-vidro tecla';
 }
 
@@ -102,6 +107,7 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
     acoes = [],
     fecharComEsc = true,
     fecharAoClicarFora = false,
+    aoEsc,
     aoAbrir,
     aoFechar,
     children,
@@ -124,8 +130,8 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
 
   // As props mais recentes, para os listeners de documento (ligados uma
   // vez) não ficarem presos à primeira renderização.
-  const props = useRef({ fecharComEsc, aoAbrir, aoFechar });
-  props.current = { fecharComEsc, aoAbrir, aoFechar };
+  const props = useRef({ fecharComEsc, aoEsc, aoAbrir, aoFechar });
+  props.current = { fecharComEsc, aoEsc, aoAbrir, aoFechar };
 
   function focaveis(): HTMLElement[] {
     return caixa.current ? [...caixa.current.querySelectorAll<HTMLElement>(FOCAVEIS)] : [];
@@ -169,7 +175,8 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
       if (evento.key === 'Escape' && props.current.fecharComEsc) {
         evento.preventDefault();
         evento.stopPropagation();
-        fechar();
+        if (props.current.aoEsc) props.current.aoEsc();
+        else fechar();
         return;
       }
       if (evento.key !== 'Tab') return;

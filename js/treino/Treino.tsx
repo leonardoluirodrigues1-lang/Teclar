@@ -62,7 +62,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CONFIG, ROTA_INICIAL } from '../config.js';
+import { CONFIG, ROTA_INICIAL, rotaInicial } from '../config.js';
 import { api, filaSessoes } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
@@ -170,6 +170,8 @@ interface ConfigModal {
   titulo: string;
   conteudo: ReactNode;
   acoes: AcaoModal[];
+  /** Esc com o modal aberto. Sem ele, o Esc só fecha o modal. */
+  aoEsc?: () => void;
 }
 
 interface OpcoesModalFim {
@@ -267,6 +269,9 @@ function Treino({ usuario }: PropsTreino) {
   // A mesma posição, lida pelo evento de composição (que não passa pelo
   // render).
   const posicaoAtual = useRef(0);
+  // Caracteres digitados na volta corrente (acertos + erros): decide se a
+  // saída pede confirmação.
+  const digitadosAtual = useRef(0);
   // Enquanto um acento está sendo composto (a tecla morta já foi, falta a
   // vogal): o índice do caractere acentuado. null fora disso.
   const [indiceDoAcento, setIndiceDoAcento] = useState<number | null>(null);
@@ -295,9 +300,24 @@ function Treino({ usuario }: PropsTreino) {
   // nenhum dos dois grava nada — lição incompleta não conta. Enquanto um
   // modal está aberto, a saída é dele (os botões do modal chamam sair()
   // direto), e esta não faz nada.
+  // Com algo digitado nesta volta, ou uma volta já terminada, pergunta antes
+  // (modal do app, nunca window.confirm). "Continuar treinando" é o padrão e
+  // o Esc dentro do modal faz o mesmo (só fecha); o foco volta à captura.
   function sairSeNenhumModalAberto() {
     if (modalAberto.current) return;
-    sair();
+    if (digitadosAtual.current === 0 && voltas.current.length === 0) {
+      sair();
+      return;
+    }
+    abrirModal({
+      eyebrow: 'Sair do treino',
+      titulo: 'Sair agora?',
+      conteudo: <p>O progresso desta atividade será perdido.</p>,
+      acoes: [
+        { rotulo: 'Continuar treinando', principal: true },
+        { rotulo: 'Sair', aoClicar: sair },
+      ],
+    });
   }
 
   // Esc SAI da tela (não pausa). Vale também no meio de uma lição com
@@ -492,6 +512,7 @@ function Treino({ usuario }: PropsTreino) {
     // Para o teclado guia. Num tick do relógio a posição é a mesma, e o
     // React não re-renderiza por um valor igual.
     posicaoAtual.current = estado.posicao;
+    digitadosAtual.current = estado.digitados;
     setPosicao(estado.posicao);
 
     // Com limite mostra o restante; sem limite, o decorrido.
@@ -755,11 +776,19 @@ function Treino({ usuario }: PropsTreino) {
     const consultaPendente = modoTreino !== 'previa' && resultado?.enfileirada !== true;
     const consultaIndisponivel = resultado?.enfileirada === true;
 
+    // Solo: o caminho. Aluno: a sala da turma de onde veio. Prévia: a página
+    // que abriu a prévia (Biblioteca, turma...), se for deste site.
     const voltarParaAtividades = () => {
       pararPassagem();
       motor.current?.destruir();
       motor.current = null;
-      location.replace(modoTreino === 'solo' ? '../solo/caminho.html' : guarda.casa());
+      location.replace(
+        modoTreino === 'solo'
+          ? ROTA_INICIAL.solo
+          : modoTreino === 'aluno'
+            ? rotaInicial('aluno', null, turmaId)
+            : paginaDeOrigem() ?? guarda.casa()
+      );
     };
 
     function conteudoConclusao(
@@ -791,6 +820,7 @@ function Treino({ usuario }: PropsTreino) {
             acertos={metricas.acertos}
             tempoSegundos={metricas.tempo_gasto_segundos}
           />
+          {proxima && <p className="modal-proxima">A seguir: {proxima.titulo}</p>}
         </div>
       );
     }
@@ -800,24 +830,20 @@ function Treino({ usuario }: PropsTreino) {
       pendente: boolean,
       falha: boolean
     ): AcaoModal[] {
+      // "Voltar às atividades" está sempre lá: discreto ao lado da próxima
+      // (ou enquanto ela é buscada); principal quando não há próxima.
+      const semProxima = !proxima && !pendente;
       return [
         ...(proxima
-          ? [
-              {
-                rotulo: `Próxima: ${proxima.titulo}`,
-                principal: true,
-                aoClicar: () => location.replace(proxima.href),
-              },
-            ]
+          ? [{ rotulo: 'Próxima lição', principal: true, aoClicar: () => location.replace(proxima.href) }]
           : []),
+        { rotulo: 'Refazer atividade', aoClicar: reiniciarAtividade },
         {
-          rotulo: 'Refazer atividade',
-          principal: !proxima,
-          aoClicar: reiniciarAtividade,
+          rotulo: 'Voltar às atividades',
+          principal: semProxima,
+          discreta: !semProxima,
+          aoClicar: voltarParaAtividades,
         },
-        ...(!pendente && (!proxima || falha)
-          ? [{ rotulo: 'Voltar às atividades', aoClicar: voltarParaAtividades }]
-          : []),
       ];
     }
 
@@ -832,6 +858,7 @@ function Treino({ usuario }: PropsTreino) {
             : 'Sequência concluída.',
       conteudo: conteudoConclusao(null, consultaPendente, consultaIndisponivel),
       acoes: acoesConclusao(null, consultaPendente, consultaIndisponivel),
+      aoEsc: voltarParaAtividades,
     });
 
     if (!consultaPendente) return;
@@ -889,6 +916,7 @@ function Treino({ usuario }: PropsTreino) {
     setHud(HUD_INICIAL);
     setPosicao(0);
     posicaoAtual.current = 0;
+    digitadosAtual.current = 0;
     setStatus([]);
     statusAtual.current = [];
     avisos.current = { ...AVISOS_INICIAIS };
@@ -1145,6 +1173,7 @@ function Treino({ usuario }: PropsTreino) {
           eyebrow={modal.eyebrow}
           titulo={modal.titulo}
           acoes={modal.acoes}
+          aoEsc={modal.aoEsc}
           aoFechar={() => {
             modalAberto.current = false;
             setModal(null);
@@ -1155,6 +1184,16 @@ function Treino({ usuario }: PropsTreino) {
       )}
     </>
   );
+}
+
+// De onde a prévia foi aberta: o referrer, só se for deste site.
+function paginaDeOrigem(): string | null {
+  try {
+    const origem = new URL(document.referrer);
+    return origem.origin === location.origin && origem.pathname !== location.pathname ? origem.href : null;
+  } catch {
+    return null;
+  }
 }
 
 // Agregado das voltas: o corpo da sessão gravada
