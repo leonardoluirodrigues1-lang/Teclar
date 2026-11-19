@@ -148,18 +148,20 @@ r = await chamar('GET', '/turmas', null, prof);
 confere('criar: aparece em GET /turmas igual à resposta', JSON.stringify(r.corpo.find((t) => t.id === nova.id)) === JSON.stringify(nova));
 
 r = await chamar('POST', '/turmas', { nome: nomeB }, prof);
-confere('criar: sem ano e semestre, 200 sem periodo', r.status === 200 && !('periodo' in r.corpo));
+confere('criar: sem semestre 400 (obrigatório na v10)', ehErro(r, 400, 'DADOS_INVALIDOS'));
+r = await chamar('POST', '/turmas', { nome: nomeB, semestre: 2 }, prof);
+confere('criar: sem ano, 200 com periodo só do semestre', r.status === 200 && r.corpo.periodo === '2º semestre');
 const outra = r.corpo;
 
 r = await chamar('POST', '/turmas', { nome: nomeA.toUpperCase(), semestre: 1 }, prof);
 confere('criar: nome de turma ativa repetido (até em maiúscula) 409 TURMA_DUPLICADA', ehErro(r, 409, 'TURMA_DUPLICADA'));
 
 for (const [caso, corpo] of [
-  ['nome de 2 caracteres', { nome: 'AB' }],
-  ['nome de 101 caracteres', { nome: 'x'.repeat(101) }],
+  ['nome de 2 caracteres', { nome: 'AB', semestre: 1 }],
+  ['nome de 101 caracteres', { nome: 'x'.repeat(101), semestre: 1 }],
   ['sem nome', {}],
-  ['ano que não é inteiro', { nome: 'Turma X', ano: '2026' }],
-  ['ano quebrado', { nome: 'Turma X', ano: 2026.5 }],
+  ['ano que não é inteiro', { nome: 'Turma X', ano: '2026', semestre: 1 }],
+  ['ano quebrado', { nome: 'Turma X', ano: 2026.5, semestre: 1 }],
   ['semestre 3', { nome: 'Turma X', semestre: 3 }],
 ]) {
   r = await chamar('POST', '/turmas', corpo, prof);

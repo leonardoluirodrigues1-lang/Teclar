@@ -229,7 +229,7 @@ export class ProgressoService {
     const linha = await this.banco.configuracoes.findUnique({ where: { Chave: CHAVE_XP_POR_NIVEL } });
     const valor = Number(linha?.Valor);
     if (!Number.isInteger(valor) || valor <= 0) {
-      throw new Error(`Configuracoes.${CHAVE_XP_POR_NIVEL} ausente ou inválido. Veja o DB_Teclar_v9.sql.`);
+      throw new Error(`Configuracoes.${CHAVE_XP_POR_NIVEL} ausente ou inválido. Veja o DB_Teclar_v10.sql.`);
     }
     return valor;
   }

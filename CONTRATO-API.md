@@ -39,7 +39,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 ## Autenticação
 
-Um login para as duas tabelas: Users entra por e-mail; Alunos entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
+Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
 
 ### `POST /auth/login`
 
@@ -80,7 +80,7 @@ Pública. O token devolvido carrega o id e o tipo de quem entrou.
 
 **Regras de negócio no back (a tela não calcula):**
 
-`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em Alunos pelo ClassID e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.
+`tipo` é a tabela em que autenticou: `email` busca em Users; `codigo` busca em alunosturmas JOIN classesprof pelo Codigo e pelo Nome (código aparado e em maiúscula, nome aparado com espaços internos reduzidos a um, sem distinguir maiúscula e acento). Primeiro acesso: SenhaHash NULL grava a senha enviada (4 a 20 caracteres) e responde primeiroAcesso: true; senão, confere.
 
 **Notas:**
 
@@ -469,7 +469,7 @@ Nível e XP não vêm aqui (são de /solo/campanha). Sequência de dias e evolu�
 
 ## Turmas (professor)
 
-Mundo ESCOLA, lado do professor. A turma é da conta do token (Turmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não existe, para não confirmar a quem tenta ids que ela existe.
+Mundo ESCOLA, lado do professor. A turma é da conta do token (professoresturmas.ProfessorID): token de aluno é 403 TIPO_INVALIDO, e turma de OUTRA conta responde 404 NAO_ENCONTRADO — o mesmo de turma que não existe, para não confirmar a quem tenta ids que ela existe.
 
 ### `GET /turmas`
 
@@ -494,11 +494,11 @@ Chamada no front: `api.turmas.listar`
 
 **Identidade:**
 
-O token: WHERE ProfessorID = conta do token.
+O token: vínculo em professoresturmas (ProfessorID = conta do token).
 
 **Regras de negócio no back (a tela não calcula):**
 
-totalAlunos = COUNT em Alunos (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.
+totalAlunos = COUNT em alunosturmas (ClassID = turma, Ativo = TRUE) e totalExercicios = COUNT em AtribuicoesProf, filtrando por Turmas.Ativa. `periodo` vem pronto e `codigo` é ClassesProf.Codigo.
 
 ### `GET /turmas?ativa=false`
 
@@ -535,7 +535,7 @@ Chamada no front: `api.turmas.criar`
 
 **Corpo:**
 
-{ nome, ano?, semestre? } — nome com 3 a 100 caracteres; ano e semestre opcionais
+{ nome, semestre, ano? } — nome com 3 a 100 caracteres; semestre (1 ou 2) obrigatório; ano opcional
 
 ```json
 { "nome": "7º Ano C — Tarde", "ano": 2026, "semestre": 1 }
@@ -553,7 +553,7 @@ Chamada no front: `api.turmas.criar`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
+- 400 DADOS_INVALIDOS — nome fora de 3 a 100 caracteres ou com caracteres de controle, ano que não é inteiro, semestre ausente ou diferente de 1 e 2, ou o corpo traz professorId (o professor sai do token)
 - 409 TURMA_DUPLICADA — a conta já tem uma turma ATIVA com esse nome (sem diferenciar maiúscula)
 - 403 TIPO_INVALIDO — token de aluno
 
@@ -796,7 +796,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-concluidoPor = alunos da turma (Alunos.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.
+concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.
 
 **Notas:**
 
@@ -864,7 +864,7 @@ A atribuição não tem id próprio: a remoção é pelo PAR turma + exercício,
 
 ## Alunos (professor)
 
-O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha de Alunos, porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.  O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar).
+O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha da matrícula (alunosturmas.AlunoID), porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.  O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar).
 
 ### `GET /turmas/:id/alunos`
 
@@ -895,7 +895,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Alunos com ClassID = turma e Ativo = TRUE; entrouEm = Alunos.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.
+alunosturmas com ClassID = turma e Ativo = TRUE; entrouEm = alunosturmas.Data_Cadastro, senhaDefinida = SenhaHash IS NOT NULL. Agregados prontos, null (nunca 0) para quem nunca treinou; a senha nunca sai.
 
 ### `POST /turmas/:id/alunos/importar`
 
@@ -933,7 +933,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova de Alunos com SenhaHash NULL. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
+Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vazio, item que não é texto, fora de 2 a 150 caracteres, com caracteres de controle, ou "Nome repetido na lista."), em jaEstavam (já na turma, sem distinguir maiúscula e acento) ou vira linha nova: um ID em alunos e a matrícula em alunosturmas com SenhaHash NULL, na mesma transação. Importação parcial é permitida, e a rota pode ser chamada de novo com a lista completa.
 
 **Notas:**
 
@@ -959,7 +959,7 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO �
 
 **Regras de negócio no back (a tela não calcula):**
 
-Apaga a linha de Alunos; as sessões dele vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.
+Apaga o ID em alunos; a matrícula (alunosturmas) e as sessões vão junto (SessionsProf tem ON DELETE CASCADE). Ele deixa de conseguir entrar na hora.
 
 ### `POST /turmas/:id/alunos/:alunoId/zerar-senha`
 
@@ -983,7 +983,7 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO, c
 
 **Regras de negócio no back (a tela não calcula):**
 
-Grava Alunos.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.
+Grava alunosturmas.SenhaHash = NULL: o próximo login vira primeiro acesso, e o histórico fica. Zerar quem já está com SenhaHash NULL responde 204 igual.
 
 **Notas:**
 
@@ -1080,7 +1080,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Alunos com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos (agregados de todas as sessões dele na turma) mais exerciciosConcluidos (exercícios distintos concluídos, inclusive arquivados ou tirados da turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca treinou: totalSessoes 0 e médias null.
+alunosturmas com ClassID = turma e Ativo = TRUE: a linha de GET /turmas/:id/alunos (agregados de todas as sessões dele na turma) mais exerciciosConcluidos (exercícios distintos concluídos, inclusive arquivados ou tirados da turma) e exerciciosAtribuidos (os que a turma tem agora). Quem nunca treinou: totalSessoes 0 e médias null.
 
 ### `GET /turmas/:id/relatorio/exercicios`
 
@@ -1169,7 +1169,7 @@ Chamada no front: `api.exercicios.listar`
 
 **Identidade:**
 
-O token: WHERE ProfessorID = conta do token.
+O token: vínculo em professoresturmas (ProfessorID = conta do token).
 
 **Regras de negócio no back (a tela não calcula):**
 
@@ -1200,7 +1200,7 @@ Chamada no front: `api.exercicios.obter`
 
 **Identidade:**
 
-Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (Alunos.ClassID), e o exercício tem de estar atribuído a ela.
+Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.
 
 **Notas:**
 
@@ -1341,7 +1341,7 @@ DadosSessaoTreino — o que o motor mediu, mais o exercício e a turma
 
 **Identidade:**
 
-O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (Alunos.ClassID); turma_id no corpo tem de ser ela.
+O token: o AlunoID sai dele, nunca do corpo. SessionsProf.ClassID recebe a turma do aluno (alunosturmas.ClassID); turma_id no corpo tem de ser ela.
 
 **Regras de negócio no back (a tela não calcula):**
 
@@ -1388,14 +1388,14 @@ Procura em SessionsProf e depois em SessionsSolo.
 
 ## Aluno
 
-O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo "Alunos", que é o PROFESSOR administrando a turma dele.  Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (Alunos.ID). Nenhuma rota recebe id de aluno
+O PRÓPRIO aluno logado: as telas de pages/aluno/. Não confundir com o grupo "Alunos", que é o PROFESSOR administrando a turma dele.  Regras que o back cumpre em TODAS as rotas daqui: · O aluno sai do TOKEN (alunosturmas.AlunoID). Nenhuma rota recebe id de aluno
 
 ```
 na URL: não existe caminho — nem por URL editada à mão — para um
 aluno pedir o histórico, a sala ou o relatório de outro.
 ```
 
-· Token de conta é 403 TIPO_INVALIDO. · Na v8 o aluno está em UMA turma só (Alunos.ClassID): as listas daqui
+· Token de conta é 403 TIPO_INVALIDO. · Na v10 cada AlunoID tem UMA matrícula (alunosturmas.ClassID): as listas daqui
 
 ```
 têm no máximo uma sala, e :turmaId que não é a dele responde 404, e
@@ -1487,7 +1487,7 @@ O token. Não recebe id.
 
 **Regras de negócio no back (a tela não calcula):**
 
-A turma de Alunos.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.
+A turma de alunosturmas.ClassID, se Turmas.Ativa = true. exerciciosFeitos = atribuídos com sessão dele (concluída ou tempo esgotado); totalAlunos = alunos da turma (Ativo = TRUE); professor = nome da conta dona.
 
 **Notas:**
 
@@ -1536,10 +1536,10 @@ Chamada no front: `api.escola.aluno.desempenhoNaTurma`
 200 DesempenhoNaTurma — o relatório individual dele NA sala
 
 ```json
-{ "sessoesConcluidas": 9, "licoes": 2, "diasSeguidos": 3,
+{ "sessoesConcluidas": 9, "licoes": 2, "nivelAtual": 1, "proximoMarco": 3, "diasSeguidos": 3,
   "minhaMedia": { "velocidade": 40, "precisao": 90 },
   "mediaSala":  { "velocidade": 43, "precisao": 92 } }
-Abaixo de 3 sessões concluídas: { "sessoesConcluidas": 2, "licoes": 2, "diasSeguidos": 0,
+Abaixo de 3 sessões concluídas: { "sessoesConcluidas": 2, "licoes": 2, "nivelAtual": 1, "proximoMarco": 3, "diasSeguidos": 0,
   "minhaMedia": null, "mediaSala": null }
 ```
 
@@ -1554,7 +1554,7 @@ O token. O :turmaId é da turma, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Só sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null.
+Só sessões desta turma: sessoesConcluidas, licoes, diasSeguidos, minhaMedia e mediaSala (todos os alunos), inteiras. Com menos de 3 sessões concluídas, as duas médias vêm null. nivelAtual = 1 + floor(licoes / K), K = Configuracoes.licoes_por_nivel; proximoMarco = nivelAtual * K. licoes conta os exercícios distintos concluídos, inclusive os de atribuição retirada. O nível vem sempre; o mínimo de 3 sessões vale só para as médias.
 
 ### `GET /turmas/:turmaId/ranking`
 
@@ -1599,7 +1599,7 @@ O Ativo = TRUE é o do ALUNO: entram só os alunos ativos da turma, todos (quem 
 
 ## Administração
 
-Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v9); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco.
+Categorias e parâmetros globais (tabela Configuracoes). Administrador é a conta com Users.Administrador = TRUE (banco v10); a coluna é lida do banco a cada pedido, então dar ou tirar o papel vale na hora. Nenhuma rota promove ninguém: quem marca é o banco.
 
 ### `GET /categorias`
 
@@ -1717,7 +1717,7 @@ Chamada no front: `api.admin.parametros`
 200 Parametros — a tabela Configuracoes
 
 ```json
-{ "wpmMeta": 40, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200 }
+{ "wpmMeta": 40, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200, "licoesPorNivel": 3 }
 ```
 
 **Identidade:**
@@ -1741,12 +1741,12 @@ Partial<Parametros> — só os campos que mudam
 200 Parametros — como ficou
 
 ```json
-{ "wpmMeta": 45, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200 }
+{ "wpmMeta": 45, "precisaoMinima": 90, "tempoLimitePadrao": 60, "xpPorNivel": 200, "licoesPorNivel": 3 }
 ```
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — campo que não é um dos quatro, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel de 1 para cima
+- 400 DADOS_INVALIDOS — campo que não é um dos cinco, ou valor fora da faixa: wpmMeta inteiro de 1 a 999, precisaoMinima de 0 a 100, tempoLimitePadrao de 0 a 3600 (o LIMITES.EXERCICIO_TEMPO_MAX do front), xpPorNivel e licoesPorNivel de 1 para cima
 - 404 NAO_ENCONTRADO — o token não é de administrador
 
 **Identidade:**

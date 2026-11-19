@@ -275,7 +275,7 @@ export const api = {
 
     listarArquivadas: () => get<Turma[]>('/turmas?ativa=false'),
 
-    criar: (nome: string) => post<Turma>('/turmas', { nome }),
+    criar: (nome: string, semestre: 1 | 2) => post<Turma>('/turmas', { nome, semestre }),
 
     obter: (id: string) => get<TurmaDetalhe>(`/turmas/${id}`),
 

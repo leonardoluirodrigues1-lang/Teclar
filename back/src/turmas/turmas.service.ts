@@ -343,10 +343,8 @@ function anoDaTurma(valor: unknown): number | null {
 }
 
 // Opcional: sem semestre, grava NULL.
-function semestreDaTurma(valor: unknown): number | null {
-  if (valor === undefined || valor === null) {
-    return null;
-  }
+// Obrigatório na criação (v10). Turmas antigas, de antes da regra, seguem com NULL.
+function semestreDaTurma(valor: unknown): number {
   if (valor !== 1 && valor !== 2) {
     throw dadosInvalidos('O semestre precisa ser 1 ou 2.');
   }

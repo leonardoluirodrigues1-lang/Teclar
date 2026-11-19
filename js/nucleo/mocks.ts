@@ -354,6 +354,8 @@ export const dados: BancoMock = {
     tempoLimitePadrao: 60,
     // Mesmo motivo do bônus de precisão: um número só, morando no config.
     xpPorNivel: CONFIG.SOLO.XP_POR_NIVEL,
+    // Lições distintas por nível escolar (Configuracoes.licoes_por_nivel).
+    licoesPorNivel: 3,
   },
 
   // camp-1 é do jogador u-1 (leo@teclar.dev); camp-2 é de u-2
@@ -2057,12 +2059,17 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token) => {
       const professorId = contaDoToken(token).id;
       recusarProfessorId(corpo);
+      // Semestre obrigatório na criação (v10), como o back.
+      if (corpo?.semestre !== 1 && corpo?.semestre !== 2) {
+        throw erro(400, 'O semestre precisa ser 1 ou 2.', 'DADOS_INVALIDOS');
+      }
       const nova: Turma = {
         id: gerarId('turma'),
         codigo: gerarCodigo(),
         professorId,
         nome: corpo?.nome ?? 'Nova turma',
-          totalAlunos: 0,
+        periodo: `${corpo.semestre}º semestre`,
+        totalAlunos: 0,
         totalExercicios: 0,
         ativa: true,
         dataCriacao: hoje(),
@@ -2544,9 +2551,12 @@ const rotas: [string, RegExp, Handler][] = [
     (params, corpo, token): DesempenhoNaTurma => {
       const { turma, aluno } = salaDoToken(params[0], token);
       const meus = numerosNaSala(turma.id, aluno.id);
+      const nivelAtual = 1 + Math.floor(meus.licoes / dados.parametros.licoesPorNivel);
       const resposta: DesempenhoNaTurma = {
         sessoesConcluidas: meus.concluidas.length,
         licoes: meus.licoes,
+        nivelAtual,
+        proximoMarco: nivelAtual * dados.parametros.licoesPorNivel,
         diasSeguidos: meus.diasSeguidos,
         minhaMedia: null,
         mediaSala: null,

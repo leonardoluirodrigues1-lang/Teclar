@@ -184,4 +184,5 @@ INSERT INTO teclardb_v10.configuracoes (Chave, Valor, Descricao) VALUES
     ('wpm_meta_padrao',              '40',  'Meta de palavras por minuto'),
     ('precisao_minima',              '90',  'Precisao minima em porcentagem'),
     ('tempo_limite_padrao_segundos', '60',  'Tempo limite padrao de um exercicio'),
-    ('xp_por_nivel',                 '200', 'XP necessario para subir de nivel');
+    ('xp_por_nivel',                 '200', 'XP necessario para subir de nivel'),
+    ('licoes_por_nivel',             '3',   'Licoes distintas por nivel escolar');

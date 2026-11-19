@@ -85,6 +85,10 @@ export interface MediaDaSala {
 export interface DesempenhoNaTurma {
   sessoesConcluidas: number;
   licoes: number;
+  // Nível escolar: 1 + floor(licoes / K), K = Configuracoes.licoes_por_nivel.
+  nivelAtual: number;
+  // Lições distintas em que o próximo nível começa (nivelAtual * K).
+  proximoMarco: number;
   diasSeguidos: number;
   minhaMedia: MediaDaSala | null;
   mediaSala: MediaDaSala | null;
@@ -179,10 +183,15 @@ export class AlunoService {
 
     const linhas = await this.banco.sessionsprof.findMany({ where: { AlunoID: alunoId, ClassID: turmaId } });
     const concluidas = linhas.map(sessaoNaForma).filter((sessao) => sessao.concluida);
+    // Exercícios DIFERENTES concluídos, inclusive os de atribuição já retirada.
+    const licoes = new Set(concluidas.map((sessao) => sessao.exerciseId)).size;
+    const porNivel = await this.lerLicoesPorNivel();
+    const nivelAtual = 1 + Math.floor(licoes / porNivel);
     const resposta: DesempenhoNaTurma = {
       sessoesConcluidas: concluidas.length,
-      // Exercícios DIFERENTES concluídos.
-      licoes: new Set(concluidas.map((sessao) => sessao.exerciseId)).size,
+      licoes,
+      nivelAtual,
+      proximoMarco: nivelAtual * porNivel,
       diasSeguidos: contarDiasSeguidos(linhas),
       minhaMedia: null,
       mediaSala: null,
@@ -206,6 +215,17 @@ export class AlunoService {
       precisao: arredondarOuNull(daSala._avg.Precisao),
     };
     return resposta;
+  }
+
+  // K do nível escolar. Sem a linha (ou inválida) o banco está incompleto:
+  // erro claro, como o xp_por_nivel do Solo. Veja o ALTER_v10_complementos.sql.
+  private async lerLicoesPorNivel(): Promise<number> {
+    const linha = await this.banco.configuracoes.findUnique({ where: { Chave: 'licoes_por_nivel' } });
+    const valor = Number(linha?.Valor);
+    if (!Number.isInteger(valor) || valor <= 0) {
+      throw new Error('Configuracoes.licoes_por_nivel ausente ou inválido. Veja o DB_Teclar_v10.sql.');
+    }
+    return valor;
   }
 
   // A turma, se for a do aluno e estiver ativa; senão 404. "Não é sua" e

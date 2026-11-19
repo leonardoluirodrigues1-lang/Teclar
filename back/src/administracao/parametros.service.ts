@@ -1,6 +1,6 @@
 // Os parâmetros globais (tabela Configuracoes), no grupo "Administração"
 // do CONTRATO-API.md:
-//   GET /parametros   os quatro valores — qualquer token válido (o lobby
+//   GET /parametros   os cinco valores — qualquer token válido (o lobby
 //                     do Solo lê o xpPorNivel para desenhar a barra de XP)
 //   PUT /parametros   muda só os campos enviados — só administrador
 //
@@ -18,6 +18,7 @@ export interface Parametros {
   precisaoMinima: number;
   tempoLimitePadrao: number;
   xpPorNivel: number;
+  licoesPorNivel: number;
 }
 
 type NomeDoParametro = keyof Parametros;
@@ -29,11 +30,13 @@ type NomeDoParametro = keyof Parametros;
 //   tempoLimitePadrao  0 a 3600  o mesmo limite do tempo de exercício
 //                                (LIMITES.EXERCICIO_TEMPO_MAX no front); 0 = sem limite
 //   xpPorNivel         1 para cima   é divisor do nível: 0 quebraria a conta
+//   licoesPorNivel     1 para cima   lições distintas por nível escolar (também é divisor)
 const PARAMETROS: Record<NomeDoParametro, { chave: string; minimo: number; maximo: number }> = {
   wpmMeta: { chave: 'wpm_meta_padrao', minimo: 1, maximo: 999 },
   precisaoMinima: { chave: 'precisao_minima', minimo: 0, maximo: 100 },
   tempoLimitePadrao: { chave: 'tempo_limite_padrao_segundos', minimo: 0, maximo: 3600 },
   xpPorNivel: { chave: 'xp_por_nivel', minimo: 1, maximo: 2147483647 },
+  licoesPorNivel: { chave: 'licoes_por_nivel', minimo: 1, maximo: 2147483647 },
 };
 
 @Injectable()
@@ -45,10 +48,10 @@ export class ParametrosService {
     const linhas = await this.banco.configuracoes.findMany();
     const valorDe = (nome: NomeDoParametro): number => {
       const linha = linhas.find((l) => l.Chave === PARAMETROS[nome].chave);
-      // Sem a linha, o banco está incompleto (o .sql semeia as quatro):
+      // Sem a linha, o banco está incompleto (o .sql semeia as cinco):
       // melhor um erro claro do que um número inventado aqui.
       if (!linha) {
-        throw new Error(`Configuracoes.${PARAMETROS[nome].chave} não existe. Veja o DB_Teclar_v9.sql.`);
+        throw new Error(`Configuracoes.${PARAMETROS[nome].chave} não existe. Veja o DB_Teclar_v10.sql.`);
       }
       return Number(linha.Valor);
     };
@@ -57,6 +60,7 @@ export class ParametrosService {
       precisaoMinima: valorDe('precisaoMinima'),
       tempoLimitePadrao: valorDe('tempoLimitePadrao'),
       xpPorNivel: valorDe('xpPorNivel'),
+      licoesPorNivel: valorDe('licoesPorNivel'),
     };
   }
 
@@ -77,7 +81,7 @@ export class ParametrosService {
 }
 
 // O corpo vira a lista de [campo, valor] a gravar. Campo que não é um dos
-// quatro é recusado com 400, e não ignorado: quem mandou "xpNivel" (com
+// cinco é recusado com 400, e não ignorado: quem mandou "xpNivel" (com
 // erro de digitação) acharia que mudou o XP por nível.
 function validarMudancas(corpo: unknown): [NomeDoParametro, number][] {
   if (typeof corpo !== 'object' || corpo === null || Array.isArray(corpo)) {

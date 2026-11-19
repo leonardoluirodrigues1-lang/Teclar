@@ -302,7 +302,7 @@ confere(
 r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenLia);
 confere(
   'meu desempenho, Lia (2 concluídas, abaixo de 3): contagens, 3 dias seguidos, e as DUAS médias null',
-  JSON.stringify(r.corpo) === JSON.stringify({ sessoesConcluidas: 2, licoes: 1, diasSeguidos: 3, minhaMedia: null, mediaSala: null }),
+  JSON.stringify(r.corpo) === JSON.stringify({ sessoesConcluidas: 2, licoes: 1, nivelAtual: 1, proximoMarco: 3, diasSeguidos: 3, minhaMedia: null, mediaSala: null }),
   r.corpo,
 );
 r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenRui);
@@ -312,6 +312,8 @@ confere(
     JSON.stringify({
       sessoesConcluidas: 3,
       licoes: 2,
+      nivelAtual: 1,
+      proximoMarco: 3,
       diasSeguidos: 1,
       minhaMedia: { velocidade: 50, precisao: 90 },
       mediaSala: { velocidade: 44, precisao: 91 },
@@ -320,6 +322,16 @@ confere(
 );
 r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenBia);
 confere('meu desempenho, Bia: tudo zero e médias null', r.corpo.sessoesConcluidas === 0 && r.corpo.licoes === 0 && r.corpo.minhaMedia === null);
+
+// Nível escolar (licoes_por_nivel = 3): repetir uma lição mantém o nível, a
+// 3ª lição distinta sobe. As duas sessões extras do Rui são apagadas depois.
+const ruiRepete = await gravarSessao(rui, ex2, 45, 85, true, emBrasilia(4, 12));
+r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenRui);
+confere('nível: repetir uma lição mantém licoes 2 e nível 1', r.corpo.licoes === 2 && r.corpo.nivelAtual === 1 && r.corpo.proximoMarco === 3, r.corpo);
+const ruiTerceira = await gravarSessao(rui, ex3, 45, 85, true, emBrasilia(4, 13));
+r = await chamar('GET', `/turmas/${turma.id}/meu-desempenho`, null, tokenRui);
+confere('nível: a 3ª lição distinta sobe para o nível 2 (próximo marco 6)', r.corpo.licoes === 3 && r.corpo.nivelAtual === 2 && r.corpo.proximoMarco === 6, r.corpo);
+await banco.sessionsprof.deleteMany({ where: { ID: { in: [ruiRepete.id, ruiTerceira.id] } } });
 
 // ============================================================================
 // Exercício arquivado: sai da sala, fica no histórico

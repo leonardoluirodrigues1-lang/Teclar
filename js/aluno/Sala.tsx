@@ -333,6 +333,10 @@ function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
 
   return (
     <>
+      {/* O nível aparece desde a primeira visita; o mínimo de sessões vale só para as médias. */}
+      <p className="nota">
+        Nível {d.nivelAtual} · {d.licoes} de {d.proximoMarco} lições para o próximo nível
+      </p>
       <PainelDeRelatorio
         rotulo="Seu relatório nesta sala"
         falta={temMedia ? null : { sessoes: d.sessoesConcluidas, minimo: MINIMO_DE_SESSOES }}
@@ -369,6 +373,7 @@ function linhasDoCsv(nomeDaSala: string, d: DesempenhoNaTurma): (string | number
     ['Sala', nomeDaSala],
     ['Sessões concluídas', d.sessoesConcluidas],
     ['Lições', d.licoes],
+    ['Nível', d.nivelAtual],
     ['Dias seguidos', d.diasSeguidos],
     ['Seu ritmo (PPM)', d.minhaMedia?.velocidade ?? ''],
     ['Ritmo médio da sala (PPM)', d.mediaSala?.velocidade ?? ''],
