@@ -233,17 +233,29 @@ function Turma() {
       );
     }
 
+    const semSenha = alunos.filter((a) => !a.senhaDefinida).length;
     return (
-      <Tabela
-        colunas={colunasAlunos}
-        linhas={ordenar(alunos, ordenacaoAlunos, valorOrdenavelAluno)}
-        chave={(aluno) => aluno.id}
-        // Quem nunca treinou: a linha fica mais apagada, para o olho ir
-        // direto a quem já tem alguma coisa para mostrar.
-        classeLinha={(aluno) => (aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined)}
-        ordenacao={ordenacaoAlunos}
-        aoOrdenar={setOrdenacaoAlunos}
-      />
+      <>
+        {/* shortcut: qualquer um que saiba o código e o nome cria a senha no primeiro acesso;
+            senha provisória dada pelo professor fecha isso, quando for prioridade. */}
+        {semSenha > 0 && (
+          <p className="aviso-convite" role="note">
+            {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Faça o
+            primeiro acesso deles em sala, com você por perto: quem entrar primeiro com o código e o nome cria a
+            senha.
+          </p>
+        )}
+        <Tabela
+          colunas={colunasAlunos}
+          linhas={ordenar(alunos, ordenacaoAlunos, valorOrdenavelAluno)}
+          chave={(aluno) => aluno.id}
+          // Quem nunca treinou: a linha fica mais apagada, para o olho ir
+          // direto a quem já tem alguma coisa para mostrar.
+          classeLinha={(aluno) => (aluno.totalSessoes === 0 ? 'linha-sem-dado' : undefined)}
+          ordenacao={ordenacaoAlunos}
+          aoOrdenar={setOrdenacaoAlunos}
+        />
+      </>
     );
   }
 
@@ -257,7 +269,7 @@ function Turma() {
     },
     {
       rotulo: 'Acesso',
-      celula: (a) => (a.senhaDefinida ? 'Senha criada' : 'Ainda não entrou'),
+      celula: (a) => (a.senhaDefinida ? 'Senha criada' : 'Não criou senha'),
     },
     { rotulo: 'Na lista desde', celula: (a) => formatarData(a.entrouEm) },
     { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
