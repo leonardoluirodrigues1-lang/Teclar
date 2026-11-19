@@ -5,7 +5,7 @@
 // O contrato de cada rota (corpo, resposta, erros, regras do back) vive em
 // ./api.contrato.ts, com a mesma chave da função ('auth.entrar').
 
-import { CONFIG, ROTA_LOGIN } from '../config.js';
+import { CONFIG, ROTA_LOGIN, ROTA_SENHA_ALUNO } from '../config.js';
 import { sessao } from './sessao.js';
 import { responderMock } from './mocks.js';
 import type {
@@ -127,6 +127,19 @@ function expirarSessao(): void {
   window.location.replace(`${ROTA_LOGIN}?expirou=1`);
 }
 
+// 403 TROCAR_SENHA: o aluno está sem senha própria (entrou pela provisória,
+// ou o professor gerou outra com ele logado). A sessão continua; ele vai
+// para "Crie sua senha", que é a única tela que o back deixa usar.
+function exigirTrocaDeSenha(): void {
+  if (expirando) return;
+  expirando = true;
+  sessao.atualizarUsuario({ precisaTrocarSenha: true });
+  window.location.replace(ROTA_SENHA_ALUNO);
+}
+
+const ehTrocarSenha = (erro: unknown): boolean =>
+  (erro as ErroDaApi | null)?.status === 403 && (erro as ErroDaApi).codigo === 'TROCAR_SENHA';
+
 // 3. req — o único ponto que fala fetch
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -152,6 +165,9 @@ async function req<T = unknown>(
   } catch (erro) {
     if (!publico && erro?.status === 401) {
       expirarSessao();
+    }
+    if (ehTrocarSenha(erro)) {
+      exigirTrocaDeSenha();
     }
     throw erro;
   }
@@ -421,10 +437,11 @@ function registradorDe(mundo: Mundo) {
 }
 
 // 401 entra aqui porque a sessão é boa, o token é que venceu: ela é enviada
-// quando a pessoa entrar de novo.
+// quando a pessoa entrar de novo. TROCAR_SENHA também: é enviada depois que
+// o aluno criar a senha.
 function falhaPassageira(erro: unknown): boolean {
   const status = (erro as ErroDaApi | null)?.status;
-  return status === 0 || status === 401 || status === 429 || status >= 500;
+  return status === 0 || status === 401 || status === 429 || status >= 500 || ehTrocarSenha(erro);
 }
 
 // A fila sobrevive a sair da conta: sem um limite, a sessão de quem nunca
@@ -482,7 +499,7 @@ export const filaSessoes = {
       const resposta = await registradorDe(mundo)(dados);
       return { ok: true, enfileirada: false, resposta };
     } catch (erro) {
-      if (erro instanceof ErroApi && (erro.ehRede || erro.status === 401)) {
+      if (erro instanceof ErroApi && (erro.ehRede || erro.status === 401 || ehTrocarSenha(erro))) {
         const fila = lerFila();
         fila.push({ dados, mundo, em: Date.now(), usuarioId });
         escreverFila(fila);

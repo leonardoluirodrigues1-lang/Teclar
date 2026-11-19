@@ -6,7 +6,7 @@
 // rota escreve o caminho inteiro, para ficar à vista. O GuardaDoToken fica
 // na classe, como nos outros controllers.
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
+import { GuardaDoToken, PermitidoSemSenha } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
 import { AlunoService } from './aluno.service.js';
@@ -19,6 +19,7 @@ export class AlunoController {
 
   @Post('aluno/senha')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @PermitidoSemSenha()
   criarSenha(@Req() requisicao: RequisicaoComIdentidade, @Body() corpo: { novaSenha?: unknown }): Promise<void> {
     return this.aluno.criarSenha(requisicao.identidade, corpo);
   }

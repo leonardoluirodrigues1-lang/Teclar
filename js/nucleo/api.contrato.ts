@@ -828,6 +828,8 @@ da conta, e mora em \`solo\`.`,
   403 TIPO_INVALIDO — token de conta
   409 SENHA_JA_CRIADA — o aluno já tem senha (trocar é com o professor, que gera outra provisória)`,
         identidade: `O token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.`,
+        nota: `Enquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e
+  esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para "Crie sua senha").`,
         back: `UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL
   (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.`,
       },

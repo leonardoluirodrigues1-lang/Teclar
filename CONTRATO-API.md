@@ -1446,6 +1446,10 @@ O token. Só vale para quem entrou com a senha provisória e ainda não criou a 
 
 UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.
 
+**Notas:**
+
+Enquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para "Crie sua senha").
+
 ### `GET /aluno/historico`
 
 Chamada no front: `api.escola.aluno.historico`

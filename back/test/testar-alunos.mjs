@@ -216,6 +216,21 @@ confere('provisória: depois do uso, a lista mostra provisoriaAte null', (await 
 r = await chamar('GET', '/auth/eu', null, tokenDoBruno);
 confere('provisória: /auth/eu repete precisaTrocarSenha', r.status === 200 && r.corpo.precisaTrocarSenha === true);
 
+// Enquanto não cria a senha, o token só abre /auth/eu, /auth/logout e POST /aluno/senha.
+for (const [metodo, rota, corpo] of [
+  ['GET', '/aluno/salas'],
+  ['GET', '/aluno/historico'],
+  ['GET', '/aluno/resumo'],
+  ['GET', `/turmas/${turma.id}/meu-desempenho`],
+  ['GET', `/turmas/${turma.id}/ranking`],
+  ['POST', '/sessoes', {}],
+]) {
+  r = await chamar(metodo, rota, corpo, tokenDoBruno);
+  confere(`sem senha criada: ${metodo} ${rota} 403 TROCAR_SENHA`, ehErro(r, 403, 'TROCAR_SENHA'));
+}
+r = await chamar('POST', '/auth/logout', null, tokenDoBruno);
+confere('sem senha criada: /auth/logout passa (204)', r.status === 204);
+
 r = await chamar('POST', '/aluno/senha', { novaSenha: 'bruno123' });
 confere('/aluno/senha: sem token 401', ehErro(r, 401, 'TOKEN_INVALIDO'));
 r = await criarSenha('bruno123', prof);
@@ -226,6 +241,8 @@ r = await criarSenha(' bruno123 ', tokenDoBruno);
 confere('/aluno/senha: 204 sem corpo', ehVazio204(r));
 r = await criarSenha('outra456', tokenDoBruno);
 confere('/aluno/senha: de novo 409 SENHA_JA_CRIADA', ehErro(r, 409, 'SENHA_JA_CRIADA'));
+r = await chamar('GET', '/aluno/salas', null, tokenDoBruno);
+confere('depois de criar a senha, o MESMO token abre /aluno/salas', r.status === 200);
 r = await loginDoBruno('bruno123');
 confere('/aluno/senha: a senha criada entra, sem precisaTrocarSenha', r.status === 200 && !('precisaTrocarSenha' in r.corpo.usuario));
 r = await chamar('GET', '/auth/eu', null, r.corpo.token);

@@ -4,7 +4,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post, Req, UseGuards } from '@nestjs/common';
 import { AutenticacaoService } from './autenticacao.service.js';
 import type { CorpoDoCadastro, CorpoDoLogin, RespostaLogin, Usuario } from './autenticacao.service.js';
-import { GuardaDoToken } from './guarda-do-token.js';
+import { GuardaDoToken, PermitidoSemSenha } from './guarda-do-token.js';
 import type { RequisicaoComIdentidade } from './guarda-do-token.js';
 
 @Controller('auth')
@@ -36,6 +36,7 @@ export class AutenticacaoController {
   // requisição nem chega aqui (401 TOKEN_INVALIDO).
   @Get('eu')
   @UseGuards(GuardaDoToken)
+  @PermitidoSemSenha()
   eu(@Req() requisicao: RequisicaoComIdentidade): Promise<Usuario> {
     return this.autenticacao.quemSouEu(requisicao.identidade);
   }

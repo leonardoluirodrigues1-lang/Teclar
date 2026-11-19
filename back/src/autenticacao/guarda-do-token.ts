@@ -11,10 +11,29 @@
 //
 // O guard não confere se o tipo serve para a rota (conta numa rota de
 // aluno): isso é 403 TIPO_INVALIDO, e quem sabe o tipo certo é a rota.
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+//
+// Confere uma coisa do aluno: quem entrou com a senha provisória e ainda
+// não criou a dele (SenhaHash NULL) só passa nas rotas marcadas com
+// @PermitidoSemSenha() (GET /auth/eu e POST /aluno/senha); nas outras, 403
+// TROCAR_SENHA. O logout é público e nem passa por aqui.
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  SetMetadata,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import { BancoService } from '../banco/banco.service.js';
 import type { ConteudoDoToken, Identidade } from './token.js';
+
+const PERMITIDO_SEM_SENHA = 'permitidoSemSenha';
+
+/** A rota abre também para o aluno que ainda não criou a senha dele. */
+export const PermitidoSemSenha = () => SetMetadata(PERMITIDO_SEM_SENHA, true);
 
 // A requisição depois de passar pelo guard.
 export interface RequisicaoComIdentidade extends Request {
@@ -23,7 +42,11 @@ export interface RequisicaoComIdentidade extends Request {
 
 @Injectable()
 export class GuardaDoToken implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly banco: BancoService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(contexto: ExecutionContext): Promise<boolean> {
     const requisicao = contexto.switchToHttp().getRequest<RequisicaoComIdentidade>();
@@ -43,6 +66,17 @@ export class GuardaDoToken implements CanActivate {
     }
 
     requisicao.identidade = { id: conteudo.sub, tipo: conteudo.tipo };
+
+    if (conteudo.tipo === 'aluno' && !this.reflector.get<boolean>(PERMITIDO_SEM_SENHA, contexto.getHandler())) {
+      const aluno = await this.banco.alunosturmas.findUnique({
+        where: { AlunoID: conteudo.sub },
+        select: { SenhaHash: true },
+      });
+      // Aluno que sumiu segue: a rota responde o 401/404 dela.
+      if (aluno && aluno.SenhaHash === null) {
+        throw new ForbiddenException({ mensagem: 'Crie a sua senha antes de continuar.', codigo: 'TROCAR_SENHA' });
+      }
+    }
     return true;
   }
 }

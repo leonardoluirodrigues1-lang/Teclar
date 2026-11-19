@@ -57,6 +57,11 @@ function ehErro(resposta, status, codigo) {
 async function entrar(credenciais) {
   const r = await chamar('POST', '/auth/login', credenciais);
   assert.equal(r.status, 200, `login de ${JSON.stringify(credenciais)}`);
+  // Entrou com a senha provisória: cria a dele, senão as rotas dão 403 TROCAR_SENHA.
+  if (r.corpo.usuario.precisaTrocarSenha) {
+    const criada = await chamar('POST', '/aluno/senha', { novaSenha: 'senha1234' }, r.corpo.token);
+    assert.equal(criada.status, 204, 'preparo: criar a senha depois da provisória');
+  }
   return r.corpo.token;
 }
 

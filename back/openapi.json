@@ -3559,7 +3559,7 @@
         ],
         "operationId": "escola.aluno.criarSenha",
         "summary": "criarSenha: (sem corpo)",
-        "description": "**Chamada no front:** `api.escola.aluno.criarSenha`\n\n**Corpo:** { novaSenha } — de 4 a 20 caracteres, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.",
+        "description": "**Chamada no front:** `api.escola.aluno.criarSenha`\n\n**Corpo:** { novaSenha } — de 4 a 20 caracteres, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.\n\n**Notas:**\n\nEnquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para \"Crie sua senha\").",
         "parameters": [],
         "requestBody": {
           "description": "{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas",

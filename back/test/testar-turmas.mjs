@@ -296,6 +296,8 @@ async function treinar(nome, wpm, concluida) {
   if (!tokensDetalhada[nome]) {
     const senha = importadosDetalhada.find((a) => a.nome === nome).senhaProvisoria;
     tokensDetalhada[nome] = (await chamar('POST', '/auth/login', { codigo: detalhada.codigo, nome, senha })).corpo.token;
+    // Sem criar a senha, as rotas dão 403 TROCAR_SENHA.
+    await chamar('POST', '/aluno/senha', { novaSenha: 'senha1234' }, tokensDetalhada[nome]);
   }
   const login = { corpo: { token: tokensDetalhada[nome] } };
   const sessao = {
