@@ -45,7 +45,7 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
@@ -300,7 +300,7 @@ function Turma() {
 
   const colunasExercicios: ColunaTabela<AtribuicaoProfessor>[] = [
     { rotulo: 'Título', celula: (item) => item.titulo ?? 'Sem título' },
-    { rotulo: 'Dificuldade', celula: (item) => item.dificuldade ?? '—' },
+    { rotulo: 'Dificuldade', celula: (item) => rotuloDificuldade(item.dificuldade) },
     { rotulo: 'Atribuído em', celula: (item) => (item.atribuidoEm ? formatarData(item.atribuidoEm) : '—') },
     {
       rotulo: 'Concluído',
@@ -853,7 +853,7 @@ function ModalAtribuir({ atribuicoes, aoConcluir, aoFechar }: PropsModalAtribuir
                   />
                   <div className="item-biblioteca-texto">
                     <p className="item-biblioteca-titulo">{ex.titulo ?? 'Sem título'}</p>
-                    <p className="item-biblioteca-meta">{ex.dificuldade ?? ''}</p>
+                    <p className="item-biblioteca-meta">{rotuloDificuldade(ex.dificuldade)}</p>
                   </div>
                   {jaAtribuido && <span className="item-biblioteca-legenda">já atribuído</span>}
                 </label>
