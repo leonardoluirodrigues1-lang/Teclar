@@ -288,8 +288,8 @@ function Login() {
         <p className="rotulo">Aluno</p>
         <h1 id="titulo-aluno">Entrar</h1>
         <p className="descricao">
-          Use o código que o professor passou e o seu nome como está na lista da turma. Na primeira vez, a senha
-          que você digitar (de 4 a 20 caracteres) vira a sua senha.
+          Digite o código que o professor passou e o seu nome completo, igual ao da chamada. Na primeira vez,
+          invente uma senha (de 4 a 20 letras ou números) e guarde.
         </p>
 
         <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
@@ -313,7 +313,7 @@ function Login() {
               {...atributosDeErro(campos.erros.codigo)}
             />
             <p className="ajuda-campo" id="dica-codigo">
-              Seis letras e números, ex.: K7M2QX. Não sabe o seu? Peça ao professor.
+              Seis letras e números, ex.: AB12CD. Não sabe o seu? Peça ao professor.
             </p>
             <ErroCampo id="erro-codigo" erro={campos.erros.codigo} />
           </div>
