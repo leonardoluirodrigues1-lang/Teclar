@@ -341,3 +341,13 @@
 .movimento-reduzido :focus-visible {
   animation: none;
 }
+
+/* Troca de página: o navegador funde a página que sai com a que entra
+   (View Transitions entre documentos). Quem não suporta navega como antes. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
