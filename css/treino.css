@@ -384,40 +384,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   border-radius: var(--raio-g, 16px);
   text-align: center;
 }
-.passagem-metricas {
-  display: flex;
-  justify-content: center;
-  gap: var(--e-6, 32px);
-  margin-top: 14px;
-}
-.passagem-metricas > div + div {
-  padding-left: var(--e-6, 32px);
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
-}
-.passagem-metricas dt {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-.passagem-metricas dd {
-  margin-top: 6px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 34px;
+.passagem-titulo {
+  font-size: var(--fs-lg, 1.25rem);
   font-weight: var(--peso-medio, 500);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
 }
-.passagem-metricas dd.abaixo { color: var(--cor-erro, #ff5a5a); }
-.passagem-metricas dd.abaixo .hud-unidade { color: inherit; }
 .passagem-dica {
-  margin-top: 18px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 10px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--cor-texto-suave, #c4c4c4);
 }
 
 @keyframes teclar-passagem-entrar {
@@ -431,9 +405,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 @media (max-width: 720px) {
   .passagem-caixa { padding: 22px 28px; }
-  .passagem-metricas { gap: 20px; }
-  .passagem-metricas > div + div { padding-left: 20px; }
-  .passagem-metricas dd { font-size: 26px; }
 }
 
 /* ---------------------------------------------------------------------------

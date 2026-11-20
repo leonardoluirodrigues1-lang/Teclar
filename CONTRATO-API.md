@@ -289,7 +289,7 @@ Chamada no front: `api.solo.missoes`
 ```json
 [{ "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
    "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-   "repeticoes": 10, "tempoLimiteSegundos": 472, "tamanhoCaracteres": 59,
+   "repeticoes": 3, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 59,
    "bloqueada": false }]
 ```
 
@@ -322,7 +322,7 @@ Chamada no front: `api.solo.missao`
 ```json
 { "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
   "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-  "repeticoes": 10, "tempoLimiteSegundos": 472, "tamanhoCaracteres": 59,
+  "repeticoes": 3, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 59,
   "texto": "asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg" }
 ```
 

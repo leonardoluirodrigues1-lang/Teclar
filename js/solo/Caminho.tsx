@@ -233,8 +233,8 @@ function ConteudoDaPedra({ estado, posicao, repeticoes, nova }: PropsConteudo) {
   );
 }
 
-// "10×". Lição de uma vez só não mostra nada. Escondido do leitor de tela
-// porque o rótulo da pedra já diz "10 repetições" por extenso.
+// "3×". Lição de uma vez só não mostra nada. Escondido do leitor de tela
+// porque o rótulo da pedra já diz "3 repetições" por extenso.
 function Repeticoes({ quantas }: { quantas: number }) {
   if (quantas <= 1) return null;
   return (
@@ -259,7 +259,7 @@ interface PropsPedra {
 function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra) {
   const repete = licao.repeticoes > 1;
   // Tudo o que a pedra mostra vai no rótulo: a posição, o nível, o estado e
-  // as repetições ("10×" lido em voz alta vira "dez ex"). O título da lição
+  // as repetições ("3×" lido em voz alta vira "três ex"). O título da lição
   // fica de fora: ele traz a ordem do banco ("Lição 49 — …"), justamente o
   // número que a pedra deixou de mostrar.
   const rotulo =

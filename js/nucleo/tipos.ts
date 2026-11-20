@@ -166,7 +166,7 @@ export interface Campanha {
  *                a lista ordena, e ela também é o NN do título.
  *   nivel      — 1 a 10, o agrupamento da tela. NÃO é requisito de
  *                acesso: não existe nível mínimo, e toda lição é clicável.
- *   repeticoes — quantas vezes a lição deve ser repetida (2, 5 ou 10).
+ *   repeticoes — quantas vezes a lição deve ser repetida (1 a 3).
  *
  * `titulo` e `dificuldade` não vinham do CSV do professor: foram gerados
  * pela mesma regra usada na carga do banco (ver montarLicao em licoes.ts),

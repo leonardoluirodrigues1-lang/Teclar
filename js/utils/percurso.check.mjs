@@ -63,5 +63,6 @@ console.log('percurso.check: ok');
     assert.ok(ppm <= 50.5, `lição ${ordem} pede ${ppm.toFixed(1)} PPM`);
   }
   const [, , reps1, tempo1] = LICOES[0];
-  assert.equal(Math.ceil(tempo1 / reps1), 48, 'lição 1: 472 s em 10 voltas = 48 s por volta');
+  assert.equal(Math.ceil(tempo1 / reps1), 48, 'lição 1: 144 s em 3 voltas = 48 s por volta');
+  assert.ok(LICOES.every(([, , reps]) => reps >= 1 && reps <= 3), 'nenhuma lição repete mais de 3 vezes');
 }

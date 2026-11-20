@@ -24,13 +24,16 @@
 //     escreve é o motor (modo bloqueante) e o SO (acentos);
 //   · os toasts continuam com toast.ts num host FORA da raiz do React.
 //
-// Repetições (só Solo): a lição tem `repeticoes` (2, 5 ou 10) e é o MESMO
+// Repetições (só Solo): a lição tem `repeticoes` (até 3) e é o MESMO
 // texto, N vezes seguidas. O motor não sabe disso — ele é uma passada de
 // texto, e continua assim. A tela instancia um motor NOVO a cada volta
 // (criarMotor), guarda o corpo de cada volta em `voltas`, e só depois da
 // última agrega tudo numa sessão só (agregarVoltas) e grava. Entre uma
 // volta e outra há um estado curto de passagem (PASSAGEM_MS), sem botão e
-// sem foco roubado: qualquer tecla pula a espera. Cronômetro, limite de
+// sem foco roubado, que some sozinho; o teclado é ignorado nesse tempo (o
+// motor da volta seguinte ainda não existe, e o que cair no campo é
+// apagado por criarMotor). Depois da ÚLTIMA volta não há passagem: vai
+// direto para finalizar(). Cronômetro, limite de
 // tempo, pausa por foco e toasts valem por volta. Exercício sem
 // `repeticoes` (Escola) ou com 1 passa por tudo isso com uma volta só e
 // se comporta exatamente como antes.
@@ -92,14 +95,8 @@ const SEQUENCIA_AVISO = 25; // acertos seguidos
 const TEMPO_AVISO_S = 10; // segundos restantes
 const TEMPO_MAXIMO_BUSCA_PROXIMA_MS = 8000;
 
-// Quanto tempo a passagem entre duas repetições fica na tela se ninguém
-// teclar antes.
+// Quanto tempo a passagem entre duas repetições fica na tela. Nada a pula.
 const PASSAGEM_MS = 1000;
-
-// Teclas que NÃO pulam a passagem: Esc sai da tela (tratado à parte) e um
-// modificador sozinho (Shift para a maiúscula que vem a seguir) não é
-// intenção de começar.
-const TECLAS_QUE_NAO_PULAM = new Set(['Escape', 'Shift', 'Control', 'Alt', 'Meta', 'CapsLock']);
 
 // O &nbsp; do hud-contexto no HTML original: mantém a altura da linha vazia.
 const NBSP = String.fromCharCode(0xa0);
@@ -148,8 +145,6 @@ const HUD_INICIAL: Hud = {
 interface Passagem {
   numero: number; // a volta que acabou (1-based)
   total: number;
-  wpm: number;
-  precisao: number;
   concluida: boolean; // false = o tempo da volta esgotou antes do fim do texto
 }
 
@@ -604,13 +599,12 @@ function Treino({ usuario }: PropsTreino) {
 
     const numero = voltas.current.length;
     if (numero < totalVoltas.current) {
-      // Passagem: PPM e precisão da volta por PASSAGEM_MS, ou até uma tecla.
+      // Passagem: "Repetição N de T concluída" por PASSAGEM_MS, e a próxima
+      // começa sozinha, com o texto na tela e o cronômetro esperando.
       setDicaOculta(true);
       setPassagem({
         numero,
         total: totalVoltas.current,
-        wpm: estado.wpm,
-        precisao: estado.precisao,
         concluida: estado.concluida,
       });
       temporizadorPassagem.current = setTimeout(proximaVolta, PASSAGEM_MS);
@@ -628,32 +622,13 @@ function Treino({ usuario }: PropsTreino) {
   }
 
   function proximaVolta() {
-    // O temporizador e a tecla podem cair na mesma janela, antes de o React
-    // desligar o listener: com um motor já vivo, a volta seguinte já começou.
+    // Com um motor já vivo, a volta seguinte já começou.
     if (motor.current) return;
     pararPassagem();
     setPassagem(null);
     setRepeticao({ numero: voltas.current.length + 1, total: totalVoltas.current });
     criarMotor();
   }
-
-  // Qualquer tecla pula a passagem. É um listener de keydown no documento
-  // para PULAR a espera, não para capturar digitação — a captura continua
-  // sendo o 'input' do motor. O setTimeout(0) deixa o caractere desta tecla
-  // cair no input ANTES de criarMotor() limpar o campo: a tecla que pula não
-  // vira a primeira letra da volta seguinte.
-  useEffect(() => {
-    if (!passagem) return;
-    let pulou = false;
-    function aoTeclar(evento: KeyboardEvent) {
-      if (pulou || TECLAS_QUE_NAO_PULAM.has(evento.key) || modalAberto.current) return;
-      pulou = true; // uma vez só, mesmo com duas teclas rápidas
-      pararPassagem();
-      setTimeout(proximaVolta, 0);
-    }
-    document.addEventListener('keydown', aoTeclar);
-    return () => document.removeEventListener('keydown', aoTeclar);
-  }, [passagem]);
 
   // --- fim de sessão ---------------------------------------------------------
   // Uma sessão por LIÇÃO, com o agregado das voltas. Com uma volta só, o
@@ -1170,25 +1145,14 @@ function Treino({ usuario }: PropsTreino) {
       <div className="passagem" id="passagem" hidden={!passagem} aria-live="polite">
         {passagem && (
           <div className="passagem-caixa vidro">
-            <p className="modal-eyebrow">
-              {passagem.concluida ? 'Repetição' : 'Tempo esgotado ·'} {passagem.numero} de{' '}
-              {passagem.total}
-              {passagem.concluida && ' ✓'}
+            <p className="passagem-titulo">
+              {passagem.concluida
+                ? `Repetição ${passagem.numero} de ${passagem.total} concluída ✓`
+                : `Tempo esgotado na repetição ${passagem.numero} de ${passagem.total}`}
             </p>
-            <dl className="passagem-metricas">
-              <div>
-                <dt>PPM</dt>
-                <dd>{passagem.wpm}</dd>
-              </div>
-              <div>
-                <dt>Precisão</dt>
-                <dd className={passagem.precisao < PRECISAO_MINIMA ? 'abaixo' : undefined}>
-                  {passagem.precisao}
-                  <span className="hud-unidade">%</span>
-                </dd>
-              </div>
-            </dl>
-            <p className="passagem-dica">Qualquer tecla começa a próxima</p>
+            <p className="passagem-dica">
+              Próxima: repetição {passagem.numero + 1} de {passagem.total}
+            </p>
           </div>
         )}
       </div>

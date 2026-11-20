@@ -1,7 +1,9 @@
 // Check de ponta a ponta do FIM de uma atividade com várias repetições
 // (pages/treino/treino.html), num Chrome headless de verdade, com teclas de
 // verdade (CDP Input.*, que o navegador trata como digitação do usuário):
-//   · entre uma repetição e outra aparece a passagem ("Repetição N de T ✓");
+//   · entre uma repetição e outra aparece a passagem ("Repetição 1 de 3
+//     concluída ✓" / "Próxima: repetição 2 de 3"), que some sozinha em ~1 s,
+//     e as teclas batidas durante ela não contam (nem como erro);
 //   · depois da ÚLTIMA não há passagem: vai para "Salvando sessão…", grava a
 //     sessão (POST) e abre o modal de conclusão;
 //   · o modal fica de pé: 3 s depois ainda está lá, e um Espaço teclado
@@ -24,7 +26,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 
 const RAIZ = resolve(import.meta.dirname, '../..');
 const API = 'http://localhost:3000/api';
-const LICAO = 'solo-001'; // 10 repetições de 59 caracteres
+const LICAO = 'solo-001'; // 3 repetições de 59 caracteres
 const MS_POR_TECLA = 60; // ~200 PPM: abaixo do teto de plausibilidade do back (250)
 const CHROME =
   process.env.CHROME ??
@@ -152,10 +154,35 @@ try {
     }
     if (volta < total) {
       await aguardar(`passagem da repetição ${volta}`, `(${ESTADO}).passagem`, 3000);
+      const apareceu = Date.now();
+      if (volta === 1) {
+        const card = await avaliar(`document.getElementById('passagem').innerText`);
+        confere('o card diz "Repetição 1 de 3 concluída ✓"', card.includes(`Repetição 1 de ${total} concluída ✓`));
+        confere('e embaixo "Próxima: repetição 2 de 3"', card.includes(`Próxima: repetição 2 de ${total}`));
+        // A criança continua batendo no teclado durante o card.
+        for (const ch of 'xqz ') {
+          await tecla(ch, '', ch.toUpperCase().charCodeAt(0), ch);
+          await cdp('Input.insertText', { text: ch });
+        }
+        confere('teclar durante o card não o fecha', (await avaliar(ESTADO)).passagem);
+      }
       await aguardar(`repetição ${volta + 1} começar`, `!(${ESTADO}).passagem`, 3000);
+      if (volta === 1) {
+        const durou = Date.now() - apareceu;
+        confere(`o card some sozinho em ~1 s (${durou} ms)`, durou >= 700 && durou <= 1800);
+        const depois = await avaliar(`({
+          errados: document.querySelectorAll('.texto .c.errado').length,
+          precisao: document.getElementById('hud-precisao')?.innerText,
+          campo: document.querySelector('input')?.value,
+          repeticao: document.getElementById('hud-repeticao')?.innerText })`);
+        confere(
+          'as teclas do card não contaram: nenhum erro, precisão 100, campo vazio',
+          depois.errados === 0 && depois.precisao.startsWith('100') && depois.campo === ''
+        );
+        confere('o HUD já mostra "Repetição 2 de 3"', new RegExp(`2 de ${total}`, 'i').test(depois.repeticao));
+      }
     }
   }
-  confere('as repetições do meio passaram pela passagem', true);
 
   // Depois da última: nada de passagem, direto para o modal de conclusão.
   let viuPassagem = false;
@@ -169,6 +196,9 @@ try {
   confere('na última repetição não há passagem', !viuPassagem);
   confere('o modal de conclusão abriu', /conclu/i.test(estado.modal ?? ''));
   confere('a sessão foi gravada (POST /solo/sessoes)', (await historico()) === antes + 1);
+  const gravada = await (await fetch(`${API}/solo/historico`, { headers: { Authorization: `Bearer ${login.token}` } })).json();
+  const ultima = [...gravada.itens].sort((a, b) => b.data.localeCompare(a.data))[0];
+  confere(`a sessão gravada não tem erro (as teclas do card não contaram; erros=${ultima.erros})`, ultima.erros === 0);
   await aguardar('os botões do modal', `/Voltar às atividades/.test(document.querySelector('[role=dialog]')?.innerText ?? '')`);
   confere('o foco está na caixa do modal, não num botão', (await avaliar(ESTADO)).focoNaCaixa);
 

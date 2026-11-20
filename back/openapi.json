@@ -653,8 +653,8 @@
                         "nivel": 1,
                         "titulo": "Lição 01 — Linha-guia",
                         "dificuldade": "facil",
-                        "repeticoes": 10,
-                        "tempoLimiteSegundos": 472,
+                        "repeticoes": 3,
+                        "tempoLimiteSegundos": 144,
                         "tamanhoCaracteres": 59,
                         "bloqueada": false
                       }
@@ -736,8 +736,8 @@
                       "nivel": 1,
                       "titulo": "Lição 01 — Linha-guia",
                       "dificuldade": "facil",
-                      "repeticoes": 10,
-                      "tempoLimiteSegundos": 472,
+                      "repeticoes": 3,
+                      "tempoLimiteSegundos": 144,
                       "tamanhoCaracteres": 59,
                       "texto": "asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg"
                     }
