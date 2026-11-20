@@ -1468,7 +1468,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .pagina-aluno .secao-rotulo { margin-top: var(--e-6, 32px); }
 .pagina-aluno .titulo { font-size: 26px; }
-.pagina-aluno .subtitulo { color: rgba(255, 255, 255, 0.38); }
+.pagina-aluno .subtitulo { color: rgba(255, 255, 255, 0.62); }
 
 /* --- números -------------------------------------------------------------- */
 /* Toda célula de número e todo valor de métrica em tabular-nums, como o

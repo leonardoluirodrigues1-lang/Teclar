@@ -1,3 +1,4 @@
+import { querMenosMovimento } from '../utils/movimento.js';
 /* ==================================================================
    shaderBuracoNegro.ts
    HORIZONTE DE EVENTOS - o buraco negro em WebGL, animado em loop.
@@ -285,6 +286,8 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement,opcoes:OpcoesBuracoN
     raf=requestAnimationFrame(frame);
     /* sem foco, so depois do primeiro quadro: senao o canvas fica preto */
     if(!visivel || (!comFoco && desenhou)){ ultimo=0; return; }   /* volta zerado ao reaparecer */
+    /* menos movimento: o primeiro quadro fica parado na tela (WCAG 2.2.2) */
+    if(desenhou && querMenosMovimento()) return;
     if(ultimo && now-ultimo < INTERVALO) return;
     ultimo=now;
     desenhou=true;

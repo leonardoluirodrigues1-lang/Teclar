@@ -133,7 +133,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   font-weight: var(--peso-normal, 400);
   line-height: 1.75;
   letter-spacing: 0.02em;
-  color: var(--cor-char-pendente, #5c5c5c);
+  color: var(--cor-char-pendente, #777777);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   transition: opacity var(--dur-lenta, 480ms) var(--ease-padrao, ease);

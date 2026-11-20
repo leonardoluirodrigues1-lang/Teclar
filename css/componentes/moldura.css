@@ -57,6 +57,26 @@
   transition: left var(--t-medio, 240ms) var(--curva, ease-out);
 }
 
+/* O anel de foco do conteúdo vai para dentro: a caixa ocupa a tela toda e
+   o anel de fora ficaria fora da janela. */
+.moldura-conteudo:focus-visible { outline-offset: -3px; }
+
+/* Link de pular: fora da tela até receber o foco do teclado. */
+.moldura-pular {
+  position: fixed;
+  top: var(--e-2, 8px);
+  left: var(--e-2, 8px);
+  z-index: var(--z-aviso, 10000);
+  padding: var(--e-2, 8px) var(--e-4, 16px);
+  border-radius: var(--raio-n, 8px);
+  background: var(--cor-texto, #fff);
+  color: var(--cor-texto-inverso, #000);
+  font-family: var(--fonte-leitura, sans-serif);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.moldura-pular:focus-visible { transform: none; }
+
 .moldura-lateral-aberta .moldura-topo,
 .moldura-lateral-aberta .moldura-conteudo {
   left: var(--largura-sidebar, 248px);
@@ -103,7 +123,7 @@
   font-size: 9px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
 }
 .moldura-pessoa-trilho {
   width: 126px;
@@ -252,7 +272,7 @@
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 9px;
   letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 /* --- topo à esquerda: "← voltar" (telas internas) ------------------------ */

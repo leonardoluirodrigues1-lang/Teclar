@@ -139,7 +139,7 @@
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.08);
   font-size: clamp(8px, 1.5cqw, 13px);
-  color: rgba(255, 255, 255, 0.34);
+  color: rgba(255, 255, 255, 0.62);
 }
 .teclado-treino .teclado-tecla-letra { font-size: clamp(9px, 2.1cqw, 19px); }
 .teclado-treino .teclado-tecla-relevo::after { opacity: 0.5; }

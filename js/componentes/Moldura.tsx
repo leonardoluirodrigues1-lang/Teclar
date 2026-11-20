@@ -354,6 +354,10 @@ export function Moldura({
 
   return (
     <div className={`moldura moldura-${modo}` + (aberta ? ' moldura-lateral-aberta' : '')}>
+      {/* Primeiro Tab da página: pula o topo e a barra (WCAG 2.4.1). */}
+      <a className="moldura-pular" href="#moldura-conteudo">
+        Pular para o conteúdo
+      </a>
       <header className="moldura-topo">
         <div className="moldura-esquerda">
           {voltar ? (
@@ -392,7 +396,9 @@ export function Moldura({
         </button>
       )}
 
-      <div className="moldura-conteudo entrada-da-pagina">
+      {/* É ele que rola (position: fixed), não a página: com tabIndex as setas e o
+          PageDown rolam mesmo sem nada focável dentro (WCAG 2.1.1). */}
+      <div className="moldura-conteudo entrada-da-pagina" id="moldura-conteudo" tabIndex={0}>
         {classeDoConteudo ? <div className={classeDoConteudo}>{children}</div> : children}
       </div>
     </div>

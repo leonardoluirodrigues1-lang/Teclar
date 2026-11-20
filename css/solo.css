@@ -926,7 +926,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .lobby-guia-casa {
   /* A fileira de casa é escrita em minúsculas, como no teclado. */
   text-transform: none;
-  color: rgba(255, 255, 255, 0.30);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .lobby-guia-link {
@@ -1096,7 +1096,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 22px;
   font-weight: var(--peso-medio, 500);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.62);
 }
 .pedra svg {
   width: 30px;

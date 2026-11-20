@@ -199,8 +199,9 @@ function Landing() {
         {PASSOS.map((p) => (
           <section className={p.flip ? 'wrap step flip' : 'wrap step'} key={p.numero}>
             <div className="grid">
-              <div className="num reveal">
-                <span>{p.numero}</span>
+              {/* Marca-d’água decorativa: o título do passo já diz a ordem. */}
+              <div className="num reveal" aria-hidden="true">
+                <span data-numero={p.numero} />
               </div>
               <div className="txt">
                 <h3 data-split="">{p.titulo}</h3>

@@ -124,6 +124,7 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
   .step .num{grid-column:span 5}.step .txt{grid-column:span 7}
   .step.flip .num{order:2}.step.flip .txt{order:1}}
 .step .num span{display:block;font-family:var(--font-mono);font-size:18vw;line-height:.8;color:rgba(255,255,255,.1)}
+.step .num span::before{content:attr(data-numero)}
 @media(min-width:640px){.step .num span{font-size:10rem}}
 .step h3{font-family:var(--font-mono);font-size:3rem;letter-spacing:.24em}
 @media(min-width:640px){.step h3{font-size:4.5rem}}
