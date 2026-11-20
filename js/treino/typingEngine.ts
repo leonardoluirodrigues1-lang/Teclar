@@ -9,8 +9,9 @@
 import { CONFIG, type ModoTreino } from '../config.js';
 import type { DadosSessaoTreino } from '../nucleo/tipos.js';
 
-/** Status de cada caractere do alvo. 'atual' é derivado: o que está sob o cursor. */
-export type StatusCaractere = 'pendente' | 'correto' | 'errado' | 'atual';
+/** Status de cada caractere do alvo. 'atual' é derivado: o que está sob o cursor.
+ *  'corrigido': está certo agora, mas foi errado antes (o erro continua contado). */
+export type StatusCaractere = 'pendente' | 'correto' | 'corrigido' | 'errado' | 'atual';
 
 /** Por que a sessão terminou. null enquanto está em andamento. */
 export type MotivoFim = 'texto' | 'tempo' | null;
@@ -28,6 +29,8 @@ export interface EstadoMotor {
   digitados: number;
   acertos: number;
   erros: number;
+  /** Posições que tiveram erro e hoje estão certas (os 'corrigido'). */
+  corrigidos: number;
   wpm: number;
   precisao: number;
   tempoDecorridoSegundos: number;
@@ -95,6 +98,7 @@ export class MotorDigitacao {
   #posicao = 0;
   #marcaMax = 0; // marca d'água: até onde já foi contabilizado
   #statusChars: StatusCaractere[] = [];
+  #errouAqui: boolean[] = []; // a posição já teve um caractere errado
 
   // --- flags ---
   #iniciada = false;
@@ -118,6 +122,7 @@ export class MotorDigitacao {
     if (typeof aoTerminar === 'function') this.#aoTerminar = aoTerminar;
 
     this.#statusChars = new Array(this.#alvoChars.length).fill('pendente');
+    this.#errouAqui = new Array(this.#alvoChars.length).fill(false);
   }
 
   // Ligação com o input invisível
@@ -201,6 +206,7 @@ export class MotorDigitacao {
     this.#posicao = 0;
     this.#marcaMax = 0;
     this.#statusChars = new Array(this.#alvoChars.length).fill('pendente');
+    this.#errouAqui = new Array(this.#alvoChars.length).fill(false);
     this.#iniciada = false;
     this.#pausada = false;
     this.#finalizada = false;
@@ -251,6 +257,7 @@ export class MotorDigitacao {
       digitados: contados, // caracteres produzidos e contabilizados
       acertos: this.#acertos,
       erros: this.#erros,
+      corrigidos: this.#statusChars.filter((s) => s === 'corrigido').length,
       wpm,
       precisao,
       tempoDecorridoSegundos: Math.round(decorridoMs / 1000),
@@ -362,12 +369,15 @@ export class MotorDigitacao {
 
     this.#posicao = n;
 
-    // REGRA 3: uma posição corrigida mantém o erro já contado, mas passa a
-    // exibir 'correto'. Por isso o STATUS é recalculado do valor atual, sem
-    // encostar nos contadores.
+    // REGRA 3: uma posição corrigida mantém o erro já contado e passa a
+    // exibir 'corrigido' (amarelo). O STATUS é recalculado do valor atual,
+    // sem encostar nos contadores.
     for (let i = 0; i < total; i++) {
-      if (i < n) this.#statusChars[i] = valor[i] === this.#alvoChars[i] ? 'correto' : 'errado';
-      else this.#statusChars[i] = 'pendente';
+      if (i >= n) this.#statusChars[i] = 'pendente';
+      else if (valor[i] !== this.#alvoChars[i]) {
+        this.#errouAqui[i] = true;
+        this.#statusChars[i] = 'errado';
+      } else this.#statusChars[i] = this.#errouAqui[i] ? 'corrigido' : 'correto';
     }
   }
 
@@ -391,6 +401,7 @@ export class MotorDigitacao {
       } else {
         // Cada tentativa errada é um caractere produzido que não bateu.
         this.#erros++;
+        this.#errouAqui[this.#posicao] = true;
       }
     }
 
@@ -399,7 +410,7 @@ export class MotorDigitacao {
     this.#inputEl.value = this.#alvoChars.slice(0, this.#posicao).join('');
 
     for (let i = 0; i < total; i++) {
-      this.#statusChars[i] = i < this.#posicao ? 'correto' : 'pendente';
+      this.#statusChars[i] = i >= this.#posicao ? 'pendente' : this.#errouAqui[i] ? 'corrigido' : 'correto';
     }
   }
 

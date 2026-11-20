@@ -48,6 +48,7 @@
   --cor-char-correto: #ffffff;               /* caractere digitado corretamente */
   --cor-char-errado: #ff5a5a;                /* caractere digitado errado */
   --cor-char-errado-fundo: rgba(255, 90, 90, 0.16); /* realce de fundo do caractere errado */
+  --cor-char-corrigido: #ffd23f;             /* errou e depois corrigiu (amarelo; 13:1 sobre o preto) */
   --cor-cursor: #ffffff;                     /* cursor de digitação */
 
   /* Cores de status para mensagens gerais da interface (toasts, validação). */

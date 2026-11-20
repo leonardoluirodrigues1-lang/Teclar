@@ -27,6 +27,8 @@ interface PropsBlocoDeMetricas {
   erros: number;
   /** null quando o dado não veio: o item some em vez de mostrar um número inventado. */
   acertos: number | null;
+  /** Erros que a pessoa corrigiu (só o treino sabe; a sessão gravada não guarda). */
+  corrigidos?: number | null;
   /** Em segundos. null quando o dado não veio. */
   tempoSegundos: number | null;
 }
@@ -37,8 +39,8 @@ export function formatarTempo(segundos: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function BlocoDeMetricas({ wpm, precisao, erros, acertos, tempoSegundos }: PropsBlocoDeMetricas) {
-  const temSecundaria = acertos != null || tempoSegundos != null;
+export function BlocoDeMetricas({ wpm, precisao, erros, acertos, corrigidos = null, tempoSegundos }: PropsBlocoDeMetricas) {
+  const temSecundaria = acertos != null || corrigidos != null || tempoSegundos != null;
 
   return (
     <div className="bloco-metricas">
@@ -71,6 +73,14 @@ export function BlocoDeMetricas({ wpm, precisao, erros, acertos, tempoSegundos }
               <dt>Acertos</dt>
               <dd>
                 <NumeroQueConta valor={acertos} />
+              </dd>
+            </div>
+          )}
+          {corrigidos != null && (
+            <div className="metrica">
+              <dt>Corrigidos</dt>
+              <dd>
+                <NumeroQueConta valor={corrigidos} />
               </dd>
             </div>
           )}

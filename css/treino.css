@@ -145,6 +145,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    texto não "piscar". */
 .texto .c { transition: color var(--dur-rapida, 120ms) linear, background var(--dur-rapida, 120ms) linear; }
 .texto .c.correto { color: var(--cor-char-correto, #fff); }
+/* Errou e depois corrigiu: amarelo E sublinhado pontilhado, para não
+   depender só da cor (daltonismo). O erro continua contado na precisão. */
+.texto .c.corrigido {
+  color: var(--cor-char-corrigido, #ffd23f);
+  text-decoration: underline dotted;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
 .texto .c.errado {
   color: var(--cor-char-errado, #ff5a5a);
   background: var(--cor-char-errado-fundo, rgba(255, 90, 90, 0.16));

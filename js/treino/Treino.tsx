@@ -240,6 +240,8 @@ function Treino({ usuario }: PropsTreino) {
   // ordem; a volta corrente é voltas.length + 1. `totalVoltas` vem do
   // exercício (1 quando não há repeticoes). O temporizador é o da passagem.
   const voltas = useRef<DadosSessaoTreino[]>([]);
+  // Os "corrigidos" de cada volta: só a tela mostra (a sessão gravada não tem a coluna).
+  const corrigidosPorVolta = useRef<number[]>([]);
   const totalVoltas = useRef(1);
   const temporizadorPassagem = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -414,6 +416,7 @@ function Treino({ usuario }: PropsTreino) {
       const n = Number(carregado.repeticoes);
       totalVoltas.current = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
       voltas.current = [];
+      corrigidosPorVolta.current = [];
       if (totalVoltas.current > 1) setRepeticao({ numero: 1, total: totalVoltas.current });
 
       criarMotor();
@@ -597,6 +600,7 @@ function Treino({ usuario }: PropsTreino) {
     motor.current.destruir();
     motor.current = null;
     voltas.current.push(corpoVolta);
+    corrigidosPorVolta.current.push(estado.corrigidos);
 
     const numero = voltas.current.length;
     if (numero < totalVoltas.current) {
@@ -826,6 +830,7 @@ function Treino({ usuario }: PropsTreino) {
             precisao={metricas.precisao}
             erros={metricas.erros}
             acertos={metricas.acertos}
+            corrigidos={corrigidosPorVolta.current.reduce((t, n) => t + n, 0)}
             tempoSegundos={metricas.tempo_gasto_segundos}
           />
           {proxima && <p className="modal-proxima">A seguir: {proxima.titulo}</p>}
@@ -919,6 +924,7 @@ function Treino({ usuario }: PropsTreino) {
     motor.current?.destruir();
     motor.current = null;
     voltas.current = [];
+    corrigidosPorVolta.current = [];
     setPassagem(null);
     setRepeticao(totalVoltas.current > 1 ? { numero: 1, total: totalVoltas.current } : null);
     setHud(HUD_INICIAL);
@@ -994,6 +1000,7 @@ function Treino({ usuario }: PropsTreino) {
             precisao={metricas.precisao}
             erros={metricas.erros}
             acertos={metricas.acertos}
+            corrigidos={corrigidosPorVolta.current.reduce((t, n) => t + n, 0)}
             tempoSegundos={metricas.tempo_gasto_segundos}
           />
         </div>
