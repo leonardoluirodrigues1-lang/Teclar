@@ -15,6 +15,7 @@
 // O CSS está em css/componentes/metricas.css. A distância até o que vem
 // antes do bloco é de quem o usa (a tela e o modal têm respiros diferentes).
 
+import { comPpm } from '../componentes/Ppm.js';
 import { CONFIG } from '../config.js';
 import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
 
@@ -46,7 +47,7 @@ export function BlocoDeMetricas({ wpm, precisao, erros, acertos, corrigidos = nu
     <div className="bloco-metricas">
       <dl className="metricas">
         <div className="metrica">
-          <dt>PPM</dt>
+          <dt>{comPpm('PPM')}</dt>
           <dd>
             <NumeroQueConta valor={wpm} />
           </dd>

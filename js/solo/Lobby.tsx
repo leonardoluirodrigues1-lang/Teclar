@@ -52,6 +52,7 @@
 // de setembro". A tabela CampanhasSolo não tem data de criação, e inventar
 // uma aqui seria escrever na tela um dado que não existe.
 
+import { comPpm } from '../componentes/Ppm.js';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -227,7 +228,7 @@ function Metrica({ rotulo, valor }: PropsMetrica) {
   return (
     <div className="lobby-metrica">
       <span className="lobby-metrica-valor">{valor}</span>
-      <span className="lobby-metrica-rotulo">{rotulo}</span>
+      <span className="lobby-metrica-rotulo">{typeof rotulo === 'string' ? comPpm(rotulo) : rotulo}</span>
     </div>
   );
 }

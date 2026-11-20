@@ -107,3 +107,12 @@
   .bloco { padding: 18px 16px 20px; }
   .bloco-cabeca { flex-direction: column; }
 }
+
+/* A frase curta abaixo do título: para que a tela serve. */
+.descricao-tela {
+  margin-top: 6px;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cor-texto-suave, #c4c4c4);
+}

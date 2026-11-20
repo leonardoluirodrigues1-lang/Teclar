@@ -140,11 +140,20 @@ function Sala() {
     return <AbaExercicios sala={sala} />;
   }
 
+  // A ação principal da sala: a atividade acesa (a próxima a fazer).
+  const proxima = sala?.lista.map((ex) => pedraDoAluno(ex, sala.id)).find((p) => p.estado === 'agora') ?? null;
+
   return (
     <CascaDaTurma
       modo="aluno"
       titulo={sala ? sala.nome : null}
       subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}
+      descricao="Suas atividades nesta turma, na ordem. Comece pela que está acesa."
+      acoes={proxima && (
+        <a className="btn btn-solido tecla tecla-clara" href={proxima.href}>
+          Começar: {proxima.titulo}
+        </a>
+      )}
       aba={aba}
       aoSelecionarAba={selecionarAba}
       carregando={carga.estado === 'carregando'}
@@ -174,10 +183,6 @@ function AbaExercicios({ sala }: { sala: SalaDetalhe }) {
     <>
       <AvisoBloqueada />
       <TrilhaDeExercicios pedras={sala.lista.map((ex) => pedraDoAluno(ex, sala.id))} />
-      <p className="nota">
-        O que você concluiu fica sólido e pode ser refeito, o próximo fica aceso e o resto abre em ordem, um de cada
-        vez. A ordem é a que o professor atribuiu.
-      </p>
     </>
   );
 }

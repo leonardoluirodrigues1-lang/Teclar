@@ -25,6 +25,7 @@
 // A tabela é a única superfície sólida da tela, como nas outras telas de
 // dados do projeto: vidro é para painel, não para grade de números.
 
+import { comPpm } from '../componentes/Ppm.js';
 import { Moldura } from '../componentes/Moldura.js';
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -330,7 +331,7 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
             Estatísticas
           </h1>
           <p className="subtitulo" id="subtitulo">
-            {usuario.nome ?? sessao.nomeExibicao()}
+            Seus números no Solo: velocidade, precisão e cada sessão.
           </p>
         </div>
       </header>
@@ -354,7 +355,7 @@ interface PropsNumero {
 function Numero({ rotulo, id, valor, unidade }: PropsNumero) {
   return (
     <div className="estatisticas-metrica">
-      <span className="estatisticas-metrica-rotulo">{rotulo}</span>
+      <span className="estatisticas-metrica-rotulo">{comPpm(rotulo)}</span>
       <span className="estatisticas-metrica-valor" id={id}>
         {valor}
         {unidade && <span className="estatisticas-metrica-unidade">{unidade}</span>}

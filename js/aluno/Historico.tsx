@@ -267,10 +267,10 @@ function Historico({ usuario }: PropsHistorico) {
       return (
         <PainelEstado
           titulo="Seu histórico começa no primeiro treino"
-          texto="Assim que você terminar um exercício, ele aparece aqui com seu PPM, sua precisão e sua evolução ao longo do tempo."
+          texto="Você ainda não treinou. Comece pela primeira atividade."
         >
           <a className="btn btn-solido tecla tecla-clara" href={guarda.casa()}>
-            Ver exercícios da turma
+            Começar
           </a>
         </PainelEstado>
       );
@@ -377,6 +377,7 @@ function Historico({ usuario }: PropsHistorico) {
               <p className="subtitulo" id="subtitulo">
                 {subtitulo}
               </p>
+              <p className="descricao-tela">Cada treino que você terminou, com a velocidade e a precisão.</p>
             </div>
           </header>
 

@@ -16,6 +16,7 @@
 //
 // Desenho em css/escola.css.
 
+import { comPpm } from './Ppm.js';
 import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
 import { Moldura } from './Moldura.js';
 import { Bloco } from './Bloco.js';
@@ -68,7 +69,9 @@ interface PropsCasca {
   /** null enquanto a turma não chega: o título guarda a altura. */
   titulo: string | null;
   subtitulo: string | null;
-  /** Os botões do lado direito do título (só o professor tem). */
+  /** Uma frase curta: para que a tela serve. */
+  descricao?: string;
+  /** Os botões do lado direito do título (a ação principal em destaque). */
   acoes?: ReactNode;
   /** Entre o título e as abas (as métricas do professor). */
   extra?: ReactNode;
@@ -84,7 +87,7 @@ interface PropsCasca {
 const NBSP = String.fromCharCode(0xa0);
 
 export function CascaDaTurma(props: PropsCasca) {
-  const { modo, voltar, titulo, subtitulo, acoes, extra, aba, aoSelecionarAba, carregando, children } = props;
+  const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, aba, aoSelecionarAba, carregando, children } = props;
 
   return (
     <Moldura
@@ -98,6 +101,7 @@ export function CascaDaTurma(props: PropsCasca) {
           <div className="cabecalho-texto">
             <h1 className="titulo">{titulo ?? NBSP}</h1>
             <p className="subtitulo">{subtitulo ?? NBSP}</p>
+            {descricao && <p className="descricao-tela">{descricao}</p>}
           </div>
           {acoes && <div className="cabecalho-acoes">{acoes}</div>}
         </div>
@@ -365,7 +369,7 @@ function Numeros({ grupos }: { grupos: NumeroDoRelatorio[][] }) {
         <div key={i} className="relatorio-numeros">
           {grupo.map((numero, j) => (
             <div key={j} className={numero.apagado ? 'metrica-item relatorio-apagado' : 'metrica-item'} title={numero.dica}>
-              <span className="metrica-rotulo">{numero.rotulo}</span>
+              <span className="metrica-rotulo">{comPpm(numero.rotulo)}</span>
               <span className="metrica-valor">{numero.valor}</span>
             </div>
           ))}

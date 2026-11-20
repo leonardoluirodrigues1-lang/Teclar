@@ -285,9 +285,12 @@ function Biblioteca() {
 
       <main id="corpo">
         <div className="cabecalho">
-          <h1 className="titulo" id="titulo">
-            Biblioteca
-          </h1>
+          <div className="cabecalho-texto">
+            <h1 className="titulo" id="titulo">
+              Biblioteca
+            </h1>
+            <p className="subtitulo">Escreva exercícios uma vez e atribua a quantas turmas quiser.</p>
+          </div>
           <button
             type="button"
             className="btn btn-solido tecla tecla-clara"
@@ -299,7 +302,7 @@ function Biblioteca() {
           </button>
         </div>
 
-        <Bloco titulo="Seus exercícios" texto="Os textos que você escreve uma vez e atribui a quantas turmas quiser.">
+        <Bloco titulo="Seus exercícios">
         {/* Busca por título e dificuldade, filtrados no cliente. Só fazem
             sentido com exercício na lista. */}
         <div className="filtros" id="filtros" hidden={carga.estado !== 'pronto' || exercicios.length === 0}>

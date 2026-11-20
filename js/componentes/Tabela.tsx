@@ -14,6 +14,7 @@
 // o navegador reinicia a animação de um elemento movido: a tabela inteira
 // piscaria a cada clique. Reordenar não é entrada.
 
+import { comPpm } from './Ppm.js';
 import { useState, type ReactNode } from 'react';
 
 export interface Ordenacao {
@@ -77,7 +78,7 @@ export function Tabela<T>({
               if (!coluna.campo) {
                 return (
                   <th key={coluna.rotulo} scope="col">
-                    {coluna.rotulo}
+                    {comPpm(coluna.rotulo)}
                   </th>
                 );
               }
@@ -94,7 +95,7 @@ export function Tabela<T>({
                     className="tabela-ordenar"
                     onClick={() => ordenarPor(coluna.campo)}
                   >
-                    {coluna.rotulo}
+                    {comPpm(coluna.rotulo)}
                     <span className="tabela-ordenar-seta" aria-hidden="true">
                       {ativo && direcao === 'desc' ? '▼' : '▲'}
                     </span>

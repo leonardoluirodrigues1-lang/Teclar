@@ -255,6 +255,7 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
           ref={botaoFechar}
           onClick={aoFechar}
           aria-label="Fechar menu"
+          title="Fechar menu"
         >
           <span aria-hidden="true">×</span>
         </button>

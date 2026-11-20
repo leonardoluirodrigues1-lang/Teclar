@@ -19,6 +19,7 @@
 // Sem ?turma=, ou com um id que o back não conhece, a tela mostra "Turma
 // não encontrada" — nunca fica em branco.
 
+import { comPpm } from '../componentes/Ppm.js';
 import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -202,7 +203,7 @@ function Turma() {
       return (
         <PainelEstado
           titulo="Nenhum exercício atribuído"
-          texto="Atribua exercícios da sua biblioteca para esta turma treinar."
+          texto="Atribua o primeiro exercício para os alunos começarem."
         >
           <button
             type="button"
@@ -229,7 +230,7 @@ function Turma() {
       return (
         <PainelEstado
           titulo="Nenhum aluno ainda"
-          texto="Adicione os nomes dos alunos. Eles entram com o código da turma e criam a própria senha."
+          texto="Esta turma ainda não tem alunos. Adicione a lista de nomes para começar."
         >
           <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
             Adicionar alunos
@@ -559,7 +560,7 @@ function Turma() {
         <span className="metrica-valor">{turma ? contagem(atribuicoes.length) : '—'}</span>
       </div>
       <div className="metrica-item" title={DICA_PPM_POR_ALUNO}>
-        <span className="metrica-rotulo">PPM médio por aluno</span>
+        <span className="metrica-rotulo">{comPpm('PPM médio por aluno')}</span>
         <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(alunos)) : '—'}</span>
       </div>
       {/* O que o aluno digita no login, junto com o nome. */}
@@ -584,6 +585,7 @@ function Turma() {
       <CascaDaTurma
         modo="professor"
         voltar={VOLTAR_TURMAS}
+        descricao="Atribua exercícios, acompanhe os alunos e veja o relatório da turma."
         titulo={turma ? turma.nome ?? 'Turma sem nome' : null}
         subtitulo={turma ? turma.periodo ?? 'Período não informado' : null}
         acoes={acoes}

@@ -545,6 +545,7 @@ function Cartao({
         className="cartao-mais"
         ref={mais}
         aria-label={`Opções da turma ${nome}`}
+        title="Opções da turma: renomear, editar capa, arquivar"
         aria-haspopup="menu"
         aria-expanded={menuAberto}
         aria-controls={menuAberto ? idMenu : undefined}

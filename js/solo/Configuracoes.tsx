@@ -46,6 +46,7 @@ function Configuracoes() {
     <Moldura ativo="configuracoes" voltar={VOLTAR_INICIO_SOLO}>
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Configurações</h1>
+        <p className="solo-texto-intro">Ajuste o treino do Solo ao seu jeito.</p>
 
         <section className="vidro solo-texto-cartao">
           {/* Checkbox de verdade, com o rótulo em volta: clicar no texto

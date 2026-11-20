@@ -56,6 +56,7 @@
 // renderiza. Numa tecla, mudam dois ou três, e cada <Caractere> (memo) só
 // re-renderiza se o próprio status mudou.
 
+import { comPpm } from '../componentes/Ppm.js';
 import {
   memo,
   useEffect,
@@ -1038,7 +1039,7 @@ function Treino({ usuario }: PropsTreino) {
         </div>
         <dl className="hud-dir">
           <div className="hud-metrica">
-            <dt>PPM</dt>
+            <dt>{comPpm('PPM')}</dt>
             <dd id="hud-ppm">{hud.wpm}</dd>
           </div>
           <div className="hud-metrica">

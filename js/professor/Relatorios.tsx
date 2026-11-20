@@ -19,6 +19,7 @@
 // PainelErro e ModalReact de ../componentes/, classes de css/escola.css,
 // guarda de professor antes de montar.
 
+import { comPpm } from '../componentes/Ppm.js';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as KeyboardEventReact, type MouseEvent as MouseEventReact } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
@@ -502,6 +503,7 @@ function Relatorios() {
             <h1 className="titulo" id="titulo">
               Relatórios
             </h1>
+            <p className="subtitulo">Como cada turma está indo: quem treinou, quanto, e quem precisa de ajuda.</p>
 
             {/* O seletor de turma fica sob o título porque é o que define
                 TODO o resto da tela — não é um filtro entre outros. */}
@@ -537,7 +539,7 @@ function Relatorios() {
                 pedir nada ao back de novo. */}
             <button
               type="button"
-              className="btn btn-vidro vidro tecla"
+              className="btn btn-solido tecla tecla-clara"
               id="btn-exportar"
               disabled={!relatorio}
               onClick={exportar}
@@ -557,7 +559,7 @@ function Relatorios() {
             </span>
           </div>
           <div className="metrica-item" title={DICA_PPM_DAS_SESSOES}>
-            <span className="metrica-rotulo">PPM médio das sessões</span>
+            <span className="metrica-rotulo">{comPpm('PPM médio das sessões')}</span>
             <span className="metrica-valor" id="metrica-ppm">
               {relatorio ? numero(relatorio.turma.wpmMedio) : '—'}
             </span>

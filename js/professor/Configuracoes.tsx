@@ -24,7 +24,10 @@ function Configuracoes() {
 
       <main>
         <div className="cabecalho">
-          <h1 className="titulo">Configurações</h1>
+          <div className="cabecalho-texto">
+            <h1 className="titulo">Configurações</h1>
+            <p className="subtitulo">Ajustes do modo Professor.</p>
+          </div>
         </div>
 
         {/* Nome e texto à esquerda, o botão à direita (.entrada-bloco, em

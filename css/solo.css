@@ -1207,6 +1207,11 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-weight: var(--peso-leve, 300);
   letter-spacing: var(--ls-titulo, -0.02em);
 }
+.solo-texto-intro {
+  margin: -8px 0 var(--e-5, 24px);
+  font-size: 15px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
 
 .solo-texto-cartao {
   margin-top: 22px;
