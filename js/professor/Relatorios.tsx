@@ -612,6 +612,7 @@ function Relatorios() {
             ativa para o leitor de tela anunciar de qual delas o conteúdo é. */}
         <div
           id="conteudo"
+          className="bloco vidro"
           role="tabpanel"
           aria-busy={carga.estado === 'carregando'}
           aria-labelledby={abaAtual === 'alunos' ? 'aba-alunos' : 'aba-exercicios'}

@@ -18,6 +18,7 @@
 // é 404): GET /aluno/salas/:id dá o cabeçalho e a trilha; cada uma das
 // outras abas busca o seu quando é aberta.
 
+import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, filaSessoes } from '../nucleo/api.js';
@@ -230,7 +231,7 @@ function AbaParticipantes() {
   }
 
   return (
-    <>
+    <Bloco titulo="Participantes" texto="Quem está na sala e como cada um vai.">
       <Tabela
         colunas={COLUNAS_DO_RANKING}
         linhas={carga.linhas}
@@ -242,7 +243,7 @@ function AbaParticipantes() {
         Do quarto lugar em diante os nomes ficam escondidos — menos o seu, que você sempre vê. A posição não é só
         velocidade: soma lições, ritmo e dias seguidos.
       </p>
-    </>
+    </Bloco>
   );
 }
 

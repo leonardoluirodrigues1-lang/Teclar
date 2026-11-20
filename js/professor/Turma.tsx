@@ -19,6 +19,7 @@
 // Sem ?turma=, ou com um id que o back não conhece, a tela mostra "Turma
 // não encontrada" — nunca fica em branco.
 
+import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -239,7 +240,7 @@ function Turma() {
 
     const semSenha = alunos.filter((a) => !a.senhaDefinida).length;
     return (
-      <>
+      <Bloco titulo="Participantes" texto="Quem está na lista da turma, como cada um vai e a senha de cada um.">
         {semSenha > 0 && (
           <p className="aviso-convite" role="note">
             {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Cada
@@ -257,7 +258,7 @@ function Turma() {
           ordenacao={ordenacaoAlunos}
           aoOrdenar={setOrdenacaoAlunos}
         />
-      </>
+      </Bloco>
     );
   }
 

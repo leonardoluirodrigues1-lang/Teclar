@@ -13,6 +13,7 @@
 // e ModalReact de ../componentes/, classes de css/escola.css, guarda antes
 // de montar, busca e filtros no cliente.
 
+import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -298,6 +299,7 @@ function Biblioteca() {
           </button>
         </div>
 
+        <Bloco titulo="Seus exercícios" texto="Os textos que você escreve uma vez e atribui a quantas turmas quiser.">
         {/* Busca por título e dificuldade, filtrados no cliente. Só fazem
             sentido com exercício na lista. */}
         <div className="filtros" id="filtros" hidden={carga.estado !== 'pronto' || exercicios.length === 0}>
@@ -338,6 +340,7 @@ function Biblioteca() {
         <div id="conteudo" aria-busy={carga.estado === 'carregando'}>
           {renderizarConteudo()}
         </div>
+        </Bloco>
       </main>
 
       {renderizarModal()}

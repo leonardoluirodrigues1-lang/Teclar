@@ -18,6 +18,7 @@
 
 import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
 import { Moldura } from './Moldura.js';
+import { Bloco } from './Bloco.js';
 import { IconeCadeado } from './IconesDoTutorial.js';
 import { PainelEstado } from './PainelErro.js';
 
@@ -211,17 +212,46 @@ const PEDRAS_POR_FILEIRA = 4;
 // caem na primeira fileira, da esquerda para a direita.
 const TRILHA_CURTA_ATE = 3;
 
+// A legenda só lista os estados que aparecem na trilha.
+const LEGENDA: { estado: PedraDaTrilha['estado']; rotulo: string }[] = [
+  { estado: 'feito', rotulo: 'concluído' },
+  { estado: 'agora', rotulo: 'próximo' },
+  { estado: 'bloqueado', rotulo: 'bloqueado' },
+];
+
 export function TrilhaDeExercicios({ pedras }: { pedras: PedraDaTrilha[] }) {
   const curta = pedras.length <= TRILHA_CURTA_ATE;
   const classe = curta ? 'trilha trilha-curta' : 'trilha';
   const estilo = curta ? ({ '--quantas': pedras.length } as React.CSSProperties) : undefined;
+  const estados = new Set(pedras.map((p) => p.estado));
+  const legenda = LEGENDA.filter((item) => estados.has(item.estado));
 
   return (
-    <ol className={classe} style={estilo}>
-      {pedras.map((pedra, i) => (
-        <Pedra key={pedra.id} pedra={pedra} posicao={i} />
-      ))}
-    </ol>
+    <Bloco
+      titulo="Atividades da turma"
+      texto={
+        <>
+          {estados.has('turma')
+            ? 'Na ordem em que os alunos fazem: cada um abre a próxima ao concluir a anterior.'
+            : 'Faça na ordem: a próxima abre quando você conclui a anterior.'}
+          {legenda.length > 0 && (
+            <span className="legenda">
+              {legenda.map((item) => (
+                <span key={item.estado} className={`legenda-item legenda-${item.estado}`}>
+                  {item.rotulo}
+                </span>
+              ))}
+            </span>
+          )}
+        </>
+      }
+    >
+      <ol className={classe} style={estilo}>
+        {pedras.map((pedra, i) => (
+          <Pedra key={pedra.id} pedra={pedra} posicao={i} />
+        ))}
+      </ol>
+    </Bloco>
   );
 }
 

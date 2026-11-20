@@ -51,3 +51,59 @@
   color: var(--cor-texto, #fff);
   transform: translateX(-50%);
 }
+
+/* ---------------------------------------------------------------------------
+   Bloco: painel de vidro com título (js/componentes/Bloco.tsx). Agrupa o
+   conteúdo das telas — trilha, tabelas, listas — com o vidro, a borda e o
+   raio dos cartões de turma, para nada flutuar solto sobre as estrelas.
+   ------------------------------------------------------------------------- */
+.bloco {
+  margin-top: var(--e-5, 24px);
+  padding: 24px 28px 28px;
+  border-radius: var(--raio-card, 8px);
+}
+.bloco-cabeca {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-4, 16px);
+  margin-bottom: var(--e-4, 16px);
+}
+.bloco-titulo {
+  font-size: 17px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+.bloco-texto {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.bloco-acoes { flex: none; display: flex; gap: var(--e-2, 8px); align-items: center; }
+
+/* Legenda da trilha: o desenho de cada estado ao lado da palavra. */
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.legenda-item { display: inline-flex; align-items: center; gap: 7px; }
+.legenda-item::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+.legenda-feito::before { background: #fff; border-color: #fff; }
+.legenda-agora::before { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35), 0 0 10px rgba(255, 255, 255, 0.5); }
+.legenda-bloqueado::before { opacity: 0.45; border-style: dashed; }
+
+@media (max-width: 700px) {
+  .bloco { padding: 18px 16px 20px; }
+  .bloco-cabeca { flex-direction: column; }
+}
