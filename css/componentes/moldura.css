@@ -1,0 +1,301 @@
+/* ============================================================================
+   TECLAR — moldura.css
+   A moldura de todas as telas logadas (js/componentes/Moldura.tsx): o topo
+   fixo ("← voltar" ou a marca à esquerda, a pessoa à direita), o botão
+   redondo do menu e a barra lateral. Saiu de css/solo.css quando o
+   Professor e o Aluno passaram a usar a mesma navegação do Solo.
+
+   Não se repete aqui: a receita do vidro (.vidro, componentes/vidro.css) e
+   o relevo da tecla (.tecla, base/luz.css).
+   ========================================================================== */
+
+/* Face escura das teclas da moldura: o tampo levemente aceso em cima. */
+.moldura-pessoa,
+.moldura-abrir,
+.moldura-voltar,
+.barra-lateral-fechar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  color: var(--cor-texto, #fff);
+}
+
+/* ---------------------------------------------------------------------------
+   A moldura: topo, conteúdo e o botão redondo
+
+   A barra lateral EMPURRA: com ela aberta, o topo e o conteúdo começam
+   depois dela, e o conteúdo se reorganiza na largura que sobra. Nada
+   escurece e nada fica por baixo.
+   ------------------------------------------------------------------------- */
+.moldura-topo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--e-5, 24px) 56px;
+  /* A faixa do topo não pode roubar o clique do que está embaixo dela;
+     só a marca e o botão da pessoa recebem clique. */
+  pointer-events: none;
+  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
+}
+.moldura-topo > * { pointer-events: auto; }
+
+.moldura-conteudo {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  overflow-y: auto;
+  /* O que mede 100vw (o horizonte das telas de entrada) conta a largura da
+     barra de rolagem desta caixa: sem isto, aparece rolagem para o lado. */
+  overflow-x: hidden;
+  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
+}
+
+.moldura-lateral-aberta .moldura-topo,
+.moldura-lateral-aberta .moldura-conteudo {
+  left: var(--largura-sidebar, 248px);
+}
+
+.moldura-marca {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 15px;
+  letter-spacing: 0.34em;
+  color: var(--cor-texto, #fff);
+}
+
+/* --- a pessoa, no topo à direita ----------------------------------------- */
+.moldura-pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  padding: 9px var(--e-4, 16px) 9px 9px;
+  border-radius: 14px;
+}
+
+.moldura-pessoa-inicial {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--raio-total, 9999px);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 14px;
+}
+
+.moldura-pessoa-texto {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.moldura-pessoa-nome { font-size: 14px; font-weight: var(--peso-normal, 400); }
+.moldura-pessoa-nivel {
+  margin-top: 2px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.moldura-pessoa-trilho {
+  width: 126px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.moldura-pessoa-trilho > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--cor-texto, #fff);
+}
+
+/* --- o botão redondo, no canto de baixo ---------------------------------- */
+/* Some enquanto a barra está aberta. O visibility vai junto do opacity
+   para ele sair também do Tab; ao reaparecer, o visibility volta na hora
+   (0s), para o foco poder voltar a ele no mesmo instante. */
+.moldura-abrir {
+  position: fixed;
+  left: 44px;
+  bottom: 44px;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 58px;
+  height: 58px;
+  border-radius: var(--raio-total, 9999px);
+  transition:
+    opacity var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s,
+    transform var(--t-rapido, 160ms) var(--curva, ease-out),
+    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.moldura-abrir > span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.moldura-lateral-aberta .moldura-abrir {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s linear var(--t-medio, 240ms);
+}
+
+/* ---------------------------------------------------------------------------
+   Barra lateral
+
+   Fechada, ela fica fora da tela e com visibility: hidden, para o Tab e o
+   leitor de tela não a acharem. O visibility só muda DEPOIS de ela
+   terminar de sair (o atraso de --t-medio), e na hora quando ela entra.
+   ------------------------------------------------------------------------- */
+.barra-lateral {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-fixa, 100);
+  display: flex;
+  flex-direction: column;
+  width: var(--largura-sidebar, 248px);
+  padding: 26px 22px;
+  overflow-y: auto;
+  border-radius: 0 26px 26px 0;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s linear var(--t-medio, 240ms);
+}
+.barra-lateral-aberta {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--t-medio, 240ms) var(--curva, ease-out),
+    visibility 0s;
+}
+
+.barra-lateral-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 34px;
+  padding: 0 6px;
+}
+
+.barra-lateral-fechar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--e-3, 12px);
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.barra-lateral-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px var(--e-4, 16px);
+  border-radius: 13px;
+  text-align: left;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  transition:
+    background var(--t-rapido, 160ms) var(--curva, ease-out),
+    color var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.barra-lateral-item svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.barra-lateral-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--cor-texto, #fff); }
+.barra-lateral-item-ativo {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cor-texto, #fff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.barra-lateral-divisoria {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: var(--e-4, 16px) 6px;
+}
+
+.barra-lateral-versao {
+  margin-top: auto;
+  padding: 0 var(--e-2, 8px);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- topo à esquerda: "← voltar" (telas internas) ------------------------ */
+.moldura-esquerda {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4, 16px);
+  min-width: 0;
+}
+.moldura-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--raio-total, 9999px);
+  font-size: 14px;
+}
+
+/* --- topo à direita no Professor e no Aluno: só quem está logado ---------- */
+.moldura-pessoa-fixa { cursor: default; }
+
+/* As telas da Escola rolam dentro da moldura e descem para o topo caber. */
+.moldura .pagina { padding-top: 104px; }
+
+/* No dashboard o topo à esquerda é o nome da pessoa, como título da tela,
+   no lugar da marca (ver telaDaPessoa em Moldura.tsx). */
+.moldura-titulo-pessoa {
+  font-size: 22px;
+  font-weight: var(--peso-leve, 300);
+  letter-spacing: var(--ls-titulo, -0.02em);
+  color: var(--cor-texto, #fff);
+}
+
+/* Tela estreita: o topo e o botão redondo encostam mais nas bordas. */
+@media (max-width: 700px) {
+  .moldura-topo { padding: var(--e-4, 16px); }
+  .moldura-abrir { left: var(--e-5, 24px); bottom: var(--e-5, 24px); }
+  .moldura-pessoa-texto { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moldura-topo,
+  .moldura-conteudo,
+  .barra-lateral,
+  .moldura-abrir { transition: none; }
+}

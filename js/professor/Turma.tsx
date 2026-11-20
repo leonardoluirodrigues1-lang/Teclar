@@ -35,7 +35,6 @@ import type {
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { SECOES_PROFESSOR } from '../componentes/Nav.js';
 import {
   CascaDaTurma,
   DICA_PPM_DAS_SESSOES,
@@ -49,6 +48,7 @@ import {
 } from '../componentes/TelaDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { ModalExercicio } from '../componentes/ModalExercicio.js';
+import { VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { imprimirSenhas } from '../utils/imprimirSenhas.js';
 import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
@@ -169,8 +169,7 @@ function Turma() {
   if (!turmaId || carga.estado === 'nao-encontrada') {
     return (
       <TurmaNaoEncontrada
-        secoes={SECOES_PROFESSOR}
-        papel={SECOES_PROFESSOR.modo}
+        modo="professor"
         texto="Ela pode ter sido removida, ou o link usado está incompleto."
         link={{ href: 'turmas.html', rotulo: 'Ver minhas turmas' }}
       />
@@ -582,9 +581,8 @@ function Turma() {
   return (
     <>
       <CascaDaTurma
-        secoes={SECOES_PROFESSOR}
-        papel={SECOES_PROFESSOR.modo}
-        voltar={{ href: 'turmas.html', rotulo: 'Turmas' }}
+        modo="professor"
+        voltar={VOLTAR_TURMAS}
         titulo={turma ? turma.nome ?? 'Turma sem nome' : null}
         subtitulo={turma ? turma.periodo ?? 'Período não informado' : null}
         acoes={acoes}

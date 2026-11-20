@@ -22,6 +22,7 @@
 // o tutorial (./Tutorial.tsx). Enquanto ele está na tela, a conta não
 // aparece: o menu levaria para fora do tutorial no meio dele.
 
+import { Moldura } from '../componentes/Moldura.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -33,12 +34,10 @@ import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { normalizar } from '../utils/formato.js';
 import { validarNomeTurma } from '../utils/validacao.js';
-import { SECOES_PROFESSOR } from '../componentes/Nav.js';
 import {
   Abertura,
   CapaDaTurma,
   CartaoDeTurma,
-  ContaFixa,
   Funcao,
   Funcoes,
   sementeDaTurma,
@@ -365,8 +364,7 @@ function Turmas() {
   }
 
   return (
-    <>
-      <ContaFixa secoes={SECOES_PROFESSOR} papel={SECOES_PROFESSOR.modo} />
+    <Moldura modo="professor" ativo="turmas" classeDoConteudo="pagina">
 
       <main>
         <Abertura />
@@ -444,7 +442,7 @@ function Turmas() {
       </main>
 
       {renderizarModal()}
-    </>
+    </Moldura>
   );
 }
 

@@ -43,7 +43,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Missao, SessaoSolo } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { PainelErro } from '../componentes/PainelErro.js';
-import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Moldura } from '../componentes/Moldura.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { Tutorial } from './Tutorial.js';
 import {
@@ -552,12 +552,12 @@ function Caminho() {
   }
 
   return (
-    <MolduraSolo ativo="caminho" esconderMenu={mostrarTutorial && carga.estado === 'pronto'}>
+    <Moldura ativo="caminho" esconderMenu={mostrarTutorial && carga.estado === 'pronto'}>
       <main className="caminho">
         <AvisoBloqueada />
         {renderizarCorpo()}
       </main>
-    </MolduraSolo>
+    </Moldura>
   );
 }
 

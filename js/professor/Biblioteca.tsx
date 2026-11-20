@@ -21,7 +21,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Dificuldade, Exercicio } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
+import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { ModalExercicio, formatarTempoLimite, mensagemDaFalha } from '../componentes/ModalExercicio.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
@@ -280,8 +280,7 @@ function Biblioteca() {
   }
 
   return (
-    <>
-      <Nav secoes={SECOES_PROFESSOR} ativo="biblioteca" />
+    <Moldura modo="professor" ativo="biblioteca" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
 
       <main id="corpo">
         <div className="cabecalho">
@@ -342,7 +341,7 @@ function Biblioteca() {
       </main>
 
       {renderizarModal()}
-    </>
+    </Moldura>
   );
 }
 

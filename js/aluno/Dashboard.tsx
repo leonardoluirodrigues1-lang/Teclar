@@ -18,13 +18,13 @@
 //
 // Dados: GET /aluno/salas (api.escola.aluno), pronto do back.
 
+import { Moldura } from '../componentes/Moldura.js';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { ErroDaApi, SalaDoAluno } from '../nucleo/tipos.js';
-import { SECOES_ALUNO } from '../componentes/Nav.js';
-import { Abertura, CartaoDeTurma, ContaFixa, Funcao, Funcoes } from '../componentes/EntradaDoModo.js';
+import { Abertura, CartaoDeTurma, Funcao, Funcoes } from '../componentes/EntradaDoModo.js';
 import { EsqueletoGrade } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
@@ -114,8 +114,7 @@ function Salas() {
   }
 
   return (
-    <>
-      <ContaFixa secoes={SECOES_ALUNO} papel={usuario.turmas?.[0]?.nome ?? 'Aluno'} />
+    <Moldura modo="aluno" ativo="sala" classeDoConteudo="pagina">
 
       <main>
         <Abertura />
@@ -139,7 +138,7 @@ function Salas() {
           {renderizarSalas()}
         </div>
       </main>
-    </>
+    </Moldura>
   );
 }
 

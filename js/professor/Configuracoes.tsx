@@ -7,7 +7,7 @@
 import { createRoot } from 'react-dom/client';
 import { guarda } from '../nucleo/guarda.js';
 import { sessao } from '../nucleo/sessao.js';
-import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
+import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinha desta em pages/professor/: é lá que o tutorial aparece.
@@ -20,8 +20,7 @@ function Configuracoes() {
   }
 
   return (
-    <>
-      <Nav secoes={SECOES_PROFESSOR} ativo="configuracoes" />
+    <Moldura modo="professor" ativo="configuracoes" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
 
       <main>
         <div className="cabecalho">
@@ -44,7 +43,7 @@ function Configuracoes() {
           </button>
         </section>
       </main>
-    </>
+    </Moldura>
   );
 }
 

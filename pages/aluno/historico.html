@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="../../css/base/luz.css">
 <link rel="stylesheet" href="../../css/base/movimento.css">
 <link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/moldura.css">
 
 <link rel="stylesheet" href="../../css/base/reset.css">
 <!-- Esta tela usa as DUAS folhas, e a ordem importa.
@@ -19,7 +20,7 @@
      De dashboard.css vem a casca: .pagina, .painel, o cabe&ccedil;alho
      (.rotulo/.titulo/.subtitulo/.btn-sair), o fundo e o campo de estrelas.
      O topo com o menu do nome &eacute; o
-     <TopoAluno>, desenhado em aluno.css. O acr&eacute;scimo "telas do Aluno"
+     <Moldura> (css/componentes/moldura.css). O acr&eacute;scimo "telas do Aluno"
      no fim de escola.css ajusta o painel, escopado em .pagina-aluno para
      as telas do professor n&atilde;o mudarem.
      dashboard.css vem DEPOIS de prop&oacute;sito: nos nomes que as duas definem
@@ -30,7 +31,6 @@
 <link rel="stylesheet" href="../../css/escola.css">
 <link rel="stylesheet" href="../../css/dashboard.css">
 <!-- O topo com o menu do nome, o mesmo das outras telas do aluno. -->
-<link rel="stylesheet" href="../../css/aluno.css">
 <!-- O modal de "Trocar de modo", no menu do nome. -->
 <link rel="stylesheet" href="../../css/componentes/modais.css">
 
@@ -61,7 +61,7 @@
 
 <!-- O React monta a p&aacute;gina inteira aqui dentro: o topo com o menu do
      nome e, abaixo dele, o painel do hist&oacute;rico. -->
-<div id="raiz" class="pagina pagina-tabela pagina-aluno entrada-da-pagina"></div>
+<div id="raiz"></div>
 
 <!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
      Caixa importa: o arquivo &eacute; Historico.js (de Historico.tsx). -->

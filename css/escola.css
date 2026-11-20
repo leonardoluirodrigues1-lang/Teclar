@@ -65,149 +65,6 @@ ul { list-style: none; }
   padding: 28px var(--e-5, 24px) var(--e-8, 64px);
 }
 
-/* ---------------------------------------------------------------------------
-   Barra do topo: pílula de navegação à esquerda, conta à direita
-   ------------------------------------------------------------------------- */
-.barra {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e-4, 16px);
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px;
-  border-radius: var(--raio-total, 9999px);
-}
-
-.nav-marca {
-  padding: 0 14px 0 10px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 12px;
-  letter-spacing: 0.30em;
-  color: var(--cor-texto, #fff);
-}
-/* O letter-spacing sobra à direita da última letra; compensa. */
-.nav-marca span { margin-right: -0.30em; }
-
-.nav-item {
-  padding: 8px 16px;
-  border-radius: var(--raio-total, 9999px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-  /* Face da tecla: um véu leve, para o relevo (.tecla, css/base/luz.css)
-     ter onde apoiar. */
-  background: rgba(255, 255, 255, 0.05);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
-
-/* Ativo: fundo claro, como a aba em que se está. aria-current="page" é o
-   que o leitor de tela anuncia; a cor é para quem enxerga. */
-.nav-item[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--cor-texto, #fff);
-}
-
-/* Conta: avatar redondo com menu de sair */
-.conta { position: relative; flex: none; }
-
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--raio-total, 9999px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 13px;
-  font-weight: var(--peso-medio, 500);
-  letter-spacing: 0.04em;
-  color: var(--cor-texto, #fff);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.avatar:hover { background: rgba(255, 255, 255, 0.16); }
-
-.menu-conta {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: var(--z-flutuante, 10);
-  min-width: 190px;
-  padding: 8px;
-  border-radius: var(--raio-n, 8px);
-}
-
-.menu-cabecalho {
-  padding: 8px 10px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-}
-.menu-nome {
-  font-size: 13px;
-  color: var(--cor-texto, #fff);
-  overflow-wrap: anywhere;
-}
-.menu-modo {
-  margin-top: 2px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-
-.menu-item {
-  display: block;
-  width: 100%;
-  margin-top: 6px;
-  padding: 9px 10px;
-  border-radius: var(--raio-p, 4px);
-  text-align: left;
-  font-size: 13px;
-  color: var(--cor-texto-suave, #c4c4c4);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
-
-/* ---------------------------------------------------------------------------
-   Tela de turmas — sem barra no topo
-   A conta fica fixa no canto; o resto rola. É o único elemento fixo da
-   tela, por isso o z-index de cabeçalho fixo.
-   ------------------------------------------------------------------------- */
-/* absolute, não fixed: fica no topo da página e sobe junto ao rolar. Fixa,
-   passava por cima do "Criar turma" quando o cabeçalho chegava ao topo. */
-.conta-fixa {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 18px);
-  right: 22px;
-  z-index: var(--z-fixa, 100);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.conta-fixa-texto { text-align: right; }
-.conta-fixa-nome { font-size: 13px; color: var(--cor-texto, #fff); }
-/* O papel tem a mesma voz do .menu-modo, dentro do menu. */
-.conta-fixa-papel {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-
 /* Abertura: o horizonte de eventos com a marca por cima. O horizonte é o
    buraco negro em WebGL da landing (o <canvas> de Horizonte, em
    js/componentes/EntradaDoModo.tsx), DENTRO da seção — e não no .fundo
@@ -532,6 +389,21 @@ ul { list-style: none; }
 .cartao-mais[aria-expanded="true"] { color: var(--cor-texto, #fff); background: rgba(0, 0, 0, 0.85); }
 
 /* O menu do cartão: os itens são os mesmos .menu-item do menu da conta. */
+/* Item de menu suspenso (o "…" do cartão de turma). */
+.menu-item {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border-radius: var(--raio-p, 4px);
+  text-align: left;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
+              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
+
 .cartao-menu {
   position: absolute;
   top: 46px;
@@ -1181,11 +1053,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 @media (max-width: 700px) {
   .grade { grid-template-columns: 1fr; }
-  /* No celular o nome e o papel cobririam a marca; fica só o avatar. */
-  .conta-fixa-texto { display: none; }
   .pagina { padding: 18px var(--e-4, 16px) var(--e-7, 48px); }
-  .barra { flex-wrap: wrap; }
-  .nav { flex: 1; justify-content: center; }
   .cabecalho { flex-wrap: wrap; }
   .busca { max-width: none; }
   .metricas-turma { flex-wrap: wrap; gap: var(--e-5, 24px) var(--e-6, 32px); }
@@ -1875,8 +1743,9 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   .fundo,
   .disco,
   .horizonte,
-  .conta-fixa,
-  .barra,
+  .moldura-topo,
+  .moldura-abrir,
+  .barra-lateral,
   .voltar,
   .abas,
   .cabecalho-acoes,

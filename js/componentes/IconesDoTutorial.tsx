@@ -1,5 +1,5 @@
 // Os ícones usados em mais de um arquivo (os dois tutoriais, o Caminho e a
-// MolduraSolo), para não existirem duas cópias do mesmo desenho. Ícone que
+// Moldura), para não existirem duas cópias do mesmo desenho. Ícone que
 // só uma tela usa mora no arquivo dela.
 //
 // SVG traçado em linha, escrito à mão. A cor e a espessura do traço vêm de

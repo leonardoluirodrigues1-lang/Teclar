@@ -3,7 +3,6 @@
 // (js/aluno/Dashboard.tsx). Nasceram dentro de Turmas.tsx; saíram de lá
 // quando a segunda tela precisou delas, para as duas não divergirem.
 //
-//   ContaFixa      nome, papel e o menu da conta, fixos no canto
 //   Abertura       o horizonte de eventos com a marca TECLAR se digitando
 //   Funcoes        as três teclas grandes entre duas linhas de 1px
 //   CartaoDeTurma  capa gerada, nome e a linha em mono; o rodapé é de
@@ -17,31 +16,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { sessao } from '../nucleo/sessao.js';
 import { rng } from '../landing/letras.js';
-import { MenuDaConta, type SecoesNav } from './Nav.js';
 import { iniciarBuracoNegro } from './shaderBuracoNegro.js';
 import { querMenosMovimento } from '../utils/movimento.js';
-
-// Conta fixa no canto
-
-interface PropsContaFixa {
-  secoes: SecoesNav;
-  /** A linha embaixo do nome: "Professor", ou a turma no modo Aluno. */
-  papel: string;
-}
-
-// O texto é aria-hidden: o avatar já se anuncia como "Conta de <nome>", e
-// o leitor de tela leria o nome duas vezes.
-export function ContaFixa({ secoes, papel }: PropsContaFixa) {
-  return (
-    <div className="conta-fixa">
-      <div className="conta-fixa-texto" aria-hidden="true">
-        <p className="conta-fixa-nome">{sessao.nomeExibicao()}</p>
-        <p className="conta-fixa-papel">{papel}</p>
-      </div>
-      <MenuDaConta secoes={secoes} />
-    </div>
-  );
-}
 
 // Abertura
 

@@ -89,7 +89,7 @@ function Hero() {
 
 // Barra fixa: marca + Entrar
 
-// Não é a Nav.tsx: aquela é de tela com sessão (avatar, menu, troca de
+// Não é a Moldura.tsx: aquela é de tela com sessão (avatar, menu, troca de
 // modo). Aqui só marca e um link, dentro de uma pílula de vidro que existe
 // desde o primeiro quadro. No topo da página ela tem também a classe
 // .barra-no-topo, que a deixa discreta; a classe sai quando o sentinela do

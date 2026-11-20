@@ -1,12 +1,12 @@
 // Sobre.tsx — pages/solo/sobre.html
 // O que é o TECLAR, de onde ele vem, quem fez e a versão. Aberta pela
-// barra lateral (componentes/MolduraSolo.tsx). A versão vem de
+// barra lateral (componentes/Moldura.tsx). A versão vem de
 // CONFIG.VERSAO, a mesma do rodapé da barra.
 
 import { createRoot } from 'react-dom/client';
 import { guarda } from '../nucleo/guarda.js';
 import { CONFIG } from '../config.js';
-import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Os nomes da dupla, como devem aparecer na tela.
@@ -14,7 +14,7 @@ const DUPLA = 'Leonardo e Cauê';
 
 function Sobre() {
   return (
-    <MolduraSolo ativo="sobre">
+    <Moldura ativo="sobre" voltar={VOLTAR_INICIO_SOLO}>
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Sobre</h1>
 
@@ -40,7 +40,7 @@ function Sobre() {
           <p className="solo-texto-versao">Versão {CONFIG.VERSAO}</p>
         </section>
       </main>
-    </MolduraSolo>
+    </Moldura>
   );
 }
 

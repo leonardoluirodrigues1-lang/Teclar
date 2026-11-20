@@ -68,7 +68,7 @@ import type {
 } from '../nucleo/tipos.js';
 import { PainelErro } from '../componentes/PainelErro.js';
 import { progressoDe, type ProgressoXp } from '../componentes/BarraXp.js';
-import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { NumeroQueConta } from '../componentes/NumeroQueConta.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
@@ -623,14 +623,10 @@ function Lobby() {
     // lateral fica marcado: o dashboard não está nela, chega-se aqui pelo
     // botão da pessoa, no topo. telaDaPessoa: esta É a tela daquele
     // botão, então ele sai e o nome vira o título, no topo à esquerda.
-    <MolduraSolo ativo={null} telaDaPessoa>
+    <Moldura ativo={null} telaDaPessoa voltar={VOLTAR_INICIO_SOLO}>
       <div className="lobby-pagina">
-        <nav className="lobby-caminhos" aria-label="Voltar ou ver mais">
-          {/* A única saída do dashboard: botão de verdade, com relevo, e
-              não um texto apagado. */}
-          <a className="btn tecla lobby-voltar" href={ROTA_CAMINHO}>
-            <span aria-hidden="true">←</span> Voltar ao caminho
-          </a>
+        {/* A volta ao caminho é o "← Início" do topo da moldura. */}
+        <nav className="lobby-caminhos" aria-label="Ver mais">
           <a className="lobby-caminhos-link" href={ROTA_ESTATISTICAS}>
             Estatísticas <span aria-hidden="true">→</span>
           </a>
@@ -642,7 +638,7 @@ function Lobby() {
             duas vezes. */}
         <main className="lobby-conteudo">{renderizarCorpo()}</main>
       </div>
-    </MolduraSolo>
+    </Moldura>
   );
 }
 

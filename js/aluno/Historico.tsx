@@ -10,7 +10,7 @@
 // tempo acabou é "Tempo esgotado", nunca uma falha. O que a tela destaca
 // é o que ele conquistou: melhor marca, sequência, evolução.
 //
-// O topo é o das outras telas do aluno (<TopoAluno>, com o menu do nome,
+// O topo é a moldura das telas logadas (<Moldura>, com o menu,
 // que é por onde se chega aqui). Abaixo dele, o header.cabecalho dentro de
 // .painel.vidro com "Aluno", título e subtítulo.
 //
@@ -24,6 +24,7 @@
 // js/utils/ (desempenho.ts, formato.ts, ordenacao.ts), compartilhadas com
 // a tela de estatísticas do Solo; só a FRASE da evolução é desta tela.
 
+import { Moldura } from '../componentes/Moldura.js';
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, mensagemDaFalha } from '../nucleo/api.js';
@@ -34,7 +35,6 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
-import { TopoAluno } from '../componentes/TopoAluno.js';
 import {
   JANELA_EVOLUCAO,
   evolucaoDe,
@@ -364,18 +364,10 @@ function Historico({ usuario }: PropsHistorico) {
   }
 
   return (
-    <>
-      <TopoAluno usuario={usuario} />
+    <Moldura modo="aluno" ativo="historico" voltar={{ href: guarda.casa(), rotulo: 'Minha sala' }} classeDoConteudo="pagina pagina-tabela pagina-aluno">
 
       <main className="conteudo">
         <section className="painel vidro historico" aria-labelledby="titulo">
-          <a className="voltar" href={guarda.casa()}>
-            <span className="voltar-seta" aria-hidden="true">
-              ←
-            </span>
-            Sua sala
-          </a>
-
           <header className="cabecalho">
             <div>
               <p className="rotulo">Aluno</p>
@@ -391,7 +383,7 @@ function Historico({ usuario }: PropsHistorico) {
           {renderizarCorpo()}
         </section>
       </main>
-    </>
+    </Moldura>
   );
 }
 

@@ -464,127 +464,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    nome) são medidas do desenho sem token correspondente na escala.
    ========================================================================== */
 
-/* ---------------------------------------------------------------------------
-   Nav em pílula
-
-   Mesmas classes da <Nav> de componentes/Nav.tsx — o componente é um só,
-   e as seções vêm por propriedade (SECOES_SOLO). As regras estão aqui e
-   não são importadas de escola.css porque as duas folhas nunca andam
-   juntas: cada mundo carrega a própria, como já acontece com .btn.
-
-   As medidas são as do desenho do Solo, que difere do Escola de propósito:
-   pílula mais folgada, item em sans e caixa normal em vez de mono
-   maiúsculo. A marca continua em mono, que é a regra dos dois papéis.
-   ------------------------------------------------------------------------- */
-.barra {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e-4, 16px);
-}
-
-.nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 26px;
-  padding: 9px 10px 9px 22px;
-  border-radius: var(--raio-total, 9999px);
-}
-
-.nav-marca {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 13px;
-  letter-spacing: 0.34em;
-  color: var(--cor-texto, #fff);
-}
-/* O letter-spacing sobra à direita da última letra; compensa. */
-.nav-marca span { margin-right: -0.34em; }
-
-.nav-item {
-  padding: 7px 16px;
-  border-radius: var(--raio-total, 9999px);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.38);
-  /* Face da tecla: um véu leve, para o relevo (.tecla) ter onde apoiar. */
-  background: rgba(255, 255, 255, 0.05);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.nav-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.08); }
-
-/* Ativo: fundo claro, como a aba em que se está. aria-current="page" é o
-   que o leitor de tela anuncia; a cor é para quem enxerga. */
-.nav-item[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--cor-texto, #fff);
-}
-
-/* Conta: avatar redondo com o menu que já traz "Ir para o Professor" e
-   "Sair" — os dois botões que moravam no cabeçalho do painel antigo. */
-.conta { position: relative; flex: none; }
-
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--raio-total, 9999px);
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.30);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 12px;
-  color: var(--cor-texto, #fff);
-  transition: background var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              box-shadow var(--t-rapido, 160ms) var(--curva, ease-out),
-              transform var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.avatar:hover { background: rgba(255, 255, 255, 0.22); }
-
-.menu-conta {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: var(--z-flutuante, 10);
-  min-width: 190px;
-  padding: 8px;
-  border-radius: var(--raio-n, 8px);
-}
-
-.menu-cabecalho {
-  padding: 8px 10px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-}
-.menu-nome {
-  font-size: 13px;
-  color: var(--cor-texto, #fff);
-  overflow-wrap: anywhere;
-}
-.menu-modo {
-  margin-top: 2px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
-
-.menu-item {
-  display: block;
-  width: 100%;
-  margin-top: 6px;
-  padding: 9px 10px;
-  border-radius: var(--raio-p, 4px);
-  text-align: left;
-  font-size: 13px;
-  color: var(--cor-texto-suave, #c4c4c4);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.menu-item:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
-
 /* Texto só para quem ouve a tela. Existe em escola.css, e o Solo precisa
    da própria cópia pelo mesmo motivo do .btn: as folhas não andam juntas. */
 .sr-only {
@@ -765,8 +644,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 
 @media (max-width: 700px) {
-  .nav { gap: 14px; padding-left: 16px; }
-  .nav-item { padding: 7px 10px; }
   .lobby-topo { margin-top: 24px; }
   .lobby-topo .painel { padding: 24px 22px; }
 
@@ -1097,7 +974,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 /* ============================================================================
    ACRÉSCIMO — a moldura do Solo e o caminho
-   (js/componentes/MolduraSolo.tsx; pages/solo/caminho.html, configuracoes,
+   (js/componentes/Moldura.tsx; pages/solo/caminho.html, configuracoes,
    ajuda e sobre)
 
    Não se repete aqui: a receita do vidro (.vidro, em
@@ -1111,247 +988,11 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    Face escura das teclas desta parte: o tampo levemente aceso em cima,
    sobre o relevo de luz.css. Uma regra só para as cinco peças.
    ------------------------------------------------------------------------- */
-.moldura-pessoa,
-.moldura-abrir,
-.barra-lateral-fechar,
 .caminho-seta,
 .pedra {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
   border: 1px solid rgba(255, 255, 255, 0.17);
   color: var(--cor-texto, #fff);
-}
-
-/* ---------------------------------------------------------------------------
-   A moldura: topo, conteúdo e o botão redondo
-
-   A barra lateral EMPURRA: com ela aberta, o topo e o conteúdo começam
-   depois dela, e o conteúdo se reorganiza na largura que sobra. Nada
-   escurece e nada fica por baixo.
-   ------------------------------------------------------------------------- */
-.moldura-topo {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-fixa, 100);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--e-5, 24px) 56px;
-  /* A faixa do topo não pode roubar o clique do que está embaixo dela;
-     só a marca e o botão da pessoa recebem clique. */
-  pointer-events: none;
-  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
-}
-.moldura-topo > * { pointer-events: auto; }
-
-.moldura-conteudo {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  overflow-y: auto;
-  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
-}
-
-.moldura-lateral-aberta .moldura-topo,
-.moldura-lateral-aberta .moldura-conteudo {
-  left: var(--largura-sidebar, 248px);
-}
-
-.moldura-marca {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 15px;
-  letter-spacing: 0.34em;
-  color: var(--cor-texto, #fff);
-}
-
-/* --- a pessoa, no topo à direita ----------------------------------------- */
-.moldura-pessoa {
-  display: flex;
-  align-items: center;
-  gap: var(--e-3, 12px);
-  padding: 9px var(--e-4, 16px) 9px 9px;
-  border-radius: 14px;
-}
-
-.moldura-pessoa-inicial {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--raio-total, 9999px);
-  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 14px;
-}
-
-.moldura-pessoa-texto {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-.moldura-pessoa-nome { font-size: 14px; font-weight: var(--peso-normal, 400); }
-.moldura-pessoa-nivel {
-  margin-top: 2px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-}
-.moldura-pessoa-trilho {
-  width: 126px;
-  height: 3px;
-  margin-top: 6px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.12);
-}
-.moldura-pessoa-trilho > span {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--cor-texto, #fff);
-}
-
-/* --- o botão redondo, no canto de baixo ---------------------------------- */
-/* Some enquanto a barra está aberta. O visibility vai junto do opacity
-   para ele sair também do Tab; ao reaparecer, o visibility volta na hora
-   (0s), para o foco poder voltar a ele no mesmo instante. */
-.moldura-abrir {
-  position: fixed;
-  left: 44px;
-  bottom: 44px;
-  z-index: var(--z-fixa, 100);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 58px;
-  height: 58px;
-  border-radius: var(--raio-total, 9999px);
-  transition:
-    opacity var(--t-medio, 240ms) var(--curva, ease-out),
-    visibility 0s,
-    transform var(--t-rapido, 160ms) var(--curva, ease-out),
-    box-shadow var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.moldura-abrir > span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.75);
-}
-.moldura-lateral-aberta .moldura-abrir {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition:
-    opacity var(--t-medio, 240ms) var(--curva, ease-out),
-    visibility 0s linear var(--t-medio, 240ms);
-}
-
-/* ---------------------------------------------------------------------------
-   Barra lateral
-
-   Fechada, ela fica fora da tela e com visibility: hidden, para o Tab e o
-   leitor de tela não a acharem. O visibility só muda DEPOIS de ela
-   terminar de sair (o atraso de --t-medio), e na hora quando ela entra.
-   ------------------------------------------------------------------------- */
-.barra-lateral {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: var(--z-fixa, 100);
-  display: flex;
-  flex-direction: column;
-  width: var(--largura-sidebar, 248px);
-  padding: 26px 22px;
-  overflow-y: auto;
-  border-radius: 0 26px 26px 0;
-  transform: translateX(-100%);
-  visibility: hidden;
-  transition:
-    transform var(--t-medio, 240ms) var(--curva, ease-out),
-    visibility 0s linear var(--t-medio, 240ms);
-}
-.barra-lateral-aberta {
-  transform: none;
-  visibility: visible;
-  transition:
-    transform var(--t-medio, 240ms) var(--curva, ease-out),
-    visibility 0s;
-}
-
-.barra-lateral-cabeca {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 34px;
-  padding: 0 6px;
-}
-
-.barra-lateral-fechar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--e-3, 12px);
-  font-size: 17px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.barra-lateral-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 13px var(--e-4, 16px);
-  border-radius: 13px;
-  text-align: left;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.7);
-  transition:
-    background var(--t-rapido, 160ms) var(--curva, ease-out),
-    color var(--t-rapido, 160ms) var(--curva, ease-out);
-}
-.barra-lateral-item svg {
-  flex: none;
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.barra-lateral-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--cor-texto, #fff); }
-.barra-lateral-item-ativo {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--cor-texto, #fff);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.barra-lateral-divisoria {
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin: var(--e-4, 16px) 6px;
-}
-
-.barra-lateral-versao {
-  margin-top: auto;
-  padding: 0 var(--e-2, 8px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.3);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1635,8 +1276,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    Tela estreita: o topo e o botão redondo encostam mais nas bordas.
    ------------------------------------------------------------------------- */
 @media (max-width: 700px) {
-  .moldura-topo { padding: var(--e-4, 16px); }
-  .moldura-abrir { left: var(--e-5, 24px); bottom: var(--e-5, 24px); }
   .caminho-faixa { width: calc(100% - 32px); }
   .solo-texto { padding-top: 104px; }
 }
@@ -1658,7 +1297,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 .lobby-caminhos {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--e-4, 16px);
 }
 .lobby-caminhos-link {
@@ -1674,25 +1313,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .lobby-caminhos-link:hover { color: var(--cor-texto, #fff); }
 
-/* "← Voltar ao caminho": a única saída do dashboard, então é botão de
-   verdade — o .btn de sempre (tamanho, fonte, pílula) com a face escura e
-   o relevo de tecla (.tecla, css/base/luz.css). */
-.lobby-voltar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.065));
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  color: var(--cor-texto, #fff);
-}
-
 .lobby-caminhos { align-items: center; }
-
-/* No dashboard o topo à esquerda é o nome da pessoa, como título da tela,
-   no lugar da marca (ver telaDaPessoa em MolduraSolo.tsx). */
-.moldura-titulo-pessoa {
-  font-size: 22px;
-  font-weight: var(--peso-leve, 300);
-  letter-spacing: var(--ls-titulo, -0.02em);
-  color: var(--cor-texto, #fff);
-}
 
 /* ---------------------------------------------------------------------------
    Configurações: uma opção com botão ao lado (rever o tutorial). Não é

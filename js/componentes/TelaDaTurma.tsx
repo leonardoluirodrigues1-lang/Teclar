@@ -17,8 +17,7 @@
 // Desenho em css/escola.css.
 
 import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
-import type { SecoesNav } from './Nav.js';
-import { ContaFixa } from './EntradaDoModo.js';
+import { Moldura } from './Moldura.js';
 import { IconeCadeado } from './IconesDoTutorial.js';
 import { PainelEstado } from './PainelErro.js';
 
@@ -62,10 +61,8 @@ export function focarAba(aba: AbaDaTurma) {
 // Casca
 
 interface PropsCasca {
-  secoes: SecoesNav;
-  /** A linha embaixo do nome, na conta fixa. */
-  papel: string;
-  /** Sem ele, nada: a sala é a casa do aluno, não há de onde voltar. */
+  modo: 'professor' | 'aluno';
+  /** Sem ele, a marca: a sala é a casa do aluno, não há de onde voltar. */
   voltar?: { href: string; rotulo: string };
   /** null enquanto a turma não chega: o título guarda a altura. */
   titulo: string | null;
@@ -86,22 +83,16 @@ interface PropsCasca {
 const NBSP = String.fromCharCode(0xa0);
 
 export function CascaDaTurma(props: PropsCasca) {
-  const { secoes, papel, voltar, titulo, subtitulo, acoes, extra, aba, aoSelecionarAba, carregando, children } = props;
+  const { modo, voltar, titulo, subtitulo, acoes, extra, aba, aoSelecionarAba, carregando, children } = props;
 
   return (
-    <>
-      <ContaFixa secoes={secoes} papel={papel} />
-
+    <Moldura
+      modo={modo}
+      ativo={modo === 'professor' ? 'turmas' : 'sala'}
+      voltar={voltar}
+      classeDoConteudo="pagina"
+    >
       <main>
-        {voltar && (
-          <a className="voltar" href={voltar.href}>
-            <span className="voltar-seta" aria-hidden="true">
-              ←
-            </span>
-            {voltar.rotulo}
-          </a>
-        )}
-
         <div className="cabecalho">
           <div className="cabecalho-texto">
             <h1 className="titulo">{titulo ?? NBSP}</h1>
@@ -121,7 +112,7 @@ export function CascaDaTurma(props: PropsCasca) {
           {children}
         </div>
       </main>
-    </>
+    </Moldura>
   );
 }
 
@@ -167,8 +158,7 @@ function AbasDaTurma({ aba, aoSelecionar }: { aba: AbaDaTurma; aoSelecionar: (ab
 // Turma não encontrada
 
 interface PropsNaoEncontrada {
-  secoes: SecoesNav;
-  papel: string;
+  modo: 'professor' | 'aluno';
   texto: string;
   /** O caminho de volta: a lista de turmas (ou de salas). */
   link: { href: string; rotulo: string };
@@ -176,10 +166,9 @@ interface PropsNaoEncontrada {
 
 // Substitui a tela inteira (cabeçalho e abas incluídos): uma turma que não
 // existe não tem o que essas peças mostrariam.
-export function TurmaNaoEncontrada({ secoes, papel, texto, link }: PropsNaoEncontrada) {
+export function TurmaNaoEncontrada({ modo, texto, link }: PropsNaoEncontrada) {
   return (
-    <>
-      <ContaFixa secoes={secoes} papel={papel} />
+    <Moldura modo={modo} ativo={modo === 'professor' ? 'turmas' : 'sala'} classeDoConteudo="pagina">
       <main>
         <PainelEstado titulo="Turma não encontrada" texto={texto}>
           <a className="btn btn-solido tecla tecla-clara" href={link.href}>
@@ -187,7 +176,7 @@ export function TurmaNaoEncontrada({ secoes, papel, texto, link }: PropsNaoEncon
           </a>
         </PainelEstado>
       </main>
-    </>
+    </Moldura>
   );
 }
 

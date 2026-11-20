@@ -36,7 +36,7 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { contagem, formatarDataHora, formatarDecimal, numero, pesoDificuldade, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
-import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
+import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
@@ -462,8 +462,7 @@ function Relatorios() {
 
   if (cargaTurmas.estado === 'pronto' && turmas.length === 0) {
     return (
-      <>
-        <Nav secoes={SECOES_PROFESSOR} ativo="relatorios" />
+      <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
         <main id="corpo">
           <PainelEstado
             titulo="Nenhuma turma para relatar"
@@ -474,14 +473,13 @@ function Relatorios() {
             </a>
           </PainelEstado>
         </main>
-      </>
+      </Moldura>
     );
   }
 
   if (cargaTurmas.estado === 'erro') {
     return (
-      <>
-        <Nav secoes={SECOES_PROFESSOR} ativo="relatorios" />
+      <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
         <main id="corpo">
           <PainelErro
             titulo="Não foi possível carregar suas turmas"
@@ -489,15 +487,14 @@ function Relatorios() {
             aoTentarDeNovo={() => setTentativaTurmas((n) => n + 1)}
           />
         </main>
-      </>
+      </Moldura>
     );
   }
 
   // --- tela ------------------------------------------------------------------
 
   return (
-    <>
-      <Nav secoes={SECOES_PROFESSOR} ativo="relatorios" />
+    <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
 
       <main id="corpo">
         <div className="cabecalho">
@@ -631,7 +628,7 @@ function Relatorios() {
           aoFechar={() => setModal(null)}
         />
       )}
-    </>
+    </Moldura>
   );
 }
 

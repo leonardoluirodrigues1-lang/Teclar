@@ -23,7 +23,6 @@ import { createRoot } from 'react-dom/client';
 import { api, filaSessoes } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type { DesempenhoNaTurma, ErroDaApi, ExercicioDaSala, LinhaDoRanking, SalaDetalhe } from '../nucleo/tipos.js';
-import { SECOES_ALUNO } from '../componentes/Nav.js';
 import {
   CascaDaTurma,
   PainelDeRelatorio,
@@ -117,8 +116,7 @@ function Sala() {
   if (carga.estado === 'nao-encontrada') {
     return (
       <TurmaNaoEncontrada
-        secoes={SECOES_ALUNO}
-        papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
+        modo="aluno"
         texto="Ela pode ter sido encerrada, ou você não está nela. O seu histórico continua em Histórico."
         link={{ href: 'historico.html', rotulo: 'Ver meu histórico' }}
       />
@@ -143,8 +141,7 @@ function Sala() {
 
   return (
     <CascaDaTurma
-      secoes={SECOES_ALUNO}
-      papel={usuario.turmas?.[0]?.nome ?? 'Aluno'}
+      modo="aluno"
       titulo={sala ? sala.nome : null}
       subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}
       aba={aba}

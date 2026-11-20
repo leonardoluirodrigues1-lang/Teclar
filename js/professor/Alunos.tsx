@@ -29,7 +29,7 @@ import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { parsearCsv, separarCabecalho, gerarCsv, decodificarCsv, baixarCsv, slug } from '../utils/csv.js';
 import { imprimirSenhas, type LinhaDeSenha } from '../utils/imprimirSenhas.js';
 import { formatarData } from '../utils/formato.js';
-import { Nav, SECOES_PROFESSOR } from '../componentes/Nav.js';
+import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { PainelEstado } from '../componentes/PainelErro.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
@@ -177,8 +177,7 @@ function Alunos() {
   // têm para onde mandar o nome.
   if (semTurma) {
     return (
-      <>
-        <Nav secoes={SECOES_PROFESSOR} ativo="turmas" />
+      <Moldura modo="professor" ativo="turmas" voltar={{ href: linkVoltar, rotulo: nomeTurma.trim() || 'Turma' }} classeDoConteudo="pagina">
         <main id="corpo">
           <PainelEstado titulo="Turma não encontrada" texto={semTurma}>
             <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
@@ -186,22 +185,14 @@ function Alunos() {
             </a>
           </PainelEstado>
         </main>
-      </>
+      </Moldura>
     );
   }
 
   return (
-    <>
-      <Nav secoes={SECOES_PROFESSOR} ativo="turmas" />
+    <Moldura modo="professor" ativo="turmas" voltar={{ href: linkVoltar, rotulo: nomeTurma.trim() || 'Turma' }} classeDoConteudo="pagina">
 
       <main id="corpo">
-        <a className="voltar" id="link-voltar" href={linkVoltar}>
-          <span className="voltar-seta" aria-hidden="true">
-            ←
-          </span>
-          Turma
-        </a>
-
         <div className="cabecalho">
           <div className="cabecalho-texto">
             <h1 className="titulo">Adicionar alunos</h1>
@@ -267,7 +258,7 @@ function Alunos() {
           </section>
         </div>
       </main>
-    </>
+    </Moldura>
   );
 }
 

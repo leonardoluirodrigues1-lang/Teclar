@@ -1,6 +1,6 @@
 // Configuracoes.tsx — pages/solo/configuracoes.html
 // O que dá para configurar no Solo HOJE, sem coluna nova no banco. Aberta
-// pela barra lateral (componentes/MolduraSolo.tsx).
+// pela barra lateral (componentes/Moldura.tsx).
 //
 // Três coisas, as três guardadas no navegador pela sessao.ts:
 //   · reduzir movimento — aplicado pelo guarda.aplicarMundo(), que põe a
@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Vizinho desta em pages/solo/: é lá que o tutorial aparece.
@@ -43,7 +43,7 @@ function Configuracoes() {
   }
 
   return (
-    <MolduraSolo ativo="configuracoes">
+    <Moldura ativo="configuracoes" voltar={VOLTAR_INICIO_SOLO}>
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Configurações</h1>
 
@@ -99,7 +99,7 @@ function Configuracoes() {
           </button>
         </section>
       </main>
-    </MolduraSolo>
+    </Moldura>
   );
 }
 

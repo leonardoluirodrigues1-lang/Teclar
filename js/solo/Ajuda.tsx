@@ -1,17 +1,17 @@
 // Ajuda.tsx — pages/solo/ajuda.html
 // Texto fixo sobre como o treino funciona. Aberta pela barra lateral
-// (componentes/MolduraSolo.tsx). Os números (caracteres por palavra, metas)
+// (componentes/Moldura.tsx). Os números (caracteres por palavra, metas)
 // vêm do CONFIG, para a ajuda não contradizer a regra que o treino usa.
 
 import { createRoot } from 'react-dom/client';
 import { guarda } from '../nucleo/guarda.js';
 import { CONFIG } from '../config.js';
-import { MolduraSolo } from '../componentes/MolduraSolo.js';
+import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 function Ajuda() {
   return (
-    <MolduraSolo ativo="ajuda">
+    <Moldura ativo="ajuda" voltar={VOLTAR_INICIO_SOLO}>
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Ajuda</h1>
 
@@ -74,7 +74,7 @@ function Ajuda() {
           </ul>
         </section>
       </main>
-    </MolduraSolo>
+    </Moldura>
   );
 }
 

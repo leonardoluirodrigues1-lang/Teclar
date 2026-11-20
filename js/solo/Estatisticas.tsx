@@ -25,6 +25,7 @@
 // A tabela é a única superfície sólida da tela, como nas outras telas de
 // dados do projeto: vidro é para painel, não para grade de números.
 
+import { Moldura } from '../componentes/Moldura.js';
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, mensagemDaFalha } from '../nucleo/api.js';
@@ -319,13 +320,8 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
   }
 
   return (
+    <Moldura ativo={null} voltar={{ href: '/pages/solo/dashboard.html', rotulo: 'Seu painel' }} classeDoConteudo="tela">
     <section className="painel vidro estatisticas" aria-labelledby="titulo">
-      <a className="voltar" href={ROTA_LOBBY}>
-        <span className="voltar-seta" aria-hidden="true">
-          ←
-        </span>
-        Solo
-      </a>
 
       <header className="cabecalho">
         <div>
@@ -337,13 +333,11 @@ function Estatisticas({ usuario }: PropsEstatisticas) {
             {usuario.nome ?? sessao.nomeExibicao()}
           </p>
         </div>
-        <button type="button" className="btn-sair vidro tecla" id="btn-sair" onClick={() => guarda.sair()}>
-          Sair
-        </button>
       </header>
 
       {renderizarCorpo()}
     </section>
+    </Moldura>
   );
 }
 
