@@ -87,6 +87,10 @@ interface PropsModal {
   aoAbrir?: () => void;
   /** Chamado ao fim da transição de saída. É o sinal para desmontar. */
   aoFechar?: () => void;
+  /** Foco inicial na caixa, e não no botão principal: numa tela de
+   *  digitação, o Espaço/Enter que ainda vinha sendo teclado acionaria o
+   *  botão sem a pessoa ver o modal. Tab leva aos botões. */
+  focoNaCaixa?: boolean;
   children?: ReactNode;
 }
 
@@ -110,6 +114,7 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
     aoEsc,
     aoAbrir,
     aoFechar,
+    focoNaCaixa = false,
     children,
   },
   ref
@@ -163,7 +168,7 @@ export const Modal = forwardRef<ModalHandle, PropsModal>(function Modal(
     const quadro = requestAnimationFrame(() => {
       setAberto(true);
       const principal = caixa.current?.querySelector<HTMLElement>('.modal-botao-solido');
-      (principal ?? focaveis()[0] ?? caixa.current)?.focus();
+      (focoNaCaixa ? caixa.current : principal ?? focaveis()[0] ?? caixa.current)?.focus();
       props.current.aoAbrir?.();
     });
 

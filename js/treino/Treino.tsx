@@ -1193,6 +1193,9 @@ function Treino({ usuario }: PropsTreino) {
           titulo={modal.titulo}
           acoes={modal.acoes}
           aoEsc={modal.aoEsc}
+          // Quem estava digitando continua teclando por um instante: o foco
+          // fica na caixa para o Espaço não acionar "Próxima lição".
+          focoNaCaixa
           aoFechar={() => {
             modalAberto.current = false;
             setModal(null);
