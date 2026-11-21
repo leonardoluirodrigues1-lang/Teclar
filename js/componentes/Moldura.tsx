@@ -355,26 +355,9 @@ export function Moldura({
   return (
     <div className={`moldura moldura-${modo}` + (aberta ? ' moldura-lateral-aberta' : '')}>
       {/* Primeiro Tab da página: pula o topo e a barra (WCAG 2.4.1). */}
-      <a className="moldura-pular" href="#moldura-conteudo">
+      <a className="moldura-pular" href="#moldura-corpo">
         Pular para o conteúdo
       </a>
-      <header className="moldura-topo">
-        <div className="moldura-esquerda">
-          {voltar ? (
-            <a className="moldura-voltar tecla" href={voltar.href}>
-              <span aria-hidden="true">←</span> {voltar.rotulo}
-            </a>
-          ) : (
-            !telaDaPessoa && <span className="moldura-marca">TECLAR</span>
-          )}
-          {telaDaPessoa && <h1 className="moldura-titulo-pessoa">{sessao.nomeExibicao()}</h1>}
-        </div>
-        {telaDaPessoa ? null : modo === 'solo' ? (
-          <BotaoPessoaSolo campanha={campanha} xpPorNivel={xpPorNivel} />
-        ) : (
-          <Pessoa papel={papel} />
-        )}
-      </header>
 
       <BarraLateral modo={modo} aberta={aberta} ativo={ativo} aoFechar={fechar} />
 
@@ -397,9 +380,30 @@ export function Moldura({
       )}
 
       {/* É ele que rola (position: fixed), não a página: com tabIndex as setas e o
-          PageDown rolam mesmo sem nada focável dentro (WCAG 2.1.1). */}
-      <div className="moldura-conteudo entrada-da-pagina" id="moldura-conteudo" tabIndex={0}>
-        {classeDoConteudo ? <div className={classeDoConteudo}>{children}</div> : children}
+          PageDown rolam mesmo sem nada focável dentro (WCAG 2.1.1). O topo mora
+          aqui dentro, e não fixo por cima: rola junto e nunca cobre o conteúdo
+          (o bloco da pessoa cobria o "⋯" dos cartões). */}
+      <div className="moldura-conteudo" id="moldura-conteudo" tabIndex={0}>
+        <header className="moldura-topo">
+          <div className="moldura-esquerda">
+            {voltar ? (
+              <a className="moldura-voltar tecla" href={voltar.href}>
+                <span aria-hidden="true">←</span> {voltar.rotulo}
+              </a>
+            ) : (
+              !telaDaPessoa && <span className="moldura-marca">TECLAR</span>
+            )}
+            {telaDaPessoa && <h1 className="moldura-titulo-pessoa">{sessao.nomeExibicao()}</h1>}
+          </div>
+          {telaDaPessoa ? null : modo === 'solo' ? (
+            <BotaoPessoaSolo campanha={campanha} xpPorNivel={xpPorNivel} />
+          ) : (
+            <Pessoa papel={papel} />
+          )}
+        </header>
+        <div className="moldura-corpo entrada-da-pagina" id="moldura-corpo" tabIndex={-1}>
+          {classeDoConteudo ? <div className={classeDoConteudo}>{children}</div> : children}
+        </div>
       </div>
     </div>
   );

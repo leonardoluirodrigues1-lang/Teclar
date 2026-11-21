@@ -52,7 +52,9 @@ const servidor = createServer((req, res) => {
 await new Promise((r) => servidor.listen(5501, 'localhost', r));
 const FRONT = 'http://localhost:5501';
 
-// As contas do mock (js/nucleo/mocks.ts). O token só precisa do prefixo.
+// As contas do mock (js/nucleo/mocks.ts). O token só precisa do prefixo. O
+// tutorial fica marcado como visto ('visto', ver sessao.tutorialVisto): senão
+// ele cobre Turmas e Caminho, e o que se testa é o tutorial, não a tela.
 const SESSOES = {
   prof: { usuario: { id: 'u-2', nome: 'Henrique Lima', email: 'prof@teclar.dev', tipo: 'conta', campanhaAtiva: 'camp-2' }, modo: 'professor' },
   leo: { usuario: { id: 'u-1', nome: 'Leonardo', email: 'leo@teclar.dev', tipo: 'conta', campanhaAtiva: 'camp-1' }, modo: 'solo' },
@@ -199,8 +201,8 @@ try {
       ? `sessionStorage.setItem('teclar:token', 'mock-${s.usuario.tipo}-${s.usuario.id}-token-a11y');
          sessionStorage.setItem('teclar:usuario', ${JSON.stringify(JSON.stringify(s.usuario))});
          ${s.modo ? `localStorage.setItem('teclar:modo', '${s.modo}');` : ''}
-         localStorage.setItem('teclar:tutorial_solo:${s.usuario.id}', '1');
-         localStorage.setItem('teclar:tutorial_professor:${s.usuario.id}', '1');`
+         localStorage.setItem('teclar:tutorial_solo:${s.usuario.id}', 'visto');
+         localStorage.setItem('teclar:tutorial_professor:${s.usuario.id}', 'visto');`
       : '';
     await avaliar(`sessionStorage.clear(); localStorage.clear(); ${gravar} true`);
     await navegar(FRONT + pagina);

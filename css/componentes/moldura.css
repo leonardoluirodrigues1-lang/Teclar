@@ -26,8 +26,10 @@
    depois dela, e o conteúdo se reorganiza na largura que sobra. Nada
    escurece e nada fica por baixo.
    ------------------------------------------------------------------------- */
+/* absolute dentro do .moldura-conteudo (a caixa que rola): o topo sobe
+   junto com a página. Fixo, o bloco da pessoa cobria o "⋯" dos cartões. */
 .moldura-topo {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -39,9 +41,10 @@
   /* A faixa do topo não pode roubar o clique do que está embaixo dela;
      só a marca e o botão da pessoa recebem clique. */
   pointer-events: none;
-  transition: left var(--t-medio, 240ms) var(--curva, ease-out);
 }
 .moldura-topo > * { pointer-events: auto; }
+/* Alvo do "Pular para o conteúdo": recebe o foco, mas não é um controle. */
+.moldura-corpo:focus { outline: none; }
 
 .moldura-conteudo {
   position: fixed;
@@ -77,7 +80,6 @@
 }
 .moldura-pular:focus-visible { transform: none; }
 
-.moldura-lateral-aberta .moldura-topo,
 .moldura-lateral-aberta .moldura-conteudo {
   left: var(--largura-sidebar, 248px);
 }
@@ -314,7 +316,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .moldura-topo,
   .moldura-conteudo,
   .barra-lateral,
   .moldura-abrir { transition: none; }
