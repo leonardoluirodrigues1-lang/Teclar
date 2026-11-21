@@ -515,6 +515,19 @@ function Lobby() {
         // outras porque, sem campanha, o back responde 404 a todas elas (a
         // campanha é a do token) — eram quatro 404 e quatro erros no
         // console a cada visita de quem ainda não começou.
+        // Quem já tem campanha (o login traz o id dela) pede tudo junto: uma
+        // espera em vez de duas. Sem id conhecido, a campanha vem antes.
+        const pedirResto = () =>
+          Promise.all([
+            nullSeFalhar(api.solo.historico().then((historico) => desembrulhar<SessaoSolo>(historico))),
+            nullSeFalhar(api.solo.estatisticas()),
+            nullSeFalhar(api.solo.indicadores()),
+            nullSeFalhar(api.solo.missoes().then((missoes) => desembrulhar<Missao>(missoes))),
+            // Quanto custa um nível (tabela Configuracoes). Se falhar, vale o
+            // espelho do config — o mesmo número enquanto o banco não mudar.
+            nullSeFalhar(api.admin.parametros()),
+          ]);
+        const adiantado = sessao.campanhaAtiva() ? pedirResto() : null;
         const campanha = await api.solo.campanhaAtual();
         if (cancelado) return;
 
@@ -534,15 +547,7 @@ function Lobby() {
         // As outras vêm juntas, cada uma com a própria rede de segurança
         // (nullSeFalhar) — elas alimentam partes da tela, e uma falha numa
         // delas não pode derrubar a tela inteira.
-        const [sessoes, estatisticas, indicadores, licoes, parametros] = await Promise.all([
-          nullSeFalhar(api.solo.historico().then((historico) => desembrulhar<SessaoSolo>(historico))),
-          nullSeFalhar(api.solo.estatisticas()),
-          nullSeFalhar(api.solo.indicadores()),
-          nullSeFalhar(api.solo.missoes().then((missoes) => desembrulhar<Missao>(missoes))),
-          // Quanto custa um nível (tabela Configuracoes). Se falhar, vale o
-          // espelho do config — o mesmo número enquanto o banco não mudar.
-          nullSeFalhar(api.admin.parametros()),
-        ]);
+        const [sessoes, estatisticas, indicadores, licoes, parametros] = await (adiantado ?? pedirResto());
         if (cancelado) return;
 
         setCarga({

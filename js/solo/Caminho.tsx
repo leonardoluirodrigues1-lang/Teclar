@@ -462,19 +462,29 @@ function Caminho() {
         // e ao histórico (são da campanha do token). Primeira vez no Solo:
         // cria aqui mesmo. O POST é idempotente (quem já tem recebe a que
         // existe), então duas abas ao mesmo tempo não criam duas.
-        const campanha = (await api.solo.campanhaAtual()) ?? (await api.solo.criarCampanha());
+        //
+        // Quem já tem campanha (o login traz o id dela) pede as listas junto
+        // com a campanha: uma espera em vez de duas.
+        const pedirListas = () =>
+          Promise.all([
+            api.solo.missoes().then((m) => desembrulhar<Missao>(m)),
+            api.solo
+              .historico()
+              .then((h) => desembrulhar<SessaoSolo>(h))
+              .catch((falha) => {
+                console.error(falha);
+                return null;
+              }),
+          ]);
+        const adiantadas = sessao.campanhaAtiva() ? pedirListas() : null;
+        // O id guardado pode ser velho (campanha apagada): aí as listas
+        // adiantadas levam 404 e são descartadas, sem erro solto no console.
+        adiantadas?.catch(() => {});
+        const existente = await api.solo.campanhaAtual();
+        const campanha = existente ?? (await api.solo.criarCampanha());
         if (cancelado) return;
 
-        const [licoes, sessoes] = await Promise.all([
-          api.solo.missoes().then((m) => desembrulhar<Missao>(m)),
-          api.solo
-            .historico()
-            .then((h) => desembrulhar<SessaoSolo>(h))
-            .catch((falha) => {
-              console.error(falha);
-              return null;
-            }),
-        ]);
+        const [licoes, sessoes] = await (existente && adiantadas ? adiantadas : pedirListas());
         if (cancelado) return;
         // O treino lê o id da campanha da sessão (ver sessao.campanhaAtiva).
         sessao.atualizarUsuario({ campanhaAtiva: campanha.campanhaId });

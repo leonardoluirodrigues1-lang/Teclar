@@ -221,7 +221,18 @@ async function executar<T = unknown>(metodo: Metodo, rota: string, corpo?: unkno
 }
 
 // Atalhos por verbo HTTP. Mantêm o objeto api abaixo enxuto.
-const get = <T = unknown>(rota: string) => req<T>('GET', rota);
+// GETs iguais ao mesmo tempo viram uma requisição só: a Moldura e a tela do
+// Solo pedem /solo/campanha juntas ao abrir. Só enquanto a primeira está no
+// ar: nada fica guardado, a próxima chamada vai ao back de novo.
+const getsNoAr = new Map<string, Promise<unknown>>();
+const get = <T = unknown>(rota: string): Promise<T> => {
+  let pedido = getsNoAr.get(rota);
+  if (!pedido) {
+    pedido = req<T>('GET', rota).finally(() => getsNoAr.delete(rota));
+    getsNoAr.set(rota, pedido);
+  }
+  return pedido as Promise<T>;
+};
 const post = <T = unknown>(rota: string, corpo?: unknown, opcoes?: OpcoesReq) =>
   req<T>('POST', rota, corpo, opcoes);
 // Rota de autenticação: 401 é resposta esperada, não sessão expirada.
