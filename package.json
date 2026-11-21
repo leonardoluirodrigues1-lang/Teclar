@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "contrato": "node gerar-contrato.mjs"
+    "contrato": "node gerar-contrato.mjs",
+    "a11y": "node tools/axe.mjs"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
+    "axe-core": "4.10.2",
     "typescript": "^7.0.2"
   }
 }
