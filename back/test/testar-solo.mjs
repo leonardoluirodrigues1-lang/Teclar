@@ -28,6 +28,7 @@
 // dist/): o CASCADE leva a campanha e as sessões junto.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 import { randomUUID } from 'node:crypto';
 import { BancoService } from '../dist/banco/banco.service.js';
 

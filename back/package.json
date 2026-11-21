@@ -15,6 +15,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "seed": "tsx prisma/seed.ts",
+    "limpar-testes": "tsx prisma/limpar-testes.ts",
     "lint": "oxlint --type-aware src/ test/",
     "test:auth": "node test/testar-auth.mjs",
     "test:turmas": "node test/testar-turmas.mjs",

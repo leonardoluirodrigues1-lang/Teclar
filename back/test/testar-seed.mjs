@@ -17,8 +17,10 @@
 //   2. npm run test:seed
 //
 // Grava no banco: a conta "teste-seed-<horário>@teclar.dev" e o que pende
-// dela FICAM (é isso que o teste prova); o seed não as apaga.
+// dela sobrevivem aos dois seeds (é isso que o teste prova); quem as apaga,
+// no fim, é o limpar-testes (test/limpar-no-fim.mjs).
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 import { execSync } from 'node:child_process';
 
 const URL = 'http://localhost:3000/api';
@@ -178,4 +180,4 @@ for (const vez of ['1º', '2º']) {
   confere(`${vez} seed: a demo voltou ao retrato de um seed limpo${diferentes.length ? ` (difere: ${diferentes.join(', ')})` : ''}`, diferentes.length === 0);
 }
 
-console.log(`\nTudo certo. Conta de teste que fica no banco: ${email}`);
+console.log(`\nTudo certo. Conta de teste (o limpar-testes apaga agora): ${email}`);

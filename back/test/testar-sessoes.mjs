@@ -23,6 +23,7 @@
 // tem o teste dela, testar-solo.mjs). O npm run seed apaga o que ele cria.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 import { randomUUID } from 'node:crypto';
 import { BancoService } from '../dist/banco/banco.service.js';
 

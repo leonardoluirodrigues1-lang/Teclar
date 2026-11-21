@@ -23,6 +23,7 @@
 // (para o CATEGORIA_EM_USO), que o npm run seed apaga.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 import { BancoService } from '../dist/banco/banco.service.js';
 
 const URL = 'http://localhost:3000/api';

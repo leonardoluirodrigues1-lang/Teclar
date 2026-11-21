@@ -35,8 +35,7 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { configuracaoDoBanco } from '../src/banco/configuracao-do-banco.js';
 import { LICOES, montarLicao } from '../../js/nucleo/licoes.js';
 
-// O tipo do "tx" de uma transação: o client sem os métodos de conexão.
-type Transacao = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
+import { apagarContas, type Transacao } from './apagar-contas.js';
 
 // Custo do bcrypt (2^10 rodadas): o padrão da biblioteca. O custo fica
 // gravado dentro do hash, então o login compara sem precisar saber dele.
@@ -75,58 +74,26 @@ function meioDiaEmBrasilia(dia: string): Date {
 const CONTAS_DA_DEMO = ['u-1', 'u-2', 'u-3'];
 const EMAILS_DA_DEMO = ['leo@teclar.dev', 'prof@teclar.dev', 'ana@teclar.dev'];
 
-// Apaga a demo inteira e nada além dela. Filhas antes das mães: nem toda FK
-// tem CASCADE (alunosturmas -> classesprof e professoresturmas -> users não
-// têm), e a ordem explícita deixa à vista o que depende do quê.
-//
+// Apaga a demo inteira e nada além dela (a ordem fica em apagar-contas.ts).
 // Os ids de turma, aluno, exercício e campanha do seed entram também pela
 // lista fixa, além de "o que pende das contas": assim uma linha do seed que
 // tenha perdido o vínculo (uma turma sem professor) não fica para trás e
 // quebra o INSERT seguinte com chave repetida.
 async function limparDemo(tx: Transacao): Promise<void> {
-  const ids = <T,>(linhas: T[], campo: keyof T) => linhas.map((linha) => linha[campo] as string);
-
-  const contas = ids(
-    await tx.users.findMany({
-      where: { OR: [{ ID: { in: CONTAS_DA_DEMO } }, { Email: { in: EMAILS_DA_DEMO } }] },
-      select: { ID: true },
-    }),
-    'ID',
+  const contas = await tx.users.findMany({
+    where: { OR: [{ ID: { in: CONTAS_DA_DEMO } }, { Email: { in: EMAILS_DA_DEMO } }] },
+    select: { ID: true },
+  });
+  await apagarContas(
+    tx,
+    contas.map((conta) => conta.ID),
+    {
+      turmas: TURMAS.map((t) => t.id),
+      exercicios: EXERCICIOS_DO_PROFESSOR.map((e) => e.id),
+      alunos: ALUNOS.map((aluno) => aluno.id),
+      campanhas: CAMPANHAS.map((c) => c.CampanhaID),
+    },
   );
-  const turmas = ids(
-    await tx.classesprof.findMany({
-      where: { OR: [{ ClassID: { in: TURMAS.map((t) => t.id) } }, { professoresturmas: { ProfessorID: { in: contas } } }] },
-      select: { ClassID: true },
-    }),
-    'ClassID',
-  );
-  const exercicios = ids(
-    await tx.exerciciosprof.findMany({
-      where: { OR: [{ ExerciseID: { in: EXERCICIOS_DO_PROFESSOR.map((e) => e.id) } }, { ProfessorID: { in: contas } }] },
-      select: { ExerciseID: true },
-    }),
-    'ExerciseID',
-  );
-  const matriculados = ids(await tx.alunosturmas.findMany({ where: { ClassID: { in: turmas } }, select: { AlunoID: true } }), 'AlunoID');
-  const alunos = [...new Set([...ALUNOS.map((aluno) => aluno.id), ...matriculados])];
-  const campanhas = ids(
-    await tx.campanhassolo.findMany({
-      where: { OR: [{ CampanhaID: { in: CAMPANHAS.map((c) => c.CampanhaID) } }, { JogadorID: { in: contas } }] },
-      select: { CampanhaID: true },
-    }),
-    'CampanhaID',
-  );
-
-  await tx.sessionsprof.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ExerciseID: { in: exercicios } }] } });
-  await tx.atribuicoesprof.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ExerciseID: { in: exercicios } }] } });
-  await tx.alunosturmas.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { AlunoID: { in: alunos } }] } });
-  await tx.alunos.deleteMany({ where: { ID: { in: alunos } } });
-  await tx.professoresturmas.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ProfessorID: { in: contas } }] } });
-  await tx.classesprof.deleteMany({ where: { ClassID: { in: turmas } } });
-  await tx.exerciciosprof.deleteMany({ where: { ExerciseID: { in: exercicios } } });
-  await tx.sessionssolo.deleteMany({ where: { CampanhaID: { in: campanhas } } });
-  await tx.campanhassolo.deleteMany({ where: { CampanhaID: { in: campanhas } } });
-  await tx.users.deleteMany({ where: { ID: { in: contas } } });
 }
 
 // ============================================================================

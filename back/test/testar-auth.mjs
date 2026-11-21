@@ -35,6 +35,7 @@
 // O npm run seed apaga todas.
 import 'dotenv/config';
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 import { spawnSync } from 'node:child_process';
 import { JwtService } from '@nestjs/jwt';
 

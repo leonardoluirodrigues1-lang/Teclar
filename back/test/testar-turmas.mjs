@@ -34,6 +34,7 @@
 // sessões deles, gravadas pela rota POST /sessoes). O npm run seed apaga
 // tudo.
 import assert from 'node:assert/strict';
+import './limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 
 const URL = 'http://localhost:3000/api';
 

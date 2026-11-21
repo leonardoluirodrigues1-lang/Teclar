@@ -16,7 +16,33 @@ ar e o seed aplicado: `npm run test:auth`, `test:solo`, `test:turmas`,
 `test:atribuicoes`, `test:alunos`, `test:exercicios`, `test:sessoes`,
 `test:relatorios`, `test:aluno`, `test:ranking` e `test:administracao`.
 `npm run test:seed` roda o seed duas vezes e confere que só a demonstração
-volta ao começo (deixa no banco a conta `teste-seed-<horário>@teclar.dev`).
+volta ao começo.
+
+### Contas de teste (`npm run limpar-testes`)
+
+O seed não apaga as contas do cadastro, e os testes criam contas pelo
+cadastro. `npm run limpar-testes` apaga só as contas de e-mail
+`teste-…@teclar.dev` ou `solo-…@teclar.dev` e tudo o que é delas (turmas,
+alunos, exercícios, sessões, campanhas). A demonstração e as lições do Solo
+ficam. Antes de apagar, mostra o banco-alvo e quantas contas vão sair, e só
+segue confirmado:
+
+- `--local`: só com o banco nesta máquina (localhost, 127.0.0.1, ::1);
+- `--confirmar=<host>/<banco>`: qualquer banco, escrito igual ao que o
+  script mostra;
+- sem nada, num terminal: pergunta o `<host>/<banco>`.
+
+As 12 suítes e o `js/nucleo/api.back.check.mjs` rodam o
+`limpar-testes -- --local` sozinhos no fim (passando ou falhando), pelo
+`test/limpar-no-fim.mjs`.
+
+**Regra:** suíte ou `api.back.check` rodados contra a produção (o TiDB)
+deixam as contas lá — o `--local` recusa banco remoto. Logo depois, rode no
+TiDB, com o `DATABASE_URL` dele só no ambiente:
+
+```
+npm run limpar-testes -- --confirmar=<host-do-tidb>/teclardb_v10
+```
 
 ## Swagger
 

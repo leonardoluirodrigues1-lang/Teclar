@@ -20,6 +20,7 @@
 // Precisa de CONFIG.MOCK = false: com o mock ligado, nada disto sai para a rede.
 // Grava no banco (contas teste-*@teclar.dev, turma, alunos); o npm run seed apaga.
 import assert from 'node:assert/strict';
+import '../../back/test/limpar-no-fim.mjs'; // apaga as contas teste-/solo- no fim
 
 // --- o navegador de mentira -------------------------------------------------
 // sessao.js e api.js usam sessionStorage, localStorage, location e window.
