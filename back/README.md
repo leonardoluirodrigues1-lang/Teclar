@@ -15,6 +15,8 @@ administração (categorias e parâmetros). Testes de fumaça, com o back no
 ar e o seed aplicado: `npm run test:auth`, `test:solo`, `test:turmas`,
 `test:atribuicoes`, `test:alunos`, `test:exercicios`, `test:sessoes`,
 `test:relatorios`, `test:aluno`, `test:ranking` e `test:administracao`.
+`npm run test:seed` roda o seed duas vezes e confere que só a demonstração
+volta ao começo (deixa no banco a conta `teste-seed-<horário>@teclar.dev`).
 
 ## Swagger
 
@@ -98,8 +100,17 @@ O prefixo `/api` e a porta 3000 são os que o front espera
 
 ## Dados de teste (`npm run seed`)
 
-**Apaga** contas, alunos, turmas, exercícios e sessões e insere tudo de
-novo. Rodar duas vezes dá o mesmo banco. Categorias e Configuracoes não
+**Não destrutivo**: apaga e recria só a demonstração, isto é, as três
+contas do seed (pelos ids `u-1` a `u-3` ou pelos e-mails `leo@`, `prof@` e
+`ana@teclar.dev`) e tudo o que pende delas: campanhas e sessões Solo,
+exercícios, turmas (as do seed e qualquer outra criada nessas contas, como as
+dos testes), vínculos, alunos, matrículas, atribuições e sessões. Contas
+criadas pelo cadastro, e tudo ligado a elas, **não são tocadas**: dá para
+rodar no banco da apresentação sem perder as contas de verdade. As 76 lições
+do Solo são atualizadas no lugar (upsert), nunca apagadas, porque as sessões
+Solo de qualquer conta apontam para elas. Rodar duas vezes dá a mesma demo
+(`npm run test:seed` confere isso, e que uma conta do cadastro com turma,
+aluno e sessões sai intacta). Categorias e Configuracoes não
 são tocadas (quem as semeia é o `.sql`). Os dados são os do mock do front,
 com os mesmos ids e nomes, e as 76 lições do Solo vêm do mesmo arquivo que
 o mock lê (`js/nucleo/licoes.ts`).

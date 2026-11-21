@@ -68,6 +68,9 @@ Precisa de Node.js 20+, MySQL e do VS Code com a extensão **Live Server**.
 
 ### Logins de teste (criados pelo `npm run seed`)
 
+O seed só apaga e recria estas contas de demonstração e o que pende delas;
+as contas criadas pelo cadastro ficam intactas (ver `back/README.md`).
+
 | Tipo | Login | Senha |
 |---|---|---|
 | Professor | `prof@teclar.dev` | `senha123` |

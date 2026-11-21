@@ -26,7 +26,8 @@
     "test:ranking": "node test/testar-ranking.mjs",
     "test:solo": "node test/testar-solo.mjs",
     "test:aluno": "node test/testar-aluno.mjs",
-    "test:administracao": "node test/testar-administracao.mjs"
+    "test:administracao": "node test/testar-administracao.mjs",
+    "test:seed": "node test/testar-seed.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

@@ -1,14 +1,21 @@
 // seed.ts
 // Dados de teste para o teclardb_v10. Rodar com:  npm run seed
-// Só numa base descartável: nunca rode o seed numa cópia com dados reais.
+// Só mexe na demonstração (ver NÃO DESTRUTIVO abaixo): as contas do cadastro ficam.
 //
-// ATENÇÃO: APAGA tudo das tabelas que ele preenche (contas, alunos, turmas,
-// exercícios, sessões) antes de inserir. É para o banco de desenvolvimento.
-// Categorias e Configuracoes ficam como estão: quem as semeia é o
-// DB_Teclar_v10.sql.
+// NÃO DESTRUTIVO: apaga e recria SÓ os dados de demonstração, isto é, as
+// três contas do seed (pelos ids 'u-1'..'u-3' OU pelos e-mails
+// leo@/prof@/ana@teclar.dev) e tudo o que pende delas: campanhas e sessões
+// Solo, exercícios, turmas (as do seed e qualquer outra criada nessas
+// contas, como as dos testes), vínculos, alunos, matrículas, atribuições e
+// sessões. Contas criadas pelo cadastro, e tudo ligado a elas, não são
+// tocadas. Por isso dá para rodar no banco da apresentação.
+// As 76 lições do Solo são um catálogo de todos (as sessões Solo de
+// qualquer conta apontam para elas): são atualizadas no lugar (upsert),
+// nunca apagadas. Categorias e Configuracoes ficam como estão: quem as
+// semeia é o DB_Teclar_v10.sql.
 //
 // Idempotente: rodar duas vezes dá o mesmo banco, porque cada rodada
-// começa limpando e os ids são fixos ('u-1', 'turma-1'...), não gerados.
+// começa limpando a demo e os ids são fixos ('u-1', 'turma-1'...).
 //
 // Os dados são os do mock do front (js/nucleo/mocks.ts): os mesmos ids,
 // códigos de turma, nomes e senhas, para a tela com mock e a tela com o
@@ -62,22 +69,64 @@ function meioDiaEmBrasilia(dia: string): Date {
 // 1. Limpeza
 // ============================================================================
 
-// Filhas antes das mães: uma linha não pode sumir enquanto outra aponta
-// para ela. As FKs têm ON DELETE CASCADE e apagar só Users já levaria quase
-// tudo junto — mas a ordem explícita deixa à vista o que depende do quê, e
-// não depende de alguém lembrar que o CASCADE está lá.
-async function limparTabelas(tx: Transacao): Promise<void> {
-  await tx.sessionsprof.deleteMany();
-  await tx.sessionssolo.deleteMany();
-  await tx.atribuicoesprof.deleteMany();
-  await tx.alunosturmas.deleteMany();
-  await tx.professoresturmas.deleteMany();
-  await tx.alunos.deleteMany();
-  await tx.classesprof.deleteMany();
-  await tx.exerciciosprof.deleteMany();
-  await tx.campanhassolo.deleteMany();
-  await tx.exerciciossolo.deleteMany();
-  await tx.users.deleteMany();
+// O que é da demonstração: as contas do seed, achadas pelo id OU pelo
+// e-mail (se alguém tiver apagado e recriado uma delas, o id muda; o e-mail
+// é UNIQUE e continua dizendo que é a da demo).
+const CONTAS_DA_DEMO = ['u-1', 'u-2', 'u-3'];
+const EMAILS_DA_DEMO = ['leo@teclar.dev', 'prof@teclar.dev', 'ana@teclar.dev'];
+
+// Apaga a demo inteira e nada além dela. Filhas antes das mães: nem toda FK
+// tem CASCADE (alunosturmas -> classesprof e professoresturmas -> users não
+// têm), e a ordem explícita deixa à vista o que depende do quê.
+//
+// Os ids de turma, aluno, exercício e campanha do seed entram também pela
+// lista fixa, além de "o que pende das contas": assim uma linha do seed que
+// tenha perdido o vínculo (uma turma sem professor) não fica para trás e
+// quebra o INSERT seguinte com chave repetida.
+async function limparDemo(tx: Transacao): Promise<void> {
+  const ids = <T,>(linhas: T[], campo: keyof T) => linhas.map((linha) => linha[campo] as string);
+
+  const contas = ids(
+    await tx.users.findMany({
+      where: { OR: [{ ID: { in: CONTAS_DA_DEMO } }, { Email: { in: EMAILS_DA_DEMO } }] },
+      select: { ID: true },
+    }),
+    'ID',
+  );
+  const turmas = ids(
+    await tx.classesprof.findMany({
+      where: { OR: [{ ClassID: { in: TURMAS.map((t) => t.id) } }, { professoresturmas: { ProfessorID: { in: contas } } }] },
+      select: { ClassID: true },
+    }),
+    'ClassID',
+  );
+  const exercicios = ids(
+    await tx.exerciciosprof.findMany({
+      where: { OR: [{ ExerciseID: { in: EXERCICIOS_DO_PROFESSOR.map((e) => e.id) } }, { ProfessorID: { in: contas } }] },
+      select: { ExerciseID: true },
+    }),
+    'ExerciseID',
+  );
+  const matriculados = ids(await tx.alunosturmas.findMany({ where: { ClassID: { in: turmas } }, select: { AlunoID: true } }), 'AlunoID');
+  const alunos = [...new Set([...ALUNOS.map((aluno) => aluno.id), ...matriculados])];
+  const campanhas = ids(
+    await tx.campanhassolo.findMany({
+      where: { OR: [{ CampanhaID: { in: CAMPANHAS.map((c) => c.CampanhaID) } }, { JogadorID: { in: contas } }] },
+      select: { CampanhaID: true },
+    }),
+    'CampanhaID',
+  );
+
+  await tx.sessionsprof.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ExerciseID: { in: exercicios } }] } });
+  await tx.atribuicoesprof.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ExerciseID: { in: exercicios } }] } });
+  await tx.alunosturmas.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { AlunoID: { in: alunos } }] } });
+  await tx.alunos.deleteMany({ where: { ID: { in: alunos } } });
+  await tx.professoresturmas.deleteMany({ where: { OR: [{ ClassID: { in: turmas } }, { ProfessorID: { in: contas } }] } });
+  await tx.classesprof.deleteMany({ where: { ClassID: { in: turmas } } });
+  await tx.exerciciosprof.deleteMany({ where: { ExerciseID: { in: exercicios } } });
+  await tx.sessionssolo.deleteMany({ where: { CampanhaID: { in: campanhas } } });
+  await tx.campanhassolo.deleteMany({ where: { CampanhaID: { in: campanhas } } });
+  await tx.users.deleteMany({ where: { ID: { in: contas } } });
 }
 
 // ============================================================================
@@ -106,18 +155,20 @@ async function inserirContas(tx: Transacao, senhaHash: string): Promise<void> {
 // do lobby. O mock dá à camp-1 nível 4 e 669 XP, mas esse XP é a soma de
 // dez sessões Solo que o seed não cria; gravar 669 sem elas faria a
 // campanha e o histórico contarem histórias diferentes.
-async function inserirSolo(tx: Transacao): Promise<void> {
-  await tx.campanhassolo.createMany({
-    data: [
-      { CampanhaID: 'camp-1', JogadorID: 'u-1', NivelAtual: 1, XPTotal: 0 },
-      { CampanhaID: 'camp-2', JogadorID: 'u-2', NivelAtual: 1, XPTotal: 0 },
-    ],
-  });
+const CAMPANHAS = [
+  { CampanhaID: 'camp-1', JogadorID: 'u-1', NivelAtual: 1, XPTotal: 0 },
+  { CampanhaID: 'camp-2', JogadorID: 'u-2', NivelAtual: 1, XPTotal: 0 },
+];
 
-  const licoes = LICOES.map(montarLicao);
-  await tx.exerciciossolo.createMany({
-    data: licoes.map((licao) => ({
-      ExerciseID: licao.exerciseId,
+async function inserirSolo(tx: Transacao): Promise<void> {
+  await tx.campanhassolo.createMany({ data: CAMPANHAS });
+}
+
+// As lições do Solo, no lugar: upsert pelo id. Apagar e recriar levaria
+// junto (CASCADE) as sessões Solo das contas de verdade.
+async function atualizarLicoes(tx: Transacao): Promise<void> {
+  for (const licao of LICOES.map(montarLicao)) {
+    const dados = {
       Titulo: licao.titulo,
       Texto: licao.texto,
       Dificuldade: licao.dificuldade,
@@ -125,8 +176,13 @@ async function inserirSolo(tx: Transacao): Promise<void> {
       Nivel: licao.nivel,
       Repeticoes: licao.repeticoes,
       Ordem: licao.ordem,
-    })),
-  });
+    };
+    await tx.exerciciossolo.upsert({
+      where: { ExerciseID: licao.exerciseId },
+      create: { ExerciseID: licao.exerciseId, ...dados },
+      update: dados,
+    });
+  }
 }
 
 // ============================================================================
@@ -513,7 +569,8 @@ async function semear(): Promise<void> {
     // desfeita, e o banco não fica pela metade.
     await banco.$transaction(
       async (tx) => {
-        await limparTabelas(tx);
+        await limparDemo(tx);
+        await atualizarLicoes(tx);
         await inserirContas(tx, hashDasContas);
         await inserirSolo(tx);
         await inserirExercicios(tx);
@@ -521,9 +578,9 @@ async function semear(): Promise<void> {
         await inserirAlunos(tx, hashDosAlunos, hashDaProvisoria);
         await inserirSessoes(tx);
       },
-      // O padrão do Prisma é 5 s; 76 lições + o resto passam disso numa
-      // máquina lenta.
-      { timeout: 30_000 },
+      // O padrão do Prisma é 5 s; 76 upserts de lição + o resto passam disso
+      // numa máquina lenta, e mais ainda no TiDB, longe daqui.
+      { timeout: 120_000 },
     );
     console.log('Seed concluído. Credenciais no README do back.');
   } finally {
