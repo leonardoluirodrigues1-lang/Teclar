@@ -256,6 +256,7 @@ const salaEsperada = {
   nome: turma.nome,
   professor: 'Henrique Lima',
   capaSemente: turma.capaSemente,
+  temCapa: false,
   totalAlunos: 3,
   exerciciosFeitos: 2,
   exerciciosTotal: 3,

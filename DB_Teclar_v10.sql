@@ -93,6 +93,7 @@ CREATE TABLE teclardb_v10.classesprof (
     Semestre INT NULL,                       -- NULL preserva turmas v9 sem período
     Ativa BOOLEAN NOT NULL DEFAULT TRUE,     -- FALSE = arquivada
     CapaSemente INT NULL,
+    CapaImagem MEDIUMBLOB NULL,             -- WEBP de até 1200×400 e 150 KB; NULL = só o desenho da semente
     Data_Criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_turma_semestre CHECK (Semestre IS NULL OR Semestre IN (1, 2))
 ) ENGINE=InnoDB;

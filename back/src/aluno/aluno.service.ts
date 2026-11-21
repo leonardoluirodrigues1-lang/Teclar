@@ -30,6 +30,9 @@ import { atribuicoesDaSala, estaBloqueada, sequenciaDaSala } from '../sessoes/li
 import { arredondarOuNull, mediaInteira, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import { lerLicoesPorNivel, nivelDe } from '../sessoes/nivel-escolar.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
+import { capaComoDataUrl, turmasComCapa } from '../turmas/capa.js';
+import { semCapa } from '../turmas/turmas.service.js';
+import type { ImagemDaCapa } from '../turmas/turmas.service.js';
 
 // Uma linha do histórico (SessaoDoHistorico no front): a sessão, a turma,
 // e os dois JOINs — título do exercício e nome da turma.
@@ -54,6 +57,8 @@ export interface SalaDoAluno {
   nome: string;
   professor: string | null;
   capaSemente?: number;
+  /** A sala tem imagem de capa: GET /aluno/salas/:turmaId/capa. */
+  temCapa: boolean;
   totalAlunos: number;
   exerciciosFeitos: number;
   exerciciosTotal: number;
@@ -202,6 +207,21 @@ export class AlunoService {
     return { ...(await this.resumoDaSala(turma, lista)), lista };
   }
 
+  // GET /aluno/salas/:turmaId/capa. A mesma imagem que o professor vê, só
+  // para o aluno da sala: a de outra sala é o mesmo 404 das outras rotas.
+  async capa(identidade: Identidade, turmaId: string): Promise<ImagemDaCapa> {
+    const alunoId = alunoDoToken(identidade);
+    await this.salaDoAluno(alunoId, turmaId);
+    const linha = await this.banco.classesprof.findUniqueOrThrow({
+      where: { ClassID: turmaId },
+      select: { CapaImagem: true },
+    });
+    if (!linha.CapaImagem) {
+      throw semCapa();
+    }
+    return { imagem: capaComoDataUrl(linha.CapaImagem) };
+  }
+
   // GET /turmas/:turmaId/meu-desempenho. Só sessões desta turma. Com menos
   // de 3 concluídas, as duas médias vêm null.
   async meuDesempenho(identidade: Identidade, turmaId: string): Promise<DesempenhoNaTurma> {
@@ -258,6 +278,7 @@ export class AlunoService {
       id: turma.ClassID,
       nome: turma.NomeTurma ?? '',
       professor: turma.professoresturmas?.users.Nome ?? '',
+      temCapa: (await turmasComCapa(this.banco, [turma.ClassID])).has(turma.ClassID),
       totalAlunos,
       exerciciosFeitos: lista.filter((exercicio) => exercicio.estado !== 'nao_feito').length,
       exerciciosTotal: lista.length,

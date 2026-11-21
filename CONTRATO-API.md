@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-55 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+59 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -29,12 +29,12 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 - **Autenticação**: `POST /auth/login`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
-- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
+- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `POST /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `POST /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
@@ -669,6 +669,90 @@ O token: a turma tem de ser da conta.
 **Regras de negócio no back (a tela não calcula):**
 
 Grava em Turmas.CapaSemente, que aceita NULL (a tela deriva uma do id).
+
+### `PUT /turmas/:id/capa`
+
+Chamada no front: `api.turmas.enviarCapa`
+
+**Corpo:**
+
+{ imagem } — WEBP em data URL, de no máximo 1200×400 e 150 KB
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Resposta:**
+
+200 Turma — a turma como ficou, com temCapa true
+
+```json
+{ "id": "turma-1", "nome": "9º Ano A — Manhã", "capaSemente": 7001, "temCapa": true, "ativa": true }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — não é WEBP, passa de 150 KB ou de 1200×400
+- 404 NAO_ENCONTRADO — não existe ou é de outra conta
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Grava os bytes em ClassesProf.CapaImagem (MEDIUMBLOB), trocando a de antes. Quem reduz e converte é o navegador (js/utils/imagemDaCapa.ts); o back confere o tipo, o tamanho e as dimensões do cabeçalho do WEBP. A CapaSemente fica.
+
+### `GET /turmas/:id/capa`
+
+Chamada no front: `api.turmas.capa`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ImagemDaCapa
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — sem imagem, não existe ou é de outra conta
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+A imagem não vem em GET /turmas nem em GET /turmas/:id (lá só temCapa): a tela pede esta rota quando temCapa é true.
+
+### `DELETE /turmas/:id/capa`
+
+Chamada no front: `api.turmas.removerCapa`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+204 — sem corpo (também quando a turma já não tinha imagem)
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — não existe ou é de outra conta
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+ClassesProf.CapaImagem = NULL: a capa volta a ser o desenho da CapaSemente.
 
 ### `PATCH /turmas/:id` (arquivar)
 
@@ -1570,6 +1654,33 @@ O token. O :turmaId é da SALA, nunca de aluno.
 **Regras de negócio no back (a tela não calcula):**
 
 Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.
+
+### `GET /aluno/salas/:turmaId/capa`
+
+Chamada no front: `api.escola.aluno.capaDaSala`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ImagemDaCapa — a mesma imagem que o professor enviou
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — sem imagem, a sala não existe ou ele não está nela
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token. O :turmaId é da SALA, nunca de aluno.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Lê ClassesProf.CapaImagem. A sala diz temCapa em GET /aluno/salas.
 
 ### `GET /turmas/:turmaId/meu-desempenho`
 

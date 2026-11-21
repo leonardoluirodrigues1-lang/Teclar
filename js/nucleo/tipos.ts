@@ -300,6 +300,9 @@ export interface Turma {
   periodo?: string;
   /** Semente do desenho da capa. Sem ela, a tela deriva uma do id. */
   capaSemente?: number;
+  /** Tem imagem enviada pelo professor (GET /turmas/:id/capa). false: a
+   *  capa é só o desenho da semente. */
+  temCapa: boolean;
   /** false = arquivada: some de GET /turmas e aparece em
    *  GET /turmas?ativa=false; o histórico continua. É o único estado da
    *  turma — não existe "encerrada" à parte. */
@@ -308,6 +311,12 @@ export interface Turma {
 }
 
 /** GET /turmas/:id — as métricas do topo da tela de turma, já calculadas. */
+/** GET /turmas/:id/capa e GET /aluno/salas/:id/capa: um WEBP em data URL,
+ *  pronto para o src do <img>. */
+export interface ImagemDaCapa {
+  imagem: string;
+}
+
 export interface TurmaDetalhe extends Turma {
   /** média com 1 casa decimal, só dos alunos que treinaram; null se ninguém */
   ppmMedio: number | null;
@@ -708,6 +717,8 @@ export interface SalaDoAluno {
   nome: string;
   professor: string | null;
   capaSemente?: number;
+  /** A sala tem imagem de capa (GET /aluno/salas/:id/capa). */
+  temCapa: boolean;
   /** Alunos da sala, ele incluído. COUNT do back. */
   totalAlunos: number;
   /** Exercícios atribuídos que ele já fez (concluído ou tempo esgotado). */

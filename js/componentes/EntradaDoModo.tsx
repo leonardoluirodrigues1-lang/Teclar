@@ -14,6 +14,7 @@
 // (shaderBuracoNegro.ts).
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { rng } from '../landing/letras.js';
 import { iniciarBuracoNegro } from './shaderBuracoNegro.js';
@@ -134,6 +135,10 @@ interface PropsCartao {
   /** A linha em mono abaixo do nome (período ou professor). Vazia: some. */
   linha?: string | null;
   capaSemente?: number;
+  /** Tem imagem enviada (Turma.temCapa / SalaDoAluno.temCapa). */
+  temCapa?: boolean;
+  /** A imagem vem pela rota do aluno (GET /aluno/salas/:id/capa). */
+  daSala?: boolean;
   /** Logo depois do nome, dentro do título (a estrela de conquista). */
   aposNome?: ReactNode;
   /** Classe a mais no <article> (ex.: a do menu aberto). */
@@ -144,11 +149,11 @@ interface PropsCartao {
   children?: ReactNode;
 }
 
-export function CartaoDeTurma({ id, nome, href, linha, capaSemente, aposNome, classe, fora, children }: PropsCartao) {
+export function CartaoDeTurma({ id, nome, href, linha, capaSemente, temCapa, daSala, aposNome, classe, fora, children }: PropsCartao) {
   return (
     <article className={classe ? `cartao vidro ${classe}` : 'cartao vidro'}>
       <div className="cartao-capa" aria-hidden="true">
-        <CapaDaTurma semente={sementeDaTurma(id, capaSemente)} />
+        <CapaOuImagem id={id} semente={sementeDaTurma(id, capaSemente)} temCapa={temCapa} daSala={daSala} />
       </div>
 
       <div className="cartao-corpo">
@@ -180,6 +185,64 @@ export function CartaoDeTurma({ id, nome, href, linha, capaSemente, aposNome, cl
       {fora}
     </article>
   );
+}
+
+// Capa com imagem — a que o professor enviou, quando há
+
+// Uma busca por turma por página: o cartão e a prévia do modal pedem a
+// mesma. O modal grava aqui o que acabou de enviar (lembrarCapa), e a grade
+// troca a imagem sem pedir de novo.
+const capasPedidas = new Map<string, Promise<string | null>>();
+
+export function lembrarCapa(id: string, imagem: string | null): void {
+  capasPedidas.set(id, Promise.resolve(imagem));
+  // Trocar uma imagem por outra não muda temCapa: o aviso é que faz as
+  // capas desta turma já na tela lerem de novo.
+  window.dispatchEvent(new CustomEvent(EVENTO_CAPA, { detail: id }));
+}
+const EVENTO_CAPA = 'teclar:capa-trocada';
+
+function pedirCapa(id: string, daSala: boolean): Promise<string | null> {
+  let pedido = capasPedidas.get(id);
+  if (!pedido) {
+    pedido = (daSala ? api.escola.aluno.capaDaSala(id) : api.turmas.capa(id))
+      .then((resposta) => resposta.imagem)
+      .catch((falha) => {
+        // Sem a imagem, fica o desenho: a tela continua de pé.
+        console.error(falha);
+        capasPedidas.delete(id);
+        return null;
+      });
+    capasPedidas.set(id, pedido);
+  }
+  return pedido;
+}
+
+interface PropsCapaOuImagem {
+  id: string;
+  semente: number;
+  temCapa?: boolean;
+  daSala?: boolean;
+}
+
+/** A imagem enviada, quando a turma tem; senão (e enquanto ela chega) o
+ *  desenho da semente. Decorativa: alt vazio, quem diz a turma é o nome. */
+export function CapaOuImagem({ id, semente, temCapa = false, daSala = false }: PropsCapaOuImagem) {
+  const [imagem, setImagem] = useState<string | null>(null);
+  useEffect(() => {
+    setImagem(null);
+    if (!temCapa) return;
+    let viva = true;
+    const ler = () => pedirCapa(id, daSala).then((url) => viva && setImagem(url));
+    const aoTrocar = (evento: Event) => (evento as CustomEvent<string>).detail === id && ler();
+    ler();
+    window.addEventListener(EVENTO_CAPA, aoTrocar);
+    return () => {
+      viva = false;
+      window.removeEventListener(EVENTO_CAPA, aoTrocar);
+    };
+  }, [id, temCapa, daSala]);
+  return imagem ? <img className="capa-imagem" src={imagem} alt="" /> : <CapaDaTurma semente={semente} />;
 }
 
 // Capa gerada — arcos de luz sobre preto

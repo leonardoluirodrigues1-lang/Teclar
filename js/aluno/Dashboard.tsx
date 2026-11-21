@@ -156,6 +156,8 @@ function CartaoDaSala({ sala }: { sala: SalaDoAluno }) {
       href={`sala.html?${new URLSearchParams({ id: sala.id })}`}
       linha={sala.professor}
       capaSemente={sala.capaSemente}
+      temCapa={sala.temCapa}
+      daSala
       aposNome={
         completa && (
           <>

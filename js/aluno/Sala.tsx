@@ -149,6 +149,7 @@ function Sala() {
       titulo={sala ? sala.nome : null}
       subtitulo={sala ? `${sala.professor ?? '—'} · ${participantes(sala.totalAlunos)}` : null}
       descricao="Suas atividades nesta turma, na ordem. Comece pela que está acesa."
+      capa={sala?.temCapa ? { id: sala.id, capaSemente: sala.capaSemente, daSala: true } : null}
       acoes={proxima && (
         <a className="btn btn-solido tecla tecla-clara" href={proxima.href}>
           Começar: {proxima.titulo}

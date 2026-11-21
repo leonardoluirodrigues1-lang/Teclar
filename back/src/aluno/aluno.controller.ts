@@ -11,6 +11,7 @@ import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js
 import type { Paginado } from '../relatorios/relatorios.service.js';
 import { AlunoService } from './aluno.service.js';
 import type { DesempenhoNaTurma, ResumoDoAluno, SalaDetalhe, SalaDoAluno, SessaoDoHistorico } from './aluno.service.js';
+import type { ImagemDaCapa } from '../turmas/turmas.service.js';
 
 @Controller()
 @UseGuards(GuardaDoToken)
@@ -42,6 +43,11 @@ export class AlunoController {
   @Get('aluno/salas/:turmaId')
   sala(@Req() requisicao: RequisicaoComIdentidade, @Param('turmaId') turmaId: string): Promise<SalaDetalhe> {
     return this.aluno.sala(requisicao.identidade, turmaId);
+  }
+
+  @Get('aluno/salas/:turmaId/capa')
+  capa(@Req() requisicao: RequisicaoComIdentidade, @Param('turmaId') turmaId: string): Promise<ImagemDaCapa> {
+    return this.aluno.capa(requisicao.identidade, turmaId);
   }
 
   @Get('turmas/:turmaId/meu-desempenho')

@@ -28,7 +28,12 @@ const ORIGENS_DO_FRONT = [
 ];
 
 async function iniciar(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // bodyParser: false + useBodyParser abaixo: só para subir o limite do JSON.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
+  // 256 KB, e não os 100 KB padrão: a capa da turma vem em base64 (150 KB de
+  // WEBP viram ~200 KB). O teto da imagem é conferido em turmas/capa.ts.
+  app.useBodyParser('json', { limit: '256kb' });
+  app.useBodyParser('urlencoded', { extended: true });
   // No Render o back fica atrás de um proxy: sem isto, req.ip seria o IP do
   // proxy, e o limite de tentativas contaria todo mundo como um só.
   app.set('trust proxy', 1);

@@ -25,6 +25,7 @@ import type {
   ExercicioDetalhe,
   Filtros,
   EstatisticasSolo,
+  ImagemDaCapa,
   IndicadoresSolo,
   ItemFila,
   Missao,
@@ -307,6 +308,13 @@ export const api = {
 
     novoCodigo: (id: string) => post<CodigoDaTurma>(`/turmas/${id}/codigo/novo`),
 
+    // A imagem da capa, como data URL WEBP (ver utils/imagemDaCapa.ts).
+    capa: (id: string) => get<ImagemDaCapa>(`/turmas/${id}/capa`),
+
+    enviarCapa: (id: string, imagem: string) => put<Turma>(`/turmas/${id}/capa`, { imagem }),
+
+    removerCapa: (id: string) => del(`/turmas/${id}/capa`),
+
     atribuicoes: (turmaId: string) =>
       get<AtribuicaoProfessor[]>(`/turmas/${turmaId}/atribuicoes`),
 
@@ -375,6 +383,8 @@ export const api = {
       salas: () => get<SalaDoAluno[]>('/aluno/salas'),
 
       sala: (id: string) => get<SalaDetalhe>(`/aluno/salas/${encodeURIComponent(id)}`),
+
+      capaDaSala: (id: string) => get<ImagemDaCapa>(`/aluno/salas/${encodeURIComponent(id)}/capa`),
 
       desempenhoNaTurma: (turmaId: string) =>
         get<DesempenhoNaTurma>(`/turmas/${encodeURIComponent(turmaId)}/meu-desempenho`),

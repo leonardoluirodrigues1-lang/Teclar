@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 55 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 59 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -125,6 +125,14 @@ confere('turmas.listar traz a turma nova', (await api.turmas.listar()).some((t) 
 confere('turmas.obter traz ppmMedio null (ninguém treinou)', (await api.turmas.obter(turma.id)).ppmMedio === null);
 confere('turmas.renomear', (await api.turmas.renomear(turma.id, `Turma Renomeada ${marca}`)).nome === `Turma Renomeada ${marca}`);
 confere('turmas.trocarCapa', (await api.turmas.trocarCapa(turma.id, 4242)).capaSemente === 4242);
+// Um WEBP 1×1 de verdade: a forma que utils/imagemDaCapa.ts entrega.
+const CAPA = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+confere('turmas.enviarCapa devolve a turma com temCapa', (await api.turmas.enviarCapa(turma.id, CAPA)).temCapa === true);
+confere('turmas.capa devolve a mesma imagem', (await api.turmas.capa(turma.id)).imagem === CAPA);
+confere('turmas.removerCapa devolve null (204)', (await api.turmas.removerCapa(turma.id)) === null);
+await confereErro('turmas.capa depois de remover', api.turmas.capa(turma.id), 404, 'NAO_ENCONTRADO');
+await confereErro('turmas.enviarCapa de PNG', api.turmas.enviarCapa(turma.id, 'data:image/png;base64,iVBORw0KGgo='), 400, 'DADOS_INVALIDOS');
+await api.turmas.enviarCapa(turma.id, CAPA); // fica, para o aluno ler na sala dele
 confere('turmas.arquivar', (await api.turmas.arquivar(turma.id)).ativa === false);
 confere('turmas.listarArquivadas traz a arquivada', (await api.turmas.listarArquivadas()).some((t) => t.id === turma.id));
 confere('turmas.desarquivar', (await api.turmas.desarquivar(turma.id)).ativa === true);
@@ -184,6 +192,7 @@ confere('a turma do aluno vem no login (sessao.turmaAtiva)', sessao.turmaAtiva()
 const salas = await api.escola.aluno.salas();
 confere('escola.aluno.salas: uma sala, nada feito', salas.length === 1 && salas[0].exerciciosFeitos === 0 && salas[0].exerciciosTotal === 1);
 const sala = await api.escola.aluno.sala(turma.id);
+confere('escola.aluno.capaDaSala: a capa que o professor enviou', sala.temCapa === true && (await api.escola.aluno.capaDaSala(turma.id)).imagem === CAPA);
 confere('escola.aluno.sala: exercício não feito e liberado', sala.lista[0].id === exercicio.id && sala.lista[0].estado === 'nao_feito' && sala.lista[0].bloqueada === false);
 const paraTreinar = await api.exercicios.obter(exercicio.id, turma.id);
 confere('exercicios.obter (aluno, com ?turma=) traz o texto', paraTreinar.texto === TEXTO);
@@ -366,4 +375,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 55 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 59 funções do api.ts contra o back.`);

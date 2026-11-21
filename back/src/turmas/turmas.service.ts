@@ -1,7 +1,7 @@
 // A regra do grupo "Turmas (professor)" do CONTRATO-API.md: GET /turmas
 // (ativas ou arquivadas), POST /turmas, GET /turmas/:id, PATCH /turmas/:id
-// (renomear, trocar a capa, arquivar, desarquivar) e
-// POST /turmas/:id/codigo/novo. (As rotas de atribuição, também do grupo,
+// (renomear, trocar a capa, arquivar, desarquivar),
+// POST /turmas/:id/codigo/novo e PUT/GET/DELETE /turmas/:id/capa (a imagem). (As rotas de atribuição, também do grupo,
 // estão em src/atribuicoes/.)
 //
 // Vale para todas:
@@ -13,7 +13,7 @@
 //   - Não existe excluir turma, só arquivar (Ativa = false): o histórico de
 //     treino dos alunos continua.
 import { randomInt, randomUUID } from 'node:crypto';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AlunosService } from '../alunos/alunos.service.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
@@ -23,6 +23,7 @@ import { diaDe } from '../sessoes/dias-seguidos.js';
 import { turmaDaConta } from './turma-da-conta.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { bytesDaCapa, capaComoDataUrl, turmasComCapa } from './capa.js';
 
 // O corpo do POST /turmas como chega. Tudo unknown: vem da rede, e um curl
 // pode mandar qualquer coisa. professorId está aqui só para ser RECUSADO
@@ -52,8 +53,15 @@ export interface Turma {
   totalExercicios: number;
   periodo?: string;
   capaSemente?: number;
+  /** Tem imagem enviada (GET /turmas/:id/capa). false: só o desenho da semente. */
+  temCapa: boolean;
   ativa: boolean;
   dataCriacao: string;
+}
+
+// GET /turmas/:id/capa.
+export interface ImagemDaCapa {
+  imagem: string;
 }
 
 // GET /turmas/:id: a turma mais o PPM médio do topo da tela de turma.
@@ -109,7 +117,8 @@ export class TurmasService {
       include: COM_CONTAGENS,
       orderBy: { Data_Criacao: 'asc' },
     });
-    return turmas.map(turmaNaForma);
+    const comCapa = await turmasComCapa(this.banco, turmas.map((turma) => turma.ClassID));
+    return turmas.map((turma) => turmaNaForma(turma, comCapa.has(turma.ClassID)));
   }
 
   // POST /turmas. Nasce ativa, com código e capa sorteados pelo back.
@@ -142,7 +151,7 @@ export class TurmasService {
         return tx.classesprof.findUniqueOrThrow({ where: { ClassID: classId }, include: COM_CONTAGENS });
       }),
     );
-    return turmaNaForma(turma);
+    return turmaNaForma(turma, false);
   }
 
   // GET /turmas/:id. Vale para turma ativa ou arquivada: o contrato só dá
@@ -160,7 +169,8 @@ export class TurmasService {
     const turma = await this.banco.classesprof.findUniqueOrThrow({ where: { ClassID: id }, include: COM_CONTAGENS });
     const alunos = await this.alunos.listar(identidade, id);
     const mediasDosAlunos = alunos.map((aluno) => aluno.wpmMedio).filter((media) => media !== null);
-    return { ...turmaNaForma(turma), ppmMedio: mediaComUmaCasa(mediasDosAlunos) };
+    const comCapa = await turmasComCapa(this.banco, [id]);
+    return { ...turmaNaForma(turma, comCapa.has(id)), ppmMedio: mediaComUmaCasa(mediasDosAlunos) };
   }
 
   // PATCH /turmas/:id. Pode vir mais de um campo; todos são validados antes
@@ -193,7 +203,46 @@ export class TurmasService {
       data: dados,
       include: COM_CONTAGENS,
     });
-    return turmaNaForma(turma);
+    const comCapa = await turmasComCapa(this.banco, [id]);
+    return turmaNaForma(turma, comCapa.has(id));
+  }
+
+  // PUT /turmas/:id/capa. Troca a imagem (a de antes some); a semente fica,
+  // para o desenho voltar se a imagem for removida. Turma arquivada também
+  // pode: o PATCH deixa trocar a semente dela.
+  async gravarCapa(identidade: Identidade, id: string, corpo: { imagem?: unknown }): Promise<Turma> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, id);
+    const bytes = bytesDaCapa(corpo?.imagem);
+    const turma = await this.banco.classesprof.update({
+      where: { ClassID: id },
+      data: { CapaImagem: bytes },
+      include: COM_CONTAGENS,
+    });
+    return turmaNaForma(turma, true);
+  }
+
+  // GET /turmas/:id/capa. Sem imagem é 404 também: a tela só pede quando
+  // a Turma diz temCapa.
+  async capa(identidade: Identidade, id: string): Promise<ImagemDaCapa> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, id);
+    const linha = await this.banco.classesprof.findUniqueOrThrow({
+      where: { ClassID: id },
+      select: { CapaImagem: true },
+    });
+    if (!linha.CapaImagem) {
+      throw semCapa();
+    }
+    return { imagem: capaComoDataUrl(linha.CapaImagem) };
+  }
+
+  // DELETE /turmas/:id/capa. Volta ao desenho da semente. Sem imagem não é
+  // erro: o resultado pedido (turma sem imagem) já vale.
+  async apagarCapa(identidade: Identidade, id: string): Promise<void> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, id);
+    await this.banco.classesprof.update({ where: { ClassID: id }, data: { CapaImagem: null } });
   }
 
   // POST /turmas/:id/codigo/novo. O código antigo para de valer na hora,
@@ -234,7 +283,7 @@ export class TurmasService {
 
 // Da linha do banco para a forma do contrato. Um lugar só monta, para as
 // quatro rotas devolverem a mesma Turma.
-function turmaNaForma(linha: TurmaComContagens): Turma {
+function turmaNaForma(linha: TurmaComContagens, temCapa: boolean): Turma {
   const turma: Turma = {
     id: linha.ClassID,
     codigo: linha.Codigo,
@@ -242,6 +291,7 @@ function turmaNaForma(linha: TurmaComContagens): Turma {
     nome: linha.NomeTurma ?? '',
     totalAlunos: linha._count.alunosturmas,
     totalExercicios: linha._count.atribuicoesprof,
+    temCapa,
     ativa: linha.Ativa,
     // Só a data ("2026-02-01"), como o contrato pede.
     dataCriacao: linha.Data_Criacao ? diaDe(linha.Data_Criacao) : '',
@@ -372,6 +422,10 @@ function cabeNoInt(valor: unknown): valor is number {
 // Os erros, no corpo que o contrato define para todo erro: { mensagem, codigo }.
 //
 // O contrato só diz "409"; o código segue o padrão de CATEGORIA_DUPLICADA.
+export function semCapa(): NotFoundException {
+  return new NotFoundException({ mensagem: 'Esta turma não tem imagem de capa.', codigo: 'NAO_ENCONTRADO' });
+}
+
 function nomeEmUso(): ConflictException {
   return new ConflictException({ mensagem: 'Você já tem uma turma com esse nome.', codigo: 'TURMA_DUPLICADA' });
 }

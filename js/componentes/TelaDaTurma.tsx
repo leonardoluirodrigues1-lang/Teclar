@@ -19,6 +19,7 @@
 import { comPpm } from './Ppm.js';
 import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
 import { Moldura } from './Moldura.js';
+import { CapaOuImagem, sementeDaTurma } from './EntradaDoModo.js';
 import { Bloco } from './Bloco.js';
 import { IconeCadeado } from './IconesDoTutorial.js';
 import { PainelEstado } from './PainelErro.js';
@@ -75,6 +76,8 @@ interface PropsCasca {
   acoes?: ReactNode;
   /** Entre o título e as abas (as métricas do professor). */
   extra?: ReactNode;
+  /** A imagem de capa da turma, acima do título. Sem imagem, nada. */
+  capa?: { id: string; capaSemente?: number; daSala?: boolean } | null;
   aba: AbaDaTurma;
   aoSelecionarAba: (aba: AbaDaTurma) => void;
   carregando: boolean;
@@ -87,7 +90,7 @@ interface PropsCasca {
 const NBSP = String.fromCharCode(0xa0);
 
 export function CascaDaTurma(props: PropsCasca) {
-  const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, aba, aoSelecionarAba, carregando, children } = props;
+  const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, capa, aba, aoSelecionarAba, carregando, children } = props;
 
   return (
     <Moldura
@@ -97,6 +100,12 @@ export function CascaDaTurma(props: PropsCasca) {
       classeDoConteudo="pagina"
     >
       <main>
+        {/* Só com imagem enviada: o desenho gerado fica para o cartão. */}
+        {capa && (
+          <div className="capa-topo" aria-hidden="true">
+            <CapaOuImagem id={capa.id} semente={sementeDaTurma(capa.id, capa.capaSemente)} temCapa daSala={capa.daSala} />
+          </div>
+        )}
         <div className="cabecalho">
           <div className="cabecalho-texto">
             <h1 className="titulo">{titulo ?? NBSP}</h1>

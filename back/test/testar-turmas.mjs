@@ -15,6 +15,9 @@
 //   GET /turmas/:id — a turma na forma do item de GET /turmas, mais o
 //     ppmMedio (1 casa decimal, só de quem concluiu sessão; null sem
 //     ninguém), também de turma arquivada.
+//   PUT/GET/DELETE /turmas/:id/capa — a imagem WEBP (≤ 150 KB, ≤ 1200×400),
+//     só do dono (outra conta 404), e GET /aluno/salas/:id/capa, só do aluno
+//     da sala.
 //   E, em todas: sem token 401, token de aluno 403 TIPO_INVALIDO, turma de
 //   outro professor (ou que não existe) 404 NAO_ENCONTRADO.
 //
@@ -331,5 +334,84 @@ confere(
 
 r = await chamar('GET', `/turmas/${herdeira.id}`, null, prof);
 confere('detalhe: turma ARQUIVADA também abre (só não existe ou de outra conta é 404)', r.status === 200 && r.corpo.ativa === false);
+
+// ============================================================================
+// PUT/GET/DELETE /turmas/:id/capa — a imagem da capa, só para o dono
+// ============================================================================
+// Um WEBP 1×1 de verdade (VP8L) e cabeçalhos VP8X montados à mão para as
+// dimensões que o back recusa sem decodificar.
+const WEBP_1X1 = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+function webpVp8x(largura, altura) {
+  const b = Buffer.alloc(30);
+  b.write('RIFF', 0, 'latin1');
+  b.writeUInt32LE(22, 4);
+  b.write('WEBPVP8X', 8, 'latin1');
+  b.writeUInt32LE(10, 16);
+  b.writeUIntLE(largura - 1, 24, 3);
+  b.writeUIntLE(altura - 1, 27, 3);
+  return 'data:image/webp;base64,' + b.toString('base64');
+}
+
+r = await chamar('GET', `/turmas/${nova.id}`, null, prof);
+confere('capa: turma nova nasce sem imagem (temCapa false)', r.status === 200 && r.corpo.temCapa === false);
+r = await chamar('GET', `/turmas/${nova.id}/capa`, null, prof);
+confere('capa: GET sem imagem é 404 NAO_ENCONTRADO', ehErro(r, 404, 'NAO_ENCONTRADO'));
+
+for (const { metodo, corpo } of [{ metodo: 'PUT', corpo: { imagem: WEBP_1X1 } }, { metodo: 'GET', corpo: undefined }, { metodo: 'DELETE', corpo: undefined }]) {
+  confere(`capa: ${metodo} sem token 401`, (await chamar(metodo, `/turmas/${nova.id}/capa`, corpo)).status === 401);
+  confere(`capa: ${metodo} com token de aluno 403 TIPO_INVALIDO`, ehErro(await chamar(metodo, `/turmas/${nova.id}/capa`, corpo, aluno), 403, 'TIPO_INVALIDO'));
+  confere(`capa: ${metodo} na turma de outro professor (turma-5) 404`, ehErro(await chamar(metodo, '/turmas/turma-5/capa', corpo, prof), 404, 'NAO_ENCONTRADO'));
+  confere(`capa: ${metodo} em turma que não existe 404`, ehErro(await chamar(metodo, '/turmas/nao-existe/capa', corpo, prof), 404, 'NAO_ENCONTRADO'));
+}
+
+const grande = 'data:image/webp;base64,' + Buffer.concat([Buffer.from(WEBP_1X1.split(',')[1], 'base64'), Buffer.alloc(150 * 1024)]).toString('base64');
+for (const [nome, imagem] of [
+  ['sem imagem', undefined],
+  ['PNG no lugar de WEBP', 'data:image/png;base64,iVBORw0KGgo='],
+  ['prefixo WEBP com bytes que não são WEBP', 'data:image/webp;base64,' + Buffer.from('não sou uma imagem, só texto comprido').toString('base64')],
+  ['base64 inválido', 'data:image/webp;base64,@@@@'],
+  ['mais de 150 KB', grande],
+  ['1300×100 (mais largo que 1200)', webpVp8x(1300, 100)],
+  ['1000×500 (mais alto que 400)', webpVp8x(1000, 500)],
+]) {
+  r = await chamar('PUT', `/turmas/${nova.id}/capa`, { imagem }, prof);
+  confere(`capa: PUT ${nome} 400 DADOS_INVALIDOS`, ehErro(r, 400, 'DADOS_INVALIDOS'));
+}
+confere('capa: nada recusado foi gravado', (await chamar('GET', `/turmas/${nova.id}`, null, prof)).corpo.temCapa === false);
+
+r = await chamar('PUT', `/turmas/${nova.id}/capa`, { imagem: webpVp8x(1200, 400) }, prof);
+confere('capa: PUT de exatamente 1200×400 passa e devolve a Turma com temCapa', r.status === 200 && r.corpo.id === nova.id && r.corpo.temCapa === true);
+r = await chamar('PUT', `/turmas/${nova.id}/capa`, { imagem: WEBP_1X1 }, prof);
+confere('capa: PUT de novo troca a imagem', r.status === 200 && r.corpo.temCapa === true);
+r = await chamar('GET', `/turmas/${nova.id}/capa`, null, prof);
+confere('capa: GET devolve a mesma imagem, byte a byte', r.status === 200 && r.corpo.imagem === WEBP_1X1);
+confere('capa: GET /turmas traz temCapa sem a imagem', (await chamar('GET', '/turmas', null, prof)).corpo.some((t) => t.id === nova.id && t.temCapa === true && !('imagem' in t)));
+r = await chamar('PATCH', `/turmas/${nova.id}`, { capaSemente: 77 }, prof);
+confere('capa: o PATCH da semente não apaga a imagem', r.status === 200 && r.corpo.capaSemente === 77 && r.corpo.temCapa === true);
+
+r = await chamar('DELETE', `/turmas/${nova.id}/capa`, null, prof);
+confere('capa: DELETE 204', r.status === 204);
+confere(
+  'capa: depois do DELETE, temCapa false e GET 404',
+  (await chamar('GET', `/turmas/${nova.id}`, null, prof)).corpo.temCapa === false &&
+    ehErro(await chamar('GET', `/turmas/${nova.id}/capa`, null, prof), 404, 'NAO_ENCONTRADO'),
+);
+confere('capa: DELETE sem imagem também é 204', (await chamar('DELETE', `/turmas/${nova.id}/capa`, null, prof)).status === 204);
+
+// A sala do aluno: a mesma imagem, pela rota dele. A turma dele é do seed:
+// o teste põe a capa e tira no fim, e o seed fica como estava.
+const salaDoAluno = (await chamar('GET', '/aluno/salas', null, aluno)).corpo[0];
+confere('capa: a sala do aluno vem com temCapa', typeof salaDoAluno?.temCapa === 'boolean');
+r = await chamar('PUT', `/turmas/${salaDoAluno.id}/capa`, { imagem: WEBP_1X1 }, prof);
+confere('capa: (preparo) o professor põe capa na turma do aluno', r.status === 200);
+r = await chamar('GET', `/aluno/salas/${salaDoAluno.id}`, null, aluno);
+confere('capa: GET /aluno/salas/:id traz temCapa true', r.status === 200 && r.corpo.temCapa === true);
+r = await chamar('GET', `/aluno/salas/${salaDoAluno.id}/capa`, null, aluno);
+confere('capa: o aluno lê a capa da sala dele', r.status === 200 && r.corpo.imagem === WEBP_1X1);
+confere('capa: o aluno não lê a de outra sala (404)', ehErro(await chamar('GET', `/aluno/salas/${nova.id}/capa`, null, aluno), 404, 'NAO_ENCONTRADO'));
+confere('capa: conta (não aluno) na rota do aluno 403', (await chamar('GET', `/aluno/salas/${salaDoAluno.id}/capa`, null, prof)).status === 403);
+confere('capa: o aluno não troca a capa (PUT 403)', ehErro(await chamar('PUT', `/turmas/${salaDoAluno.id}/capa`, { imagem: WEBP_1X1 }, aluno), 403, 'TIPO_INVALIDO'));
+r = await chamar('DELETE', `/turmas/${salaDoAluno.id}/capa`, null, prof);
+confere('capa: (limpeza) a turma do seed volta sem imagem', r.status === 204);
 
 console.log(`\nTudo certo. Turmas de teste criadas: ${nova.id}, ${outra.id}, ${herdeira.id}, ${detalhada.id}`);

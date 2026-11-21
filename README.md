@@ -41,7 +41,8 @@ Precisa de Node.js 20+, MySQL e do VS Code com a extensão **Live Server**.
    19/11/2026 (sem `licoes_por_nivel`, `TentativaID` e os CHECKs das
    medidas) roda também, uma vez, o `ALTER_v10_complementos.sql`; um criado
    antes da senha provisória do aluno roda, uma vez, o
-   `ALTER_v10_senha_provisoria.sql`. Não há
+   `ALTER_v10_senha_provisoria.sql`; um criado antes da capa com imagem roda,
+   uma vez, o `ALTER_v10_capa.sql`. Não há
    migração do v9: o banco antigo só tinha dados de teste/demonstração.
    **O deploy precisa ser recriado do zero com `DB_Teclar_v10.sql` +
    `npm run seed`.**

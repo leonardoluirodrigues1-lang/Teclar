@@ -424,6 +424,38 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `Grava em Turmas.CapaSemente, que aceita NULL (a tela deriva uma do id).`,
       },
+      'turmas.enviarCapa': {
+        rota: 'PUT /turmas/:id/capa',
+        corpo: `{ imagem } — WEBP em data URL, de no máximo 1200×400 e 150 KB
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        resposta: `200 Turma — a turma como ficou, com temCapa true
+  { "id": "turma-1", "nome": "9º Ano A — Manhã", "capaSemente": 7001, "temCapa": true, "ativa": true }`,
+        erros: `400 DADOS_INVALIDOS — não é WEBP, passa de 150 KB ou de 1200×400
+  404 NAO_ENCONTRADO — não existe ou é de outra conta
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `Grava os bytes em ClassesProf.CapaImagem (MEDIUMBLOB), trocando a de antes.
+  Quem reduz e converte é o navegador (js/utils/imagemDaCapa.ts); o back confere
+  o tipo, o tamanho e as dimensões do cabeçalho do WEBP. A CapaSemente fica.`,
+      },
+      'turmas.capa': {
+        rota: 'GET /turmas/:id/capa',
+        resposta: `200 ImagemDaCapa
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        erros: `404 NAO_ENCONTRADO — sem imagem, não existe ou é de outra conta
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `A imagem não vem em GET /turmas nem em GET /turmas/:id (lá só temCapa):
+  a tela pede esta rota quando temCapa é true.`,
+      },
+      'turmas.removerCapa': {
+        rota: 'DELETE /turmas/:id/capa',
+        resposta: `204 — sem corpo (também quando a turma já não tinha imagem)`,
+        erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `ClassesProf.CapaImagem = NULL: a capa volta a ser o desenho da CapaSemente.`,
+      },
       'turmas.arquivar': {
         rota: 'PATCH /turmas/:id',
         corpo: `{ ativa: false } — arquivar
@@ -890,6 +922,15 @@ da conta, e mora em \`solo\`.`,
   com concluida = true) continuam abertos; tempo esgotado não libera o
   seguinte. Exercício arquivado ou com a atribuição removida sai da sequência,
   e o atribuído depois entra no fim.`,
+      },
+      'escola.aluno.capaDaSala': {
+        rota: 'GET /aluno/salas/:turmaId/capa',
+        resposta: `200 ImagemDaCapa — a mesma imagem que o professor enviou
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        erros: `404 NAO_ENCONTRADO — sem imagem, a sala não existe ou ele não está nela
+  403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token. O :turmaId é da SALA, nunca de aluno.`,
+        back: `Lê ClassesProf.CapaImagem. A sala diz temCapa em GET /aluno/salas.`,
       },
       'escola.aluno.desempenhoNaTurma': {
         rota: 'GET /turmas/:turmaId/meu-desempenho',

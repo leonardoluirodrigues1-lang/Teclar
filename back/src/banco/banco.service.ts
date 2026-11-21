@@ -15,7 +15,11 @@ export class BancoService extends PrismaClient implements OnModuleInit, OnModule
   private readonly logger = new Logger(BancoService.name);
 
   constructor() {
-    super({ adapter: new PrismaMariaDb(configuracaoDoBanco()) });
+    // A imagem da capa (até 150 KB) nunca vem junto: classesprof é lida em
+    // quase toda rota (turmaDaConta, sala do aluno). Só as rotas de capa a
+    // pedem, com select: { CapaImagem: true }. O tipo não sabe deste omit:
+    // fora delas, CapaImagem chega undefined.
+    super({ adapter: new PrismaMariaDb(configuracaoDoBanco()), omit: { classesprof: { CapaImagem: true } } });
   }
 
   // Roda quando o Nest sobe. A consulta é só para descobrir já na subida se

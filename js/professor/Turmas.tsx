@@ -23,7 +23,7 @@
 // aparece: o menu levaria para fora do tutorial no meio dele.
 
 import { Moldura } from '../componentes/Moldura.js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
@@ -37,11 +37,14 @@ import { validarNomeTurma } from '../utils/validacao.js';
 import {
   Abertura,
   CapaDaTurma,
+  CapaOuImagem,
   CartaoDeTurma,
   Funcao,
   Funcoes,
+  lembrarCapa,
   sementeDaTurma,
 } from '../componentes/EntradaDoModo.js';
+import { imagemDaCapa } from '../utils/imagemDaCapa.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { EsqueletoGrade } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
@@ -341,8 +344,8 @@ function Turmas() {
         <ModalCapa
           key={modal.chave}
           turma={turma}
-          aoConcluir={(semente) => {
-            trocarNaLista(turma.id, { capaSemente: semente });
+          aoConcluir={(campos) => {
+            trocarNaLista(turma.id, campos);
             toasts.mostrar('Capa atualizada');
           }}
           aoFechar={fechar}
@@ -602,6 +605,7 @@ function Cartao({
       href={`turma.html?turma=${encodeURIComponent(turma.id)}`}
       linha={turma.periodo ?? SEM_PERIODO}
       capaSemente={turma.capaSemente}
+      temCapa={turma.temCapa}
       classe={menuAberto ? 'cartao-com-menu' : undefined}
       fora={menuDoCartao}
     >
@@ -665,7 +669,7 @@ function CartaoArquivado({
   return (
     <article className="cartao vidro cartao-arquivado">
       <div className="cartao-capa" aria-hidden="true">
-        <CapaDaTurma semente={sementeDaTurma(turma.id, turma.capaSemente)} />
+        <CapaOuImagem id={turma.id} semente={sementeDaTurma(turma.id, turma.capaSemente)} temCapa={turma.temCapa} />
       </div>
       <div className="cartao-corpo">
         <h2 className="cartao-nome">{nome}</h2>
@@ -843,33 +847,63 @@ function ModalNome({
   );
 }
 
-// Modal de capa — sorteia outro desenho e mostra antes de salvar
+// Modal de capa — outro desenho, ou uma imagem do computador, e a prévia
+// antes de salvar
 
 interface PropsModalCapa {
   turma: Turma;
-  aoConcluir: (semente: number) => void;
+  aoConcluir: (campos: Pick<Turma, 'capaSemente' | 'temCapa'>) => void;
   aoFechar: () => void;
 }
 
 function ModalCapa({ turma, aoConcluir, aoFechar }: PropsModalCapa) {
   const modal = useRef<ModalHandle>(null);
+  const seletor = useRef<HTMLInputElement>(null);
+  const id = useId();
   // Começa na capa de hoje: "Outro desenho" é que troca. Salvar sem trocar
   // grava a mesma semente, o que não faz mal.
   const [semente, setSemente] = useState(() => sementeDaTurma(turma.id, turma.capaSemente));
+  // undefined: a imagem fica como está; texto: a nova (data URL WEBP, já
+  // reduzida no navegador); null: tirar a imagem e voltar ao desenho.
+  const [imagem, setImagem] = useState<string | null | undefined>(undefined);
+  const [preparando, setPreparando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const enviando = useRef(false);
   const [ocupado, setOcupado] = useState(false);
 
+  const comImagem = imagem === undefined ? turma.temCapa : imagem !== null;
+
+  async function escolher(arquivo: File | undefined) {
+    if (!arquivo) return;
+    setErro(null);
+    setPreparando(true);
+    try {
+      setImagem(await imagemDaCapa(arquivo));
+    } catch (falha) {
+      setErro((falha as Error).message);
+    } finally {
+      setPreparando(false);
+      // O mesmo arquivo escolhido de novo também dispara o onChange.
+      if (seletor.current) seletor.current.value = '';
+    }
+  }
+
   async function salvar() {
-    if (enviando.current) return;
+    if (enviando.current || preparando) return;
     enviando.current = true;
     setOcupado(true);
     setErro(null);
 
     try {
       await api.turmas.trocarCapa(turma.id, semente);
+      if (typeof imagem === 'string') {
+        await api.turmas.enviarCapa(turma.id, imagem);
+      } else if (imagem === null && turma.temCapa) {
+        await api.turmas.removerCapa(turma.id);
+      }
+      if (imagem !== undefined) lembrarCapa(turma.id, imagem);
       modal.current?.fechar();
-      aoConcluir(semente);
+      aoConcluir({ capaSemente: semente, temCapa: comImagem });
     } catch (excecao) {
       setErro(mensagemDaFalha(excecao));
       enviando.current = false;
@@ -888,25 +922,61 @@ function ModalCapa({ turma, aoConcluir, aoFechar }: PropsModalCapa) {
           principal: true,
           fecha: false,
           aoClicar: salvar,
-          disabled: ocupado,
+          disabled: ocupado || preparando,
         },
         { rotulo: 'Cancelar', disabled: ocupado },
       ]}
       aoFechar={aoFechar}
     >
-      {/* A prévia é o mesmo desenho do cartão: o que se vê aqui é o que vai
-          para a grade. Não há upload — a capa é sempre gerada. */}
+      {/* A prévia é o que vai para a grade: a imagem escolhida, a que já
+          está gravada, ou o desenho. */}
       <div className="capa-previa">
-        <CapaDaTurma semente={semente} />
+        {typeof imagem === 'string' ? (
+          <img className="capa-imagem" src={imagem} alt="" />
+        ) : (
+          <CapaOuImagem id={turma.id} semente={semente} temCapa={comImagem} />
+        )}
       </div>
-      <button
-        type="button"
-        className="btn btn-vidro vidro tecla"
-        disabled={ocupado}
-        onClick={() => setSemente(sortearSemente())}
-      >
-        Outro desenho
-      </button>
+      <div className="capa-botoes">
+        <button
+          type="button"
+          className="btn btn-vidro vidro tecla"
+          disabled={ocupado || preparando}
+          aria-describedby={`${id}-dica`}
+          onClick={() => seletor.current?.click()}
+        >
+          {preparando ? 'Preparando imagem…' : 'Escolher imagem do computador'}
+        </button>
+        {comImagem ? (
+          <button
+            type="button"
+            className="btn btn-vidro vidro tecla"
+            disabled={ocupado || preparando}
+            onClick={() => setImagem(null)}
+          >
+            Remover imagem
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-vidro vidro tecla"
+            disabled={ocupado}
+            onClick={() => setSemente(sortearSemente())}
+          >
+            Outro desenho
+          </button>
+        )}
+      </div>
+      <input
+        ref={seletor}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        hidden
+        onChange={(evento) => escolher(evento.target.files?.[0])}
+      />
+      <p className="ajuda-campo" id={`${id}-dica`}>
+        JPG, PNG ou WEBP. O meio da foto vira uma faixa de até 1200×400, em WEBP de até 150 KB.
+      </p>
       <p className="erro-campo" aria-live="polite">
         {erro}
       </p>

@@ -53,6 +53,7 @@ model classesprof {
   Semestre          Int?
   Ativa             Boolean            @default(true)
   CapaSemente       Int?
+  CapaImagem        Bytes?             @db.MediumBlob
   Data_Criacao      DateTime?          @default(now()) @db.Timestamp(0)
   alunosturmas      alunosturmas[]
   atribuicoesprof   atribuicoesprof[]

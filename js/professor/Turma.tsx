@@ -590,6 +590,7 @@ function Turma() {
         subtitulo={turma ? turma.periodo ?? 'Período não informado' : null}
         acoes={acoes}
         extra={metricas}
+        capa={turma?.temCapa ? { id: turma.id, capaSemente: turma.capaSemente } : null}
         aba={aba}
         aoSelecionarAba={selecionarAba}
         carregando={carga.estado === 'carregando'}

@@ -194,6 +194,7 @@ ul { list-style: none; }
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .capa-previa svg { display: block; width: 100%; height: 100%; }
+.capa-botoes { display: flex; flex-wrap: wrap; gap: var(--e-2, 8px); margin-top: var(--e-4, 16px); }
 .capa-previa + .btn { margin-top: var(--e-4, 16px); }
 
 /* ---------------------------------------------------------------------------
@@ -324,6 +325,20 @@ ul { list-style: none; }
   background: var(--cor-fundo, #000);
 }
 .cartao-capa svg { display: block; width: 100%; height: 100%; }
+/* A imagem enviada pelo professor: preenche a faixa, cortando as sobras. */
+.capa-imagem { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* No topo da turma (professor) e da sala (aluno): a mesma faixa 3:1. */
+.capa-topo {
+  aspect-ratio: 3 / 1;
+  max-height: 240px;
+  width: 100%;
+  margin-bottom: var(--e-5, 24px);
+  border-radius: var(--raio-card, 8px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--cor-fundo, #000);
+}
+.capa-topo svg { display: block; width: 100%; height: 100%; }
 
 /* O corpo tem altura mínima para nome, período e contagens caberem sem o
    cartão mudar de tamanho de um para o outro — e para o esqueleto, que

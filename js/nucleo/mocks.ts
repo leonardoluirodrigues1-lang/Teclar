@@ -96,6 +96,7 @@ import { LICOES, montarLicao } from './licoes.js';
 import { validarSenhaAluno } from '../utils/validacao.js';
 import type {
   Aluno,
+  ImagemDaCapa,
   Atribuicao,
   Campanha,
   Categoria,
@@ -433,6 +434,7 @@ export const dados: BancoMock = {
       totalExercicios: 8,
       periodo: '2026 · 1º semestre',
       capaSemente: 7001,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-02-01',
     },
@@ -448,6 +450,7 @@ export const dados: BancoMock = {
       totalExercicios: 2,
       periodo: '2026 · 1º semestre',
       capaSemente: 7138,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-02-10',
     },
@@ -464,6 +467,7 @@ export const dados: BancoMock = {
       totalExercicios: 3,
       periodo: '2025 · 2º semestre',
       capaSemente: 7275,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2025-08-15',
     },
@@ -480,6 +484,7 @@ export const dados: BancoMock = {
       totalExercicios: 0,
       periodo: '2026 · 1º semestre',
       capaSemente: 7412,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-03-02',
     },
@@ -495,6 +500,7 @@ export const dados: BancoMock = {
       totalExercicios: 0,
       periodo: '2026 · 2º semestre',
       capaSemente: 7686,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-07-01',
     },
@@ -507,6 +513,7 @@ export const dados: BancoMock = {
       nome: '1º Médio — Informática',
       totalAlunos: 0,
       totalExercicios: 0,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-07-15',
     },
@@ -523,6 +530,7 @@ export const dados: BancoMock = {
       totalExercicios: 0,
       periodo: '2025 · 2º semestre',
       capaSemente: 7823,
+      temCapa: false,
       ativa: false,
       dataCriacao: '2025-08-04',
     },
@@ -539,6 +547,7 @@ export const dados: BancoMock = {
       totalExercicios: 1,
       periodo: '2026 · 1º semestre',
       capaSemente: 7549,
+      temCapa: false,
       ativa: true,
       dataCriacao: '2026-03-10',
     },
@@ -1144,6 +1153,10 @@ function recalcularNivel(xpTotal: number): number {
 }
 
 // '/turmas/:turmaId/alunos/:alunoId' -> /^\/turmas\/([^/]+)\/alunos\/([^/]+)$/
+// As imagens de capa (PUT /turmas/:id/capa), fora de `dados` como no back,
+// onde a coluna não vem junto com a turma. Somem ao recarregar a página.
+const capas: Record<string, string> = {};
+
 function montarRegex(padrao: string): RegExp {
   return new RegExp('^' + padrao.replace(/:[A-Za-z]+/g, '([^/]+)') + '$');
 }
@@ -1487,6 +1500,7 @@ function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
     nome: turma.nome,
     professor: nomeDoProfessor(turma.professorId),
     capaSemente: turma.capaSemente,
+    temCapa: turma.temCapa,
     totalAlunos: (dados.alunos[turma.id] ?? []).length,
     exerciciosFeitos: lista.filter((ex) => ex.estado !== 'nao_feito').length,
     exerciciosTotal: lista.length,
@@ -2142,6 +2156,7 @@ const rotas: [string, RegExp, Handler][] = [
         periodo: `${corpo.semestre}º semestre`,
         totalAlunos: 0,
         totalExercicios: 0,
+        temCapa: false,
         ativa: true,
         dataCriacao: hoje(),
       };
@@ -2202,6 +2217,44 @@ const rotas: [string, RegExp, Handler][] = [
         turma.ativa = corpo.ativa;
       }
       return turma;
+    },
+  ],
+  // A imagem da capa (data URL WEBP), só do dono. As mesmas recusas do
+  // back que dá para conferir sem ler o cabeçalho do WEBP: tipo e tamanho.
+  [
+    'PUT',
+    montarRegex('/turmas/:id/capa'),
+    (params, corpo, token) => {
+      const turma = turmaDaConta(params[0], token);
+      const imagem = corpo?.imagem;
+      if (typeof imagem !== 'string' || !imagem.startsWith('data:image/webp;base64,')) {
+        throw erro(400, 'A capa precisa ser uma imagem WEBP.', 'DADOS_INVALIDOS');
+      }
+      if ((imagem.length - 23) * 0.75 > 150 * 1024) {
+        throw erro(400, 'A imagem da capa pode ter no máximo 150 KB.', 'DADOS_INVALIDOS');
+      }
+      capas[turma.id] = imagem;
+      turma.temCapa = true;
+      return turma;
+    },
+  ],
+  [
+    'GET',
+    montarRegex('/turmas/:id/capa'),
+    (params, corpo, token): ImagemDaCapa => {
+      const turma = turmaDaConta(params[0], token);
+      if (!capas[turma.id]) throw erro(404, 'Esta turma não tem imagem de capa.', 'NAO_ENCONTRADO');
+      return { imagem: capas[turma.id] };
+    },
+  ],
+  [
+    'DELETE',
+    montarRegex('/turmas/:id/capa'),
+    (params, corpo, token) => {
+      const turma = turmaDaConta(params[0], token);
+      delete capas[turma.id];
+      turma.temCapa = false;
+      return null;
     },
   ],
   // Código novo: o antigo deixa de valer na hora. As senhas dos alunos não
@@ -2631,6 +2684,17 @@ const rotas: [string, RegExp, Handler][] = [
       const turma = salasDoAluno(aluno.id).find((t) => t.id === params[0]);
       if (!turma) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
       return { ...resumoDaSala(turma, aluno.id), lista: exerciciosDaSala(turma.id, aluno.id) };
+    },
+  ],
+
+  [
+    'GET',
+    montarRegex('/aluno/salas/:id/capa'),
+    (params, corpo, token): ImagemDaCapa => {
+      const aluno = alunoDoToken(token);
+      const turma = salasDoAluno(aluno.id).find((t) => t.id === params[0]);
+      if (!turma || !capas[turma.id]) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
+      return { imagem: capas[turma.id] };
     },
   ],
 

@@ -3,11 +3,11 @@
 //
 // O GuardaDoToken fica na classe, e não em cada rota: aqui não há rota
 // pública, e uma rota nova não corre o risco de nascer sem ele.
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { TurmasService } from './turmas.service.js';
-import type { CodigoDaTurma, CorpoDaAlteracao, CorpoDaTurmaNova, Turma, TurmaDetalhe } from './turmas.service.js';
+import type { CodigoDaTurma, CorpoDaAlteracao, CorpoDaTurmaNova, ImagemDaCapa, Turma, TurmaDetalhe } from './turmas.service.js';
 
 @Controller('turmas')
 @UseGuards(GuardaDoToken)
@@ -46,5 +46,26 @@ export class TurmasController {
   @HttpCode(HttpStatus.OK)
   novoCodigo(@Req() requisicao: RequisicaoComIdentidade, @Param('id') id: string): Promise<CodigoDaTurma> {
     return this.turmas.novoCodigo(requisicao.identidade, id);
+  }
+
+  // A imagem da capa: só o dono da turma; para qualquer outra conta, 404.
+  @Put(':id/capa')
+  gravarCapa(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('id') id: string,
+    @Body() corpo: { imagem?: unknown },
+  ): Promise<Turma> {
+    return this.turmas.gravarCapa(requisicao.identidade, id, corpo);
+  }
+
+  @Get(':id/capa')
+  capa(@Req() requisicao: RequisicaoComIdentidade, @Param('id') id: string): Promise<ImagemDaCapa> {
+    return this.turmas.capa(requisicao.identidade, id);
+  }
+
+  @Delete(':id/capa')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  apagarCapa(@Req() requisicao: RequisicaoComIdentidade, @Param('id') id: string): Promise<void> {
+    return this.turmas.apagarCapa(requisicao.identidade, id);
   }
 }
