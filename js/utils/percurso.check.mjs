@@ -53,8 +53,8 @@ assert.equal(progressoDoPercurso([], []), null, 'sem lição nenhuma, não há p
 
 console.log('percurso.check: ok');
 
-// O tempo das lições do Solo (js/nucleo/licoes.ts) é o total de todas as
-// voltas, e os níveis 9 e 10 não pedem mais de 50 PPM.
+// O tempo das lições do Solo (js/nucleo/licoes.ts) é o do bloco inteiro
+// (texto × N), e os níveis 9 e 10 não pedem mais de 50 PPM.
 {
   const { LICOES } = await import('../nucleo/licoes.js');
   for (const [ordem, nivel, reps, tempo, texto] of LICOES) {
@@ -62,7 +62,12 @@ console.log('percurso.check: ok');
     const ppm = (texto.length * reps * 12) / tempo;
     assert.ok(ppm <= 50.5, `lição ${ordem} pede ${ppm.toFixed(1)} PPM`);
   }
-  const [, , reps1, tempo1] = LICOES[0];
-  assert.equal(Math.ceil(tempo1 / reps1), 48, 'lição 1: 144 s em 3 voltas = 48 s por volta');
   assert.ok(LICOES.every(([, , reps]) => reps >= 1 && reps <= 3), 'nenhuma lição repete mais de 3 vezes');
+  const { montarLicao } = await import('../nucleo/licoes.js');
+  const l1 = montarLicao(LICOES[0]);
+  const t1 = LICOES[0][4];
+  assert.equal(l1.texto, `${t1} ${t1} ${t1}`, 'lição 1: o texto 3 vezes num bloco, separado por espaço');
+  assert.equal(l1.repeticoes, 1, 'lição 1: uma atividade só');
+  assert.equal(l1.tamanhoCaracteres, 59 * 3 + 2, 'lição 1: tamanho do bloco');
+  assert.equal(l1.tempoLimiteSegundos, 144, 'lição 1: um cronômetro só, 48 s × 3');
 }

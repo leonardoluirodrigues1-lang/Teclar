@@ -1178,18 +1178,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   border-top-color: rgba(255, 255, 255, 0.86);
 }
 
-/* As repetições da lição ("10×"), dentro da pedra, embaixo do número:
-   bem menores que ele e sem moldura. Na pedra que falta, um branco mais
-   firme que o do número (.4), porque em 10px o .4 não se lê; na da vez,
-   herdam o preto da face clara. */
-.pedra-repeticoes {
-  font-size: 10px;
-  font-weight: var(--peso-normal, 400);
-  line-height: 1;
-  letter-spacing: 0.06em;
-}
-.pedra-nova .pedra-repeticoes { color: rgba(255, 255, 255, 0.62); }
-
 /* ---------------------------------------------------------------------------
    Telas de texto: Configurações, Ajuda e Sobre
 

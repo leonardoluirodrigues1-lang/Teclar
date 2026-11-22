@@ -38,14 +38,6 @@ function IconeLivre() {
   );
 }
 
-function IconeRepetir() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 12a8 8 0 0113.7-5.7M20 12a8 8 0 01-13.7 5.7M18 3v4h-4M6 21v-4h4" />
-    </svg>
-  );
-}
-
 function IconeMenu() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -97,7 +89,6 @@ const PASSOS: PassoDoTutorial[] = [
         texto: 'Cada pedra é uma lição. A que brilha, com o balão "Começar", é a próxima a fazer.',
       },
       { icone: <IconeLivre />, texto: 'Nenhuma lição fica trancada: pode escolher qualquer uma, a qualquer hora.' },
-      { icone: <IconeRepetir />, texto: 'O número pequeno dentro da pedra diz quantas vezes o texto se repete.' },
     ],
     painel: <PainelDoTeclado frase={['Dedos na linha-guia:', 'A S D F · J K L Ç']} />,
   },

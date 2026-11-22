@@ -27,9 +27,10 @@ import type { Dificuldade, MissaoDetalhe } from './tipos.js';
 // alguma delas aparecer com barra sobrando na tela, o erro está na
 // conversão, não no professor.
 //
-// O tempo (tempo_maximo_segundos) é o TOTAL da lição, de todas as
-// repetições: caracteres × repetições × 12 / PPM alvo. A tela de treino dá
-// a cada volta a sua parte (tempo ÷ repetições). O PPM alvo do CSV sobe com
+// Cada lição é UMA atividade: o texto repetido `repeticoes` vezes num bloco
+// contínuo, separado por espaço (montarLicao), digitado de uma vez. O tempo
+// (tempo_maximo_segundos) já é o TOTAL desse bloco: caracteres ×
+// repetições × 12 / PPM alvo, um cronômetro só. O PPM alvo do CSV sobe com
 // o nível (15 no nível 1, ~50 no 8); nos níveis 9 e 10 ele passava de 70 e
 // foi limitado a 50, com o tempo recalculado por essa mesma conta.
 //
@@ -72,15 +73,18 @@ function dificuldadeDoNivel(nivel: number): Dificuldade {
 // Uma linha do CSV vira a lição completa que a API devolve.
 //   ExerciseID  'solo-001' … 'solo-076', três dígitos, na ordem do percurso
 //   título      'Lição NN — <nome do nível>', NN com dois dígitos
-//   tamanho     o comprimento do texto, contado aqui e não digitado à mão
-export function montarLicao([ordem, nivel, repeticoes, tempoLimiteSegundos, texto]: LinhaLicao): MissaoDetalhe {
+//   texto       o texto do professor N vezes, separado por espaço
+//   repeticoes  1: as N vezes já estão no texto, não são voltas
+//   tamanho     o comprimento do bloco, contado aqui e não digitado à mão
+export function montarLicao([ordem, nivel, repeticoes, tempoLimiteSegundos, original]: LinhaLicao): MissaoDetalhe {
+  const texto = Array(repeticoes).fill(original).join(' ');
   return {
     exerciseId: `solo-${String(ordem).padStart(3, '0')}`,
     ordem,
     nivel,
     titulo: `Lição ${String(ordem).padStart(2, '0')} — ${NOMES_DE_NIVEL[nivel]}`,
     dificuldade: dificuldadeDoNivel(nivel),
-    repeticoes,
+    repeticoes: 1,
     tempoLimiteSegundos,
     tamanhoCaracteres: texto.length,
     texto,

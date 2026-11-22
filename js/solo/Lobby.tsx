@@ -423,10 +423,6 @@ function FaixaContinuar({ progresso }: { progresso: ProgressoDoPercurso | null }
         <p className="lobby-faixa-titulo">{licao.titulo}</p>
         <ul className="lobby-pilulas">
           <li className="lobby-pilula">Nível {licao.nivel}</li>
-          {/* O aria-label existe porque "3×" lido em voz alta vira "três ex". */}
-          <li className="lobby-pilula" aria-label={`${licao.repeticoes} repetições`}>
-            {licao.repeticoes}×
-          </li>
           <li className="lobby-pilula" aria-label={`Tempo: ${tempo}`}>
             {tempo}
           </li>

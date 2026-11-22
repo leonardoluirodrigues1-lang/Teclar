@@ -1,11 +1,10 @@
-// Check de ponta a ponta do FIM de uma atividade com várias repetições
+// Check de ponta a ponta do FIM de uma lição do Solo
 // (pages/treino/treino.html), num Chrome headless de verdade, com teclas de
 // verdade (CDP Input.*, que o navegador trata como digitação do usuário):
-//   · entre uma repetição e outra aparece a passagem ("Repetição 1 de 3
-//     concluída ✓" / "Próxima: repetição 2 de 3"), que some sozinha em ~1 s,
-//     e as teclas batidas durante ela não contam (nem como erro);
-//   · depois da ÚLTIMA não há passagem: vai para "Salvando sessão…", grava a
-//     sessão (POST) e abre o modal de conclusão;
+//   · a lição é UMA atividade: o texto 3 vezes num bloco só, separado por
+//     espaço, com um cronômetro só (144 s) e sem "Repetição N de 3" no HUD;
+//   · digitado o bloco, não há card de passagem: vai para "Salvando
+//     sessão…", grava UMA sessão (POST) e abre o modal de conclusão;
 //   · o modal fica de pé: 3 s depois ainda está lá, e um Espaço teclado
 //     (quem estava digitando continua batendo no teclado) não aciona
 //     "Próxima lição" nem sai da tela.
@@ -26,7 +25,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 
 const RAIZ = resolve(import.meta.dirname, '../..');
 const API = 'http://localhost:3000/api';
-const LICAO = 'solo-001'; // 3 repetições de 59 caracteres
+const LICAO = 'solo-001'; // 59 caracteres × 3, num bloco de 179
 const MS_POR_TECLA = 60; // ~200 PPM: abaixo do teto de plausibilidade do back (250)
 const CHROME =
   process.env.CHROME ??
@@ -121,9 +120,8 @@ const tecla = (key, code, vk, text) =>
   );
 
 const ESTADO = `(() => {
-  const p = document.getElementById('passagem');
   const d = document.querySelector('[role=dialog]');
-  return { passagem: !!p && !p.hidden, modal: d ? d.innerText : null, focoNaCaixa: !!d && document.activeElement === d, url: location.href };
+  return { passagem: !!document.getElementById('passagem'), modal: d ? d.innerText : null, focoNaCaixa: !!d && document.activeElement === d, url: location.href };
 })()`;
 
 try {
@@ -142,49 +140,19 @@ try {
     sessionStorage.setItem('teclar:usuario', ${JSON.stringify(JSON.stringify(login.usuario))}); true`);
   await navegar(`${FRONT}/pages/treino/treino.html?exercicio=${LICAO}`);
   await aguardar('o texto da lição', `document.querySelectorAll('.texto .c').length > 0`);
-  const total = await avaliar(`Number(/de (\\d+)/i.exec(document.getElementById('hud-repeticao')?.innerText ?? '')?.[1] ?? 1)`);
-  confere(`a lição tem várias repetições (${total})`, total > 1);
+  const texto = await avaliar(`[...document.querySelectorAll('.texto .c')].map((c) => c.textContent).join('')`);
+  const frase = 'asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg';
+  confere(`o texto é a frase 3 vezes num bloco (${texto.length} caracteres)`, texto === `${frase} ${frase} ${frase}`);
+  confere('o HUD não fala em repetição', !/repeti/i.test(await avaliar(`document.querySelector('.hud').innerText`)));
+  confere('um cronômetro só, para o bloco inteiro (2:24)', (await avaliar(`document.getElementById('hud-tempo').innerText`)) === '2:24');
 
-  for (let volta = 1; volta <= total; volta++) {
-    const texto = await avaliar(`[...document.querySelectorAll('.texto .c')].map((c) => c.textContent).join('')`);
-    await avaliar(`document.querySelector('input')?.focus(); true`);
-    for (const ch of texto) {
-      await cdp('Input.insertText', { text: ch });
-      await esperar(MS_POR_TECLA);
-    }
-    if (volta < total) {
-      await aguardar(`passagem da repetição ${volta}`, `(${ESTADO}).passagem`, 3000);
-      const apareceu = Date.now();
-      if (volta === 1) {
-        const card = await avaliar(`document.getElementById('passagem').innerText`);
-        confere('o card diz "Repetição 1 de 3 concluída ✓"', card.includes(`Repetição 1 de ${total} concluída ✓`));
-        confere('e embaixo "Próxima: repetição 2 de 3"', card.includes(`Próxima: repetição 2 de ${total}`));
-        // A criança continua batendo no teclado durante o card.
-        for (const ch of 'xqz ') {
-          await tecla(ch, '', ch.toUpperCase().charCodeAt(0), ch);
-          await cdp('Input.insertText', { text: ch });
-        }
-        confere('teclar durante o card não o fecha', (await avaliar(ESTADO)).passagem);
-      }
-      await aguardar(`repetição ${volta + 1} começar`, `!(${ESTADO}).passagem`, 3000);
-      if (volta === 1) {
-        const durou = Date.now() - apareceu;
-        confere(`o card some sozinho em ~1 s (${durou} ms)`, durou >= 700 && durou <= 1800);
-        const depois = await avaliar(`({
-          errados: document.querySelectorAll('.texto .c.errado').length,
-          precisao: document.getElementById('hud-precisao')?.innerText,
-          campo: document.querySelector('input')?.value,
-          repeticao: document.getElementById('hud-repeticao')?.innerText })`);
-        confere(
-          'as teclas do card não contaram: nenhum erro, precisão 100, campo vazio',
-          depois.errados === 0 && depois.precisao.startsWith('100') && depois.campo === ''
-        );
-        confere('o HUD já mostra "Repetição 2 de 3"', new RegExp(`2 de ${total}`, 'i').test(depois.repeticao));
-      }
-    }
+  await avaliar(`document.querySelector('input')?.focus(); true`);
+  for (const ch of texto) {
+    await cdp('Input.insertText', { text: ch });
+    await esperar(MS_POR_TECLA);
   }
 
-  // Depois da última: nada de passagem, direto para o modal de conclusão.
+  // Fim do bloco: nada de passagem, direto para o modal de conclusão.
   let viuPassagem = false;
   const limite = Date.now() + 15000;
   let estado = await avaliar(ESTADO);
@@ -193,12 +161,12 @@ try {
     await esperar(50);
     estado = await avaliar(ESTADO);
   }
-  confere('na última repetição não há passagem', !viuPassagem);
+  confere('não há card de passagem', !viuPassagem);
   confere('o modal de conclusão abriu', /conclu/i.test(estado.modal ?? ''));
   confere('a sessão foi gravada (POST /solo/sessoes)', (await historico()) === antes + 1);
   const gravada = await (await fetch(`${API}/solo/historico`, { headers: { Authorization: `Bearer ${login.token}` } })).json();
   const ultima = [...gravada.itens].sort((a, b) => b.data.localeCompare(a.data))[0];
-  confere(`a sessão gravada não tem erro (as teclas do card não contaram; erros=${ultima.erros})`, ultima.erros === 0);
+  confere(`a sessão gravada tem o bloco inteiro (acertos=${ultima.acertos}, erros=${ultima.erros})`, ultima.acertos === texto.length && ultima.erros === 0);
   await aguardar('os botões do modal', `/Voltar às atividades/.test(document.querySelector('[role=dialog]')?.innerText ?? '')`);
   confere('o foco está na caixa do modal, não num botão', (await avaliar(ESTADO)).focoNaCaixa);
 

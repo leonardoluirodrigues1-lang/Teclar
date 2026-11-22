@@ -24,19 +24,9 @@
 //     escreve é o motor (modo bloqueante) e o SO (acentos);
 //   · os toasts continuam com toast.ts num host FORA da raiz do React.
 //
-// Repetições (só Solo): a lição tem `repeticoes` (até 3) e é o MESMO
-// texto, N vezes seguidas. O motor não sabe disso — ele é uma passada de
-// texto, e continua assim. A tela instancia um motor NOVO a cada volta
-// (criarMotor), guarda o corpo de cada volta em `voltas`, e só depois da
-// última agrega tudo numa sessão só (agregarVoltas) e grava. Entre uma
-// volta e outra há um estado curto de passagem (PASSAGEM_MS), sem botão e
-// sem foco roubado, que some sozinho; o teclado é ignorado nesse tempo (o
-// motor da volta seguinte ainda não existe, e o que cair no campo é
-// apagado por criarMotor). Depois da ÚLTIMA volta não há passagem: vai
-// direto para finalizar(). Cronômetro, limite de
-// tempo, pausa por foco e toasts valem por volta. Exercício sem
-// `repeticoes` (Escola) ou com 1 passa por tudo isso com uma volta só e
-// se comporta exatamente como antes.
+// Uma atividade, uma passada: a lição do Solo já chega com as repetições
+// dentro do texto, num bloco só (ver montarLicao em nucleo/licoes.ts), e o
+// tempo dela é o do bloco inteiro. Um motor, um cronômetro, uma sessão.
 //
 // Teclado guia (componentes/TecladoAbnt2.tsx): abaixo do texto, acende a
 // tecla do PRÓXIMO caractere — o da posição do cursor, que a tela já recebe
@@ -50,8 +40,7 @@
 //
 // Pintura do texto: o motor emite a lista inteira de caracteres a cada tecla
 // e a cada tick do relógio (100 ms). A lista de <span> não é recriada: os
-// caracteres são guardados uma vez (nunca mudam — nem entre voltas, é o
-// mesmo texto) e a lista de status só vira estado novo quando algum status
+// caracteres são guardados uma vez (nunca mudam) e a lista de status só vira estado novo quando algum status
 // mudou de verdade — num tick, nada muda, e <Caracteres> (memo) nem
 // renderiza. Numa tecla, mudam dois ou três, e cada <Caractere> (memo) só
 // re-renderiza se o próprio status mudou.
@@ -96,9 +85,6 @@ const SEQUENCIA_AVISO = 25; // acertos seguidos
 const TEMPO_AVISO_S = 10; // segundos restantes
 const TEMPO_MAXIMO_BUSCA_PROXIMA_MS = 8000;
 
-// Quanto tempo a passagem entre duas repetições fica na tela. Nada a pula.
-const PASSAGEM_MS = 1000;
-
 // O &nbsp; do hud-contexto no HTML original: mantém a altura da linha vazia.
 const NBSP = String.fromCharCode(0xa0);
 
@@ -108,11 +94,9 @@ const PLACEHOLDER_TEXTO =
 const DICA_INICIAL = 'Comece a digitar para iniciar o cronômetro · Esc sai';
 
 // Solo tem rota própria (missão, com XP); Escola usa o detalhe do exercício.
-// tempoLimiteSegundos e repeticoes só existem na missão; no exercício da
-// Escola caem em 0 e 1 (uma volta só).
+// tempoLimiteSegundos só existe na missão; no exercício da Escola cai em 0.
 type ExercicioTreino = (MissaoDetalhe | ExercicioDetalhe) & {
   tempoLimiteSegundos?: number;
-  repeticoes?: number;
 };
 
 type Fase = 'carregando' | 'pronto' | 'erro';
@@ -141,15 +125,7 @@ const HUD_INICIAL: Hud = {
   pausada: false,
 };
 
-// O estado de passagem entre duas repetições: o que a volta que acabou
-// rendeu. null fora da passagem.
-interface Passagem {
-  numero: number; // a volta que acabou (1-based)
-  total: number;
-  concluida: boolean; // false = o tempo da volta esgotou antes do fim do texto
-}
-
-// Contadores de que os toasts derivam. Zeram a cada volta.
+// Contadores de que os toasts derivam. Zeram ao refazer.
 const AVISOS_INICIAIS = {
   acertos: 0,
   erros: 0,
@@ -232,14 +208,8 @@ function Treino({ usuario }: PropsTreino) {
   const chaveModal = useRef(0);
   const avisos = useRef({ ...AVISOS_INICIAIS });
 
-  // Ciclo de repetições. `voltas` guarda o corpo de cada volta terminada, na
-  // ordem; a volta corrente é voltas.length + 1. `totalVoltas` vem do
-  // exercício (1 quando não há repeticoes). O temporizador é o da passagem.
-  const voltas = useRef<DadosSessaoTreino[]>([]);
-  // Os "corrigidos" de cada volta: só a tela mostra (a sessão gravada não tem a coluna).
-  const corrigidosPorVolta = useRef<number[]>([]);
-  const totalVoltas = useRef(1);
-  const temporizadorPassagem = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Os "corrigidos": só a tela mostra (a sessão gravada não tem a coluna).
+  const corrigidos = useRef(0);
 
   // --- estado pintado ---
   const [fase, setFase] = useState<Fase>('carregando');
@@ -256,9 +226,6 @@ function Treino({ usuario }: PropsTreino) {
   const [dicaOculta, setDicaOculta] = useState(false);
   const [semFoco, setSemFoco] = useState(false);
   const [modal, setModal] = useState<ConfigModal | null>(null);
-  // "Repetição N de T" no HUD. null quando a lição tem uma volta só.
-  const [repeticao, setRepeticao] = useState<{ numero: number; total: number } | null>(null);
-  const [passagem, setPassagem] = useState<Passagem | null>(null);
 
   // --- teclado guia ---
   const [mostrarTeclado] = useState(() => !sessao.tecladoGuiaEscondido());
@@ -267,7 +234,7 @@ function Treino({ usuario }: PropsTreino) {
   // A mesma posição, lida pelo evento de composição (que não passa pelo
   // render).
   const posicaoAtual = useRef(0);
-  // Caracteres digitados na volta corrente (acertos + erros): decide se a
+  // Caracteres digitados (acertos + erros): decide se a
   // saída pede confirmação.
   const digitadosAtual = useRef(0);
   // Enquanto um acento está sendo composto (a tecla morta já foi, falta a
@@ -276,11 +243,10 @@ function Treino({ usuario }: PropsTreino) {
 
   // --- navegação -------------------------------------------------------------
 
-  // Para o relógio e a passagem antes de ir: nem o limite de tempo nem a volta
-  // seguinte podem disparar (e gravar) enquanto a página troca. replace: o
-  // voltar do navegador não cai num treino com o motor já destruído.
+  // Para o relógio antes de ir: o limite de tempo não pode disparar (e
+  // gravar) enquanto a página troca. replace: o voltar do navegador não cai
+  // num treino com o motor já destruído.
   function sair() {
-    pararPassagem();
     motor.current?.destruir();
     motor.current = null;
     location.replace(modoTreino === 'solo' ? ROTA_INICIAL.solo : guarda.casa());
@@ -298,12 +264,12 @@ function Treino({ usuario }: PropsTreino) {
   // nenhum dos dois grava nada — lição incompleta não conta. Enquanto um
   // modal está aberto, a saída é dele (os botões do modal chamam sair()
   // direto), e esta não faz nada.
-  // Com algo digitado nesta volta, ou uma volta já terminada, pergunta antes
+  // Com algo digitado, pergunta antes
   // (modal do app, nunca window.confirm). "Continuar treinando" é o padrão e
   // o Esc dentro do modal faz o mesmo (só fecha); o foco volta à captura.
   function sairSeNenhumModalAberto() {
     if (modalAberto.current) return;
-    if (digitadosAtual.current === 0 && voltas.current.length === 0) {
+    if (digitadosAtual.current === 0) {
       sair();
       return;
     }
@@ -318,8 +284,7 @@ function Treino({ usuario }: PropsTreino) {
     });
   }
 
-  // Esc SAI da tela (não pausa). Vale também no meio de uma lição com
-  // repetições: nada parcial é gravado.
+  // Esc SAI da tela (não pausa): nada parcial é gravado.
   useEffect(() => {
     function aoTeclar(evento: KeyboardEvent) {
       if (evento.key === 'Escape' && !modalAberto.current) {
@@ -407,14 +372,6 @@ function Treino({ usuario }: PropsTreino) {
       exercicio.current = carregado;
       montarHud(carregado);
       setFase('pronto');
-
-      // Quantas voltas. Sem `repeticoes` (Escola) ou com valor inválido, uma.
-      const n = Number(carregado.repeticoes);
-      totalVoltas.current = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
-      voltas.current = [];
-      corrigidosPorVolta.current = [];
-      if (totalVoltas.current > 1) setRepeticao({ numero: 1, total: totalVoltas.current });
-
       criarMotor();
     }
 
@@ -422,25 +379,24 @@ function Treino({ usuario }: PropsTreino) {
 
     return () => {
       cancelado = true;
-      pararPassagem();
       motor.current?.destruir();
       motor.current = null;
     };
   }, []);
 
-  // Um motor novo por volta. O texto é montado a partir da lista de
-  // caracteres que o motor devolve no primeiro atualizar(): ele normaliza
-  // (aspas, travessão, quebras) antes de comparar, e essa lista é a fonte da
-  // verdade. Nas voltas seguintes a lista é a mesma e não é remontada.
+  // Um motor novo na carga e a cada "Refazer". O texto é montado a partir da
+  // lista de caracteres que o motor devolve no primeiro atualizar(): ele
+  // normaliza (aspas, travessão, quebras) antes de comparar, e essa lista é
+  // a fonte da verdade. Ao refazer a lista é a mesma e não é remontada.
   function criarMotor() {
     const carregado = exercicio.current;
     if (!carregado || !captura.current) return;
 
-    // O input não é controlado: o que a volta anterior deixou nele (ou a tecla
-    // que pulou a passagem) sai daqui, antes de o motor novo ler qualquer coisa.
+    // O input não é controlado: o que a tentativa anterior deixou nele sai
+    // daqui, antes de o motor novo ler qualquer coisa.
     captura.current.value = '';
 
-    // Os toasts derivam do delta entre estados: zeram com a volta.
+    // Os toasts derivam do delta entre estados: zeram com o motor.
     avisos.current = { ...AVISOS_INICIAIS };
     statusAtual.current = [];
     setDica(DICA_INICIAL);
@@ -449,11 +405,10 @@ function Treino({ usuario }: PropsTreino) {
     motor.current = new MotorDigitacao({
       texto: carregado.texto,
       modo: CONFIG.TREINO.MODO_PADRAO, // preferência do sistema, não do exercício
-      // O tempo da lição é o TOTAL de todas as voltas (como o professor o
-      // calculou no CSV); cada volta tem a sua parte. 0 = sem limite.
-      tempoLimiteSegundos: Math.ceil((carregado.tempoLimiteSegundos ?? 0) / totalVoltas.current),
+      // Um cronômetro só, para o bloco inteiro. 0 = sem limite.
+      tempoLimiteSegundos: carregado.tempoLimiteSegundos ?? 0,
       aoAtualizar: atualizar,
-      aoTerminar: terminarVolta,
+      aoTerminar: terminar,
     });
     motor.current.anexar(captura.current);
     motor.current.iniciar();
@@ -536,7 +491,7 @@ function Treino({ usuario }: PropsTreino) {
   // --- toasts ----------------------------------------------------------------
   // O motor não expõe "acertos seguidos": a sequência é derivada aqui, dos
   // deltas de acertos e erros entre dois estados. Cada aviso dispara uma vez
-  // por marco; a fila mostra no máximo um por vez. Zera a cada volta.
+  // por marco; a fila mostra no máximo um por vez.
 
   function observarAvisos(estado: EstadoMotor) {
     if (!estado.iniciada || estado.motivoFim) return;
@@ -579,61 +534,22 @@ function Treino({ usuario }: PropsTreino) {
     }
   }
 
-  // --- fim de uma volta ------------------------------------------------------
-  // O motor chama isto quando o texto acabou ou o tempo da volta esgotou.
-  // Uma volta que esgotou o tempo também conta como volta (não concluída):
-  // a lição segue para a próxima e a sessão só vai gravar concluida = true
-  // se TODAS tiverem terminado pelo texto.
+  // --- fim ------------------------------------------------------------------
+  // O motor chama isto quando o texto acabou ou o tempo esgotou. O motor é
+  // destruído aqui para nada do que for teclado depois chegar a ele.
 
-  function terminarVolta(estado: EstadoMotor) {
+  function terminar(estado: EstadoMotor) {
     toasts.limpar();
     setHud((atual) => ({ ...atual, pausada: false }));
-
-    // O corpo da volta sai do motor que acabou, antes de ele ir embora. O
-    // motor é destruído aqui para nada do que for teclado na passagem
-    // chegar a ele.
-    const corpoVolta = motor.current.montarCorpoSessao();
+    const corpo = motor.current.montarCorpoSessao();
     motor.current.destruir();
     motor.current = null;
-    voltas.current.push(corpoVolta);
-    corrigidosPorVolta.current.push(estado.corrigidos);
-
-    const numero = voltas.current.length;
-    if (numero < totalVoltas.current) {
-      // Passagem: "Repetição N de T concluída" por PASSAGEM_MS, e a próxima
-      // começa sozinha, com o texto na tela e o cronômetro esperando.
-      setDicaOculta(true);
-      setPassagem({
-        numero,
-        total: totalVoltas.current,
-        concluida: estado.concluida,
-      });
-      temporizadorPassagem.current = setTimeout(proximaVolta, PASSAGEM_MS);
-      return;
-    }
-
-    finalizar(agregarVoltas(voltas.current));
-  }
-
-  function pararPassagem() {
-    if (temporizadorPassagem.current != null) {
-      clearTimeout(temporizadorPassagem.current);
-      temporizadorPassagem.current = null;
-    }
-  }
-
-  function proximaVolta() {
-    // Com um motor já vivo, a volta seguinte já começou.
-    if (motor.current) return;
-    pararPassagem();
-    setPassagem(null);
-    setRepeticao({ numero: voltas.current.length + 1, total: totalVoltas.current });
-    criarMotor();
+    corrigidos.current = estado.corrigidos;
+    finalizar(corpo);
   }
 
   // --- fim de sessão ---------------------------------------------------------
-  // Uma sessão por LIÇÃO, com o agregado das voltas. Com uma volta só, o
-  // corpo é o da volta, igual ao de sempre.
+  // Uma sessão por lição.
 
   async function finalizar(corpoBase: DadosSessaoTreino) {
     setDica('Salvando sessão…');
@@ -766,7 +682,6 @@ function Treino({ usuario }: PropsTreino) {
     // Solo: o caminho. Aluno: a sala da turma de onde veio. Prévia: a página
     // que abriu a prévia (Biblioteca, turma...), se for deste site.
     const voltarParaAtividades = () => {
-      pararPassagem();
       motor.current?.destruir();
       motor.current = null;
       location.replace(
@@ -806,7 +721,7 @@ function Treino({ usuario }: PropsTreino) {
             precisao={metricas.precisao}
             erros={metricas.erros}
             acertos={metricas.acertos}
-            corrigidos={corrigidosPorVolta.current.reduce((t, n) => t + n, 0)}
+            corrigidos={corrigidos.current}
             tempoSegundos={metricas.tempo_gasto_segundos}
           />
           {proxima && <p className="modal-proxima">A seguir: {proxima.titulo}</p>}
@@ -895,14 +810,10 @@ function Treino({ usuario }: PropsTreino) {
   }
 
   function reiniciarAtividade() {
-    pararPassagem();
     toasts.limpar();
     motor.current?.destruir();
     motor.current = null;
-    voltas.current = [];
-    corrigidosPorVolta.current = [];
-    setPassagem(null);
-    setRepeticao(totalVoltas.current > 1 ? { numero: 1, total: totalVoltas.current } : null);
+    corrigidos.current = 0;
     setHud(HUD_INICIAL);
     setPosicao(0);
     posicaoAtual.current = 0;
@@ -920,9 +831,7 @@ function Treino({ usuario }: PropsTreino) {
   // Solo: guarda a resposta inteira (xpGanho, xpTotal, nivelAtual,
   // subiuDeNivel, recordePessoal) para a tela de resultado animar a barra,
   // e passa só o id e o mundo na URL. Sem resposta (fila), guarda o que o
-  // front sabe: as métricas locais. Com mais de uma volta, guarda também o
-  // PPM de cada uma — é só para a tela de resultado mostrar a evolução
-  // dentro da lição; não faz parte do corpo enviado.
+  // front sabe: as métricas locais.
   function irParaResultado(resultado: ResultadoEnvio, corpo: DadosSessaoTreino) {
     // `=== true` (e não só `resultado.ok`): sem strictNullChecks o tsc não
     // estreita a união pelo discriminante na forma curta.
@@ -932,9 +841,6 @@ function Treino({ usuario }: PropsTreino) {
         : { enfileirada: true, pendentes: resultado.pendentes };
     registro.metricas = corpo;
     registro.exercicio = { id: exercicioId, titulo: exercicio.current?.titulo ?? '' };
-    if (voltas.current.length > 1) {
-      registro.repeticoes = { ppmPorVolta: voltas.current.map((v) => v.wpm) };
-    }
     sessionStorage.setItem(CHAVE_RESULTADO, JSON.stringify(registro));
 
     const query = new URLSearchParams();
@@ -976,7 +882,7 @@ function Treino({ usuario }: PropsTreino) {
             precisao={metricas.precisao}
             erros={metricas.erros}
             acertos={metricas.acertos}
-            corrigidos={corrigidosPorVolta.current.reduce((t, n) => t + n, 0)}
+            corrigidos={corrigidos.current}
             tempoSegundos={metricas.tempo_gasto_segundos}
           />
         </div>
@@ -1014,28 +920,10 @@ function Treino({ usuario }: PropsTreino) {
         <div className="hud-esq">
           <p className="hud-contexto" id="hud-contexto">
             {contexto}
-            {repeticao && (
-              <>
-                {' · '}
-                <span className="hud-repeticao" id="hud-repeticao" aria-live="polite">
-                  Repetição {repeticao.numero} de {repeticao.total}
-                </span>
-              </>
-            )}
           </p>
           <h1 className="hud-titulo" id="hud-titulo">
             {titulo}
           </h1>
-          {/* Uma marca por repetição: quantas são e quantas já foram. O texto
-              "Repetição N de T" acima já diz isso ao leitor de tela. */}
-          {repeticao && (
-            <ol className="hud-repeticoes" aria-hidden="true">
-              {Array.from({ length: repeticao.total }, (_, i) => {
-                const feitas = passagem ? passagem.numero : repeticao.numero - 1;
-                return <li key={i} className={i < feitas ? 'feita' : i === feitas ? 'atual' : undefined} />;
-              })}
-            </ol>
-          )}
         </div>
         <dl className="hud-dir">
           <div className="hud-metrica">
@@ -1061,7 +949,7 @@ function Treino({ usuario }: PropsTreino) {
       <main className="palco" id="palco">
         {/* Área do texto. Clicar nela devolve o foco ao input invisível. */}
         <section
-          className={`area-texto${semFoco ? ' sem-foco' : ''}${passagem ? ' em-passagem' : ''}`}
+          className={`area-texto${semFoco ? ' sem-foco' : ''}`}
           id="area-texto"
           aria-label="Texto do exercício"
           hidden={fase === 'erro'}
@@ -1119,7 +1007,7 @@ function Treino({ usuario }: PropsTreino) {
 
       {/* Captura invisível: o SO compõe acentos aqui, o motor lê input.value.
           Não controlado de propósito: o React nunca escreve `value` nele
-          (criarMotor limpa o campo por DOM, entre duas voltas). */}
+          (criarMotor limpa o campo por DOM, ao refazer). */}
       <input
         type="text"
         className="captura"
@@ -1137,25 +1025,6 @@ function Treino({ usuario }: PropsTreino) {
           <p className="modal-eyebrow">Pausado</p>
           <p className="pausa-texto">Clique em qualquer lugar para continuar.</p>
         </div>
-      </div>
-
-      {/* Passagem entre duas repetições. NÃO é modal: não recebe foco, não
-          tem botão, não bloqueia o clique (pointer-events: none no CSS). O
-          contêiner fica sempre no DOM, escondido, para o aria-live anunciar
-          a troca de conteúdo. */}
-      <div className="passagem" id="passagem" hidden={!passagem} aria-live="polite">
-        {passagem && (
-          <div className="passagem-caixa vidro">
-            <p className="passagem-titulo">
-              {passagem.concluida
-                ? `Repetição ${passagem.numero} de ${passagem.total} concluída ✓`
-                : `Tempo esgotado na repetição ${passagem.numero} de ${passagem.total}`}
-            </p>
-            <p className="passagem-dica">
-              Próxima: repetição {passagem.numero + 1} de {passagem.total}
-            </p>
-          </div>
-        )}
       </div>
 
       {modal && (
@@ -1188,25 +1057,6 @@ function paginaDeOrigem(): string | null {
   } catch {
     return null;
   }
-}
-
-// Agregado das voltas: o corpo da sessão gravada
-// Uma linha por sessão no banco, sem coluna de repetição. PPM e precisão são
-// a média das voltas; acertos, erros e tempo, a soma; concluida só se todas
-// terminaram pelo texto. Com uma volta, devolve o corpo dela tal qual.
-
-function agregarVoltas(voltas: DadosSessaoTreino[]): DadosSessaoTreino {
-  const n = voltas.length || 1;
-  const soma = (pegar: (v: DadosSessaoTreino) => number) =>
-    voltas.reduce((total, v) => total + pegar(v), 0);
-  return {
-    wpm: Math.round(soma((v) => v.wpm) / n),
-    precisao: Math.round(soma((v) => v.precisao) / n),
-    acertos: soma((v) => v.acertos),
-    erros: soma((v) => v.erros),
-    tempo_gasto_segundos: soma((v) => v.tempo_gasto_segundos),
-    concluida: voltas.length > 0 && voltas.every((v) => v.concluida),
-  };
 }
 
 // Texto do exercício: um <span class="c"> por caractere

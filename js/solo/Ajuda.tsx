@@ -23,9 +23,8 @@ function Ajuda() {
             ajeitar.
           </p>
           <p>
-            Errou uma letra? O treino não para: o erro fica marcado e você segue. Algumas lições pedem
-            para repetir o mesmo texto (2, 5 ou 10 vezes); a pílula embaixo da pedra mostra quantas.
-            No fim, a tela de resultado mostra como você foi e quanto XP ganhou.
+            Errou uma letra? O treino não para: o erro fica marcado e você segue. Cada lição é um bloco
+            só, digitado de uma vez, com um cronômetro só. No fim, a tela de resultado mostra como você foi e quanto XP ganhou.
           </p>
         </section>
 

@@ -289,7 +289,7 @@ Chamada no front: `api.solo.missoes`
 ```json
 [{ "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
    "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-   "repeticoes": 3, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 59,
+   "repeticoes": 1, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 179,
    "bloqueada": false }]
 ```
 
@@ -322,8 +322,10 @@ Chamada no front: `api.solo.missao`
 ```json
 { "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
   "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-  "repeticoes": 3, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 59,
-  "texto": "asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg" }
+  "repeticoes": 1, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 179,
+  "texto": "asdfg asdfg … asdfg" }
+O texto já é o bloco inteiro: a frase do professor 3 vezes, separada por
+espaço, digitada de uma vez com um cronômetro só (repeticoes = 1).
 ```
 
 **Erros:**

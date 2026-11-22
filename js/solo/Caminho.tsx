@@ -214,34 +214,16 @@ function numeroDaPosicao(posicao: number): string {
 interface PropsConteudo {
   estado: EstadoDaPedra;
   posicao: number;
-  repeticoes: number;
   /** Concluída agora: a estrela nasce com o pulso. */
   nova: boolean;
 }
 
-// O miolo da pedra: o número (ou o teclado, na da vez) e, embaixo dele, as
-// repetições da lição. A concluída mostra só a estrela: a lição já foi
-// feita, e quantas vezes ela repete não serve mais para nada.
-function ConteudoDaPedra({ estado, posicao, repeticoes, nova }: PropsConteudo) {
+// O miolo da pedra: o número (ou o teclado, na da vez). A concluída mostra
+// só a estrela.
+function ConteudoDaPedra({ estado, posicao, nova }: PropsConteudo) {
   if (estado === 'feita') return <Estrela tamanho={30} forma="escura" nasce={nova} />;
   if (estado === 'bloqueada') return <IconeCadeado />;
-  return (
-    <>
-      {estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>}
-      <Repeticoes quantas={repeticoes} />
-    </>
-  );
-}
-
-// "3×". Lição de uma vez só não mostra nada. Escondido do leitor de tela
-// porque o rótulo da pedra já diz "3 repetições" por extenso.
-function Repeticoes({ quantas }: { quantas: number }) {
-  if (quantas <= 1) return null;
-  return (
-    <span className="pedra-repeticoes" aria-hidden="true">
-      {quantas}×
-    </span>
-  );
+  return estado === 'proxima' ? <IconeTeclado /> : <span aria-hidden="true">{numeroDaPosicao(posicao)}</span>;
 }
 
 interface PropsPedra {
@@ -257,18 +239,15 @@ interface PropsPedra {
 }
 
 function Pedra({ licao, posicao, totalNoNivel, estado, ponto, nova }: PropsPedra) {
-  const repete = licao.repeticoes > 1;
-  // Tudo o que a pedra mostra vai no rótulo: a posição, o nível, o estado e
-  // as repetições ("3×" lido em voz alta vira "três ex"). O título da lição
+  // Tudo o que a pedra mostra vai no rótulo: a posição, o nível e o
+  // estado. O título da lição
   // fica de fora: ele traz a ordem do banco ("Lição 49 — …"), justamente o
   // número que a pedra deixou de mostrar.
-  const rotulo =
-    `Lição ${posicao} de ${totalNoNivel} do nível ${licao.nivel}, ${TEXTO_DO_ESTADO[estado]}` +
-    (repete ? `, ${licao.repeticoes} repetições` : '');
+  const rotulo = `Lição ${posicao} de ${totalNoNivel} do nível ${licao.nivel}, ${TEXTO_DO_ESTADO[estado]}`;
   // Face clara: o relevo claro de css/base/luz.css.
   const classeTecla = estado === 'nova' || estado === 'bloqueada' ? 'tecla' : 'tecla tecla-clara';
   const classes = `pedra pedra-${estado} ${classeTecla}`;
-  const conteudo = <ConteudoDaPedra estado={estado} posicao={posicao} repeticoes={licao.repeticoes} nova={nova} />;
+  const conteudo = <ConteudoDaPedra estado={estado} posicao={posicao} nova={nova} />;
 
   return (
     <div className="caminho-passo" style={{ left: ponto.x, top: ponto.y }}>

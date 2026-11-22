@@ -58,9 +58,6 @@ interface Guardado {
     turma_id?: string | null;
   };
   exercicio?: { id: string; titulo: string };
-  // Só quando a lição teve mais de uma repetição: o PPM de cada volta, na
-  // ordem. Não é parte do corpo gravado — a sessão é uma linha só.
-  repeticoes?: { ppmPorVolta?: number[] };
 }
 
 interface Xp {
@@ -86,9 +83,6 @@ interface Resultado {
   enfileirada: boolean;
   xp: Xp | null;
   recorde: boolean;
-  // Evolução dentro da lição (PPM da primeira volta contra o da última).
-  // null com uma volta só ou quando o dado veio da API, que não o tem.
-  evolucao: { voltas: number; primeira: number; ultima: number } | null;
 }
 
 type Tela = { fase: 'carregando' } | { fase: 'pronto'; resultado: Resultado } | { fase: 'erro'; detalhe: string };
@@ -132,17 +126,6 @@ function normalizarGuardado(g: Guardado, mundo: Mundo | null): Resultado {
         }
       : null,
     recorde: g.recordePessoal === true,
-    evolucao: evolucaoDe(g.repeticoes?.ppmPorVolta),
-  };
-}
-
-// Primeira volta contra a última. Menos de duas voltas: nada a comparar.
-function evolucaoDe(ppmPorVolta: number[] | undefined): Resultado['evolucao'] {
-  if (!Array.isArray(ppmPorVolta) || ppmPorVolta.length < 2) return null;
-  return {
-    voltas: ppmPorVolta.length,
-    primeira: ppmPorVolta[0] ?? 0,
-    ultima: ppmPorVolta[ppmPorVolta.length - 1] ?? 0,
   };
 }
 
@@ -171,15 +154,7 @@ function normalizarDaApi(r: SessaoDaApi, mundo: Mundo | null): Resultado {
     enfileirada: false,
     xp: null,
     recorde: false,
-    evolucao: null,
   };
-}
-
-// "+9", "−3" ou "=" — a diferença de PPM entre a última volta e a primeira.
-function formatarDelta(delta: number): string {
-  if (delta > 0) return `+${delta}`;
-  if (delta < 0) return `−${Math.abs(delta)}`;
-  return '=';
 }
 
 function nivelDe(xpTotal: number): number {
@@ -332,15 +307,6 @@ function ResultadoTela() {
         acertos={r.acertos}
         tempoSegundos={r.tempoSegundos}
       />
-
-      {/* Lição com repetições: a evolução dentro dela, discreta. Só existe
-          quando o dado veio da tela de treino (sessionStorage). */}
-      {r.evolucao && (
-        <p className="evolucao" id="evolucao">
-          {r.evolucao.voltas} repetições · {r.evolucao.primeira} PPM na primeira, {r.evolucao.ultima} na última
-          <span className="evolucao-delta">{formatarDelta(r.evolucao.ultima - r.evolucao.primeira)}</span>
-        </p>
-      )}
 
       {/* Só no mundo Solo, e só quando o XP veio com a resposta. */}
       {solo && r.xp && <BarraXp xp={r.xp} />}

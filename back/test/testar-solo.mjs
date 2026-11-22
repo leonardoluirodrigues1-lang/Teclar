@@ -183,9 +183,9 @@ confere(
       nivel: 1,
       titulo: 'Lição 01 — Linha-guia',
       dificuldade: 'facil',
-      repeticoes: 3,
+      repeticoes: 1,
       tempoLimiteSegundos: 144,
-      tamanhoCaracteres: 59,
+      tamanhoCaracteres: 179,
       bloqueada: false,
     }),
 );
