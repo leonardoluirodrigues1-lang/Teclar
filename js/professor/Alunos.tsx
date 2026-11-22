@@ -1,6 +1,8 @@
-// Alunos.tsx — pages/professor/alunos.html
-// Adicionar alunos a uma turma, pelo NOME: um por um ou importando um CSV
-// de nomes. A turma vem por ?turma=<id>; sem ela, painel de erro.
+// Alunos.tsx — pages/professor/alunos.html?turma=<id>&aba=um|csv
+// Adicionar alunos a uma turma, pelo NOME: um por um ("Adicionar aluno",
+// aba=um) ou importando um CSV de nomes ("Importar CSV", aba=csv). Os dois
+// botões da aba Alunos da turma abrem esta tela já no fluxo certo, e o
+// "Voltar para a turma" daqui reabre aquela aba. Sem ?turma=, painel de erro.
 //
 // É a única porta de entrada do aluno (banco v8): cada nome vira uma linha
 // de Alunos dentro da turma, sem senha. O aluno entra com o código da
@@ -37,6 +39,10 @@ import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 // Limite do arquivo. 1 MB de nomes dá dezenas de milhares de linhas — uma turma não
 // tem isso; um arquivo maior é engano de arquivo.
 const TAMANHO_MAXIMO = 1024 * 1024;
+
+// O limite do back (MAXIMO_DE_NOMES em alunos.service.ts): mais que isso
+// numa importação, o lote inteiro volta 400. Conferido aqui antes de mandar.
+const MAXIMO_DE_NOMES = 500;
 
 // Quantas linhas a prévia mostra. O resto é contado, não desenhado.
 const LINHAS_NA_PREVIA = 10;
@@ -102,7 +108,8 @@ interface Resultado {
 }
 
 const turmaId = new URLSearchParams(window.location.search).get('turma');
-const linkVoltar = turmaId ? `turma.html?${new URLSearchParams({ turma: turmaId })}` : 'turmas.html';
+// De volta para a aba Alunos da MESMA turma, que recarrega a lista.
+const linkVoltar = turmaId ? `turma.html?${new URLSearchParams({ turma: turmaId, aba: 'alunos' })}` : 'turmas.html';
 
 function abaDaUrl(): Aba {
   return new URLSearchParams(window.location.search).get('aba') === 'csv' ? 'csv' : 'um';
@@ -229,7 +236,7 @@ function Alunos() {
             onClick={() => selecionarAba('um')}
             onKeyDown={(evento) => aoTeclarNaAba(evento, 0)}
           >
-            Um por um
+            Adicionar aluno
           </button>
           <button
             type="button"
@@ -404,6 +411,12 @@ function UmPorUm({ turma }: { turma: TurmaDaFolha }) {
           ))}
         </ul>
       </section>
+
+      <div className="resultado-acoes">
+        <a className="btn btn-vidro vidro tecla" href={linkVoltar}>
+          Voltar para a turma
+        </a>
+      </div>
     </>
   );
 }
@@ -548,12 +561,13 @@ function ImportarCsv({ turma }: { turma: TurmaDaFolha }) {
 
   const validas = linhas.filter((l) => !l.motivo);
   const comProblema = linhas.length - validas.length;
+  const demais = validas.length > MAXIMO_DE_NOMES;
 
   // --- importar -------------------------------------------------------------
 
   async function importar() {
     if (importando.current) return;
-    if (validas.length === 0) return;
+    if (validas.length === 0 || demais) return;
 
     importando.current = true;
     setErroImportar(null);
@@ -707,7 +721,8 @@ function ImportarCsv({ turma }: { turma: TurmaDaFolha }) {
             className="btn btn-solido tecla tecla-clara"
             id="btn-importar"
             ref={btnImportar}
-            disabled={ocupado || validas.length === 0}
+            disabled={ocupado || validas.length === 0 || demais}
+            aria-describedby="limite-nomes"
             onClick={importar}
           >
             {rotuloImportar}
@@ -725,6 +740,11 @@ function ImportarCsv({ turma }: { turma: TurmaDaFolha }) {
             Trocar arquivo
           </button>
         </div>
+        <p className={demais ? 'erro-campo' : 'ajuda-campo'} id="limite-nomes">
+          {demais
+            ? `São ${validas.length} nomes; o limite é ${MAXIMO_DE_NOMES} por importação. Divida o arquivo em partes.`
+            : `Até ${MAXIMO_DE_NOMES} nomes por importação. Linhas com problema ficam de fora; as outras entram.`}
+        </p>
         <p className="erro-campo" id="erro-importar" aria-live="polite">
           {erroImportar}
         </p>
@@ -833,8 +853,8 @@ function ResultadoImportado({
       {/* Três números no mesmo painel das métricas da turma. */}
       <div className="metricas-turma vidro">
         <MetricaResultado rotulo="Adicionados" valor={adicionados.length} />
-        <MetricaResultado rotulo="Já estavam" valor={jaEstavam.length} />
-        <MetricaResultado rotulo="Falharam" valor={totalFalhas} />
+        <MetricaResultado rotulo="Já estavam na turma" valor={jaEstavam.length} />
+        <MetricaResultado rotulo="Linhas com erro" valor={totalFalhas} />
       </div>
 
       {adicionados.length > 0 && (
@@ -847,7 +867,11 @@ function ResultadoImportado({
         >
           <ul className="lista-falhas">
             {adicionados.map((a) => (
-              <ItemFalha key={a.id} id={a.nome} motivo={`senha provisória: ${a.senhaProvisoria}`} />
+              <ItemFalha
+                key={a.id}
+                id={a.nome}
+                motivo={`senha provisória: ${a.senhaProvisoria} · vale até ${formatarData(a.expiraEm)}`}
+              />
             ))}
           </ul>
           <div className="resultado-acoes">
@@ -877,13 +901,13 @@ function ResultadoImportado({
       )}
 
       {jaEstavam.length > 0 && (
-        <Grupo titulo="Já estavam" texto="Já estavam na turma. Nada mudou para eles.">
+        <Grupo titulo="Já estavam na turma" texto="Nada mudou para eles.">
           <p className="item-falha-id">{jaEstavam.join(', ')}</p>
         </Grupo>
       )}
 
       {totalFalhas > 0 && (
-        <Grupo titulo="Falharam" texto="Corrija na planilha e importe só estas de novo.">
+        <Grupo titulo="Linhas com erro" texto="Não entraram. Corrija na planilha e importe só estas de novo.">
           <ul className="lista-falhas">
             {falhas.map((f, i) => (
               <ItemFalha key={`back-${i}`} id={f.nome || '(vazio)'} motivo={f.motivo} />
@@ -915,7 +939,7 @@ function ResultadoImportado({
               copiarTexto(csv, setCopia, ++vez.current);
             }}
           >
-            Copiar linhas que falharam
+            Copiar linhas com erro
           </button>
         )}
 

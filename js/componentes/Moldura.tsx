@@ -19,6 +19,12 @@
 // faixa da esquerda e o conteúdo anda para a direita, continuando visível
 // (.moldura-lateral-aberta, em css/componentes/moldura.css).
 //
+// No Professor a barra é a "Área do professor": em tela de 1024px ou mais
+// ela fica FIXA à esquerda (sem botão de abrir nem X), com Minhas turmas,
+// Biblioteca de exercícios e Relatórios gerais, e embaixo Configurações,
+// Ajuda (o tutorial), a troca de modo, a saída e a conta logada. Abaixo de
+// 1024px ela volta a abrir pelo botão ☰. Quem decide é o CSS (.moldura-professor).
+//
 // Os hrefs são absolutos (/pages/...): a mesma moldura serve a telas de
 // pastas diferentes.
 
@@ -52,7 +58,7 @@ export interface Voltar {
 }
 
 // Os "voltar" mais comuns, para as telas não repetirem o texto.
-export const VOLTAR_TURMAS: Voltar = { href: '/pages/professor/turmas.html', rotulo: 'Turmas' };
+export const VOLTAR_TURMAS: Voltar = { href: '/pages/professor/turmas.html', rotulo: 'Minhas turmas' };
 export const VOLTAR_INICIO_SOLO: Voltar = { href: '/pages/solo/caminho.html', rotulo: 'Início' };
 
 interface PropsMoldura {
@@ -108,10 +114,9 @@ interface Item {
 function itensDo(modo: ModoDaMoldura): Item[] {
   if (modo === 'professor') {
     return [
-      { tela: 'turmas', rotulo: 'Turmas', href: '/pages/professor/turmas.html', icone: ICONES.turmas },
-      { tela: 'biblioteca', rotulo: 'Biblioteca', href: '/pages/professor/biblioteca.html', icone: ICONES.biblioteca },
-      { tela: 'relatorios', rotulo: 'Relatórios', href: '/pages/professor/relatorios.html', icone: ICONES.relatorios },
-      { tela: 'configuracoes', rotulo: 'Configurações', href: '/pages/professor/configuracoes.html', icone: ICONES.configuracoes },
+      { tela: 'turmas', rotulo: 'Minhas turmas', href: '/pages/professor/turmas.html', icone: ICONES.turmas },
+      { tela: 'biblioteca', rotulo: 'Biblioteca de exercícios', href: '/pages/professor/biblioteca.html', icone: ICONES.biblioteca },
+      { tela: 'relatorios', rotulo: 'Relatórios gerais', href: '/pages/professor/relatorios.html', icone: ICONES.relatorios },
     ];
   }
   if (modo === 'aluno') {
@@ -185,6 +190,23 @@ function Pessoa({ papel }: { papel: string }) {
   );
 }
 
+// O nome e o e-mail da conta, no pé da barra do Professor.
+function ContaDaBarra() {
+  const nome = sessao.nomeExibicao();
+  const email = sessao.usuario()?.email;
+  return (
+    <div className="barra-lateral-conta">
+      <span className="moldura-pessoa-inicial" aria-hidden="true">
+        {inicialDoNome(nome)}
+      </span>
+      <span className="moldura-pessoa-texto">
+        <span className="moldura-pessoa-nome">{nome}</span>
+        {email && <span className="barra-lateral-email">{email}</span>}
+      </span>
+    </div>
+  );
+}
+
 // Tudo o que recebe foco dentro da barra, na ordem da tela.
 function focaveisDe(barra: HTMLElement): HTMLElement[] {
   return Array.from(barra.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)'));
@@ -248,7 +270,14 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
       aria-label={NOME_DO_MENU[modo]}
     >
       <div className="barra-lateral-cabeca">
-        <span className="moldura-marca">TECLAR</span>
+        {modo === 'professor' ? (
+          <span className="barra-lateral-area">
+            <span className="moldura-marca">TECLAR</span>
+            <span className="barra-lateral-papel">Área do professor</span>
+          </span>
+        ) : (
+          <span className="moldura-marca">TECLAR</span>
+        )}
         <button
           type="button"
           className="barra-lateral-fechar tecla"
@@ -274,6 +303,30 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
 
       <hr className="barra-lateral-divisoria" />
 
+      {/* Professor: Configurações e Ajuda. A Ajuda é o tutorial do modo,
+          o mesmo do "Rever" das Configurações: abre nas turmas. */}
+      {modo === 'professor' && (
+        <>
+          <a
+            className={'barra-lateral-item' + (ativo === 'configuracoes' ? ' barra-lateral-item-ativo' : '')}
+            href="/pages/professor/configuracoes.html"
+            aria-current={ativo === 'configuracoes' ? 'page' : undefined}
+          >
+            {ICONES.configuracoes} Configurações
+          </a>
+          <button
+            type="button"
+            className="barra-lateral-item"
+            onClick={() => {
+              sessao.esquecerTutorial('professor');
+              window.location.href = '/pages/professor/turmas.html';
+            }}
+          >
+            {ICONES.ajuda} Ajuda
+          </button>
+        </>
+      )}
+
       {/* As saídas. O aluno não tem outro modo: só sai. */}
       {modo === 'solo' && (
         <button type="button" className="barra-lateral-item" onClick={() => guarda.trocarModo('professor')}>
@@ -293,6 +346,9 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
       <button type="button" className="barra-lateral-item" onClick={() => guarda.sair()}>
         <IconeSair /> Sair
       </button>
+
+      {/* A conta logada, embaixo (no Professor o topo não mostra a pessoa). */}
+      {modo === 'professor' && <ContaDaBarra />}
 
       <span className="barra-lateral-versao">v{CONFIG.VERSAO}</span>
     </nav>
@@ -350,7 +406,7 @@ export function Moldura({
   // useEffect dela, e uma função nova a cada render religaria o listener.
   const fechar = useRef(() => setAberta(false)).current;
 
-  const papel = modo === 'professor' ? 'Professor' : (sessao.usuario()?.turmas?.[0]?.nome ?? 'Aluno');
+  const papel = sessao.usuario()?.turmas?.[0]?.nome ?? 'Aluno';
 
   return (
     <div className={`moldura moldura-${modo}` + (aberta ? ' moldura-lateral-aberta' : '')}>
@@ -395,7 +451,7 @@ export function Moldura({
             )}
             {telaDaPessoa && <h1 className="moldura-titulo-pessoa">{sessao.nomeExibicao()}</h1>}
           </div>
-          {telaDaPessoa ? null : modo === 'solo' ? (
+          {telaDaPessoa || modo === 'professor' ? null : modo === 'solo' ? (
             <BotaoPessoaSolo campanha={campanha} xpPorNivel={xpPorNivel} />
           ) : (
             <Pessoa papel={papel} />

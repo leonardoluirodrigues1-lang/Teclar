@@ -1,25 +1,27 @@
-// Turma.tsx — pages/professor/turma.html?turma=<id>
-// A tela da turma vista pelo PROFESSOR. A tela em si (casca, abas, trilha,
-// painel de relatório) é a mesma do aluno e mora em
+// Turma.tsx — pages/professor/turma.html?turma=<id>[&aba=atividades|relatorio|alunos]
+// "Detalhes da turma", vista pelo PROFESSOR. A casca (capa, título, abas,
+// trilha, painel de relatório) é a mesma da sala do aluno e mora em
 // ../componentes/TelaDaTurma.tsx; aqui fica só o que muda para o professor:
 //
-//   · o cabeçalho tem as ações (Adicionar alunos, Atribuir exercício) e o
-//     painel de métricas da turma, com o CÓDIGO que os alunos digitam no
-//     login e o "Gerar novo" para quando ele vazar;
-//   EXERCÍCIOS     a trilha na visão da turma — cada pedra diz quantos
-//                  alunos concluíram — e, embaixo, a tabela de atribuições
-//                  com o "Remover atribuição";
-//   PARTICIPANTES  a lista inteira, com quem já criou senha e quem ainda
-//                  não entrou, o "Zerar senha" (o aluno não tem e-mail: quem
-//                  esqueceu a senha só volta por aqui) e o "Remover". O
-//                  professor não tem anonimização: a turma é dele.
-//   RELATÓRIO      os números da turma inteira (GET /turmas/:id/relatorio),
-//                  com PDF, CSV e o link para o relatório completo.
+//   · no topo: Editar turma, Alterar capa e Arquivar turma (os modais de
+//     ./modaisDaTurma.tsx, os mesmos da grade), o resumo (alunos e
+//     atividades) e o CÓDIGO que os alunos digitam no login, com Copiar e
+//     Renovar (para quando ele vazar);
+//   · três cartões que funcionam como abas, nesta ordem:
+//   ATIVIDADES          a trilha na visão da turma — cada pedra diz quantos
+//                       concluíram —, a tabela de atribuições com o
+//                       "Remover atribuição" e o "Atribuir exercício";
+//   RELATÓRIO DA TURMA  os números da turma inteira (GET /turmas/:id/relatorio),
+//                       com PDF, CSV e o link para o relatório completo;
+//   ALUNOS              "Adicionar aluno" e "Importar CSV" (./Alunos.tsx) e a
+//                       lista, com a situação do acesso. Cada linha tem um
+//                       "⋯" com "Gerar nova senha provisória" (o aluno não tem
+//                       e-mail: quem esqueceu a senha só volta por aqui) e
+//                       "Remover da turma".
 //
 // Sem ?turma=, ou com um id que o back não conhece, a tela mostra "Turma
 // não encontrada" — nunca fica em branco.
 
-import { comPpm } from '../componentes/Ppm.js';
 import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -33,6 +35,7 @@ import type {
   Exercicio,
   RelatorioTurma,
   SenhaProvisoriaGerada,
+  Turma as TurmaDaLista,
   TurmaDetalhe,
 } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
@@ -40,17 +43,20 @@ import { desembrulhar } from '../componentes/listaExercicios.js';
 import {
   CascaDaTurma,
   DICA_PPM_DAS_SESSOES,
-  DICA_PPM_POR_ALUNO,
   focarAba,
   PainelDeRelatorio,
   TrilhaDeExercicios,
   TurmaNaoEncontrada,
   useAbaDaUrl,
+  type DefinicaoDeAba,
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
+import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
+import { ModalArquivar, ModalCapa, ModalNome } from './modaisDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { ModalExercicio } from '../componentes/ModalExercicio.js';
 import { VOLTAR_TURMAS } from '../componentes/Moldura.js';
+import { copiarComAviso } from '../utils/copiar.js';
 import { imprimirSenhas } from '../utils/imprimirSenhas.js';
 import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
@@ -89,7 +95,18 @@ type ConfigModal =
   | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
   | { chave: number; tipo: 'atribuir'; opener: HTMLElement }
-  | { chave: number; tipo: 'criar-exercicio' };
+  | { chave: number; tipo: 'criar-exercicio' }
+  | { chave: number; tipo: 'renomear' }
+  | { chave: number; tipo: 'capa' }
+  | { chave: number; tipo: 'arquivar' };
+
+// A ordem das abas do professor. Os rótulos e a linha de baixo de cada
+// cartão saem no render, com as contagens.
+const ABAS_DO_PROFESSOR: { chave: 'atividades' | 'relatorio' | 'alunos' }[] = [
+  { chave: 'atividades' },
+  { chave: 'relatorio' },
+  { chave: 'alunos' },
+];
 
 let proximaChave = 0;
 
@@ -100,7 +117,7 @@ const turmaId = new URLSearchParams(window.location.search).get('turma');
 function Turma() {
   const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
-  const [aba, selecionarAba] = useAbaDaUrl();
+  const [aba, selecionarAba] = useAbaDaUrl(ABAS_DO_PROFESSOR);
   // Ordenação da tabela de participantes: só ela é ordenável. null = ordem
   // em que o back mandou.
   const [ordenacaoAlunos, setOrdenacaoAlunos] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
@@ -194,11 +211,11 @@ function Turma() {
     }
 
     if (aba === 'relatorio') return <AbaRelatorio nomeDaTurma={turma.nome ?? 'turma'} />;
-    if (aba === 'participantes') return renderizarParticipantes();
-    return renderizarExercicios();
+    if (aba === 'alunos') return renderizarAlunos();
+    return renderizarAtividades();
   }
 
-  function renderizarExercicios() {
+  function renderizarAtividades() {
     if (atribuicoes.length === 0) {
       return (
         <PainelEstado
@@ -219,34 +236,60 @@ function Turma() {
     // administra cada atribuição (data, dificuldade, remover).
     return (
       <>
+        <div className="painel-barra">
+          <button
+            type="button"
+            className="btn btn-solido tecla tecla-clara"
+            id="btn-atribuir"
+            ref={btnAtribuir}
+            onClick={(evento) => abrirAtribuir(evento.currentTarget)}
+          >
+            Atribuir exercício
+          </button>
+        </div>
         <TrilhaDeExercicios pedras={atribuicoes.map(pedraDaTurma)} />
         <Tabela colunas={colunasExercicios} linhas={atribuicoes} chave={(item) => item.exercicioId} />
       </>
     );
   }
 
-  function renderizarParticipantes() {
+  // Os dois botões da aba Alunos: abrem ./Alunos.tsx já no fluxo certo, e o
+  // "Voltar para a turma" de lá traz de volta para esta aba.
+  const botoesDeAlunos = (
+    <>
+      <a className="btn btn-solido tecla tecla-clara" href={hrefDeAlunos('um')}>
+        Adicionar aluno
+      </a>
+      <a className="btn btn-vidro vidro tecla" href={hrefDeAlunos('csv')}>
+        Importar CSV
+      </a>
+    </>
+  );
+
+  function renderizarAlunos() {
     if (alunos.length === 0) {
       return (
         <PainelEstado
           titulo="Nenhum aluno ainda"
-          texto="Esta turma ainda não tem alunos. Adicione a lista de nomes para começar."
+          texto="Esta turma ainda não tem alunos. Adicione um por um ou importe a lista de nomes."
         >
-          <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
-            Adicionar alunos
-          </a>
+          <div className="painel-barra-botoes">{botoesDeAlunos}</div>
         </PainelEstado>
       );
     }
 
     const semSenha = alunos.filter((a) => !a.senhaDefinida).length;
     return (
-      <Bloco titulo="Participantes" texto="Quem está na lista da turma, como cada um vai e a senha de cada um.">
+      <Bloco
+        titulo="Alunos"
+        texto="Quem está na lista da turma, como cada um vai e a situação do acesso."
+        acoes={botoesDeAlunos}
+      >
         {semSenha > 0 && (
           <p className="aviso-convite" role="note">
             {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Cada
             um entra a primeira vez com a senha provisória (vale uma vez, por 7 dias) e depois cria a sua. Perdeu a
-            folha? Use "Senha provisória" na linha do aluno.
+            folha ou esqueceu a senha? Use "⋯" › "Gerar nova senha provisória" na linha do aluno.
           </p>
         )}
         <Tabela
@@ -271,15 +314,7 @@ function Turma() {
       campo: 'nome',
       celula: (a) => <span className="celula-aluno-nome">{a.nome}</span>,
     },
-    {
-      rotulo: 'Acesso',
-      celula: (a) =>
-        a.senhaDefinida
-          ? 'Senha criada'
-          : a.provisoriaAte
-            ? `Provisória até ${formatarData(a.provisoriaAte)}`
-            : 'Sem senha (gere uma provisória)',
-    },
+    { rotulo: 'Acesso', celula: (a) => <SituacaoDoAcesso aluno={a} /> },
     { rotulo: 'Na lista desde', celula: (a) => formatarData(a.entrouEm) },
     { rotulo: 'Sessões', classe: 'col-numero', celula: (a) => contagem(a.totalSessoes) },
     { rotulo: 'PPM médio', campo: 'ppm', classe: 'col-numero', celula: (a) => contagem(a.wpmMedio) },
@@ -294,26 +329,23 @@ function Turma() {
       celula: (a) => (a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : '—'),
     },
     {
-      rotulo: 'Ação',
+      rotulo: 'Ações',
+      classe: 'col-acoes',
       celula: (aluno) => (
-        <>
-          <button
-            type="button"
-            className="tabela-acao"
-            aria-label={`Gerar senha provisória para ${aluno.nome}`}
-            onClick={() => setModal({ chave: ++proximaChave, tipo: 'senha-provisoria', aluno })}
-          >
-            Senha provisória
-          </button>
-          <button
-            type="button"
-            className="tabela-acao"
-            aria-label={`Remover ${aluno.nome} da turma`}
-            onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno })}
-          >
-            Remover da turma
-          </button>
-        </>
+        <MenuDeAcoes
+          rotulo={`Ações de ${aluno.nome}`}
+          acoes={[
+            {
+              rotulo: 'Gerar nova senha provisória',
+              aoEscolher: () => setModal({ chave: ++proximaChave, tipo: 'senha-provisoria', aluno }),
+            },
+            {
+              rotulo: 'Remover da turma',
+              perigo: true,
+              aoEscolher: () => setModal({ chave: ++proximaChave, tipo: 'remover-aluno', aluno }),
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -370,7 +402,7 @@ function Turma() {
             toasts.mostrar('Aluno removido da turma');
             // A linha (e o botão que a pessoa clicou) acabou de sumir do DOM;
             // a aba é o próximo lugar estável para o foco pousar.
-            focarAba('participantes');
+            focarAba('alunos');
           }}
           aoFechar={fechar}
         />
@@ -383,7 +415,7 @@ function Turma() {
         <ModalRemover
           key={modal.chave}
           eyebrow={aluno.nome}
-          titulo="Gerar senha provisória?"
+          titulo="Gerar nova senha provisória?"
           texto={
             (aluno.senhaDefinida ? 'A senha atual dele deixa de valer. ' : '') +
             'A senha provisória aparece uma vez só, para você entregar ao aluno. Ela vale um login, por 7 dias; ' +
@@ -425,7 +457,7 @@ function Turma() {
           ]}
           aoFechar={() => {
             fechar();
-            focarAba('participantes');
+            focarAba('alunos');
           }}
         >
           <p className="senha-provisoria col-mono">{gerada.senhaProvisoria}</p>
@@ -442,12 +474,13 @@ function Turma() {
         <ModalRemover
           key={modal.chave}
           eyebrow="Código da turma"
-          titulo="Gerar um código novo?"
+          titulo="Renovar o código?"
           texto={
-            `O código ${turma?.codigo ?? ''} deixa de valer na hora. Os alunos que já criaram senha entram ` +
-            'com o código novo e a mesma senha. Use quando o código vazar para quem não é da turma.'
+            `O código ${turma?.codigo ?? ''} deixa de valer na hora: quem tentar entrar com ele não consegue. ` +
+            'As senhas que já existem continuam funcionando com o código novo — a pessoal e a provisória. ' +
+            'Avise a turma do código novo. Use quando o código vazar para quem não é da turma.'
           }
-          rotuloAcao="Gerar código novo"
+          rotuloAcao="Renovar código"
           rotuloOcupado="Gerando…"
           enviar={() => api.turmas.novoCodigo(turmaId)}
           aoConcluir={(resposta) => {
@@ -457,6 +490,51 @@ function Turma() {
             );
             toasts.mostrar(`Código novo: ${codigo}`);
           }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'renomear') {
+      return (
+        <ModalNome
+          key={modal.chave}
+          eyebrow="Turma"
+          titulo="Editar turma"
+          valor={turma?.nome ?? ''}
+          rotuloAcao="Salvar"
+          textoOcupado="Salvando…"
+          enviar={(nome) => api.turmas.renomear(turmaId, nome)}
+          aoConcluir={(resposta) => {
+            trocarNaTurma({ nome: resposta?.nome ?? turma?.nome });
+            toasts.mostrar('Nome atualizado');
+          }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'capa') {
+      return (
+        <ModalCapa
+          key={modal.chave}
+          turma={turma as TurmaDaLista}
+          aoConcluir={(campos) => {
+            trocarNaTurma(campos);
+            toasts.mostrar('Capa atualizada');
+          }}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'arquivar') {
+      return (
+        <ModalArquivar
+          key={modal.chave}
+          turma={turma as TurmaDaLista}
+          // A turma arquivada sai da lista: não há mais o que ver aqui.
+          aoConcluir={() => location.assign('turmas.html')}
           aoFechar={fechar}
         />
       );
@@ -476,7 +554,7 @@ function Turma() {
           aoConcluir={() => {
             atualizarAtribuicoes((lista) => lista.filter((a) => a.exercicioId !== item.exercicioId));
             toasts.mostrar('Atribuição removida');
-            focarAba('exercicios');
+            focarAba('atividades');
           }}
           aoFechar={fechar}
         />
@@ -524,75 +602,83 @@ function Turma() {
     );
   }
 
-  // O que só o professor tem no cabeçalho: as duas ações e, embaixo do
-  // título, o painel com os três números da turma.
-  const acoes = (
+  function trocarNaTurma(campos: Partial<TurmaDetalhe>) {
+    setCarga((atual) => (atual.estado === 'pronto' ? { ...atual, turma: { ...atual.turma, ...campos } } : atual));
+  }
+
+  // As ações da turma, à direita do título. Discretas: a ação de todo dia
+  // (atribuir, adicionar aluno) mora dentro de cada aba.
+  const acoes = turma && (
     <>
-      <a
-        className="btn btn-vidro vidro tecla"
-        id="btn-adicionar-alunos"
-        href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}
-      >
-        Adicionar alunos
-      </a>
-      <button
-        type="button"
-        className="btn btn-solido tecla tecla-clara"
-        id="btn-atribuir"
-        ref={btnAtribuir}
-        onClick={(evento) => abrirAtribuir(evento.currentTarget)}
-      >
-        Atribuir exercício
+      <button type="button" className="btn btn-vidro vidro tecla" onClick={() => setModal({ chave: ++proximaChave, tipo: 'renomear' })}>
+        Editar turma
+      </button>
+      <button type="button" className="btn btn-vidro vidro tecla" onClick={() => setModal({ chave: ++proximaChave, tipo: 'capa' })}>
+        Alterar capa
+      </button>
+      <button type="button" className="btn btn-vidro vidro tecla" onClick={() => setModal({ chave: ++proximaChave, tipo: 'arquivar' })}>
+        Arquivar turma
       </button>
     </>
   );
 
-  // Métricas do topo — recalculadas no cliente sempre que a lista muda,
-  // para remover aluno ou atribuição não precisar de outra ida ao back.
-  const metricas = (
-    <div className="metricas-turma vidro" id="metricas">
-      <div className="metrica-item">
-        <span className="metrica-rotulo">Alunos</span>
-        <span className="metrica-valor">{turma ? contagem(alunos.length) : '—'}</span>
+  // O código da turma, em destaque: é o que os alunos digitam no login,
+  // junto com o nome e a senha.
+  const codigo = (
+    <section className="codigo-turma vidro" aria-labelledby="codigo-turma-rotulo">
+      <div>
+        <h2 className="codigo-turma-rotulo" id="codigo-turma-rotulo">
+          Código da turma
+        </h2>
+        <p className="codigo-turma-valor col-mono">{turma?.codigo ?? '—'}</p>
       </div>
-      <div className="metrica-item">
-        <span className="metrica-rotulo">Exercícios atribuídos</span>
-        <span className="metrica-valor">{turma ? contagem(atribuicoes.length) : '—'}</span>
-      </div>
-      <div className="metrica-item" title={DICA_PPM_POR_ALUNO}>
-        <span className="metrica-rotulo">{comPpm('PPM médio por aluno')}</span>
-        <span className="metrica-valor">{turma ? contagem(calcularPpmMedio(alunos)) : '—'}</span>
-      </div>
-      {/* O que o aluno digita no login, junto com o nome. */}
-      <div className="metrica-item">
-        <span className="metrica-rotulo">Código de entrada</span>
-        <span className="metrica-valor col-mono">{turma?.codigo ?? '—'}</span>
-        {turma && (
+      <p className="codigo-turma-texto">
+        Os alunos entram com este código, o próprio nome e a senha. Compartilhe só com quem é da turma.
+      </p>
+      {turma && (
+        <div className="codigo-turma-acoes">
           <button
             type="button"
-            className="tabela-acao"
-            onClick={() => setModal({ chave: ++proximaChave, tipo: 'novo-codigo' })}
+            className="btn btn-vidro vidro tecla"
+            aria-label={`Copiar o código ${turma.codigo}`}
+            onClick={() => copiarComAviso(turma.codigo, toasts, 'Código copiado')}
           >
-            Gerar novo
+            Copiar código
           </button>
-        )}
-      </div>
-    </div>
+          <button type="button" className="btn btn-vidro vidro tecla" onClick={() => setModal({ chave: ++proximaChave, tipo: 'novo-codigo' })}>
+            Renovar código
+          </button>
+        </div>
+      )}
+    </section>
   );
+
+  // Os três cartões-aba, com a linha de baixo contada aqui: remover aluno
+  // ou atribuição muda o número sem outra ida ao back.
+  const abas: DefinicaoDeAba[] = [
+    { chave: 'atividades', rotulo: 'Atividades', detalhe: turma ? porExtenso(atribuicoes.length, 'atribuída', 'atribuídas') : '—' },
+    { chave: 'relatorio', rotulo: 'Relatório da turma', detalhe: 'Desempenho da turma' },
+    { chave: 'alunos', rotulo: 'Alunos', detalhe: turma ? porExtenso(alunos.length, 'aluno', 'alunos') : '—' },
+  ];
+
+  const resumo = turma
+    ? `${turma.periodo ?? 'Período não informado'} · ${porExtenso(alunos.length, 'aluno', 'alunos')} · ` +
+      porExtenso(atribuicoes.length, 'atividade atribuída', 'atividades atribuídas')
+    : null;
 
   return (
     <>
       <CascaDaTurma
         modo="professor"
         voltar={VOLTAR_TURMAS}
-        descricao="Atribua exercícios, acompanhe os alunos e veja o relatório da turma."
         titulo={turma ? turma.nome ?? 'Turma sem nome' : null}
-        subtitulo={turma ? turma.periodo ?? 'Período não informado' : null}
+        subtitulo={resumo}
         acoes={acoes}
-        extra={metricas}
+        extra={codigo}
         capa={turma?.temCapa ? { id: turma.id, capaSemente: turma.capaSemente } : null}
         aba={aba}
         aoSelecionarAba={selecionarAba}
+        abas={abas}
         carregando={carga.estado === 'carregando'}
       >
         {renderizarConteudo()}
@@ -601,6 +687,29 @@ function Turma() {
       {renderizarModal()}
     </>
   );
+}
+
+// "1 aluno", "28 alunos", "0 alunos".
+function porExtenso(n: number, um: string, varios: string): string {
+  return `${n} ${n === 1 ? um : varios}`;
+}
+
+// alunos.html já no fluxo pedido ('um' = Adicionar aluno, 'csv' = Importar CSV).
+function hrefDeAlunos(fluxo: 'um' | 'csv'): string {
+  return `alunos.html?${new URLSearchParams({ turma: turmaId, aba: fluxo })}`;
+}
+
+// A situação do acesso, como os dados da API dizem:
+//   senhaDefinida            -> a pessoal já foi criada (bcrypt no banco);
+//   provisoriaAte no futuro  -> a provisória ainda vale um login;
+//   nenhuma das duas         -> primeiro acesso pendente: precisa de uma
+//                               provisória nova (o "⋯" da linha).
+function SituacaoDoAcesso({ aluno }: { aluno: Aluno }) {
+  if (aluno.senhaDefinida) return <span className="etiqueta etiqueta-ok">Senha pessoal criada</span>;
+  if (aluno.provisoriaAte) {
+    return <span className="etiqueta etiqueta-espera">Provisória válida até {formatarData(aluno.provisoriaAte)}</span>;
+  }
+  return <span className="etiqueta etiqueta-alerta">Primeiro acesso pendente</span>;
 }
 
 // Na visão do professor a pedra não tem "o seu" estado: é neutra, com o
@@ -696,17 +805,6 @@ function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[
 }
 
 // Métricas e ordenação
-
-// Média só entre quem já treinou — quem nunca treinou não entra na conta
-// (nem para cima, nem para baixo). Uma casa decimal, igual ao que o mock
-// devolve em /turmas/:id: um recálculo local que não bate com o formato
-// do servidor seria pior que não recalcular nada.
-function calcularPpmMedio(lista: Aluno[]): number | null {
-  const validos = lista.filter((a) => a.totalSessoes > 0 && Number.isFinite(a.wpmMedio));
-  if (validos.length === 0) return null;
-  const soma = validos.reduce((total, a) => total + a.wpmMedio, 0);
-  return Math.round((soma / validos.length) * 10) / 10;
-}
 
 // contagem (zero é 0, travessão é "sem dado") e ordenar (nulo por último
 // nas duas direções) vêm de utils/. A tabela só diz o que cada campo vale.

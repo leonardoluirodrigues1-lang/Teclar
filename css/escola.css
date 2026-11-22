@@ -1783,3 +1783,175 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   /* A entrada animada da página não pode deixar nada transparente no papel. */
   .entrada-da-pagina, .entrada-escalonada > * { animation: none !important; opacity: 1 !important; }
 }
+
+/* ============================================================================
+   ZONA TRABALHO — as telas do professor (Figma "TECLAR — Estética por
+   zona"): superfícies sólidas, sem desfoque, sem estrelas nem luz no fundo,
+   contraste máximo. A classe vai no <body> de pages/professor/*.html.
+   ========================================================================== */
+.zona-trabalho { background: #000; }
+.zona-trabalho .fundo { display: none; }
+
+.zona-trabalho .vidro {
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+/* A tecla de vidro (botão secundário) guarda o relevo, numa face sólida. */
+.zona-trabalho .vidro.tecla {
+  background: #1c1c1c;
+  box-shadow: var(--relevo-tecla);
+}
+.zona-trabalho .modal-overlay {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(0, 0, 0, 0.78);
+}
+.zona-trabalho .barra-lateral {
+  background: #0b0b0b;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* --- Minhas turmas: o rodapé do cartão (código e alunos) ----------------- */
+.cartao-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: var(--e-4, 16px);
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.cartao-codigo strong { color: var(--cor-texto, #fff); letter-spacing: 0.08em; }
+/* O código recém-criado, no modal de "Turma criada". */
+.codigo-criado {
+  margin: 16px 0;
+  font-size: 34px;
+  letter-spacing: 0.24em;
+  color: var(--cor-texto, #fff);
+}
+
+/* --- Detalhes da turma: o código em destaque ----------------------------- */
+.codigo-turma {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-4, 16px) var(--e-6, 32px);
+  margin-top: var(--e-5, 24px);
+  padding: 20px 24px;
+  border-radius: var(--raio-card, 8px);
+}
+.codigo-turma-rotulo {
+  font-size: 13px;
+  font-weight: var(--peso-normal, 400);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.codigo-turma-valor {
+  margin-top: 4px;
+  font-size: 30px;
+  letter-spacing: 0.22em;
+  color: var(--cor-texto, #fff);
+}
+.codigo-turma-texto {
+  flex: 1 1 220px;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.codigo-turma-acoes { display: flex; flex-wrap: wrap; gap: var(--e-2, 8px); }
+
+/* --- os três cartões que funcionam como abas ----------------------------- */
+.abas-cartoes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-3, 12px);
+  border-bottom: 0;
+}
+.abas-cartoes .aba.tecla {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: var(--raio-card, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #111;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.abas-cartoes .aba.tecla:hover { background: #1a1a1a; }
+.abas-cartoes .aba.tecla[aria-selected="true"] {
+  background: #fff;
+  border-color: #fff;
+  color: #000;
+}
+.aba-rotulo {
+  font-family: var(--fonte-leitura, "Inter", system-ui, sans-serif);
+  font-size: 16px;
+  font-weight: var(--peso-medio, 500);
+}
+.aba-detalhe {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.aba[aria-selected="true"] .aba-detalhe { color: #333; }
+@media (max-width: 640px) {
+  .abas-cartoes { grid-template-columns: 1fr; }
+}
+
+/* --- barra de ações de um painel (Atribuir exercício) ------------------- */
+.painel-barra {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e-2, 8px);
+  margin-top: var(--e-5, 24px);
+}
+.painel-barra-botoes { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--e-2, 8px); }
+
+/* --- situação do acesso do aluno ----------------------------------------- */
+/* Texto e forma além da cor: a etiqueta diz a situação por extenso. */
+.etiqueta {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid currentColor;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.etiqueta-ok { color: #7ee2a8; }
+.etiqueta-espera { color: var(--cor-texto-suave, #c4c4c4); }
+.etiqueta-alerta { color: var(--cor-alerta, #f5b93b); }
+
+/* --- o "⋯" de cada linha (js/componentes/MenuDeAcoes.tsx) --------------- */
+.col-acoes { width: 1%; text-align: right; }
+.menu-acoes { position: relative; display: inline-block; }
+.menu-acoes-botao {
+  width: 36px;
+  height: 32px;
+  border-radius: var(--raio-n, 8px);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.menu-acoes-botao:hover,
+.menu-acoes-botao[aria-expanded="true"] { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
+.menu-acoes-lista {
+  /* top e right vêm do botão, medidos ao abrir (MenuDeAcoes.tsx). */
+  position: fixed;
+  z-index: var(--z-fixa, 100);
+  min-width: 230px;
+  padding: 2px 8px 8px;
+  border-radius: var(--raio-n, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #161616;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+.menu-item-perigo { color: var(--cor-erro, #ff5a5a); }
+.menu-item-perigo:hover { color: #ff8080; }

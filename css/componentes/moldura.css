@@ -320,3 +320,47 @@
   .barra-lateral,
   .moldura-abrir { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Professor: a "Área do professor" (js/componentes/Moldura.tsx)
+   De 1024px para cima a barra fica FIXA à esquerda: sem o botão ☰ e sem o
+   X, e o conteúdo começa depois dela. Abaixo disso ela abre e fecha como no
+   Solo e no Aluno.
+   ------------------------------------------------------------------------- */
+.barra-lateral-area { display: flex; flex-direction: column; gap: 6px; }
+.barra-lateral-papel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.barra-lateral-conta {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  margin-top: auto;
+  padding: var(--e-4, 16px) 6px var(--e-2, 8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.barra-lateral-conta .moldura-pessoa-texto { display: flex; min-width: 0; }
+.barra-lateral-email {
+  margin-top: 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  overflow-wrap: anywhere;
+}
+.moldura-professor .barra-lateral-versao { margin-top: var(--e-2, 8px); }
+
+@media (min-width: 1024px) {
+  .moldura-professor .barra-lateral {
+    transform: none;
+    visibility: visible;
+    border-radius: 0;
+    transition: none;
+  }
+  .moldura-professor .moldura-conteudo {
+    left: var(--largura-sidebar, 248px);
+    transition: none;
+  }
+  .moldura-professor .moldura-abrir,
+  .moldura-professor .barra-lateral-fechar { display: none; }
+}

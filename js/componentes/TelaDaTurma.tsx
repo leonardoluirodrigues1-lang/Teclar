@@ -27,24 +27,34 @@ import { querMenosMovimento } from '../utils/movimento.js';
 
 // Abas
 
-export type AbaDaTurma = 'exercicios' | 'participantes' | 'relatorio';
+// As do aluno (a sala) e as do professor, que têm outra ordem e outros
+// rótulos: Atividades → Relatório da turma → Alunos.
+export type AbaDaTurma = 'exercicios' | 'participantes' | 'relatorio' | 'atividades' | 'alunos';
 
-const ABAS: { chave: AbaDaTurma; rotulo: string }[] = [
+export interface DefinicaoDeAba {
+  chave: AbaDaTurma;
+  rotulo: string;
+  /** Uma linha curta embaixo do rótulo ("5 atribuídas"): a aba vira cartão. */
+  detalhe?: string;
+}
+
+const ABAS: DefinicaoDeAba[] = [
   { chave: 'exercicios', rotulo: 'Exercícios' },
   { chave: 'participantes', rotulo: 'Participantes' },
   { chave: 'relatorio', rotulo: 'Relatório' },
 ];
 
-function abaDaUrl(): AbaDaTurma {
+// A pedida na URL, se for uma das abas da tela; senão a primeira.
+function abaDaUrl(abas: { chave: AbaDaTurma }[]): AbaDaTurma {
   const pedida = new URLSearchParams(window.location.search).get('aba');
-  return ABAS.some((a) => a.chave === pedida) ? (pedida as AbaDaTurma) : 'exercicios';
+  return abas.some((a) => a.chave === pedida) ? (pedida as AbaDaTurma) : abas[0].chave;
 }
 
 // A aba atual e a função que troca. replaceState, e não pushState: trocar
 // de aba não é uma "página" nova para o botão voltar — só o F5 precisa
 // lembrar dela.
-export function useAbaDaUrl(): [AbaDaTurma, (aba: AbaDaTurma) => void] {
-  const [aba, setAba] = useState<AbaDaTurma>(abaDaUrl);
+export function useAbaDaUrl(abas: { chave: AbaDaTurma }[] = ABAS): [AbaDaTurma, (aba: AbaDaTurma) => void] {
+  const [aba, setAba] = useState<AbaDaTurma>(() => abaDaUrl(abas));
 
   function selecionar(nova: AbaDaTurma) {
     setAba(nova);
@@ -81,6 +91,8 @@ interface PropsCasca {
   capa?: { id: string; capaSemente?: number; daSala?: boolean } | null;
   aba: AbaDaTurma;
   aoSelecionarAba: (aba: AbaDaTurma) => void;
+  /** Sem ela, as três da sala do aluno. */
+  abas?: DefinicaoDeAba[];
   carregando: boolean;
   /** O conteúdo da aba atual. */
   children: ReactNode;
@@ -91,7 +103,7 @@ interface PropsCasca {
 const NBSP = String.fromCharCode(0xa0);
 
 export function CascaDaTurma(props: PropsCasca) {
-  const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, capa, aba, aoSelecionarAba, carregando, children } = props;
+  const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, capa, aba, aoSelecionarAba, abas = ABAS, carregando, children } = props;
 
   // Troca de aba: o painel entra num fade de 150 ms. Pela Web Animations, e
   // não por `key`, para o conteúdo não remontar (e perder o estado).
@@ -130,7 +142,7 @@ export function CascaDaTurma(props: PropsCasca) {
 
         {extra}
 
-        <AbasDaTurma aba={aba} aoSelecionar={aoSelecionarAba} />
+        <AbasDaTurma abas={abas} aba={aba} aoSelecionar={aoSelecionarAba} />
 
         {/* As três abas apontam para o mesmo #conteudo, que troca de
             conteúdo; aria-labelledby segue a aba ativa para o leitor de
@@ -145,8 +157,15 @@ export function CascaDaTurma(props: PropsCasca) {
 
 // Roving tabindex: só a aba selecionada está na ordem do Tab; as setas
 // esquerda e direita é que movem entre as três.
-function AbasDaTurma({ aba, aoSelecionar }: { aba: AbaDaTurma; aoSelecionar: (aba: AbaDaTurma) => void }) {
+interface PropsAbas {
+  abas: DefinicaoDeAba[];
+  aba: AbaDaTurma;
+  aoSelecionar: (aba: AbaDaTurma) => void;
+}
+
+function AbasDaTurma({ abas: ABAS, aba, aoSelecionar }: PropsAbas) {
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
+  const comoCartoes = ABAS.some((a) => a.detalhe != null);
 
   function aoTeclar(evento: KeyboardEventReact, indice: number) {
     if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
@@ -158,7 +177,7 @@ function AbasDaTurma({ aba, aoSelecionar }: { aba: AbaDaTurma; aoSelecionar: (ab
   }
 
   return (
-    <div className="abas" role="tablist" aria-label="Seções da turma">
+    <div className={comoCartoes ? 'abas abas-cartoes' : 'abas'} role="tablist" aria-label="Seções da turma">
       {ABAS.map((item, indice) => (
         <button
           key={item.chave}
@@ -175,7 +194,14 @@ function AbasDaTurma({ aba, aoSelecionar }: { aba: AbaDaTurma; aoSelecionar: (ab
           onClick={() => aoSelecionar(item.chave)}
           onKeyDown={(evento) => aoTeclar(evento, indice)}
         >
-          {item.rotulo}
+          {comoCartoes ? (
+            <>
+              <span className="aba-rotulo">{item.rotulo}</span>
+              <span className="aba-detalhe">{item.detalhe}</span>
+            </>
+          ) : (
+            item.rotulo
+          )}
         </button>
       ))}
     </div>
