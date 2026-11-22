@@ -18,6 +18,9 @@ body{background:var(--background);color:var(--foreground);font-family:var(--font
 /* ============ HERO ============ */
 .hero{position:relative;min-height:100vh;width:100%;overflow:hidden;background:var(--background)}
 .hero canvas{position:absolute;inset:0;height:100%;width:100%}
+/* vinheta: as bordas do hero escurecem, o buraco negro fica no centro da luz */
+.hero::before{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:radial-gradient(ellipse 70% 75% at 50% 44%,transparent 45%,rgba(0,0,0,.8) 100%)}
 .layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 
 /* transicao do hero para o conteudo: gradiente + desfoque progressivo */
@@ -53,6 +56,10 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
   color:var(--foreground);text-decoration:none;background:rgba(0,0,0,.3);
   backdrop-filter:blur(2px);transition:background .25s,color .25s,box-shadow .25s}
 .btn:hover{background:var(--foreground);color:var(--background);box-shadow:0 0 40px rgba(255,255,255,.25)}
+/* o botão principal: branco sólido, com brilho leve no hover */
+.cta-hero .btn,.cta-final .btn{background:var(--foreground);color:var(--background);border-color:var(--foreground);
+  font-weight:500}
+.cta-hero .btn:hover,.cta-final .btn:hover{box-shadow:0 0 36px rgba(255,255,255,.4)}
 
 /* ancora de orbita centrada no buraco negro */
 .orbit-anchor{position:absolute;left:50%;top:calc(50% + var(--hole-offset));height:0;width:0}
@@ -137,7 +144,7 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
   background:radial-gradient(circle,rgba(255,255,255,.07) 0%,transparent 68%)}
 .cta-final h2{margin:2.5rem auto 0;max-width:48rem;font-size:2.25rem;line-height:1.15;letter-spacing:-.02em}
 @media(min-width:640px){.cta-final h2{font-size:3.75rem}}
-.cta-final .btn{margin-top:3.5rem;background:transparent;backdrop-filter:none}
+.cta-final .btn{margin-top:3.5rem;backdrop-filter:none}
 
 footer{margin:0 auto;max-width:var(--container);padding:0 1.5rem 4rem}
 footer p{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.3em;color:var(--muted-foreground)}

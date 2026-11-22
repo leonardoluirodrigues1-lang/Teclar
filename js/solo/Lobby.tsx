@@ -257,6 +257,10 @@ function PainelPersonagem({ nome, campanha, estatisticas, indicadores, xpPorNive
         <p className="lobby-xp-texto" aria-hidden="true">
           <strong><NumeroQueConta valor={progresso.noNivel} /></strong> / {progresso.porNivel} XP · faltam {progresso.falta}
         </p>
+        {/* A barra fina de XP do cartão: o mesmo número do anel, em linha. */}
+        <div className="lobby-xp-fina" aria-hidden="true">
+          <span style={{ width: `${Math.min(100, (progresso.noNivel / (progresso.porNivel || 1)) * 100)}%` }} />
+        </div>
       </div>
 
       {/* numero(), porcentagem() e contagem() já escrevem "—" quando o
@@ -271,6 +275,10 @@ function PainelPersonagem({ nome, campanha, estatisticas, indicadores, xpPorNive
         />
         <Metrica rotulo="Lições concluídas" valor={contagem(estatisticas?.licoesConcluidas)} />
       </div>
+
+      <a className="lobby-cartao-rodape" href={ROTA_CAMINHO}>
+        Continuar <span aria-hidden="true">→</span>
+      </a>
     </article>
   );
 }

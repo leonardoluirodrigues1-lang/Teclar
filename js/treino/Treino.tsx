@@ -91,7 +91,7 @@ const NBSP = String.fromCharCode(0xa0);
 const PLACEHOLDER_TEXTO =
   'Enquanto o exercício carrega, este texto apenas marca o lugar onde ele vai aparecer. ' +
   'Respire, ajuste a postura e deixe as mãos na linha de base do teclado.';
-const DICA_INICIAL = 'Comece a digitar para iniciar o cronômetro · Esc sai';
+const DICA_INICIAL = 'Comece a digitar para iniciar o cronômetro';
 
 // Solo tem rota própria (missão, com XP); Escola usa o detalhe do exercício.
 // tempoLimiteSegundos só existe na missão; no exercício da Escola cai em 0.
@@ -958,12 +958,20 @@ function Treino({ usuario }: PropsTreino) {
           <p className={`texto${chars ? '' : ' carregando'}`} id="texto" aria-hidden="true">
             {chars ? <Caracteres chars={chars} status={status} /> : PLACEHOLDER_TEXTO}
           </p>
+          {/* aria-hidden: muda a cada tecla, e o leitor de tela leria tudo. */}
+          <div className="progresso-rotulo" aria-hidden="true">
+            <span>Progresso</span>
+            <span id="progresso-caracteres">
+              {posicao} / {chars?.length ?? 0} caracteres
+            </span>
+          </div>
           <div className="progresso" aria-hidden="true">
             <div className="progresso-barra" id="progresso" style={{ width: `${hud.progresso}%` }} />
           </div>
           <p className={`dica${dicaOculta ? ' oculta' : ''}`} id="dica">
             {dica}
           </p>
+          <p className="atalhos">Esc para sair</p>
         </section>
 
         {/* O teclado guia. memo: num tick do relógio as props são as mesmas

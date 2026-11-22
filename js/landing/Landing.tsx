@@ -44,6 +44,8 @@ function Hero() {
         quadrosPorSegundo: 40,
         area: document.getElementById('top'),
         pausarSemFoco: false,
+        // a vitrine: disco e anel mais luminosos
+        brilho: 1.35,
       }) ?? undefined,
     [],
   );

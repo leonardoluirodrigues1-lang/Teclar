@@ -14,16 +14,14 @@
    ------------------------------------------------------------------------- */
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 
-/* Luz de fundo discreta para o vidro ter o que desfocar. Sem estrelas: a
-   tela de treino pede silêncio, o foco é o texto. */
+/* Zona de treino (Figma "TECLAR — Estética por zona"): superfície sólida,
+   sem luz nem vidro atrás, contraste máximo. O foco é o texto. */
 .fundo {
   position: fixed;
   inset: 0;
   z-index: var(--z-base, 0);
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 45% at 50% 38%, rgba(255, 255, 255, 0.05), transparent 70%),
-    radial-gradient(ellipse 80% 30% at 50% 100%, rgba(255, 255, 255, 0.025), transparent 70%);
+  background: #000;
 }
 
 /* ---------------------------------------------------------------------------
@@ -44,6 +42,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   min-height: var(--altura-cabecalho, 64px);
   padding: 12px 24px;
   border-radius: var(--raio-g, 16px);
+}
+/* O HUD é superfície sólida: sem desfoque, sem brilho. Duas classes para
+   vencer a .vidro do elemento. */
+.hud.vidro {
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
 .hud-esq { min-width: 0; }
@@ -133,7 +140,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   font-weight: var(--peso-normal, 400);
   line-height: 1.75;
   letter-spacing: 0.02em;
-  color: var(--cor-char-pendente, #777777);
+  /* #8a8a8a sobre o preto: 5,9:1 — o que falta digitar também se lê. */
+  color: var(--cor-texto-fraco, #8a8a8a);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   transition: opacity var(--dur-lenta, 480ms) var(--ease-padrao, ease);
@@ -155,26 +163,51 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 .texto .c.errado {
   color: var(--cor-char-errado, #ff5a5a);
-  background: var(--cor-char-errado-fundo, rgba(255, 90, 90, 0.16));
+  /* Destaque vermelho: fundo e traço embaixo, para não depender só da cor.
+     O vermelho sobre o fundo dele ainda passa de 4,5:1. */
+  background: rgba(255, 90, 90, 0.28);
+  box-shadow: inset 0 -2px 0 var(--cor-char-errado, #ff5a5a);
   border-radius: 2px;
 }
+/* Cursor em bloco: a letra da vez em preto sobre um bloco branco. Pisca
+   trocando o bloco pelo texto branco (sob movimento reduzido, fica aceso). */
 .texto .c.atual {
-  color: var(--cor-texto, #fff);
-  box-shadow: inset 0 -2px 0 var(--cor-cursor, #fff);
+  color: #000;
+  background: var(--cor-cursor, #fff);
+  border-radius: 2px;
   animation: teclar-cursor 1.05s steps(1, end) infinite;
 }
-/* Quando o input perde o foco o cursor para de piscar, sinal de que a
-   digitação não vai chegar ao motor. */
-.area-texto.sem-foco .texto .c.atual { animation: none; opacity: 0.6; }
-
-@keyframes teclar-cursor {
-  0%, 49%  { box-shadow: inset 0 -2px 0 var(--cor-cursor, #fff); }
-  50%, 100% { box-shadow: inset 0 -2px 0 transparent; }
+/* Quando o input perde o foco o cursor para de piscar e apaga um pouco,
+   sinal de que a digitação não vai chegar ao motor. */
+.area-texto.sem-foco .texto .c.atual {
+  animation: none;
+  color: var(--cor-texto, #fff);
+  background: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
-.progresso {
-  height: 2px;
+@keyframes teclar-cursor {
+  0%, 49%  { color: #000; background: var(--cor-cursor, #fff); }
+  50%, 100% { color: var(--cor-texto, #fff); background: transparent; }
+}
+
+/* "PROGRESSO          58 / 116 caracteres", em cima da barra. */
+.progresso-rotulo {
+  display: flex;
+  justify-content: space-between;
   margin-top: 28px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  font-variant-numeric: tabular-nums;
+}
+.progresso-rotulo span:last-child { letter-spacing: 0.06em; text-transform: none; }
+
+.progresso {
+  height: 3px;
+  margin-top: 10px;
   border-radius: var(--raio-total, 9999px);
   background: rgba(255, 255, 255, 0.10);
   overflow: hidden;
@@ -197,6 +230,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: opacity var(--dur-normal, 240ms) var(--ease-padrao, ease);
 }
 .dica.oculta { opacity: 0; }
+
+/* A saída, sempre à vista. */
+.atalhos {
+  margin-top: 8px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
 
 /* ---------------------------------------------------------------------------
    Teclado guia + legenda do dedo (.guia)
@@ -371,3 +413,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @media (max-width: 720px) {
   .hud-sair { padding: 7px 10px; letter-spacing: 0.12em; }
 }
+
+/* Menos movimento: o cursor em bloco fica aceso, sem piscar. */
+@media (prefers-reduced-motion: reduce) {
+  .texto .c.atual { animation: none; }
+}
+.movimento-reduzido .texto .c.atual { animation: none; }

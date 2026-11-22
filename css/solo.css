@@ -706,6 +706,34 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   color: var(--cor-texto, #fff);
 }
 
+/* A barra fina de XP do cartão (4px) e o rodapé "Continuar →". */
+.lobby-xp-fina {
+  height: 4px;
+  margin-top: 10px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.lobby-xp-fina span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cor-texto, #fff);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+.lobby-cartao-rodape {
+  align-self: flex-end;
+  font-size: 14px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+  text-decoration: none;
+}
+.lobby-cartao-rodape span {
+  display: inline-block;
+  transition: transform var(--dur-rapida, 120ms) var(--ease-padrao, ease);
+}
+.lobby-cartao-rodape:hover span { transform: translateX(3px); }
+
 /* --- o anel -------------------------------------------------------------- */
 /* 92px: a medida do retrato que ele substitui. O número do nível fica
    sobreposto no meio, pela grade de uma célula só. */

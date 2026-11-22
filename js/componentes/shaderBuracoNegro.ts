@@ -33,6 +33,7 @@ uniform vec2  uRes;
 uniform float uTime;
 uniform float uMotion; // 0 = reduced motion, 1 = full
 uniform float uQuality;
+uniform float uBrilho; // 1 = o desenho de sempre; a landing pede mais
 
 // hash / noise ------------------------------------------------------
 float hash(vec3 p) {
@@ -160,6 +161,9 @@ void main() {
   float ring = exp(-pow(abs(b - 0.30 * shim) * 46.0, 1.6));
   float halo = exp(-pow(abs(b - 0.30) * 9.0, 2.0));
   col += vec3(ring) * 1.25 + vec3(halo) * 0.16;
+  // mais brilho: halo do anel mais largo e a luz toda mais forte
+  col += vec3(halo) * 0.3 * (uBrilho - 1.0);
+  col *= uBrilho;
 
   // monochrome white grade
   float lum = clamp(max(max(col.r, col.g), col.b), 0.0, 10.0);
@@ -203,6 +207,9 @@ export interface OpcoesBuracoNegro {
   area: Element;
   /** Tambem para de desenhar quando a janela perde o foco. */
   pausarSemFoco: boolean;
+  /** Multiplica a luz do disco e do anel. Sem ele, 1: o desenho da imagem
+      estatica (assets/img/buraco-negro.png) continua o mesmo. */
+  brilho?: number;
 }
 
 /* Recebe o canvas do buraco negro e inicia o WebGL: compila o programa,
@@ -234,6 +241,7 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement,opcoes:OpcoesBuracoN
   const uTime=gl.getUniformLocation(prog,'uTime');
   const uMotion=gl.getUniformLocation(prog,'uMotion');
   const uQuality=gl.getUniformLocation(prog,'uQuality');
+  gl.uniform1f(gl.getUniformLocation(prog,'uBrilho'),opcoes.brilho??1);
 
   const ESCALA=0.62;          /* mesma nitidez do projeto original */
   let small=false;

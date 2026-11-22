@@ -298,3 +298,67 @@
 .fundo-estrelas .brilho {
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
 }
+
+/* ============================================================================
+   6. LUZ POR ZONA (Figma "TECLAR — Estética por zona"; a zona é a classe
+   do <body>, ver css/componentes/vidro.css)
+   ========================================================================== */
+
+/* Vitrine: o buraco negro mais vivo — disco, banho e brilho do anel mais
+   fortes, anel de fóton mais grosso. */
+.zona-vitrine .disco {
+  background:
+    radial-gradient(ellipse 950px 170px at center,
+      transparent 0 34%,
+      rgba(255, 255, 255, 0.34) 42%,
+      rgba(255, 255, 255, 0.15) 56%,
+      rgba(255, 255, 255, 0.06) 76%,
+      transparent 100%),
+    radial-gradient(ellipse 1500px 850px at center,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.11) 35%,
+      rgba(255, 255, 255, 0.035) 65%,
+      transparent 100%);
+}
+.zona-vitrine .disco::before {
+  width: 900px;
+  height: 900px;
+  margin: -450px 0 0 -450px;
+  background: conic-gradient(from var(--disco-lado-aceso),
+    rgba(255, 255, 255, 0.75) 0deg,
+    rgba(255, 255, 255, 0.32) 70deg,
+    rgba(255, 255, 255, 0.05) 150deg,
+    transparent 180deg,
+    rgba(255, 255, 255, 0.05) 210deg,
+    rgba(255, 255, 255, 0.32) 290deg,
+    rgba(255, 255, 255, 0.75) 360deg);
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 292px, #000 312px, transparent 450px);
+  mask-image: radial-gradient(circle at center, transparent 0 292px, #000 312px, transparent 450px);
+}
+.zona-vitrine .disco::after {
+  -webkit-mask-image:
+    radial-gradient(circle at center, #000 0 290px, transparent 290.5px),
+    radial-gradient(circle at center, transparent 0 307.5px, #000 308px 312px, transparent 313px);
+  mask-image:
+    radial-gradient(circle at center, #000 0 290px, transparent 290.5px),
+    radial-gradient(circle at center, transparent 0 307.5px, #000 308px 312px, transparent 313px);
+}
+/* A vinheta: as bordas escurecem em volta. Vai no fundo das estrelas, que
+   vem depois do disco no .fundo: fica por cima da luz e por baixo das
+   estrelas e do conteúdo. */
+.zona-vitrine .fundo-estrelas {
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.78) 100%);
+}
+
+/* Solo: fundo parado. Sai o disco (e a respiração com ele); fica um eco,
+   uma elipse grande de luz suave atrás do conteúdo, centrada embaixo. */
+.zona-solo .disco { display: none; }
+.zona-solo .fundo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 55% at 50% 72%,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    transparent 75%);
+}
