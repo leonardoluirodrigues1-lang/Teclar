@@ -29,10 +29,10 @@
   /* Deslocamentos. Ficam aqui, e não soltos nas regras, para o bloco de
      movimento reduzido no fim poder zerar todos de uma vez. */
   --deslocamento-entrada: 8px;  /* página, item e toast sobem isto ao entrar */
-  --deslocamento-saida: -4px;   /* a página sobe isto ao sair: negativo, no mesmo sentido em que a próxima entra */
+  --deslocamento-saida: -8px;   /* a página sobe isto ao sair: negativo, no mesmo sentido em que a próxima entra */
   --deslocamento-cartao: -2px;  /* cartão clicável sobe isto no hover */
   --escala-toque: 0.97;         /* botão pressionado */
-  --escala-modal: 0.96;         /* modal antes de terminar de abrir */
+  --escala-modal: 0.98;         /* modal antes de terminar de abrir */
   --escala-estrela-inicio: 0.6; /* a estrela de conquista nova nasce deste tamanho... */
   --escala-estrela-pico: 1.25;  /* ...passa um pouco do final e assenta em 1 */
   --opacidade-inicial: 0.5;     /* de onde as entradas partem: já legível */
@@ -61,8 +61,18 @@
   }
 }
 
+/* A entrada da PÁGINA é a exceção à opacidade 0.5: parte do zero, para a
+   troca de tela ser percebida (fade + 8px em --t-tela). Sob movimento
+   reduzido a animação inteira sai (fim desta folha). */
+@keyframes surgir-pagina {
+  from {
+    opacity: 0;
+    transform: translateY(var(--deslocamento-entrada));
+  }
+}
+
 .entrada-da-pagina:not(:empty) {
-  animation: surgir var(--t-tela) var(--curva);
+  animation: surgir-pagina var(--t-tela) var(--curva);
 }
 
 /* ----------------------------------------------------------------------------
@@ -345,9 +355,16 @@
 /* Troca de página: o navegador funde a página que sai com a que entra
    (View Transitions entre documentos). Quem não suporta navega como antes. */
 @view-transition { navigation: auto; }
-::view-transition-old(root),
-::view-transition-new(root) { animation-duration: 200ms; }
+/* Fade com 8px de deslocamento: a que sai sobe e some, a que entra vem de
+   baixo — o mesmo sentido da saída e da entrada do conteúdo (seções 1 e 2). */
+@keyframes vt-sai { to { opacity: 0; transform: translateY(var(--deslocamento-saida)); } }
+@keyframes vt-entra { from { opacity: 0; transform: translateY(var(--deslocamento-entrada)); } }
+::view-transition-old(root) { animation: vt-sai 280ms var(--curva-saida) both; }
+::view-transition-new(root) { animation: vt-entra 280ms var(--curva) both; }
 
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
 }
+/* Menos movimento pedido em Configurações do Solo: a troca fica seca. */
+.movimento-reduzido::view-transition-old(root),
+.movimento-reduzido::view-transition-new(root) { animation: none; }

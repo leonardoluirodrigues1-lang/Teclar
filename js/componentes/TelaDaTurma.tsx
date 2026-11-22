@@ -17,12 +17,13 @@
 // Desenho em css/escola.css.
 
 import { comPpm } from './Ppm.js';
-import { useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as KeyboardEventReact, type ReactNode } from 'react';
 import { Moldura } from './Moldura.js';
 import { CapaOuImagem, sementeDaTurma } from './EntradaDoModo.js';
 import { Bloco } from './Bloco.js';
 import { IconeCadeado } from './IconesDoTutorial.js';
 import { PainelEstado } from './PainelErro.js';
+import { querMenosMovimento } from '../utils/movimento.js';
 
 // Abas
 
@@ -92,6 +93,18 @@ const NBSP = String.fromCharCode(0xa0);
 export function CascaDaTurma(props: PropsCasca) {
   const { modo, voltar, titulo, subtitulo, descricao, acoes, extra, capa, aba, aoSelecionarAba, carregando, children } = props;
 
+  // Troca de aba: o painel entra num fade de 150 ms. Pela Web Animations, e
+  // não por `key`, para o conteúdo não remontar (e perder o estado).
+  const painel = useRef<HTMLDivElement>(null);
+  const primeiraAba = useRef(true);
+  useEffect(() => {
+    if (primeiraAba.current) {
+      primeiraAba.current = false;
+      return;
+    }
+    if (!querMenosMovimento()) painel.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  }, [aba]);
+
   return (
     <Moldura
       modo={modo}
@@ -122,7 +135,7 @@ export function CascaDaTurma(props: PropsCasca) {
         {/* As três abas apontam para o mesmo #conteudo, que troca de
             conteúdo; aria-labelledby segue a aba ativa para o leitor de
             tela anunciar de qual delas ele é. */}
-        <div id="conteudo" role="tabpanel" aria-busy={carregando} aria-labelledby={`aba-${aba}`}>
+        <div id="conteudo" role="tabpanel" aria-busy={carregando} aria-labelledby={`aba-${aba}`} ref={painel}>
           {children}
         </div>
       </main>
