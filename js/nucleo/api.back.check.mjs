@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 59 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 60 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -234,6 +234,9 @@ const porAluno = await api.relatorios.porAluno(turma.id);
 confere('relatorios.porAluno, inclusive quem nunca treinou', porAluno.length === 2 && porAluno.find((a) => a.id === caio.id).wpmMedio === null);
 const porExercicio = await api.relatorios.porExercicio(turma.id);
 confere('relatorios.porExercicio', porExercicio.length === 1 && porExercicio[0].concluidoPor === 1);
+const evolucao = await api.relatorios.evolucao(turma.id);
+confere('relatorios.evolucao, dia a dia', Array.isArray(evolucao) && evolucao.length >= 1 && evolucao.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.dia)));
+confere('relatorios.turma conta as tentativas', Number.isInteger(relatorio.tentativas) && relatorio.tentativas >= 1);
 const sessoesBia = await api.relatorios.sessoesDoAluno(turma.id, bia.id);
 confere('relatorios.sessoesDoAluno com título', sessoesBia.total === 2 && sessoesBia.itens[0].tituloExercicio === 'Exercício Teste 2');
 confere('alunos.desempenho', (await api.alunos.desempenho(turma.id, bia.id)).totalSessoes === 2);
@@ -376,4 +379,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 59 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 60 funções do api.ts contra o back.`);

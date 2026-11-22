@@ -110,6 +110,7 @@ import type {
   RelatorioAluno,
   RelatorioExercicio,
   RelatorioTurma,
+  EvolucaoDoDia,
   DesempenhoNaTurma,
   LinhaDoRanking,
   ResultadoImportacao,
@@ -2554,7 +2555,33 @@ const rotas: [string, RegExp, Handler][] = [
         // COUNT, não média: zero aqui é zero mesmo — a turma tem exercício
         // atribuído e ninguém terminou nenhum.
         exerciciosConcluidos: linhas.reduce((total, l) => total + l.exerciciosConcluidos, 0),
+        // Todas as sessões, concluídas ou não: cada uma é uma tentativa.
+        tentativas: (dados.alunos[turmaId] ?? []).flatMap((a) => sessoesDoAlunoNaTurma(turmaId, a.id)).length,
       };
+    },
+  ],
+  [
+    // A evolução da turma, dia a dia: as mesmas sessões concluídas das
+    // médias do topo, agrupadas pelo dia. Dia sem sessão concluída não entra.
+    'GET',
+    montarRegex('/turmas/:turmaId/relatorio/evolucao'),
+    (params, corpo, token): EvolucaoDoDia[] => {
+      const [turmaId] = params;
+      turmaDaConta(turmaId, token);
+      const porDia = new Map<string, Sessao[]>();
+      for (const s of (dados.alunos[turmaId] ?? []).flatMap((a) => sessoesDoAlunoNaTurma(turmaId, a.id))) {
+        if (!s.concluida) continue;
+        const dia = s.data.slice(0, 10);
+        porDia.set(dia, [...(porDia.get(dia) ?? []), s]);
+      }
+      return [...porDia.entries()]
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([dia, sessoes]) => ({
+          dia,
+          sessoes: sessoes.length,
+          wpmMedio: media(sessoes.map((s) => s.wpm)),
+          precisaoMedia: media(sessoes.map((s) => s.precisao)),
+        }));
     },
   ],
   [

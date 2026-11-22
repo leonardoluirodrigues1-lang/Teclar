@@ -1,189 +1,97 @@
-// Relatorios.tsx — pages/professor/relatorios.html
-// Onde o professor vê como a turma e cada aluno estão indo. Escolhe a turma
-// no alto, lê as quatro métricas dela e desce para uma das duas abas: Por
-// aluno (uma linha por aluno ativo, clicável, que abre o histórico de sessões)
-// e Por exercício (uma linha por exercício atribuído à turma).
+// Relatorios.tsx — pages/professor/relatorios.html[?filtro=todas|ativas|arquivadas]
+// "Relatórios gerais": a visão de TODAS as turmas da conta logada. O
+// relatório de uma turma só mora na aba "Relatório da turma" da própria
+// turma (./RelatorioDaTurma.tsx); daqui, "Abrir relatório da turma" leva até lá.
 //
-// A turma e a aba vivem na URL (?turma=<id>&aba=alunos|exercicios), como na
-// tela de turma: o professor recarrega, manda o link para alguém e cai no
-// mesmo lugar. Trocar qualquer uma das duas usa replaceState — não é uma
-// "página" nova para o botão voltar.
+//   · filtro: Todas, Ativas ou Arquivadas (na URL, para o F5);
+//   · indicadores do professor que os dados sustentam: turmas, matrículas
+//     (cada vínculo aluno–turma conta um: o mesmo nome em duas turmas são
+//     duas matrículas), exercícios no acervo e atribuições atuais;
+//   · uma tabela por turma (alunos, PPM médio, precisão média, tentativas,
+//     ativos nos últimos 7 dias) e um gráfico de barras com o PPM médio de
+//     cada uma. A tabela é a alternativa acessível do gráfico.
 //
-// TUDO O QUE É NÚMERO VEM PRONTO DO BACK. As médias saem de SessionsProf com
-// JOIN (ver api.relatorios e a seção 10 de tipos.ts); esta tela não soma,
-// não divide e não infere nada — só formata, ordena e mostra "—" onde o
-// back mandou null. Um número calculado aqui seria um segundo número, que
-// discordaria do primeiro no dia em que o back mudasse a regra.
-//
-// Mesmo padrão de Turma.tsx e Biblioteca.tsx: Nav, Tabela, Esqueleto,
-// PainelErro e ModalReact de ../componentes/, classes de css/escola.css,
-// guarda de professor antes de montar.
+// Só as turmas da conta: GET /turmas e GET /turmas?ativa=false já filtram
+// pelo token, e o relatório de cada uma (GET /turmas/:id/relatorio) devolve
+// 404 para turma de outra conta. Os números vêm prontos do back: aqui só se
+// somam CONTAGENS (turmas, matrículas, atribuições), nunca médias.
 
 import { comPpm } from '../componentes/Ppm.js';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as KeyboardEventReact, type MouseEvent as MouseEventReact } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as KeyboardEventReact } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
-import type {
-  ErroDaApi,
-  RelatorioAluno,
-  RelatorioExercicio,
-  RelatorioTurma,
-  SessaoDoAluno,
-  Turma,
-} from '../nucleo/tipos.js';
-import { criarToasts, type Toasts } from '../componentes/toast.js';
+import type { ErroDaApi, RelatorioTurma, Turma } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { baixarCsv, slug } from '../utils/csv.js';
-import { contagem, formatarDataHora, formatarDecimal, numero, pesoDificuldade, porcentagem, rotuloDificuldade } from '../utils/formato.js';
-import { ordenar } from '../utils/ordenacao.js';
+import { contagem, numero, porcentagem } from '../utils/formato.js';
 import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
-import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
+import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
-import { Estrela } from '../componentes/Estrela.js';
+import { Bloco } from '../componentes/Bloco.js';
+import { Grafico } from '../componentes/Grafico.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
-import { DICA_PPM_DAS_SESSOES } from '../componentes/TelaDaTurma.js';
-
-// Linhas de esqueleto: a mesma altura que a tabela final terá numa turma de
-// tamanho comum, para nada pular quando os dados chegam.
-const ESQUELETOS_LINHA = 6;
-
-// Abaixo disto a precisão média ganha tom mais forte. É informação, não
-// acusação: nenhuma cor de alerta, nenhum ícone, nenhum aviso.
-const PRECISAO_DESTAQUE = 85;
 
 const MENSAGENS = {
   CONEXAO: 'Não foi possível conectar ao servidor.',
   PERMISSAO: 'Você não tem permissão para isso.',
-  NAO_ENCONTRADO: 'Esta turma não existe mais. Escolha outra na lista.',
   GENERICA: 'Algo deu errado. Tente de novo.',
 };
 
-// Estado da tela
+type Filtro = 'todas' | 'ativas' | 'arquivadas';
 
-type Aba = 'alunos' | 'exercicios';
+const FILTROS: { chave: Filtro; rotulo: string }[] = [
+  { chave: 'todas', rotulo: 'Todas' },
+  { chave: 'ativas', rotulo: 'Ativas' },
+  { chave: 'arquivadas', rotulo: 'Arquivadas' },
+];
 
-// A lista de turmas do seletor. Vem uma vez e não recarrega ao trocar de
-// turma — o seletor precisa continuar ali mesmo quando o relatório falha.
-type CargaTurmas =
+// Uma turma e o relatório dela. null: o relatório desta turma falhou — a
+// linha fica, com "—", e o resto da tela não cai por causa de uma turma.
+interface LinhaDaTurma {
+  turma: Turma;
+  relatorio: RelatorioTurma | null;
+}
+
+type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
-  | { estado: 'pronto'; turmas: Turma[] };
+  | { estado: 'pronto'; linhas: LinhaDaTurma[]; acervo: number };
 
-// O relatório da turma escolhida: as três chamadas chegam juntas, porque a
-// tela não serve de nada com uma só delas.
-type CargaRelatorio =
-  | { estado: 'carregando' }
-  | { estado: 'erro'; mensagem: string }
-  | {
-      estado: 'pronto';
-      turma: RelatorioTurma;
-      alunos: RelatorioAluno[];
-      exercicios: RelatorioExercicio[];
-    };
-
-// O modal de histórico. `opener` é o botão da linha que abriu: é para lá que
-// o foco volta ao fechar.
-interface ConfigModal {
-  chave: number;
-  aluno: RelatorioAluno;
+function filtroDaUrl(): Filtro {
+  const pedido = new URLSearchParams(window.location.search).get('filtro');
+  return FILTROS.some((f) => f.chave === pedido) ? (pedido as Filtro) : 'todas';
 }
-
-let proximaChave = 0;
-
-function parametrosDaUrl(): URLSearchParams {
-  return new URLSearchParams(window.location.search);
-}
-
-function abaDaUrl(): Aba {
-  return parametrosDaUrl().get('aba') === 'exercicios' ? 'exercicios' : 'alunos';
-}
-
-// Troca um parâmetro na URL sem empilhar histórico: escolher turma ou aba
-// não é navegar para outra página, é mudar o que esta mostra.
-function trocarNaUrl(chave: string, valor: string): void {
-  const url = new URL(window.location.href);
-  url.searchParams.set(chave, valor);
-  window.history.replaceState(null, '', url);
-}
-
-// Tela
 
 function Relatorios() {
-  const [cargaTurmas, setCargaTurmas] = useState<CargaTurmas>({ estado: 'carregando' });
-  const [tentativaTurmas, setTentativaTurmas] = useState(0);
-
-  // null enquanto a lista de turmas não chegou: só aí se sabe qual é a
-  // primeira, que é a turma de quem abriu a tela sem ?turma=.
-  const [turmaId, setTurmaId] = useState<string | null>(() => parametrosDaUrl().get('turma'));
-  const [carga, setCarga] = useState<CargaRelatorio>({ estado: 'carregando' });
+  const [carga, setCarga] = useState<Carga>({ estado: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
-
-  const [abaAtual, setAbaAtual] = useState<Aba>(abaDaUrl);
-  // Uma ordenação por aba: voltar para a aba anterior encontra a tabela como
-  // ela foi deixada. null = a ordem em que o back mandou.
-  const [ordemAlunos, setOrdemAlunos] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
-  const [ordemExercicios, setOrdemExercicios] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
-
-  const [modal, setModal] = useState<ConfigModal | null>(null);
-
-  const abaAlunos = useRef<HTMLButtonElement>(null);
-  const abaExercicios = useRef<HTMLButtonElement>(null);
-
-  // --- lista de turmas (uma vez) --------------------------------------------
+  const [filtro, setFiltro] = useState<Filtro>(filtroDaUrl);
+  const botoesFiltro = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    let cancelado = false;
-
-    async function carregarTurmas() {
-      setCargaTurmas({ estado: 'carregando' });
-      try {
-        const turmas = desembrulhar(await api.turmas.listar());
-        if (cancelado) return;
-        setCargaTurmas({ estado: 'pronto', turmas });
-        // Sem ?turma= na URL, ou com um id que não é de nenhuma turma
-        // desta lista, abre na primeira — e grava isso na URL, para o
-        // link que o professor copiar já apontar para a turma certa.
-        setTurmaId((atual) => {
-          const valido = atual && turmas.some((t) => t.id === atual);
-          const escolhida = valido ? atual : turmas[0]?.id ?? null;
-          if (escolhida && escolhida !== atual) trocarNaUrl('turma', escolhida);
-          return escolhida;
-        });
-      } catch (excecao) {
-        if (!cancelado) setCargaTurmas({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
-      }
-    }
-
-    carregarTurmas();
-    return () => {
-      cancelado = true;
-    };
-  }, [tentativaTurmas]);
-
-  // --- relatório da turma escolhida -----------------------------------------
-  // Trocar de turma cai aqui: as três chamadas saem de novo, juntas.
-
-  useEffect(() => {
-    if (!turmaId) return;
     let cancelado = false;
 
     async function carregar() {
       setCarga({ estado: 'carregando' });
       try {
-        const [turma, alunos, exercicios] = await Promise.all([
-          api.relatorios.turma(turmaId),
-          api.relatorios.porAluno(turmaId),
-          api.relatorios.porExercicio(turmaId),
+        const [ativas, arquivadas, exercicios] = await Promise.all([
+          api.turmas.listar(),
+          api.turmas.listarArquivadas(),
+          api.exercicios.listar(),
         ]);
+        const turmas = [...desembrulhar(ativas), ...desembrulhar(arquivadas)];
+        // Um relatório por turma, todos juntos. allSettled: a falha de um
+        // não derruba os outros.
+        const relatorios = await Promise.allSettled(turmas.map((t) => api.relatorios.turma(t.id)));
         if (cancelado) return;
         setCarga({
           estado: 'pronto',
-          turma,
-          alunos: desembrulhar(alunos),
-          exercicios: desembrulhar(exercicios),
+          linhas: turmas.map((turma, i) => {
+            const r = relatorios[i];
+            return { turma, relatorio: r.status === 'fulfilled' ? r.value : null };
+          }),
+          acervo: desembrulhar(exercicios).length,
         });
       } catch (excecao) {
         if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
@@ -194,747 +102,182 @@ function Relatorios() {
     return () => {
       cancelado = true;
     };
-  }, [turmaId, tentativa]);
+  }, [tentativa]);
 
-  const turmas = cargaTurmas.estado === 'pronto' ? cargaTurmas.turmas : [];
-  const turmaEscolhida = turmas.find((t) => t.id === turmaId) ?? null;
-  const relatorio = carga.estado === 'pronto' ? carga : null;
-
-  useEffect(() => {
-    document.title = turmaEscolhida
-      ? `Teclar — Relatórios · ${turmaEscolhida.nome}`
-      : 'Teclar — Relatórios';
-  }, [turmaEscolhida]);
-
-  // As listas na ordem em que estão NA TELA. O CSV exporta exatamente
-  // isto — por isso o useMemo, e não duas ordenações separadas que
-  // poderiam discordar.
-  const alunosVisiveis = useMemo(
-    () => ordenar(relatorio?.alunos ?? [], ordemAlunos, valorOrdenavelAluno),
-    [relatorio, ordemAlunos]
-  );
-  const exerciciosVisiveis = useMemo(
-    () => ordenar(relatorio?.exercicios ?? [], ordemExercicios, valorOrdenavelExercicio),
-    [relatorio, ordemExercicios]
-  );
-
-  // --- turma e aba ----------------------------------------------------------
-
-  function selecionarTurma(id: string) {
-    if (id === turmaId) return;
-    setTurmaId(id);
-    trocarNaUrl('turma', id);
-    // A ordenação é da tabela, não da turma: outra turma começa na ordem
-    // que o back mandou, como quem abre a tela agora.
-    setOrdemAlunos({ campo: null, direcao: 'asc' });
-    setOrdemExercicios({ campo: null, direcao: 'asc' });
+  function selecionarFiltro(novo: Filtro) {
+    setFiltro(novo);
+    const url = new URL(window.location.href);
+    url.searchParams.set('filtro', novo);
+    window.history.replaceState(null, '', url);
   }
 
-  function selecionarAba(aba: Aba) {
-    if (aba === abaAtual) return;
-    setAbaAtual(aba);
-    trocarNaUrl('aba', aba);
-  }
-
-  // Roving tabindex: só a aba selecionada está na ordem do Tab; as setas é
-  // que movem entre as duas. Igual à tela de turma.
-  function aoTeclarNaAba(evento: KeyboardEventReact, indice: number) {
+  // Setas ← → andam entre os três botões do filtro.
+  function aoTeclarNoFiltro(evento: KeyboardEventReact, indice: number) {
     if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
     evento.preventDefault();
-    const abas = [abaAlunos.current, abaExercicios.current];
-    const proximo =
-      evento.key === 'ArrowRight'
-        ? abas[(indice + 1) % abas.length]
-        : abas[(indice - 1 + abas.length) % abas.length];
-    proximo?.focus();
-    selecionarAba(proximo === abaAlunos.current ? 'alunos' : 'exercicios');
+    const proximo = (indice + (evento.key === 'ArrowRight' ? 1 : -1) + FILTROS.length) % FILTROS.length;
+    botoesFiltro.current[proximo]?.focus();
+    selecionarFiltro(FILTROS[proximo].chave);
   }
 
-  // --- exportar -------------------------------------------------------------
-
-  function exportar() {
-    if (!relatorio || !turmaEscolhida) return;
-    const [nomes, linhas] =
-      abaAtual === 'alunos'
-        ? [COLUNAS_CSV_ALUNOS, alunosVisiveis.map(linhaCsvAluno)]
-        : [COLUNAS_CSV_EXERCICIOS, exerciciosVisiveis.map(linhaCsvExercicio)];
-
-    baixarCsv(`relatorio-${slug(turmaEscolhida.nome)}-${abaAtual}.csv`, [nomes, ...linhas]);
-    toasts.mostrar('Relatório exportado');
-  }
-
-  // --- histórico do aluno ---------------------------------------------------
-
-  function abrirHistorico(aluno: RelatorioAluno) {
-    setModal({ chave: ++proximaChave, aluno });
-  }
-
-  // A linha inteira abre o histórico, mas quem faz isso de verdade é o botão
-  // dentro da célula de identificação: um clique em qualquer lugar da linha
-  // é redirecionado para ele. Assim existe um caminho só — e o foco tem
-  // para onde voltar quando o modal fechar, inclusive para quem clicou com
-  // o mouse (o Modal devolve o foco a quem estava ativo ao abrir).
-  function aoClicarNaLinha(evento: MouseEventReact<HTMLDivElement>) {
-    const alvo = evento.target as HTMLElement;
-    if (alvo.closest('.relatorio-historico')) return; // o próprio botão
-    const botao = alvo.closest('tr')?.querySelector<HTMLButtonElement>('.relatorio-historico');
-    if (!botao) return;
-    botao.focus();
-    botao.click();
-  }
-
-  // --- colunas --------------------------------------------------------------
-
-  // Quem tem o melhor número de cada coluna de desempenho. Sobre a lista
-  // inteira, e não a ordenada: reordenar não muda quem é o melhor.
-  const melhores = useMemo(() => melhoresDaTurma(relatorio?.alunos ?? []), [relatorio]);
-
-  const colunasAlunos: ColunaTabela<RelatorioAluno>[] = [
+  const colunas: ColunaTabela<LinhaDaTurma>[] = [
     {
-      // O aluno é o nome da lista da turma (banco v8: sempre preenchido).
-      rotulo: 'Aluno',
-      campo: 'aluno',
-      celula: (a) => (
-        <button
-          type="button"
-          className="tabela-link relatorio-historico"
-          aria-label={`Ver histórico de ${identidade(a)} nesta turma`}
-          onClick={() => abrirHistorico(a)}
+      rotulo: 'Turma',
+      celula: ({ turma }) => (
+        <>
+          <span className="celula-aluno-nome">{turma.nome ?? 'Turma sem nome'}</span>
+          <span className="celula-trecho">{turma.periodo ?? 'Período não informado'}</span>
+          {!turma.ativa && <span className="etiqueta etiqueta-espera">Arquivada</span>}
+        </>
+      ),
+    },
+    // Matrículas da turma: COUNT do back (a mesma contagem do cartão).
+    { rotulo: 'Alunos', classe: 'col-numero', celula: ({ turma }) => contagem(turma.totalAlunos) },
+    { rotulo: 'PPM médio', classe: 'col-numero', celula: ({ relatorio }) => numero(relatorio?.wpmMedio) },
+    { rotulo: 'Precisão média', classe: 'col-numero', celula: ({ relatorio }) => porcentagem(relatorio?.precisaoMedia) },
+    { rotulo: 'Tentativas', classe: 'col-numero', celula: ({ relatorio }) => contagem(relatorio?.tentativas) },
+    { rotulo: 'Ativos (7 dias)', classe: 'col-numero', celula: ({ relatorio }) => contagem(relatorio?.alunosAtivos) },
+    {
+      rotulo: 'Relatório',
+      celula: ({ turma }) => (
+        <a
+          className="btn btn-vidro vidro tecla btn-pequeno"
+          href={`turma.html?${new URLSearchParams({ turma: turma.id, aba: 'relatorio' })}`}
+          aria-label={`Abrir relatório da turma ${turma.nome ?? ''}`.trim()}
         >
-          <span className="celula-aluno-nome">{a.nome}</span>
-        </button>
+          Abrir relatório da turma
+        </a>
       ),
-    },
-    {
-      rotulo: 'Sessões',
-      campo: 'sessoes',
-      classe: 'col-numero',
-      celula: (a) => (semSessao(a) ? '—' : contagem(a.totalSessoes)),
-    },
-    {
-      rotulo: 'PPM médio',
-      campo: 'ppm',
-      classe: 'col-numero',
-      celula: (a) => (
-        <>
-          {numero(a.wpmMedio)}
-          {melhores.ppm === a.id && <MarcaDoMelhor />}
-        </>
-      ),
-    },
-    {
-      rotulo: 'Precisão média',
-      campo: 'precisao',
-      // Abaixo de 85% a célula ganha tom mais forte — e só ela, não a linha.
-      classe: (a) =>
-        a.precisaoMedia != null && a.precisaoMedia < PRECISAO_DESTAQUE
-          ? 'col-numero precisao-destaque'
-          : 'col-numero',
-      celula: (a) => (
-        <>
-          {porcentagem(a.precisaoMedia)}
-          {melhores.precisao === a.id && <MarcaDoMelhor />}
-        </>
-      ),
-    },
-    {
-      rotulo: 'Exercícios concluídos',
-      campo: 'concluidos',
-      classe: 'col-numero',
-      celula: (a) =>
-        semSessao(a) ? (
-          '—'
-        ) : (
-          <>
-            {`${contagem(a.exerciciosConcluidos)} de ${contagem(a.exerciciosAtribuidos)}`}
-            {melhores.concluidos === a.id && <MarcaDoMelhor />}
-          </>
-        ),
-    },
-    {
-      rotulo: 'Última atividade',
-      campo: 'ultimaAtividade',
-      // "Nunca treinou" em vez de travessão: aqui o vazio tem nome, e
-      // dizê-lo poupa o professor de adivinhar o que o "—" significa.
-      celula: (a) => (a.ultimaAtividade ? formatarDataHora(a.ultimaAtividade) : 'Nunca treinou'),
     },
   ];
-
-  const colunasExercicios: ColunaTabela<RelatorioExercicio>[] = [
-    { rotulo: 'Título', campo: 'titulo', celula: (e) => e.titulo || 'Sem título' },
-    { rotulo: 'Dificuldade', campo: 'dificuldade', celula: (e) => rotuloDificuldade(e.dificuldade) },
-    {
-      rotulo: 'Concluíram',
-      campo: 'concluiram',
-      classe: 'col-numero',
-      celula: (e) => `${contagem(e.concluidoPor)} de ${contagem(e.totalAlunos)}`,
-    },
-    { rotulo: 'PPM médio', campo: 'ppm', classe: 'col-numero', celula: (e) => numero(e.wpmMedio) },
-    {
-      rotulo: 'Precisão média',
-      campo: 'precisao',
-      classe: (e) =>
-        e.precisaoMedia != null && e.precisaoMedia < PRECISAO_DESTAQUE
-          ? 'col-numero precisao-destaque'
-          : 'col-numero',
-      celula: (e) => porcentagem(e.precisaoMedia),
-    },
-    {
-      // Zero é 0: ninguém estourou, ou o exercício não tem tempo limite
-      // (e aí o back manda 0 sempre). Não é "sem dado".
-      rotulo: 'Estouraram o tempo',
-      campo: 'estouraram',
-      classe: 'col-numero',
-      celula: (e) => contagem(e.estouraramTempo),
-    },
-  ];
-
-  // --- conteúdo da aba ------------------------------------------------------
 
   function renderizarConteudo() {
-    if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={ESQUELETOS_LINHA} />;
-
+    if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={4} />;
     if (carga.estado === 'erro') {
       return (
         <PainelErro
-          titulo="Não foi possível carregar o relatório"
+          titulo="Não foi possível carregar os relatórios"
           texto={carga.mensagem}
           aoTentarDeNovo={() => setTentativa((n) => n + 1)}
         />
       );
     }
-
-    if (abaAtual === 'exercicios') {
-      if (exerciciosVisiveis.length === 0) {
-        return (
-          <PainelEstado
-            titulo="Nenhum exercício atribuído a esta turma"
-            texto="Sem exercício atribuído não há o que medir por exercício. Atribua um na tela da turma."
-          >
-            <a className="btn btn-solido tecla tecla-clara" href={linkDaTurma(turmaId)}>
-              Abrir a turma
-            </a>
-          </PainelEstado>
-        );
-      }
-      return (
-        <Tabela
-          colunas={colunasExercicios}
-          linhas={exerciciosVisiveis}
-          chave={(e) => e.exercicioId}
-          ordenacao={ordemExercicios}
-          aoOrdenar={setOrdemExercicios}
-        />
-      );
-    }
-
-    if (alunosVisiveis.length === 0) {
+    if (carga.linhas.length === 0) {
       return (
         <PainelEstado
-          titulo="Nenhum aluno na turma ainda"
-          texto="Adicione os nomes dos alunos. Quando eles treinarem, as sessões, o PPM e a precisão de cada um aparecem aqui."
+          titulo="Nenhuma turma ainda"
+          texto="Os relatórios nascem das sessões de uma turma. Crie a primeira, adicione os alunos e atribua exercícios: os números aparecem sozinhos."
         >
-          <a className="btn btn-solido tecla tecla-clara" href={`alunos.html?${new URLSearchParams({ turma: turmaId })}`}>
-            Adicionar alunos
+          <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
+            Ir para Minhas turmas
           </a>
         </PainelEstado>
       );
     }
 
-    return (
-      <div className="relatorio-linhas-clicaveis" onClick={aoClicarNaLinha}>
-        <Tabela
-          colunas={colunasAlunos}
-          linhas={alunosVisiveis}
-          chave={(a) => a.id}
-          // Nunca treinou: a linha inteira perde ênfase, para o olho ir
-          // direto a quem já tem o que mostrar.
-          classeLinha={(a) => (semSessao(a) ? 'linha-sem-dado' : undefined)}
-          ordenacao={ordemAlunos}
-          aoOrdenar={setOrdemAlunos}
-        />
-      </div>
+    const linhas = carga.linhas.filter(
+      ({ turma }) => filtro === 'todas' || (filtro === 'ativas' ? turma.ativa !== false : turma.ativa === false)
     );
-  }
-
-  // --- a tela sem turma nenhuma ---------------------------------------------
-  // Substitui tudo: métricas de nada e abas vazias não ajudariam quem ainda
-  // não criou a primeira turma.
-
-  if (cargaTurmas.estado === 'pronto' && turmas.length === 0) {
-    return (
-      <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
-        <main id="corpo">
-          <PainelEstado
-            titulo="Nenhuma turma para relatar"
-            texto="Os relatórios nascem das sessões de uma turma. Crie a primeira, convide os alunos e atribua exercícios: os números aparecem sozinhos."
-          >
-            <a className="btn btn-solido tecla tecla-clara" href="turmas.html">
-              Criar a primeira turma
-            </a>
-          </PainelEstado>
-        </main>
-      </Moldura>
-    );
-  }
-
-  if (cargaTurmas.estado === 'erro') {
-    return (
-      <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
-        <main id="corpo">
-          <PainelErro
-            titulo="Não foi possível carregar suas turmas"
-            texto={cargaTurmas.mensagem}
-            aoTentarDeNovo={() => setTentativaTurmas((n) => n + 1)}
-          />
-        </main>
-      </Moldura>
-    );
-  }
-
-  // --- tela ------------------------------------------------------------------
-
-  return (
-    <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
-
-      <main id="corpo">
-        <div className="cabecalho">
-          <div className="cabecalho-texto">
-            <h1 className="titulo" id="titulo">
-              Relatórios
-            </h1>
-            <p className="subtitulo">Como cada turma está indo: quem treinou, quanto, e quem precisa de ajuda.</p>
-
-            {/* O seletor de turma fica sob o título porque é o que define
-                TODO o resto da tela — não é um filtro entre outros. */}
-            <div className="relatorio-turma">
-              <label className="secao-rotulo" htmlFor="seletor-turma">
-                Turma
-              </label>
-              <select
-                className="seletor"
-                id="seletor-turma"
-                value={turmaId ?? ''}
-                disabled={cargaTurmas.estado !== 'pronto'}
-                onChange={(evento) => selecionarTurma(evento.target.value)}
-              >
-                {/* Enquanto a lista não chega existe uma opção só, com o
-                    campo desabilitado: o seletor já ocupa o lugar dele e
-                    nada pula quando as turmas aparecem. */}
-                {cargaTurmas.estado === 'pronto' ? (
-                  turmas.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nome}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">Carregando turmas…</option>
-                )}
-              </select>
-            </div>
-          </div>
-
-          <div className="cabecalho-acoes">
-            {/* Exporta a aba aberta, com a ordenação que está na tela e sem
-                pedir nada ao back de novo. */}
-            <button
-              type="button"
-              className="btn btn-solido tecla tecla-clara"
-              id="btn-exportar"
-              disabled={!relatorio}
-              onClick={exportar}
-            >
-              Exportar CSV
-            </button>
-          </div>
-        </div>
-
-        {/* As quatro métricas da turma, agregadas pelo back. Sem dado é "—";
-            zero é 0. */}
-        <div className="metricas-turma vidro" id="metricas">
-          <div className="metrica-item">
-            <span className="metrica-rotulo">Alunos ativos</span>
-            <span className="metrica-valor" id="metrica-ativos">
-              {relatorio ? ativos(relatorio.turma) : '—'}
-            </span>
-          </div>
-          <div className="metrica-item" title={DICA_PPM_DAS_SESSOES}>
-            <span className="metrica-rotulo">{comPpm('PPM médio das sessões')}</span>
-            <span className="metrica-valor" id="metrica-ppm">
-              {relatorio ? numero(relatorio.turma.wpmMedio) : '—'}
-            </span>
-          </div>
-          <div className="metrica-item">
-            <span className="metrica-rotulo">Precisão média</span>
-            <span className="metrica-valor" id="metrica-precisao">
-              {relatorio ? porcentagem(relatorio.turma.precisaoMedia) : '—'}
-            </span>
-          </div>
-          <div className="metrica-item">
-            <span className="metrica-rotulo">Exercícios concluídos</span>
-            <span className="metrica-valor" id="metrica-concluidos">
-              {relatorio ? numero(relatorio.turma.exerciciosConcluidos) : '—'}
-            </span>
-          </div>
-        </div>
-
-        <div className="abas" role="tablist" aria-label="Visões do relatório">
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-alunos"
-            ref={abaAlunos}
-            role="tab"
-            aria-selected={abaAtual === 'alunos'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'alunos' ? 0 : -1}
-            onClick={() => selecionarAba('alunos')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 0)}
-          >
-            Por aluno
-          </button>
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-exercicios"
-            ref={abaExercicios}
-            role="tab"
-            aria-selected={abaAtual === 'exercicios'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'exercicios' ? 0 : -1}
-            onClick={() => selecionarAba('exercicios')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 1)}
-          >
-            Por exercício
-          </button>
-        </div>
-
-        {/* As duas abas apontam para o mesmo #conteudo (ele troca de tabela,
-            não existem dois painéis escondidos); aria-labelledby segue a aba
-            ativa para o leitor de tela anunciar de qual delas o conteúdo é. */}
-        <div
-          id="conteudo"
-          className="bloco vidro"
-          role="tabpanel"
-          aria-busy={carga.estado === 'carregando'}
-          aria-labelledby={abaAtual === 'alunos' ? 'aba-alunos' : 'aba-exercicios'}
-        >
-          {renderizarConteudo()}
-        </div>
-      </main>
-
-      {modal && (
-        <ModalHistorico
-          key={modal.chave}
-          turmaId={turmaId}
-          aluno={modal.aluno}
-          aoFechar={() => setModal(null)}
-        />
-      )}
-    </Moldura>
-  );
-}
-
-// Modal de histórico — as sessões do aluno NESTA turma
-// Esc fecha, Tab não vaza e o foco volta ao botão da linha que o abriu:
-// tudo isso é do ModalReact, que captura o elemento ativo na montagem.
-
-interface PropsHistorico {
-  turmaId: string;
-  aluno: RelatorioAluno;
-  aoFechar: () => void;
-}
-
-type CargaSessoes =
-  | { estado: 'carregando' }
-  | { estado: 'erro'; mensagem: string }
-  | { estado: 'pronto'; sessoes: SessaoDoAluno[]; total: number };
-
-function ModalHistorico({ turmaId, aluno, aoFechar }: PropsHistorico) {
-  const modal = useRef<ModalHandle>(null);
-  const [carga, setCarga] = useState<CargaSessoes>({ estado: 'carregando' });
-
-  useEffect(() => {
-    let cancelado = false;
-
-    async function carregar() {
-      try {
-        const resposta = await api.relatorios.sessoesDoAluno(turmaId, aluno.id);
-        if (cancelado) return;
-        const sessoes = desembrulhar(resposta);
-        setCarga({
-          estado: 'pronto',
-          // A rota já entrega da mais recente para a mais antiga; a
-          // ordenação aqui é só a garantia de que a tela cumpre o que
-          // promete, mesmo se um dia o back esquecer o ORDER BY. Ordenar
-          // não é calcular: nenhum número é produzido aqui.
-          sessoes: [...sessoes].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0)),
-          total: (resposta as { total?: number })?.total ?? sessoes.length,
-        });
-      } catch (excecao) {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
-      }
-    }
-
-    carregar();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-
-  function renderizarCorpo() {
-    if (carga.estado === 'carregando') {
-      return <p className="modal-vazio-texto">Carregando histórico…</p>;
-    }
-    if (carga.estado === 'erro') {
-      return <p className="modal-vazio-texto">{carga.mensagem}</p>;
-    }
-    if (carga.sessoes.length === 0) {
-      return (
-        <p className="modal-vazio-texto">
-          Este aluno ainda não treinou nenhum exercício desta turma.
-        </p>
-      );
-    }
+    // Somas de CONTAGENS, nunca de médias. Matrícula é o vínculo aluno–turma.
+    const soma = (valor: (l: LinhaDaTurma) => unknown) =>
+      linhas.reduce((total, l) => total + (Number.isFinite(valor(l)) ? (valor(l) as number) : 0), 0);
 
     return (
       <>
-        <div className="lista-sessoes entrada-escalonada">
-          {carga.sessoes.map((s) => (
-            <div key={s.id} className="item-sessao">
-              <div className="item-sessao-texto">
-                <p className="item-sessao-titulo">{s.tituloExercicio ?? 'Exercício removido'}</p>
-                <p className="item-sessao-meta">{formatarDataHora(s.data)}</p>
-              </div>
-              <p className="item-sessao-numeros">
-                <span>{numero(s.wpm)} PPM</span>
-                <span>{porcentagem(s.precisao)}</span>
-              </p>
-              {/* "Concluiu" e "não concluiu" são as duas metades da mesma
-                  informação: as duas aparecem, e nenhuma em cor de alerta. */}
-              <p className="item-sessao-estado">{s.concluida ? 'Concluiu' : 'Não concluiu'}</p>
-            </div>
-          ))}
-        </div>
-        {carga.total > carga.sessoes.length && (
-          <p className="lista-sessoes-rodape">
-            Mostrando as {carga.sessoes.length} sessões mais recentes de {carga.total}.
-          </p>
+        <dl className="cartoes-numero">
+          <CartaoNumero rotulo="Turmas" valor={String(linhas.length)} />
+          <CartaoNumero rotulo="Matrículas" valor={String(soma((l) => l.turma.totalAlunos))} />
+          <CartaoNumero rotulo="Exercícios no acervo" valor={String(carga.acervo)} />
+          <CartaoNumero rotulo="Atribuições atuais" valor={String(soma((l) => l.turma.totalExercicios))} />
+        </dl>
+
+        {linhas.length === 0 ? (
+          <PainelEstado
+            titulo={filtro === 'arquivadas' ? 'Nenhuma turma arquivada' : 'Nenhuma turma ativa'}
+            texto="Mude o filtro para ver as outras turmas."
+          />
+        ) : (
+          <>
+            <Bloco titulo="Comparação entre as turmas" texto={<>{comPpm('PPM médio')} das sessões concluídas de cada turma.</>}>
+              <Grafico
+                tipo="bar"
+                rotulos={linhas.map((l) => l.turma.nome ?? 'Turma')}
+                series={[{ rotulo: 'PPM médio', dados: linhas.map((l) => l.relatorio?.wpmMedio ?? null) }]}
+                unidades={['PPM']}
+                descricao={`Gráfico de barras: PPM médio de ${linhas.length} ${linhas.length === 1 ? 'turma' : 'turmas'}. Os números estão na tabela "Resultados por turma".`}
+              />
+            </Bloco>
+            <Bloco titulo="Resultados por turma" texto="Os números de cada turma. Turma sem sessão concluída aparece com —.">
+              <Tabela colunas={colunas} linhas={linhas} chave={(l) => l.turma.id} />
+            </Bloco>
+          </>
         )}
       </>
     );
   }
 
   return (
-    <Modal
-      ref={modal}
-      eyebrow="Histórico do aluno"
-      titulo={identidade(aluno)}
-      acoes={[{ rotulo: 'Fechar' }]}
-      aoFechar={aoFechar}
-    >
-      <div>{renderizarCorpo()}</div>
-    </Modal>
+    <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
+      <main id="corpo">
+        <div className="cabecalho">
+          <div className="cabecalho-texto">
+            <h1 className="titulo">Relatórios gerais</h1>
+            <p className="subtitulo">Como estão as suas turmas, lado a lado. O detalhe de cada uma fica no relatório da turma.</p>
+          </div>
+        </div>
+
+        <div className="filtro-segmentado" role="group" aria-label="Quais turmas mostrar">
+          {FILTROS.map((f, i) => (
+            <button
+              key={f.chave}
+              type="button"
+              className="aba tecla"
+              ref={(el) => {
+                botoesFiltro.current[i] = el;
+              }}
+              aria-pressed={filtro === f.chave}
+              onClick={() => selecionarFiltro(f.chave)}
+              onKeyDown={(evento) => aoTeclarNoFiltro(evento, i)}
+            >
+              {f.rotulo}
+            </button>
+          ))}
+        </div>
+
+        <div id="conteudo" aria-busy={carga.estado === 'carregando'}>
+          {renderizarConteudo()}
+        </div>
+      </main>
+    </Moldura>
   );
 }
 
-// Formatação — o front só apresenta o que o back agregou
-// numero, porcentagem, contagem e formatarDataHora vêm de utils/formato.ts:
-// null e undefined viram "—", zero é 0, e é por essas portas que todo
-// número do back chega à tela. O "0 de 4" depende disso: o zero é um dado.
-
-// "8 de 12" — quantos treinaram nos últimos 7 dias, de quantos alunos da
-// turma. O numerador pode faltar (o back ainda não contou) sem que o
-// denominador falte, e vice-versa.
-function ativos(turma: RelatorioTurma): string {
-  return `${contagem(turma.alunosAtivos)} de ${contagem(turma.totalAlunos)}`;
-}
-
-// A identificação do aluno em uma linha, para aria-label e título do modal.
-function identidade(aluno: RelatorioAluno): string {
-  return aluno.nome;
-}
-
-// Nenhuma sessão nesta turma: os números da linha viram "—" e a linha fica
-// apagada. É diferente de "média ainda não calculada" — aqui não há o que
-// calcular.
-function semSessao(aluno: RelatorioAluno): boolean {
-  return !aluno.totalSessoes;
-}
-
-// O melhor da turma
-// Uma estrela por coluna, ao lado do MAIOR número dela — nunca em toda
-// linha. Comparar não é calcular: o número continua sendo o do back; a
-// tela só aponta qual é o maior.
-
-interface MelhoresDaTurma {
-  ppm: string | null;
-  precisao: string | null;
-  concluidos: string | null;
-}
-
-function melhoresDaTurma(alunos: RelatorioAluno[]): MelhoresDaTurma {
-  return {
-    ppm: idDoMelhor(alunos, (a) => a.wpmMedio),
-    precisao: idDoMelhor(alunos, (a) => a.precisaoMedia),
-    concluidos: idDoMelhor(alunos, (a) => (semSessao(a) ? null : a.exerciciosConcluidos)),
-  };
-}
-
-// O id do aluno com o maior valor, ou null quando não há um melhor de
-// verdade: menos de dois alunos com número (melhor que quem?), maior
-// valor zero (nada foi conquistado) ou empate no topo (a estrela seria
-// uma escolha arbitrária entre dois alunos iguais).
-function idDoMelhor(alunos: RelatorioAluno[], valorDe: (aluno: RelatorioAluno) => number | null): string | null {
-  const comValor = alunos.filter((a) => valorDe(a) != null);
-  if (comValor.length < 2) return null;
-
-  const maior = Math.max(...comValor.map(valorDe));
-  if (maior <= 0) return null;
-
-  const noTopo = comValor.filter((a) => valorDe(a) === maior);
-  if (noTopo.length > 1) return null;
-  return noTopo[0].id;
-}
-
-// A estrela diz "o melhor da turma" só para quem vê; o texto sr-only diz
-// o mesmo para quem ouve — ali a estrela é a única informação.
-function MarcaDoMelhor() {
+function CartaoNumero({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <span className="marca-do-melhor">
-      <Estrela tamanho={13} />
-      <span className="sr-only">, o melhor da turma</span>
-    </span>
+    <div className="cartao-numero">
+      <dt className="cartao-numero-rotulo">{rotulo}</dt>
+      <dd className="cartao-numero-valor">{valor}</dd>
+    </div>
   );
 }
 
-function linkDaTurma(turmaId: string): string {
-  return `turma.html?${new URLSearchParams({ turma: turmaId })}`;
-}
-
-// Ordenação — utils/ordenacao.ts (nulo por último nas duas direções);
-// cada tabela entrega só o valor de cada campo.
-
-function valorOrdenavelAluno(aluno: RelatorioAluno, campo: string): string | number | null {
-  if (campo === 'aluno') return aluno.nome.toLowerCase();
-  // Sem sessão a célula mostra "—", então o valor de ordenação é null —
-  // senão o zero cairia no meio dos números de verdade.
-  if (campo === 'sessoes') return aluno.totalSessoes || null;
-  if (campo === 'ppm') return aluno.wpmMedio;
-  if (campo === 'precisao') return aluno.precisaoMedia;
-  if (campo === 'concluidos') return semSessao(aluno) ? null : aluno.exerciciosConcluidos;
-  if (campo === 'ultimaAtividade') return aluno.ultimaAtividade;
-  return null;
-}
-
-function valorOrdenavelExercicio(item: RelatorioExercicio, campo: string): string | number | null {
-  if (campo === 'titulo') return (item.titulo ?? '').toLowerCase();
-  if (campo === 'dificuldade') return pesoDificuldade(item.dificuldade);
-  if (campo === 'concluiram') return item.concluidoPor;
-  if (campo === 'ppm') return item.wpmMedio;
-  if (campo === 'precisao') return item.precisaoMedia;
-  if (campo === 'estouraram') return item.estouraramTempo;
-  return null;
-}
-
-// Exportar CSV
-// Exporta O QUE ESTÁ NA TELA: a aba aberta, as linhas visíveis e a
-// ordenação atual. Nenhuma requisição nova — os dados já estão aqui, e uma
-// segunda busca poderia trazer números diferentes dos que o professor viu.
-//
-// As colunas e as linhas abaixo espelham, na mesma ordem, as de
-// `colunasAlunos` e `colunasExercicios`. Mexer numa coluna da tabela pede
-// mexer aqui: são duas apresentações do mesmo relatório.
-
-const COLUNAS_CSV_ALUNOS = [
-  'Nome',
-  'Sessões',
-  'PPM médio',
-  'Precisão média (%)',
-  'Exercícios concluídos',
-  'Exercícios atribuídos',
-  'Última atividade',
-];
-
-// Aqui "3 de 5" vira duas colunas: na tela o par junto economiza
-// espaço, mas numa planilha uma
-// célula "3 de 5" não soma nem filtra. É o mesmo dado, na forma que serve
-// a cada lugar.
-//
-// Célula vazia para o que não existe, não "—": o travessão é um símbolo da
-// tela, e o Excel o leria como texto numa coluna de números.
-function linhaCsvAluno(aluno: RelatorioAluno): (string | number)[] {
-  const vazio = semSessao(aluno);
-  return [
-    aluno.nome,
-    vazio ? '' : aluno.totalSessoes,
-    celulaNumero(aluno.wpmMedio),
-    celulaNumero(aluno.precisaoMedia),
-    vazio ? '' : celulaNumero(aluno.exerciciosConcluidos),
-    aluno.exerciciosAtribuidos,
-    aluno.ultimaAtividade ? formatarDataHora(aluno.ultimaAtividade) : 'Nunca treinou',
-  ];
-}
-
-const COLUNAS_CSV_EXERCICIOS = [
-  'Título',
-  'Dificuldade',
-  'Concluíram',
-  'Alunos na turma',
-  'PPM médio',
-  'Precisão média (%)',
-  'Estouraram o tempo',
-];
-
-function linhaCsvExercicio(item: RelatorioExercicio): (string | number)[] {
-  return [
-    item.titulo ?? '',
-    rotuloDificuldade(item.dificuldade),
-    item.concluidoPor,
-    item.totalAlunos,
-    celulaNumero(item.wpmMedio),
-    celulaNumero(item.precisaoMedia),
-    item.estouraramTempo,
-  ];
-}
-
-// Número para planilha: vírgula decimal (é o que o Excel em português lê
-// como número) e vazio quando o back não mandou nada.
-function celulaNumero(valor: number | null | undefined): string {
-  return valor == null || !Number.isFinite(valor) ? '' : formatarDecimal(valor);
-}
-
-// Erros — mesmo critério das outras telas: decide pelo status, nunca pelo
-// texto que o servidor mandou.
-
+// Erros — decide pelo status, nunca pelo texto do servidor.
 function mensagemDaFalha(excecao: unknown): string {
-  // Duck typing, não instanceof: o erro do mock tem a mesma forma do
-  // ErroApi do api.ts, mas não é instância dele.
   const erro = excecao as ErroDaApi | null | undefined;
   if (erro?.name !== 'ErroApi') {
     console.error(excecao);
     return MENSAGENS.GENERICA;
   }
-  // 401 não entra aqui: o api.ts já derruba a sessão e sai da tela.
   if (erro.status === 0) return MENSAGENS.CONEXAO;
   if (erro.status === 403) return MENSAGENS.PERMISSAO;
-  if (erro.status === 404) return MENSAGENS.NAO_ENCONTRADO;
   return MENSAGENS.GENERICA;
 }
 
 // Montagem — guarda primeiro, React depois
-
-// Guarda de professor antes de montar. Devolveu null, redirecionou: a tela
-// para aqui e nada mais roda.
 const usuario = guarda.soConta('professor');
-
-// O host dos toasts fica fora da raiz do React (ver relatorios.html), e o
-// toast.ts continua cuidando dele como nas outras telas.
-let toasts: Toasts;
 
 if (usuario) {
   guarda.aplicarMundo();
-  toasts = criarToasts(document.getElementById('toasts'), { maximo: 2 });
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Relatorios />);
 }

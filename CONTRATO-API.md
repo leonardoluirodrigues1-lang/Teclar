@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-59 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+60 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -31,7 +31,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
-- **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
+- **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
 - **Aluno**: `POST /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
@@ -1132,7 +1132,7 @@ Chamada no front: `api.relatorios.turma`
 
 ```json
 { "turmaId": "turma-1", "totalAlunos": 4, "alunosComSessao": 3, "alunosAtivos": 2,
-  "wpmMedio": 33, "precisaoMedia": 87, "exerciciosConcluidos": 5 }
+  "wpmMedio": 33, "precisaoMedia": 87, "exerciciosConcluidos": 5, "tentativas": 14 }
 ```
 
 **Erros:**
@@ -1145,7 +1145,38 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-alunosAtivos = alunos que treinaram nos últimos 7 dias (a janela é do back); médias inteiras das sessões concluídas da turma, null sem amostra; exerciciosConcluidos = pares (aluno, exercício) concluídos (COUNT: zero é zero).
+alunosAtivos = alunos que treinaram nos últimos 7 dias (a janela é do back); médias inteiras das sessões concluídas da turma, null sem amostra; exerciciosConcluidos = pares (aluno, exercício) concluídos (COUNT: zero é zero); tentativas = todas as sessões da turma, concluídas ou não (COUNT).
+
+### `GET /turmas/:id/relatorio/evolucao`
+
+Chamada no front: `api.relatorios.evolucao`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 EvolucaoDoDia[] — a evolução da turma dia a dia; sem sessão concluída = []
+
+```json
+[{ "dia": "2026-10-01", "sessoes": 3, "wpmMedio": 31, "precisaoMedia": 88 },
+ { "dia": "2026-10-03", "sessoes": 2, "wpmMedio": 35, "precisaoMedia": 91 }]
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — turma inexistente ou de outra conta
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+As sessões CONCLUÍDAS da turma (matrículas ativas, como as médias do topo), agrupadas pelo dia do calendário de Brasília, do mais antigo ao mais recente. Dia sem sessão concluída não aparece (não vira zero). Médias inteiras; null sem amostra.
+
+**Notas:**
+
+O gráfico de linha da aba Relatório da turma.
 
 ### `GET /turmas/:id/relatorio/alunos`
 

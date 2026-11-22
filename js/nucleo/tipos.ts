@@ -588,6 +588,22 @@ export interface RelatorioTurma extends DesempenhoTurma {
   /** Pares (aluno, exercício) concluídos na turma. Zero é 0: a turma tem
    *  exercício atribuído e ninguém terminou nenhum. */
   exerciciosConcluidos: number | null;
+  /** Todas as sessões da turma, concluídas ou não (COUNT: zero é 0). */
+  tentativas: number | null;
+}
+
+/**
+ * Um dia de GET /turmas/:id/relatorio/evolucao — o gráfico de evolução da
+ * turma. Só dias com sessão concluída, do mais antigo ao mais recente. As
+ * médias seguem a regra do topo do relatório (sessões concluídas das
+ * matrículas ativas); sem amostra, null.
+ */
+export interface EvolucaoDoDia {
+  /** AAAA-MM-DD, no calendário de Brasília. */
+  dia: string;
+  sessoes: number;
+  wpmMedio: number | null;
+  precisaoMedia: number | null;
 }
 
 /**

@@ -4,6 +4,7 @@
 //   GET /turmas/:id/relatorio            — as métricas do topo, conta a conta
 //   GET /turmas/:id/relatorio/alunos     — uma linha por aluno, com quem nunca treinou
 //   GET /turmas/:id/relatorio/exercicios — uma linha por exercício atribuído
+//   GET /turmas/:id/relatorio/evolucao   — as sessões concluídas, dia a dia
 //   GET /turmas/:id/alunos/:alunoId/sessoes — mais recente primeiro, com título
 //   E, nas quatro: sem token 401, token de aluno 403 TIPO_INVALIDO, turma de
 //   outro professor (ou aluno de outra turma) 404 NAO_ENCONTRADO.
@@ -144,6 +145,7 @@ const QUATRO_ROTAS = [
   `/turmas/${turma.id}/relatorio`,
   `/turmas/${turma.id}/relatorio/alunos`,
   `/turmas/${turma.id}/relatorio/exercicios`,
+  `/turmas/${turma.id}/relatorio/evolucao`,
   `/turmas/${turma.id}/alunos/${ana.id}/sessoes`,
 ];
 
@@ -175,6 +177,26 @@ confere(
   'topo: exerciciosConcluidos = pares (aluno, exercício) concluídos, com ex3 e ex4 (3)',
   topo.exerciciosConcluidos === 3,
 );
+confere('topo: tentativas = todas as sessões da turma, concluídas ou não (6)', topo.tentativas === 6);
+
+// ============================================================================
+// GET /turmas/:id/relatorio/evolucao
+// ============================================================================
+
+// Concluídas: Ana ex3 30/80 e ex4 20/70 há 20 dias; ex1 40/90 e 50/100 hoje.
+// As não concluídas (Ana ex2, Beto ex1, há 10 dias) não entram: nada no dia -10.
+r = await chamar('GET', `/turmas/${turma.id}/relatorio/evolucao`, null, prof);
+const evolucao = r.corpo;
+confere('evolução: 200, dois dias, do mais antigo ao mais recente', r.status === 200 && evolucao.length === 2 && evolucao[0].dia < evolucao[1].dia);
+confere(
+  'evolução: há 20 dias, 2 sessões, PPM 25 e precisão 75',
+  evolucao[0].sessoes === 2 && evolucao[0].wpmMedio === 25 && evolucao[0].precisaoMedia === 75,
+);
+confere(
+  'evolução: hoje, 2 sessões, PPM 45 e precisão 95',
+  evolucao[1].sessoes === 2 && evolucao[1].wpmMedio === 45 && evolucao[1].precisaoMedia === 95,
+);
+confere('evolução: o dia vem como AAAA-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(evolucao[0].dia));
 
 // ============================================================================
 // GET /turmas/:id/relatorio/alunos
@@ -252,8 +274,10 @@ for (const rota of [
   '/turmas/turma-5/relatorio',
   '/turmas/turma-5/relatorio/alunos',
   '/turmas/turma-5/relatorio/exercicios',
+  '/turmas/turma-5/relatorio/evolucao',
   '/turmas/turma-5/alunos/al-43-t5/sessoes',
   '/turmas/nao-existe/relatorio',
+  '/turmas/nao-existe/relatorio/evolucao',
 ]) {
   r = await chamar('GET', rota, null, prof);
   confere(`GET ${rota} (outro dono): 404 NAO_ENCONTRADO`, ehErro(r, 404, 'NAO_ENCONTRADO'));

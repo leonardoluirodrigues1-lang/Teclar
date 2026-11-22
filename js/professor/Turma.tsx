@@ -34,7 +34,6 @@ import type {
   Aluno,
   AtribuicaoProfessor,
   ErroDaApi,
-  RelatorioTurma,
   SenhaProvisoriaGerada,
   Turma as TurmaDaLista,
   TurmaDetalhe,
@@ -43,9 +42,7 @@ import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import {
   CascaDaTurma,
-  DICA_PPM_DAS_SESSOES,
   focarAba,
-  PainelDeRelatorio,
   TrilhaDeExercicios,
   TurmaNaoEncontrada,
   useAbaDaUrl,
@@ -53,14 +50,14 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
+import { RelatorioDaTurma } from './RelatorioDaTurma.js';
 import { ModalArquivar, ModalCapa, ModalNome } from './modaisDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { copiarComAviso } from '../utils/copiar.js';
 import { imprimirSenhas } from '../utils/imprimirSenhas.js';
-import { contagem, formatarData, formatarDataHora, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
-import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
@@ -220,7 +217,7 @@ function Turma() {
       );
     }
 
-    if (aba === 'relatorio') return <AbaRelatorio nomeDaTurma={turma.nome ?? 'turma'} />;
+    if (aba === 'relatorio') return <RelatorioDaTurma turmaId={turmaId} nomeDaTurma={turma.nome ?? 'turma'} toasts={toasts} />;
     if (aba === 'alunos') return renderizarAlunos();
     return renderizarAtividades();
   }
@@ -708,87 +705,6 @@ function pedraDaTurma(item: AtribuicaoProfessor): PedraDaTrilha {
     estado: 'turma',
     legenda: `${contagem(item.concluidoPor)} de ${contagem(item.totalAlunos)} concluíram`,
   };
-}
-
-// Aba Relatório — os números da turma inteira
-
-type CargaRelatorio =
-  | { estado: 'carregando' }
-  | { estado: 'erro'; mensagem: string }
-  | { estado: 'pronto'; relatorio: RelatorioTurma };
-
-function AbaRelatorio({ nomeDaTurma }: { nomeDaTurma: string }) {
-  const [carga, setCarga] = useState<CargaRelatorio>({ estado: 'carregando' });
-  const [tentativa, setTentativa] = useState(0);
-
-  useEffect(() => {
-    let cancelado = false;
-    setCarga({ estado: 'carregando' });
-    api.relatorios
-      .turma(turmaId)
-      .then((relatorio) => {
-        if (!cancelado) setCarga({ estado: 'pronto', relatorio });
-      })
-      .catch((excecao) => {
-        if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [tentativa]);
-
-  if (carga.estado === 'carregando') return <EsqueletoTabela quantidade={3} />;
-  if (carga.estado === 'erro') {
-    return (
-      <PainelErro
-        titulo="Não foi possível carregar o relatório"
-        texto={carga.mensagem}
-        aoTentarDeNovo={() => setTentativa((n) => n + 1)}
-      />
-    );
-  }
-
-  const r = carga.relatorio;
-  // Tudo pronto do back. Média que ele não calculou chega null e vira "—".
-  const grupos = [
-    [
-      { rotulo: 'Alunos ativos (7 dias)', valor: `${contagem(r.alunosAtivos)} de ${contagem(r.totalAlunos)}` },
-      { rotulo: 'Exercícios concluídos', valor: contagem(r.exerciciosConcluidos) },
-    ],
-    [
-      { rotulo: 'PPM médio das sessões', valor: numero(r.wpmMedio), dica: DICA_PPM_DAS_SESSOES },
-      { rotulo: 'Precisão média', valor: porcentagem(r.precisaoMedia) },
-    ],
-  ];
-
-  return (
-    <>
-      <PainelDeRelatorio
-        rotulo="Relatório da turma"
-        grupos={grupos}
-        aoGerarCsv={() => baixarCsv(`relatorio-${slug(nomeDaTurma)}.csv`, linhasDoCsv(nomeDaTurma, r))}
-      />
-      <p className="nota">
-        Aluno por aluno e exercício por exercício estão no{' '}
-        <a className="tabela-link" href={`relatorios.html?${new URLSearchParams({ turma: turmaId })}`}>
-          relatório completo
-        </a>
-        .
-      </p>
-    </>
-  );
-}
-
-// Números crus no CSV: o Excel precisa de número, não de "94%".
-function linhasDoCsv(nomeDaTurma: string, r: RelatorioTurma): (string | number)[][] {
-  return [
-    ['Turma', nomeDaTurma],
-    ['Alunos', r.totalAlunos ?? ''],
-    ['Alunos ativos (7 dias)', r.alunosAtivos ?? ''],
-    ['Exercícios concluídos', r.exerciciosConcluidos ?? ''],
-    ['PPM médio das sessões', r.wpmMedio ?? ''],
-    ['Precisão média (%)', r.precisaoMedia ?? ''],
-  ];
 }
 
 // Métricas e ordenação

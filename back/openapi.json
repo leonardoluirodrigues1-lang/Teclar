@@ -2815,7 +2815,7 @@
         ],
         "operationId": "relatorios.turma",
         "summary": "turma: RelatorioTurma — as quatro métricas do topo",
-        "description": "**Chamada no front:** `api.relatorios.turma`\n\n**Resposta:** 200 RelatorioTurma — as quatro métricas do topo\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosAtivos = alunos que treinaram nos últimos 7 dias (a janela é do back); médias inteiras das sessões concluídas da turma, null sem amostra; exerciciosConcluidos = pares (aluno, exercício) concluídos (COUNT: zero é zero).",
+        "description": "**Chamada no front:** `api.relatorios.turma`\n\n**Resposta:** 200 RelatorioTurma — as quatro métricas do topo\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nalunosAtivos = alunos que treinaram nos últimos 7 dias (a janela é do back); médias inteiras das sessões concluídas da turma, null sem amostra; exerciciosConcluidos = pares (aluno, exercício) concluídos (COUNT: zero é zero); tentativas = todas as sessões da turma, concluídas ou não (COUNT).",
         "parameters": [
           {
             "name": "id",
@@ -2841,8 +2841,94 @@
                       "alunosAtivos": 2,
                       "wpmMedio": 33,
                       "precisaoMedia": 87,
-                      "exerciciosConcluidos": 5
+                      "exerciciosConcluidos": 5,
+                      "tentativas": 14
                     }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma inexistente ou de outra conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/relatorio/evolucao": {
+      "get": {
+        "tags": [
+          "Relatórios (professor)"
+        ],
+        "operationId": "relatorios.evolucao",
+        "summary": "(ainda não implementada) evolucao: EvolucaoDoDia[] — a evolução da turma dia a dia; sem sessão concluída = []",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.relatorios.evolucao`\n\n**Resposta:** 200 EvolucaoDoDia[] — a evolução da turma dia a dia; sem sessão concluída = []\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nAs sessões CONCLUÍDAS da turma (matrículas ativas, como as médias do topo), agrupadas pelo dia do calendário de Brasília, do mais antigo ao mais recente. Dia sem sessão concluída não aparece (não vira zero). Médias inteiras; null sem amostra.\n\n**Notas:**\n\nO gráfico de linha da aba Relatório da turma.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "EvolucaoDoDia[] — a evolução da turma dia a dia; sem sessão concluída = []",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "dia": "2026-10-01",
+                        "sessoes": 3,
+                        "wpmMedio": 31,
+                        "precisaoMedia": 88
+                      },
+                      {
+                        "dia": "2026-10-03",
+                        "sessoes": 2,
+                        "wpmMedio": 35,
+                        "precisaoMedia": 91
+                      }
+                    ]
                   }
                 }
               }

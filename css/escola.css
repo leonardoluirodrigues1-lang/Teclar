@@ -2033,3 +2033,61 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   background: #fff;
 }
 .btn-pequeno { padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+
+/* --- Relatórios: cartões de número --------------------------------------- */
+.cartoes-numero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--e-3, 12px);
+  margin-top: var(--e-5, 24px);
+}
+.cartao-numero {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--raio-card, 8px);
+  background: #111;
+}
+.cartao-numero-rotulo { font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
+.cartao-numero-valor {
+  margin-top: 6px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 28px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Gráficos (js/componentes/Grafico.tsx) ------------------------------- */
+.grafico { position: relative; height: 260px; margin-top: var(--e-3, 12px); }
+.grafico-tabela { margin-top: var(--e-4, 16px); }
+.grafico-tabela summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.grafico-tabela summary:hover { color: var(--cor-texto, #fff); }
+.estado-vazio-curto { font-size: 14px; color: var(--cor-texto-suave, #c4c4c4); }
+
+/* O histórico individual precisa de largura para o gráfico e a tabela. */
+.modal:has(.historico-aluno) { max-width: 760px; }
+.historico-aluno .tabela-painel { max-height: 320px; overflow-y: auto; }
+
+/* --- Relatórios gerais: filtro Todas / Ativas / Arquivadas --------------- */
+.filtro-segmentado { display: flex; flex-wrap: wrap; gap: var(--e-2, 8px); margin-top: var(--e-5, 24px); }
+.filtro-segmentado .aba.tecla { margin-bottom: 0; }
+.filtro-segmentado .aba.tecla[aria-pressed="true"] { background: #fff; color: #000; }
+
+/* --- Impressão (Gerar PDF) na zona Trabalho ------------------------------ */
+@media print {
+  .zona-trabalho,
+  .zona-trabalho .vidro,
+  .cartao-numero { background: #fff !important; }
+  .moldura-professor .moldura-conteudo { left: 0; }
+  .codigo-turma,
+  .painel-barra,
+  .capa-topo,
+  .grafico-tabela summary { display: none !important; }
+  .cartao-numero-valor { color: #000; }
+  /* As linhas do gráfico são brancas na tela: no papel, invertidas para preto. */
+  .grafico canvas { filter: invert(1); }
+}

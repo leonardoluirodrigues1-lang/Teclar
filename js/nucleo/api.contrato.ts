@@ -641,13 +641,27 @@ que o aluno já fez não some do relatório por uma ação do professor.`,
         rota: 'GET /turmas/:id/relatorio',
         resposta: `200 RelatorioTurma — as quatro métricas do topo
   { "turmaId": "turma-1", "totalAlunos": 4, "alunosComSessao": 3, "alunosAtivos": 2,
-    "wpmMedio": 33, "precisaoMedia": 87, "exerciciosConcluidos": 5 }`,
+    "wpmMedio": 33, "precisaoMedia": 87, "exerciciosConcluidos": 5, "tentativas": 14 }`,
         erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `alunosAtivos = alunos que treinaram nos últimos 7 dias (a janela
   é do back); médias inteiras das sessões concluídas da turma, null
   sem amostra; exerciciosConcluidos = pares (aluno, exercício)
-  concluídos (COUNT: zero é zero).`,
+  concluídos (COUNT: zero é zero); tentativas = todas as sessões da
+  turma, concluídas ou não (COUNT).`,
+      },
+      'relatorios.evolucao': {
+        rota: 'GET /turmas/:id/relatorio/evolucao',
+        resposta: `200 EvolucaoDoDia[] — a evolução da turma dia a dia; sem sessão concluída = []
+  [{ "dia": "2026-10-01", "sessoes": 3, "wpmMedio": 31, "precisaoMedia": 88 },
+   { "dia": "2026-10-03", "sessoes": 2, "wpmMedio": 35, "precisaoMedia": 91 }]`,
+        erros: `404 NAO_ENCONTRADO — turma inexistente ou de outra conta`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `As sessões CONCLUÍDAS da turma (matrículas ativas, como as médias
+  do topo), agrupadas pelo dia do calendário de Brasília, do mais antigo
+  ao mais recente. Dia sem sessão concluída não aparece (não vira zero).
+  Médias inteiras; null sem amostra.`,
+        nota: `O gráfico de linha da aba Relatório da turma.`,
       },
       'relatorios.porAluno': {
         rota: 'GET /turmas/:id/relatorio/alunos',

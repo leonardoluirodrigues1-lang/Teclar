@@ -8,6 +8,7 @@ import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { RelatoriosService } from './relatorios.service.js';
 import type {
+  EvolucaoDoDia,
   Paginado,
   RelatorioAluno,
   RelatorioExercicio,
@@ -36,6 +37,11 @@ export class RelatoriosController {
     @Param('turmaId') turmaId: string,
   ): Promise<RelatorioExercicio[]> {
     return this.relatorios.porExercicio(requisicao.identidade, turmaId);
+  }
+
+  @Get('relatorio/evolucao')
+  evolucao(@Req() requisicao: RequisicaoComIdentidade, @Param('turmaId') turmaId: string): Promise<EvolucaoDoDia[]> {
+    return this.relatorios.evolucao(requisicao.identidade, turmaId);
   }
 
   // Fica aqui, e não no AlunosController, porque no contrato ela é do grupo

@@ -36,6 +36,7 @@ import type {
   RelatorioAluno,
   RelatorioExercicio,
   RelatorioTurma,
+  EvolucaoDoDia,
   ResumoDoAluno,
   RespostaLogin,
   LinhaDoRanking,
@@ -359,6 +360,8 @@ export const api = {
 
     porExercicio: (turmaId: string) =>
       get<RelatorioExercicio[]>(`/turmas/${turmaId}/relatorio/exercicios`),
+
+    evolucao: (turmaId: string) => get<EvolucaoDoDia[]>(`/turmas/${turmaId}/relatorio/evolucao`),
 
     sessoesDoAluno: (turmaId: string, alunoId: string) =>
       get<Paginado<SessaoDoAluno>>(`/turmas/${turmaId}/alunos/${alunoId}/sessoes`),

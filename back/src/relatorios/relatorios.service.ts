@@ -2,6 +2,7 @@
 //   GET /turmas/:turmaId/relatorio                      as quatro métricas do topo
 //   GET /turmas/:turmaId/relatorio/alunos               uma linha por aluno
 //   GET /turmas/:turmaId/relatorio/exercicios           uma linha por exercício atribuído
+//   GET /turmas/:turmaId/relatorio/evolucao             as sessões concluídas, dia a dia
 //   GET /turmas/:turmaId/alunos/:alunoId/sessoes        o histórico de um aluno
 //
 // Tudo chega PRONTO: nenhuma média é calculada na tela, e média sem
@@ -20,6 +21,7 @@ import { professorDoToken } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import { arredondarOuNull, sessaoNaForma } from '../sessoes/sessao-escola.js';
+import { diaDe } from '../sessoes/dias-seguidos.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
@@ -31,6 +33,16 @@ export interface RelatorioTurma {
   wpmMedio: number | null;
   precisaoMedia: number | null;
   exerciciosConcluidos: number;
+  // Todas as sessões da turma, concluídas ou não: cada uma é uma tentativa.
+  tentativas: number;
+}
+
+// Um dia do gráfico de evolução da turma. Só dias com sessão concluída.
+export interface EvolucaoDoDia {
+  dia: string; // AAAA-MM-DD, no calendário de Brasília (diaDe)
+  sessoes: number;
+  wpmMedio: number | null;
+  precisaoMedia: number | null;
 }
 
 // A linha de GET /turmas/:id/alunos mais as duas contagens de exercício.
@@ -101,6 +113,7 @@ export class RelatoriosService {
       select: { AlunoID: true, ExerciseID: true },
       distinct: ['AlunoID', 'ExerciseID'],
     });
+    const tentativas = await this.banco.sessionsprof.count({ where: daTurma });
 
     return {
       turmaId,
@@ -110,7 +123,39 @@ export class RelatoriosService {
       wpmMedio: arredondarOuNull(medias._avg.WPM),
       precisaoMedia: arredondarOuNull(medias._avg.Precisao),
       exerciciosConcluidos: paresConcluidos.length,
+      tentativas,
     };
+  }
+
+  // GET /turmas/:turmaId/relatorio/evolucao. As mesmas sessões e a mesma
+  // regra das médias do topo (concluídas, das matrículas ativas), agrupadas
+  // pelo dia de Brasília, do mais antigo ao mais recente. Dia sem sessão
+  // concluída não entra: o gráfico não inventa ponto com zero.
+  async evolucao(identidade: Identidade, turmaId: string): Promise<EvolucaoDoDia[]> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, turmaId);
+    const sessoes = await this.banco.sessionsprof.findMany({
+      where: { ...sessoesDaTurma(turmaId), Concluida: true, Data_Sessao: { not: null } },
+      select: { Data_Sessao: true, WPM: true, Precisao: true },
+    });
+
+    const porDia = new Map<string, { sessoes: number; wpm: number[]; precisao: number[] }>();
+    for (const sessao of sessoes) {
+      const dia = diaDe(sessao.Data_Sessao as Date);
+      const grupo = porDia.get(dia) ?? { sessoes: 0, wpm: [], precisao: [] };
+      grupo.sessoes++;
+      if (sessao.WPM !== null) grupo.wpm.push(Number(sessao.WPM));
+      if (sessao.Precisao !== null) grupo.precisao.push(Number(sessao.Precisao));
+      porDia.set(dia, grupo);
+    }
+    return [...porDia.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([dia, grupo]) => ({
+        dia,
+        sessoes: grupo.sessoes,
+        wpmMedio: mediaArredondada(grupo.wpm),
+        precisaoMedia: mediaArredondada(grupo.precisao),
+      }));
   }
 
   // GET /turmas/:turmaId/relatorio/alunos. A linha de GET /turmas/:id/alunos
@@ -200,6 +245,12 @@ export class RelatoriosService {
     // como no GET /exercicios.
     return { total: itens.length, pagina: 1, itens };
   }
+}
+
+// Média inteira, como arredondarOuNull; sem amostra, null (a tela mostra "—").
+function mediaArredondada(valores: number[]): number | null {
+  if (valores.length === 0) return null;
+  return Math.round(valores.reduce((soma, v) => soma + v, 0) / valores.length);
 }
 
 // As sessões que os relatórios contam: as da turma, das matrículas ativas dela.
