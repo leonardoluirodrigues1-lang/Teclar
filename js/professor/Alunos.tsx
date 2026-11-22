@@ -19,7 +19,6 @@ import {
   useRef,
   useState,
   type DragEvent as DragEventReact,
-  type KeyboardEvent as KeyboardEventReact,
   type ReactNode,
 } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -111,6 +110,7 @@ const turmaId = new URLSearchParams(window.location.search).get('turma');
 // De volta para a aba Alunos da MESMA turma, que recarrega a lista.
 const linkVoltar = turmaId ? `turma.html?${new URLSearchParams({ turma: turmaId, aba: 'alunos' })}` : 'turmas.html';
 
+// Qual fluxo a tela mostra: só um, escolhido pelo botão da turma.
 function abaDaUrl(): Aba {
   return new URLSearchParams(window.location.search).get('aba') === 'csv' ? 'csv' : 'um';
 }
@@ -125,10 +125,7 @@ function Alunos() {
   );
   const [nomeTurma, setNomeTurma] = useState(NBSP);
   const [codigo, setCodigo] = useState<string | null>(null);
-  const [abaAtual, setAbaAtual] = useState<Aba>(abaDaUrl);
-
-  const abaUm = useRef<HTMLButtonElement>(null);
-  const abaCsv = useRef<HTMLButtonElement>(null);
+  const [fluxo] = useState<Aba>(abaDaUrl);
 
   useEffect(() => {
     if (!turmaId) return;
@@ -158,28 +155,6 @@ function Alunos() {
     };
   }, []);
 
-  // --- abas — mesma mecânica de Turma.tsx: estado na URL, roving tabindex, setas
-
-  function selecionarAba(aba: Aba) {
-    if (aba === abaAtual) return;
-    setAbaAtual(aba);
-    const url = new URL(window.location.href);
-    url.searchParams.set('aba', aba);
-    window.history.replaceState(null, '', url);
-  }
-
-  function aoTeclarNaAba(evento: KeyboardEventReact, indice: number) {
-    if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
-    evento.preventDefault();
-    const abas = [abaUm.current, abaCsv.current];
-    const proximo =
-      evento.key === 'ArrowRight'
-        ? abas[(indice + 1) % abas.length]
-        : abas[(indice - 1 + abas.length) % abas.length];
-    proximo?.focus();
-    selecionarAba(proximo === abaUm.current ? 'um' : 'csv');
-  }
-
   // Substitui o corpo inteiro: sem turma, nem formulário nem importação
   // têm para onde mandar o nome.
   if (semTurma) {
@@ -202,10 +177,15 @@ function Alunos() {
       <main id="corpo">
         <div className="cabecalho">
           <div className="cabecalho-texto">
-            <h1 className="titulo">Adicionar alunos</h1>
+            <h1 className="titulo">{fluxo === 'csv' ? 'Importar lista de alunos' : 'Adicionar aluno'}</h1>
             <p className="subtitulo" id="nome-turma">
               {nomeTurma}
             </p>
+          </div>
+          <div className="cabecalho-acoes">
+            <a className="btn btn-vidro vidro tecla" href={linkVoltar}>
+              Voltar para a turma
+            </a>
           </div>
         </div>
 
@@ -223,46 +203,13 @@ function Alunos() {
           ele cria a dele.
         </p>
 
-        <div className="abas" role="tablist" aria-label="Formas de adicionar">
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-um"
-            ref={abaUm}
-            role="tab"
-            aria-selected={abaAtual === 'um'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'um' ? 0 : -1}
-            onClick={() => selecionarAba('um')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 0)}
-          >
-            Adicionar aluno
-          </button>
-          <button
-            type="button"
-            className="aba tecla"
-            id="aba-csv"
-            ref={abaCsv}
-            role="tab"
-            aria-selected={abaAtual === 'csv'}
-            aria-controls="conteudo"
-            tabIndex={abaAtual === 'csv' ? 0 : -1}
-            onClick={() => selecionarAba('csv')}
-            onKeyDown={(evento) => aoTeclarNaAba(evento, 1)}
-          >
-            Importar CSV
-          </button>
-        </div>
-
-        {/* Os dois painéis existem sempre; a aba só escolhe qual fica à vista.
-            O que foi digitado ou importado numa aba sobrevive à troca. */}
-        <div id="conteudo" role="tabpanel" aria-labelledby={abaAtual === 'um' ? 'aba-um' : 'aba-csv'}>
-          <section id="painel-um" hidden={abaAtual !== 'um'}>
-            <UmPorUm turma={{ nome: nomeTurma, codigo: codigo ?? '' }} />
-          </section>
-          <section id="painel-csv" hidden={abaAtual !== 'csv'}>
+        {/* Um fluxo só: o que o botão da turma escolheu (?aba=um|csv). */}
+        <div id="conteudo">
+          {fluxo === 'csv' ? (
             <ImportarCsv turma={{ nome: nomeTurma, codigo: codigo ?? '' }} />
-          </section>
+          ) : (
+            <UmPorUm turma={{ nome: nomeTurma, codigo: codigo ?? '' }} />
+          )}
         </div>
       </main>
     </Moldura>
@@ -411,12 +358,6 @@ function UmPorUm({ turma }: { turma: TurmaDaFolha }) {
           ))}
         </ul>
       </section>
-
-      <div className="resultado-acoes">
-        <a className="btn btn-vidro vidro tecla" href={linkVoltar}>
-          Voltar para a turma
-        </a>
-      </div>
     </>
   );
 }

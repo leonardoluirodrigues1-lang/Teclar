@@ -9,8 +9,11 @@
 //     Renovar (para quando ele vazar);
 //   · três cartões que funcionam como abas, nesta ordem:
 //   ATIVIDADES          a trilha na visão da turma — cada pedra diz quantos
-//                       concluíram —, a tabela de atribuições com o
-//                       "Remover atribuição" e o "Atribuir exercício";
+//                       concluíram — e a lista de atribuídos, com a barra
+//                       "X de Y alunos concluíram" e o "Retirar da turma".
+//                       "Atribuir exercício" abre a Biblioteca em modo de
+//                       seleção (biblioteca.html?atribuir=<turma>), que volta
+//                       para cá com ?atribuidos=N;
 //   RELATÓRIO DA TURMA  os números da turma inteira (GET /turmas/:id/relatorio),
 //                       com PDF, CSV e o link para o relatório completo;
 //   ALUNOS              "Adicionar aluno" e "Importar CSV" (./Alunos.tsx) e a
@@ -25,14 +28,12 @@
 import { Bloco } from '../componentes/Bloco.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import type {
   Aluno,
   AtribuicaoProfessor,
   ErroDaApi,
-  Exercicio,
   RelatorioTurma,
   SenhaProvisoriaGerada,
   Turma as TurmaDaLista,
@@ -54,11 +55,10 @@ import {
 import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
 import { ModalArquivar, ModalCapa, ModalNome } from './modaisDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
-import { ModalExercicio } from '../componentes/ModalExercicio.js';
 import { VOLTAR_TURMAS } from '../componentes/Moldura.js';
 import { copiarComAviso } from '../utils/copiar.js';
 import { imprimirSenhas } from '../utils/imprimirSenhas.js';
-import { contagem, formatarData, formatarDataHora, normalizar, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
+import { contagem, formatarData, formatarDataHora, numero, porcentagem, rotuloDificuldade } from '../utils/formato.js';
 import { ordenar } from '../utils/ordenacao.js';
 import { baixarCsv, slug } from '../utils/csv.js';
 import { Tabela, type ColunaTabela, type Ordenacao } from '../componentes/Tabela.js';
@@ -94,8 +94,6 @@ type ConfigModal =
   | { chave: number; tipo: 'mostrar-provisoria'; aluno: Aluno; gerada: SenhaProvisoriaGerada }
   | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
-  | { chave: number; tipo: 'atribuir'; opener: HTMLElement }
-  | { chave: number; tipo: 'criar-exercicio' }
   | { chave: number; tipo: 'renomear' }
   | { chave: number; tipo: 'capa' }
   | { chave: number; tipo: 'arquivar' };
@@ -112,6 +110,9 @@ let proximaChave = 0;
 
 const turmaId = new URLSearchParams(window.location.search).get('turma');
 
+// A Biblioteca em modo de seleção, com esta turma como destino.
+const hrefAtribuir = turmaId ? `biblioteca.html?${new URLSearchParams({ atribuir: turmaId })}` : 'biblioteca.html';
+
 // Tela
 
 function Turma() {
@@ -123,7 +124,16 @@ function Turma() {
   const [ordenacaoAlunos, setOrdenacaoAlunos] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
   const [modal, setModal] = useState<ConfigModal | null>(null);
 
-  const btnAtribuir = useRef<HTMLButtonElement>(null);
+  // Volta da Biblioteca com ?atribuidos=N: avisa uma vez e tira da URL,
+  // para o F5 não repetir o aviso.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const atribuidos = Number(url.searchParams.get('atribuidos'));
+    if (!atribuidos) return;
+    toasts.mostrar(atribuidos === 1 ? 'Exercício atribuído' : `${atribuidos} exercícios atribuídos`);
+    url.searchParams.delete('atribuidos');
+    window.history.replaceState(null, '', url);
+  }, []);
 
   // --- carregamento — detalhe, alunos e atribuições numa tacada só ----------
 
@@ -220,35 +230,32 @@ function Turma() {
       return (
         <PainelEstado
           titulo="Nenhum exercício atribuído"
-          texto="Atribua o primeiro exercício para os alunos começarem."
+          texto="Atribua o primeiro exercício da biblioteca para os alunos começarem."
         >
-          <button
-            type="button"
-            className="btn btn-solido tecla tecla-clara"
-            onClick={(evento) => abrirAtribuir(evento.currentTarget)}
-          >
+          <a className="btn btn-solido tecla tecla-clara" href={hrefAtribuir}>
             Atribuir exercício
-          </button>
+          </a>
         </PainelEstado>
       );
     }
     // A trilha é a ordem que os alunos veem; a tabela embaixo é onde se
     // administra cada atribuição (data, dificuldade, remover).
+    // A trilha é a ordem que os alunos veem; a lista embaixo é onde se
+    // acompanha e administra cada atribuição.
     return (
       <>
-        <div className="painel-barra">
-          <button
-            type="button"
-            className="btn btn-solido tecla tecla-clara"
-            id="btn-atribuir"
-            ref={btnAtribuir}
-            onClick={(evento) => abrirAtribuir(evento.currentTarget)}
-          >
-            Atribuir exercício
-          </button>
-        </div>
         <TrilhaDeExercicios pedras={atribuicoes.map(pedraDaTurma)} />
-        <Tabela colunas={colunasExercicios} linhas={atribuicoes} chave={(item) => item.exercicioId} />
+        <Bloco
+          titulo="Atividades da turma"
+          texto="Os exercícios atribuídos e quantos alunos já concluíram cada um."
+          acoes={
+            <a className="btn btn-solido tecla tecla-clara" id="btn-atribuir" href={hrefAtribuir}>
+              Atribuir exercício
+            </a>
+          }
+        >
+          <Tabela colunas={colunasExercicios} linhas={atribuicoes} chave={(item) => item.exercicioId} />
+        </Bloco>
       </>
     );
   }
@@ -351,32 +358,28 @@ function Turma() {
   ];
 
   const colunasExercicios: ColunaTabela<AtribuicaoProfessor>[] = [
-    { rotulo: 'Título', celula: (item) => item.titulo ?? 'Sem título' },
-    { rotulo: 'Dificuldade', celula: (item) => rotuloDificuldade(item.dificuldade) },
-    { rotulo: 'Atribuído em', celula: (item) => (item.atribuidoEm ? formatarData(item.atribuidoEm) : '—') },
+    { rotulo: 'Exercício', celula: (item) => <span className="celula-aluno-nome">{item.titulo ?? 'Sem título'}</span> },
     {
-      rotulo: 'Concluído',
-      classe: 'col-numero',
-      celula: (item) => `${contagem(item.concluidoPor)} de ${contagem(item.totalAlunos)}`,
+      rotulo: 'Dificuldade',
+      celula: (item) => <span className={`etiqueta etiqueta-${item.dificuldade}`}>{rotuloDificuldade(item.dificuldade)}</span>,
     },
+    { rotulo: 'Atribuído em', celula: (item) => (item.atribuidoEm ? formatarData(item.atribuidoEm) : '—') },
+    { rotulo: 'Progresso', celula: (item) => <ProgressoDaAtividade item={item} /> },
     {
       rotulo: 'Ação',
+      classe: 'col-acoes',
       celula: (item) => (
         <button
           type="button"
-          className="tabela-acao"
-          aria-label={`Remover atribuição de "${item.titulo ?? ''}"`.trim()}
+          className="btn btn-vidro vidro tecla btn-pequeno"
+          aria-label={`Retirar “${item.titulo ?? 'este exercício'}” da turma`}
           onClick={() => setModal({ chave: ++proximaChave, tipo: 'remover-atribuicao', item })}
         >
-          Remover atribuição
+          Retirar da turma
         </button>
       ),
     },
   ];
-
-  function abrirAtribuir(opener: HTMLElement) {
-    setModal({ chave: ++proximaChave, tipo: 'atribuir', opener });
-  }
 
   // --- modais ---------------------------------------------------------------
 
@@ -390,10 +393,10 @@ function Turma() {
         <ModalRemover
           key={modal.chave}
           eyebrow="Remover aluno"
-          titulo="Remover da turma?"
+          titulo={`Remover ${aluno.nome} da turma?`}
           texto={
-            `Remover ${aluno.nome} desta turma apaga também o histórico de sessões dele aqui, e ele deixa ` +
-            'de conseguir entrar. Essa ação não pode ser desfeita.'
+            'Por proteção de dados pessoais (LGPD), remover o aluno apaga todo o histórico dele nesta turma. ' +
+            'Ele não conseguirá mais entrar com este código. Esta ação não pode ser desfeita.'
           }
           rotuloAcao="Remover da turma"
           enviar={() => api.alunos.remover(turmaId, aluno.id)}
@@ -545,15 +548,19 @@ function Turma() {
       return (
         <ModalRemover
           key={modal.chave}
-          eyebrow="Remover atribuição"
-          titulo="Remover esta atribuição?"
-          texto={`Os alunos desta turma deixam de ver "${item.titulo ?? 'este exercício'}" na lista deles.`}
-          rotuloAcao="Remover atribuição"
+          eyebrow="Retirar da turma"
+          titulo="Retirar esta atividade da turma?"
+          texto={
+            `Os alunos desta turma deixam de ver “${item.titulo ?? 'este exercício'}” na lista deles. ` +
+            'O exercício continua na sua biblioteca, e as tentativas que os alunos já fizeram ficam guardadas ' +
+            'no histórico e nos relatórios. Dá para atribuir de novo depois.'
+          }
+          rotuloAcao="Retirar da turma"
           // Sem id próprio de atribuição: a chave é o par (turma, exercício).
           enviar={() => api.turmas.removerAtribuicao(turmaId, item.exercicioId)}
           aoConcluir={() => {
             atualizarAtribuicoes((lista) => lista.filter((a) => a.exercicioId !== item.exercicioId));
-            toasts.mostrar('Atribuição removida');
+            toasts.mostrar('Atividade retirada da turma');
             focarAba('atividades');
           }}
           aoFechar={fechar}
@@ -561,45 +568,7 @@ function Turma() {
       );
     }
 
-    if (modal.tipo === 'criar-exercicio') {
-      // Cria na biblioteca e já atribui a esta turma. O modal de criar fecha
-      // no sucesso da criação; a atribuição vem logo atrás.
-      return (
-        <ModalExercicio
-          key={modal.chave}
-          exercicio={null}
-          rotuloCriar="Criar e atribuir"
-          aoConcluir={async (salvo) => {
-            try {
-              await api.turmas.atribuir(turmaId, [salvo.id]);
-              const novas = desembrulhar(await api.turmas.atribuicoes(turmaId));
-              flushSync(() => atualizarAtribuicoes(() => novas));
-              toasts.mostrar('Exercício criado e atribuído');
-            } catch (excecao) {
-              toasts.mostrar(`Exercício criado, mas não atribuído: ${mensagemDaFalha(excecao)}`);
-            }
-            btnAtribuir.current?.focus();
-          }}
-          aoFechar={fechar}
-        />
-      );
-    }
-
-    return (
-      <ModalAtribuir
-        key={modal.chave}
-        atribuicoes={atribuicoes}
-        // Troca de modal: o de atribuir desmonta e o de criar entra no lugar.
-        aoCriarNovo={() => setModal({ chave: ++proximaChave, tipo: 'criar-exercicio' })}
-        aoConcluir={(novas, quantidade) => {
-          // flushSync: a tabela precisa estar redesenhada ANTES do teste abaixo.
-          flushSync(() => atualizarAtribuicoes(() => novas));
-          toasts.mostrar(quantidade === 1 ? 'Exercício atribuído' : `${quantidade} exercícios atribuídos`);
-          if (!document.contains(modal.opener)) btnAtribuir.current?.focus();
-        }}
-        aoFechar={fechar}
-      />
-    );
+    return null;
   }
 
   function trocarNaTurma(campos: Partial<TurmaDetalhe>) {
@@ -710,6 +679,24 @@ function SituacaoDoAcesso({ aluno }: { aluno: Aluno }) {
     return <span className="etiqueta etiqueta-espera">Provisória válida até {formatarData(aluno.provisoriaAte)}</span>;
   }
   return <span className="etiqueta etiqueta-alerta">Primeiro acesso pendente</span>;
+}
+
+// "X de Y alunos concluíram", com a barra. Contagem que o back não mandou
+// vira "—" e a barra fica vazia.
+function ProgressoDaAtividade({ item }: { item: AtribuicaoProfessor }) {
+  const feitos = Number.isFinite(item.concluidoPor) ? item.concluidoPor : null;
+  const total = Number.isFinite(item.totalAlunos) ? item.totalAlunos : null;
+  const fracao = feitos != null && total ? Math.min(1, feitos / total) : 0;
+  return (
+    <span className="progresso-atividade">
+      <span className="barra-progresso" aria-hidden="true">
+        <span style={{ width: `${Math.round(fracao * 100)}%` }} />
+      </span>
+      <span>
+        {contagem(feitos)} de {contagem(total)} {total === 1 ? 'aluno concluiu' : 'alunos concluíram'}
+      </span>
+    </span>
+  );
 }
 
 // Na visão do professor a pedra não tem "o seu" estado: é neutra, com o
@@ -885,196 +872,6 @@ function ModalRemover({
           {erro}
         </p>
       </div>
-    </Modal>
-  );
-}
-
-// Modal "Atribuir exercício" — biblioteca do professor, busca, seleção
-// múltipla. Confirmar atribui todos os marcados de uma vez.
-
-type Biblioteca =
-  | { estado: 'carregando' }
-  | { estado: 'erro'; mensagem: string }
-  | { estado: 'pronto'; lista: Exercicio[] };
-
-interface PropsModalAtribuir {
-  atribuicoes: AtribuicaoProfessor[];
-  aoConcluir: (atribuicoes: AtribuicaoProfessor[], quantidade: number) => void;
-  aoCriarNovo: () => void;
-  aoFechar: () => void;
-}
-
-function ModalAtribuir({ atribuicoes, aoConcluir, aoCriarNovo, aoFechar }: PropsModalAtribuir) {
-  const modal = useRef<ModalHandle>(null);
-  const campoBusca = useRef<HTMLInputElement>(null);
-  const linkCriar = useRef<HTMLButtonElement>(null);
-
-  const [biblioteca, setBiblioteca] = useState<Biblioteca>({ estado: 'carregando' });
-  const [termo, setTermo] = useState('');
-  const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set());
-  const [erro, setErro] = useState<string | null>(null);
-  const enviando = useRef(false);
-  const [ocupado, setOcupado] = useState(false);
-
-  useEffect(() => {
-    let cancelado = false;
-
-    async function carregarBiblioteca() {
-      try {
-        const lista = desembrulhar(await api.exercicios.listar());
-        if (!cancelado) setBiblioteca({ estado: 'pronto', lista });
-      } catch (excecao) {
-        if (!cancelado) setBiblioteca({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
-      }
-    }
-
-    carregarBiblioteca();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-
-  // Foco depois de a biblioteca chegar: no erro, o Cancelar; sem exercício,
-  // o link de criar; com lista, o campo de busca.
-  useEffect(() => {
-    if (biblioteca.estado === 'carregando') return;
-    const quadro = requestAnimationFrame(() => {
-      if (biblioteca.estado === 'erro') {
-        modal.current?.el?.querySelector<HTMLElement>('.modal-botao-vidro')?.focus();
-      } else if (biblioteca.lista.length === 0) {
-        linkCriar.current?.focus();
-      } else {
-        campoBusca.current?.focus();
-      }
-    });
-    return () => cancelAnimationFrame(quadro);
-  }, [biblioteca]);
-
-  const vazia = biblioteca.estado === 'pronto' && biblioteca.lista.length === 0;
-
-  function alternar(id: string, marcado: boolean) {
-    setSelecionados((atual) => {
-      const proximo = new Set(atual);
-      if (marcado) proximo.add(id);
-      else proximo.delete(id);
-      return proximo;
-    });
-  }
-
-  async function confirmarAtribuicao() {
-    if (enviando.current || selecionados.size === 0) return;
-    enviando.current = true;
-    setOcupado(true);
-
-    try {
-      await api.turmas.atribuir(turmaId, [...selecionados]);
-      // A resposta do POST é a lista crua de atribuições (sem título,
-      // sem concluidoPor); GET /atribuicoes é quem devolve a forma que a
-      // tabela precisa, então busca de novo em vez de remontar à mão.
-      const novas = desembrulhar(await api.turmas.atribuicoes(turmaId));
-      modal.current?.fechar();
-      aoConcluir(novas, selecionados.size);
-    } catch (excecao) {
-      setErro(mensagemDaFalha(excecao));
-      enviando.current = false;
-      setOcupado(false);
-    }
-  }
-
-  function renderizarCorpo() {
-    if (biblioteca.estado === 'carregando') {
-      return <p className="modal-vazio-texto">Carregando biblioteca…</p>;
-    }
-    if (biblioteca.estado === 'erro') {
-      return <p className="modal-vazio-texto">{biblioteca.mensagem}</p>;
-    }
-    if (biblioteca.lista.length === 0) {
-      return (
-        <>
-          <p className="modal-vazio-texto">Você ainda não tem nenhum exercício na biblioteca.</p>
-          <button type="button" className="btn btn-solido tecla tecla-clara" ref={linkCriar} onClick={aoCriarNovo}>
-            + Criar novo exercício
-          </button>
-        </>
-      );
-    }
-
-    const alvo = normalizar(termo.trim());
-    const filtrados = alvo
-      ? biblioteca.lista.filter((ex) => normalizar(ex.titulo).includes(alvo))
-      : biblioteca.lista;
-
-    return (
-      <>
-        <button type="button" className="btn btn-vidro vidro tecla modal-criar-novo" onClick={aoCriarNovo}>
-          + Criar novo exercício
-        </button>
-        <div className="modal-busca">
-          <input
-            type="search"
-            ref={campoBusca}
-            placeholder="Buscar pelo título"
-            autoComplete="off"
-            aria-label="Buscar exercício pelo título"
-            value={termo}
-            onChange={(evento) => setTermo(evento.target.value)}
-          />
-        </div>
-        <div className="lista-biblioteca">
-          {filtrados.length === 0 ? (
-            <p className="modal-vazio-texto">Nada com “{termo.trim()}” no título.</p>
-          ) : (
-            filtrados.map((ex) => {
-              const jaAtribuido = atribuicoes.some((a) => a.exercicioId === ex.id);
-              return (
-                <label key={ex.id} className="item-biblioteca">
-                  <input
-                    type="checkbox"
-                    value={ex.id}
-                    checked={jaAtribuido || selecionados.has(ex.id)}
-                    disabled={jaAtribuido}
-                    onChange={(evento) => alternar(ex.id, evento.target.checked)}
-                  />
-                  <div className="item-biblioteca-texto">
-                    <p className="item-biblioteca-titulo">{ex.titulo ?? 'Sem título'}</p>
-                    <p className="item-biblioteca-meta">{rotuloDificuldade(ex.dificuldade)}</p>
-                  </div>
-                  {jaAtribuido && <span className="item-biblioteca-legenda">já atribuído</span>}
-                </label>
-              );
-            })
-          )}
-        </div>
-        <p className="erro-campo" aria-live="polite">
-          {erro}
-        </p>
-      </>
-    );
-  }
-
-  return (
-    <Modal
-      ref={modal}
-      eyebrow="Atribuir exercício"
-      titulo="Atribuir exercício"
-      acoes={[
-        // Nada para atribuir enquanto a biblioteca não chega, ou se nada foi
-        // marcado ainda: o botão nasce desabilitado nos dois casos. Sem
-        // exercício na biblioteca, some também (disabled além de hidden,
-        // senão continuaria na lista de focáveis do modal).
-        {
-          rotulo: ocupado ? 'Atribuindo…' : 'Atribuir selecionados',
-          principal: true,
-          fecha: false,
-          aoClicar: confirmarAtribuicao,
-          disabled: ocupado || biblioteca.estado !== 'pronto' || vazia || selecionados.size === 0,
-          hidden: vazia,
-        },
-        { rotulo: 'Cancelar', disabled: ocupado },
-      ]}
-      aoFechar={aoFechar}
-    >
-      <div>{renderizarCorpo()}</div>
     </Modal>
   );
 }

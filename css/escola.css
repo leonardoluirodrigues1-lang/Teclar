@@ -1955,3 +1955,81 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .menu-item-perigo { color: var(--cor-erro, #ff5a5a); }
 .menu-item-perigo:hover { color: #ff8080; }
+
+/* --- Biblioteca: trecho do texto embaixo do título ----------------------- */
+.celula-trecho {
+  display: block;
+  margin-top: 4px;
+  max-width: 52ch;
+  font-size: 12px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tabela td .etiqueta + .etiqueta,
+.celula-trecho + .etiqueta { margin-top: 6px; }
+
+/* Dificuldade: a palavra diz o nível, a cor só reforça. */
+.etiqueta-facil { color: #7ee2a8; }
+.etiqueta-medio { color: var(--cor-alerta, #f5b93b); }
+.etiqueta-dificil { color: #ff8a8a; }
+
+/* --- Biblioteca em modo de seleção -------------------------------------- */
+.col-selecao { width: 1%; }
+.caixa-selecao {
+  width: 18px;
+  height: 18px;
+  accent-color: #fff;
+  cursor: pointer;
+}
+.caixa-selecao:disabled { cursor: not-allowed; }
+/* Já atribuído: a linha recua, mas o texto continua legível. */
+.tabela tr.linha-indisponivel td { color: var(--cor-texto-suave, #c4c4c4); }
+
+/* A barra do fim: presa embaixo enquanto a lista rola. */
+.barra-selecao {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3, 12px);
+  margin-top: var(--e-5, 24px);
+  padding: 14px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--raio-card, 8px);
+  background: #111;
+}
+.barra-selecao-contagem {
+  margin-right: auto;
+  font-size: 15px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+.barra-selecao .erro-campo { flex-basis: 100%; order: 5; margin: 0; }
+
+/* --- Atividades: "X de Y alunos concluíram" com barra -------------------- */
+.progresso-atividade {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 170px;
+  font-size: 13px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+.barra-progresso {
+  display: block;
+  height: 6px;
+  border-radius: var(--raio-total, 9999px);
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.barra-progresso > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+}
+.btn-pequeno { padding: 6px 12px; font-size: 13px; white-space: nowrap; }

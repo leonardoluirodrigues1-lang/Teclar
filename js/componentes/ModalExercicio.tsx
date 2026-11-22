@@ -27,7 +27,7 @@ const MENSAGENS = {
 // 0 = sem limite; o resto em m:ss (90 -> "1:30", 3600 -> "60:00").
 export function formatarTempoLimite(segundos: number | null | undefined): string {
   if (!Number.isFinite(segundos)) return '—';
-  if (segundos <= 0) return 'sem limite';
+  if (segundos <= 0) return 'Sem limite';
   const m = Math.floor(segundos / 60);
   const s = segundos % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
