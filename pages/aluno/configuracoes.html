@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Antes de qualquer CSS: as preferencias do aparelho (tamanho do texto,
+     contraste, movimento) entram no <html> antes da primeira pintura. -->
+<script src="../../js/nucleo/preferencias-cedo.js"></script>
+<title>Teclar &mdash; Configura&ccedil;&otilde;es</title>
+<meta name="description" content="Configura&ccedil;&otilde;es do aluno: acessibilidade, conta (turma, c&oacute;digo e senha) e interface.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
+<link rel="stylesheet" href="../../css/base/movimento.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/moldura.css">
+
+<link rel="stylesheet" href="../../css/base/reset.css">
+<!-- Esta tela usa as DUAS folhas, e a ordem importa.
+     De escola.css vem o mundo escola: a tabela s&oacute;lida, o esqueleto, os
+     pain&eacute;is de estado, o seletor e a receita dos n&uacute;meros (.metrica-rotulo
+     e .metrica-valor).
+     De dashboard.css vem a casca: .pagina, .painel, o cabe&ccedil;alho
+     (.rotulo/.titulo/.subtitulo/.btn-sair), o fundo e o campo de estrelas.
+     O topo com o menu do nome &eacute; o
+     <Moldura> (css/componentes/moldura.css). O acr&eacute;scimo "telas do Aluno"
+     no fim de escola.css ajusta o painel, escopado em .pagina-aluno para
+     as telas do professor n&atilde;o mudarem.
+     dashboard.css vem DEPOIS de prop&oacute;sito: nos nomes que as duas definem
+     (.titulo, .subtitulo, .secao-rotulo, .cabecalho, .fundo) quem deve
+     ganhar &eacute; o painel do aluno. Onde isso atropelaria algo que a tela
+     precisa, a se&ccedil;&atilde;o "Hist&oacute;rico do aluno" no fim do escola.css reajusta
+     pelo seletor mais espec&iacute;fico .historico. -->
+<link rel="stylesheet" href="../../css/escola.css">
+<link rel="stylesheet" href="../../css/dashboard.css">
+<!-- O topo com o menu do nome, o mesmo das outras telas do aluno. -->
+<!-- O modal de "Trocar de modo", no menu do nome. -->
+<link rel="stylesheet" href="../../css/componentes/modais.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+<!-- Os campos de Conta (os mesmos das telas de entrada) e as se&ccedil;&otilde;es da p&aacute;gina. -->
+<link rel="stylesheet" href="../../css/componentes/campos.css">
+<link rel="stylesheet" href="../../css/componentes/configuracoes.css">
+<link rel="stylesheet" href="../../css/base/preferencias.css">
+</head>
+<body class="ceu-discreto">
+
+<!-- A luz de fundo: o disco de acre&ccedil;&atilde;o no canto inferior direito (o canto
+     da Escola, ver css/base/luz.css), o campo de estrelas de dashboard.css e o
+     gr&atilde;o. S&oacute; pintura, e o aria-hidden diz isso a quem
+     ouve a tela. Sem essa luz o backdrop-filter do vidro n&atilde;o tem o que
+     desfocar e o painel vira ret&acirc;ngulo cinza. -->
+<div class="fundo fundo-largo grao" aria-hidden="true">
+  <div class="disco disco-canto-inferior-direito"></div>
+  <div class="fundo-estrelas"></div>
+</div>
+
+<!-- O React monta a p&aacute;gina inteira aqui dentro: o topo com o menu do
+     nome e, abaixo dele, as configura&ccedil;&otilde;es. -->
+<div id="raiz"></div>
+
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx.
+     Caixa importa: o arquivo &eacute; Configuracoes.js (de Configuracoes.tsx). -->
+<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
+<!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
+<script type="module" src="../../js/utils/respiracaoDaLuz.js"></script>
+<script type="module" src="../../js/aluno/Configuracoes.js"></script>
+</body>
+</html>

@@ -10,7 +10,9 @@ estatísticas); as de turmas (listar, criar, detalhe, PATCH, código novo e
 as três de atribuições); as cinco de alunos da turma; as cinco da
 biblioteca de exercícios (o `DELETE /exercicios/:id` arquiva, não apaga);
 as duas de sessões; as quatro de relatórios; as seis do próprio aluno
-(histórico, resumo, salas, sala, meu desempenho e o ranking); e as seis de
+(histórico, resumo, salas, sala, meu desempenho e o ranking); as três de
+Configurações > Conta (`PATCH /conta`, `POST /conta/senha` e `PUT /aluno/senha`,
+em `src/autenticacao/perfil.controller.ts`); e as seis de
 administração (categorias e parâmetros). Testes de fumaça, com o back no
 ar e o seed aplicado: `npm run test:auth`, `test:solo`, `test:turmas`,
 `test:atribuicoes`, `test:alunos`, `test:exercicios`, `test:sessoes`,

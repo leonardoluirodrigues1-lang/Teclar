@@ -284,6 +284,13 @@ export const api = {
     sair: () => post<null>('/auth/logout', undefined, { publico: true }),
   },
 
+  // Configurações > Conta, do Solo e do professor (a própria conta).
+  conta: {
+    renomear: (nome: string) => patch<Usuario>('/conta', { nome }),
+
+    trocarSenha: (senhaAtual: string, novaSenha: string) => post<null>('/conta/senha', { senhaAtual, novaSenha }),
+  },
+
   solo: {
     campanhaAtual: () => get<Campanha | null>('/solo/campanha'),
 
@@ -397,6 +404,9 @@ export const api = {
   escola: {
     aluno: {
       criarSenha: (novaSenha: string) => post<null>('/aluno/senha', { novaSenha }),
+
+      // Configurações > Conta do aluno: troca a senha da matrícula (já tem uma).
+      trocarSenha: (senhaAtual: string, novaSenha: string) => put<null>('/aluno/senha', { senhaAtual, novaSenha }),
 
       historico: () => get<Paginado<SessaoDoHistorico>>('/aluno/historico'),
 

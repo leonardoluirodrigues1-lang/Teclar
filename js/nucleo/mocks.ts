@@ -93,7 +93,7 @@ import { CONFIG } from '../config.js';
 import { sequenciaDeDias } from '../utils/desempenho.js';
 import { ordemDoPercurso } from '../utils/percurso.js';
 import { LICOES, montarLicao } from './licoes.js';
-import { validarNome, validarSenhaAluno } from '../utils/validacao.js';
+import { validarNome, validarSenha, validarSenhaAluno } from '../utils/validacao.js';
 import type {
   Aluno,
   ImagemDaCapa,
@@ -217,7 +217,7 @@ export const USUARIOS: {
     nome: 'Ana Pires',
     tipo: 'aluno',
     // Conveniência, como acima: a turma do aluno (uma só, na v8).
-    turmas: [{ id: 'turma-2', nome: 'Reforço de digitação' }],
+    turmas: [{ id: 'turma-2', nome: 'Reforço de digitação', codigo: 'R8VD3K' }],
   },
 };
 
@@ -1630,7 +1630,7 @@ interface Conta {
 // O `usuario` do aluno, como o login devolve: a turma vai junto, para a
 // tela não pedir de novo.
 function usuarioDoAluno(turma: Turma, aluno: AlunoMock): Usuario {
-  const usuario: Usuario = { id: aluno.id, nome: aluno.nome, tipo: 'aluno', turmas: [{ id: turma.id, nome: turma.nome }] };
+  const usuario: Usuario = { id: aluno.id, nome: aluno.nome, tipo: 'aluno', turmas: [{ id: turma.id, nome: turma.nome, codigo: turma.codigo }] };
   if (aluno.senha === null) usuario.precisaTrocarSenha = true;
   return usuario;
 }
@@ -2691,6 +2691,51 @@ const rotas: [string, RegExp, Handler][] = [
       if (!achado || achado.aluno.senha !== null) throw erro(409, 'Você já criou a sua senha.', 'SENHA_JA_CRIADA');
       achado.aluno.senha = senha;
       achado.aluno.provisoria = null;
+      return null;
+    },
+  ],
+  // Configurações > Conta. A senha atual errada é 400 (não 401, que derrubaria a sessão).
+  [
+    'PUT',
+    montarRegex('/aluno/senha'),
+    (params, corpo, token) => {
+      const achado = alunoMockPorId(alunoDoToken(token).id);
+      const senha = String(corpo?.novaSenha ?? '').trim();
+      const problema = validarSenhaAluno(senha);
+      if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
+      if (!achado || achado.aluno.senha !== String(corpo?.senhaAtual ?? '').trim()) {
+        throw erro(400, 'A senha atual não confere.', 'SENHA_ATUAL_INCORRETA');
+      }
+      achado.aluno.senha = senha;
+      achado.aluno.provisoria = null;
+      return null;
+    },
+  ],
+  [
+    'PATCH',
+    montarRegex('/conta'),
+    (params, corpo, token) => {
+      const usuario = contaDoToken(token);
+      const nome = String(corpo?.nome ?? '').trim().replace(/\s+/g, ' ');
+      const problema = validarNome(nome);
+      if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
+      usuario.nome = nome;
+      return usuario;
+    },
+  ],
+  [
+    'POST',
+    montarRegex('/conta/senha'),
+    (params, corpo, token) => {
+      const usuario = contaDoToken(token);
+      const conta = CONTAS.find((c) => c.usuario === usuario);
+      const nova = String(corpo?.novaSenha ?? '');
+      const problema = validarSenha(nova);
+      if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
+      if (!conta || conta.senha !== String(corpo?.senhaAtual ?? '')) {
+        throw erro(400, 'A senha atual não confere.', 'SENHA_ATUAL_INCORRETA');
+      }
+      conta.senha = nova;
       return null;
     },
   ],

@@ -89,6 +89,7 @@ A lista completa está em `back/README.md`.
 - Front contra o back: `node js/nucleo/api.back.check.mjs`.
 - Motor de digitação (erro corrigido em amarelo, nos dois modos):
   `node js/treino/typingEngine.check.mjs`, sem back.
+- Preferências do aparelho (Configurações): `node js/nucleo/preferencias.check.mjs`, sem back.
 - Fim de atividade num Chrome headless, com teclas de verdade (última
   repetição → sessão gravada → modal de conclusão que não fecha sozinho):
   `node js/treino/fimDaAtividade.check.mjs`, com o back rodando e o

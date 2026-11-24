@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Antes de qualquer CSS: as preferencias do aparelho (tamanho do texto,
+     contraste, movimento) entram no <html> antes da primeira pintura. -->
+<script src="js/nucleo/preferencias-cedo.js"></script>
 <title>Teclar &mdash; Aprenda a digitar com foco e precis&atilde;o</title>
 <meta name="description" content="Teclar e uma plataforma de treino de digitacao: foco, pratica, precisao, velocidade e dominio do teclado.">
 <link rel="stylesheet" href="css/base/fontes.css">
@@ -22,6 +25,7 @@
     "react/jsx-runtime": "./vendor/react/jsx-runtime.mjs"
 }}
 </script>
+<link rel="stylesheet" href="css/base/preferencias.css">
 </head>
 <!-- class="landing": movimento.css deixa esta p&aacute;gina fora da resposta
      ao toque, porque o canvas WebGL divide o mesmo quadro. -->

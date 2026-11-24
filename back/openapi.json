@@ -11,6 +11,10 @@
       "description": "Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha (POST /auth/aluno, que também matricula no primeiro acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
     },
     {
+      "name": "Conta (Configurações)",
+      "description": "A parte \"Conta\" da página Configurações do Solo e do professor: o nome e a senha da própria conta (Users). O id sai do token; token de aluno é 403 TIPO_INVALIDO (o aluno troca a senha da matrícula em escola.aluno.trocarSenha). A senha atual errada é 400, e não 401: o 401 derrubaria a sessão na tela."
+    },
+    {
       "name": "Solo",
       "description": "O mundo Solo é da CONTA (Users). Token de aluno em qualquer rota daqui é 403 TIPO_INVALIDO, menos em GET /solo/missoes/:id, que serve qualquer token. Um jogador tem UMA campanha, e ela sai do token: nenhuma rota usada pelas telas recebe id de campanha. O progresso nunca regride: cada treino é uma linha nova, o XP só soma, e \"lição concluída\" e \"melhor marca\" olham todas as sessões — refazer uma lição pior não as desfaz."
     },
@@ -588,6 +592,219 @@
             "description": "(sem corpo)"
           }
         }
+      }
+    },
+    "/api/conta": {
+      "patch": {
+        "tags": [
+          "Conta (Configurações)"
+        ],
+        "operationId": "conta.renomear",
+        "summary": "renomear: Usuario — a conta como ficou, na forma do /auth/eu",
+        "description": "**Chamada no front:** `api.conta.renomear`\n\n**Corpo:** { nome } — a mesma regra do cadastro: aparado, espaços repetidos viram um, de 2 a 150 caracteres\n\n**Resposta:** 200 Usuario — a conta como ficou, na forma do /auth/eu\n\n**Identidade:**\n\nO token. Não recebe id: é sempre a própria conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE Users SET Nome WHERE ID = token.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ nome } — a mesma regra do cadastro: aparado, espaços repetidos viram um, de 2 a 150 caracteres",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "Henrique Lima"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario — a conta como ficou, na forma do /auth/eu",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "u-2",
+                      "nome": "Henrique Lima",
+                      "email": "prof@teclar.dev",
+                      "tipo": "conta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — nome fora da regra",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/conta/senha": {
+      "post": {
+        "tags": [
+          "Conta (Configurações)"
+        ],
+        "operationId": "conta.trocarSenha",
+        "summary": "trocarSenha: (sem corpo)",
+        "description": "**Chamada no front:** `api.conta.trocarSenha`\n\n**Corpo:** { senhaAtual, novaSenha } — a nova com a regra do cadastro (8+, letra e número, sem espaço nas pontas)\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere a senha atual com bcrypt e grava o hash novo em Users.SenhaHash. O token atual continua valendo.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ senhaAtual, novaSenha } — a nova com a regra do cadastro (8+, letra e número, sem espaço nas pontas)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "senhaAtual": "senha123",
+                    "novaSenha": "outra2026"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — nova senha fora da regra\n\n`SENHA_ATUAL_INCORRETA` — a senha atual não confere",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "SENHA_ATUAL_INCORRETA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "SENHA_ATUAL_INCORRETA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`MUITAS_TENTATIVAS` — 5 senhas atuais erradas seguidas (o mesmo limite do login)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "MUITAS_TENTATIVAS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "MUITAS_TENTATIVAS"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/solo/campanha": {
@@ -4283,6 +4500,115 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "SENHA_JA_CRIADA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.trocarSenha",
+        "summary": "trocarSenha: (sem corpo)",
+        "description": "**Chamada no front:** `api.escola.aluno.trocarSenha`\n\n**Corpo:** { senhaAtual, novaSenha } — a nova de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a matrícula dele. Quem ainda está na provisória não chega aqui (403 TROCAR_SENHA): usa o POST /aluno/senha.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere a senha atual com bcrypt e grava alunosturmas.SenhaHash; apaga a provisória que restar.\n\n**Notas:**\n\nConfigurações > Conta do aluno, com a mesma dica e o mesmo medidor do \"Crie sua senha\".",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ senhaAtual, novaSenha } — a nova de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "senhaAtual": "aluno2026",
+                    "novaSenha": "gato2015"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — senha nova fora da regra (6 a 20, com letra e número)\n\n`SENHA_ATUAL_INCORRETA` — a senha atual não confere",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "SENHA_ATUAL_INCORRETA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "SENHA_ATUAL_INCORRETA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`MUITAS_TENTATIVAS` — 5 senhas atuais erradas seguidas",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "MUITAS_TENTATIVAS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "MUITAS_TENTATIVAS"
                     }
                   }
                 }

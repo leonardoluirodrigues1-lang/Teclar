@@ -45,8 +45,8 @@ export const CONFIG = {
     USUARIO: 'teclar:usuario',
     MODO: 'teclar:modo', // último modo (solo | professor) da conta, ver sessao.modo()
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back
-    MOVIMENTO_REDUZIDO: 'teclar:movimento_reduzido', // escolha feita em pages/solo/configuracoes.html
-    TECLADO_GUIA_ESCONDIDO: 'teclar:teclado_guia_escondido', // escolha feita em pages/solo/configuracoes.html
+    // As preferências do aparelho (tamanho do texto, contraste, movimento...)
+    // ficam fora daqui, em 'teclar-preferencias': ver js/nucleo/preferencias-cedo.ts.
     // PREFIXOS, não chaves inteiras: o id da conta vai no fim (ver
     // sessao.tutorialVisto). Provisório até existir coluna no banco. Uma
     // marca por modo: ver o tutorial de um não conta como ter visto o outro.

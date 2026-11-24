@@ -134,7 +134,7 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
                  "tipo": "conta", "campanhaAtiva": "camp-2" } }
   Aluno: { "token": "...",
            "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-           "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }],
+           "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã", "codigo": "K7M2QX" }],
            "precisaTrocarSenha": true } }`,
         erros: `401 CREDENCIAIS — e-mail ou senha errados; no aluno, código, nome ou senha errados (a mesma mensagem para tudo)
   403 CONTA_INATIVA — a conta ou o aluno está desativado, ou a turma do aluno está arquivada
@@ -171,7 +171,7 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
   { "codigo": "K7M2QX", "nome": "Ana Pires", "senha": "aluno2026" }`,
         resposta: `200 RespostaLogin — a sessão do aluno, como no login
   { "token": "...", "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-    "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }`,
+    "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã", "codigo": "K7M2QX" }] } }`,
         erros: `400 DADOS_INVALIDOS — primeiro acesso com nome ou senha fora da regra (a mensagem diz qual)
   401 CREDENCIAIS — o nome já está na turma e a senha não confere ("Senha incorreta.")
   403 TURMA_ARQUIVADA — a turma foi arquivada
@@ -223,6 +223,38 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
   aqui não pode derrubar a tela no meio da saída.`,
         nota: `Pode falhar em silêncio: quem apaga a sessão local é o
   sessao.sair(), que não depende desta resposta.`,
+      },
+    },
+  },
+  {
+    nome: 'Conta (Configurações)',
+    intro: `A parte "Conta" da página Configurações do Solo e do professor: o nome e a
+senha da própria conta (Users). O id sai do token; token de aluno é 403
+TIPO_INVALIDO (o aluno troca a senha da matrícula em escola.aluno.trocarSenha).
+A senha atual errada é 400, e não 401: o 401 derrubaria a sessão na tela.`,
+    rotas: {
+      'conta.renomear': {
+        rota: 'PATCH /conta',
+        corpo: `{ nome } — a mesma regra do cadastro: aparado, espaços repetidos viram um, de 2 a 150 caracteres
+  { "nome": "Henrique Lima" }`,
+        resposta: `200 Usuario — a conta como ficou, na forma do /auth/eu
+  { "id": "u-2", "nome": "Henrique Lima", "email": "prof@teclar.dev", "tipo": "conta" }`,
+        erros: `400 DADOS_INVALIDOS — nome fora da regra
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token. Não recebe id: é sempre a própria conta.`,
+        back: `UPDATE Users SET Nome WHERE ID = token.`,
+      },
+      'conta.trocarSenha': {
+        rota: 'POST /conta/senha',
+        corpo: `{ senhaAtual, novaSenha } — a nova com a regra do cadastro (8+, letra e número, sem espaço nas pontas)
+  { "senhaAtual": "senha123", "novaSenha": "outra2026" }`,
+        resposta: `204 (sem corpo)`,
+        erros: `400 DADOS_INVALIDOS — nova senha fora da regra
+  400 SENHA_ATUAL_INCORRETA — a senha atual não confere
+  403 TIPO_INVALIDO — token de aluno
+  429 MUITAS_TENTATIVAS — 5 senhas atuais erradas seguidas (o mesmo limite do login)`,
+        identidade: `O token.`,
+        back: `Confere a senha atual com bcrypt e grava o hash novo em Users.SenhaHash. O token atual continua valendo.`,
       },
     },
   },
@@ -917,6 +949,19 @@ da conta, e mora em \`solo\`.`,
   esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para "Crie sua senha").`,
         back: `UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL
   (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.`,
+      },
+      'escola.aluno.trocarSenha': {
+        rota: 'PUT /aluno/senha',
+        corpo: `{ senhaAtual, novaSenha } — a nova de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas
+  { "senhaAtual": "aluno2026", "novaSenha": "gato2015" }`,
+        resposta: `204 (sem corpo)`,
+        erros: `400 DADOS_INVALIDOS — senha nova fora da regra (6 a 20, com letra e número)
+  400 SENHA_ATUAL_INCORRETA — a senha atual não confere
+  403 TIPO_INVALIDO — token de conta
+  429 MUITAS_TENTATIVAS — 5 senhas atuais erradas seguidas`,
+        identidade: `O token: a matrícula dele. Quem ainda está na provisória não chega aqui (403 TROCAR_SENHA): usa o POST /aluno/senha.`,
+        nota: `Configurações > Conta do aluno, com a mesma dica e o mesmo medidor do "Crie sua senha".`,
+        back: `Confere a senha atual com bcrypt e grava alunosturmas.SenhaHash; apaga a provisória que restar.`,
       },
       'escola.aluno.historico': {
         rota: 'GET /aluno/historico',

@@ -57,7 +57,8 @@ function aoClicar(evento: MouseEvent): void {
   if (!levaParaOutraPaginaDoProjeto(link)) {
     return;
   }
-  if (querMenosMovimento()) {
+  // "Transições desligadas" em Configurações: a página troca seca, sem o fade.
+  if (querMenosMovimento() || document.documentElement.classList.contains('sem-transicoes')) {
     return;
   }
   // Já está saindo: este segundo clique segue o comportamento normal do
@@ -122,8 +123,8 @@ function levaParaOutraPaginaDoProjeto(link: HTMLAnchorElement): boolean {
   return true;
 }
 
-// O sistema pediu, ou a pessoa pediu em Configurações do Solo (a classe
-// que guarda.aplicarMundo põe no <html>).
+// O sistema pediu, ou a pessoa pediu em Configurações (a classe que
+// js/nucleo/preferencias-cedo.ts põe no <html>).
 export function querMenosMovimento(): boolean {
   if (document.documentElement.classList.contains('movimento-reduzido')) return true;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;

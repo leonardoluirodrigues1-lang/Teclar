@@ -39,6 +39,8 @@ export type Modo = 'solo' | 'professor';
 export interface TurmaDoUsuario {
   id: string;
   nome: string;
+  /** O código da turma (o do login), que Configurações > Conta mostra. */
+  codigo?: string;
 }
 
 /**

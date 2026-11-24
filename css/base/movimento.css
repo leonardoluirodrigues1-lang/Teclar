@@ -325,8 +325,8 @@
   }
 }
 
-/* O mesmo bloco, para quem pediu menos movimento em Configurações do Solo
-   (a classe vem de guarda.aplicarMundo, no <html>). Repetido porque uma
+/* O mesmo bloco, para quem pediu menos movimento em Configurações
+   (a classe vem de js/nucleo/preferencias-cedo.ts, no <html>). Repetido porque uma
    @media não aceita "ou esta classe". */
 :root.movimento-reduzido {
   --t-rapido: 0ms;
@@ -365,6 +365,14 @@
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
 }
-/* Menos movimento pedido em Configurações do Solo: a troca fica seca. */
+/* Menos movimento pedido em Configurações: a troca fica seca. */
 .movimento-reduzido::view-transition-old(root),
 .movimento-reduzido::view-transition-new(root) { animation: none; }
+
+/* "Transições desligadas" (Configurações > Interface): só a troca de página
+   e a entrada do conteúdo param; o resto do movimento continua. A saída com
+   fade não começa (js/utils/movimento.ts). */
+.sem-transicoes::view-transition-old(root),
+.sem-transicoes::view-transition-new(root) { animation: none; }
+.sem-transicoes .entrada-da-pagina:not(:empty),
+.sem-transicoes .entrada-escalonada > :nth-child(-n + 12) { animation: none; }

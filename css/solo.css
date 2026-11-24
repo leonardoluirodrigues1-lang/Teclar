@@ -1308,37 +1308,6 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   letter-spacing: 0.2em;
 }
 
-/* Uma opção de Configurações: a caixa de marcar e, ao lado, o nome e a
-   explicação. O rótulo inteiro é clicável. */
-.solo-opcao {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--e-4, 16px);
-  cursor: pointer;
-}
-.solo-opcao-caixa {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  /* A caixa marcada fica branca: nenhuma cor nova. */
-  accent-color: var(--cor-texto, #fff);
-  cursor: pointer;
-}
-.solo-opcao-nome {
-  display: block;
-  font-size: 16px;
-  font-weight: var(--peso-normal, 400);
-  color: var(--cor-texto, #fff);
-}
-.solo-opcao-texto {
-  display: block;
-  margin-top: var(--e-1, 4px);
-  font-size: 14px;
-  line-height: var(--lh-normal, 1.5);
-  color: var(--cor-texto-suave, #c4c4c4);
-}
-
 /* ---------------------------------------------------------------------------
    Tela estreita: o topo e o botão redondo encostam mais nas bordas.
    ------------------------------------------------------------------------- */
@@ -1382,14 +1351,3 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 .lobby-caminhos { align-items: center; }
 
-/* ---------------------------------------------------------------------------
-   Configurações: uma opção com botão ao lado (rever o tutorial). Não é
-   <label>: o que se clica é o botão, não a linha.
-   ------------------------------------------------------------------------- */
-.solo-opcao-linha {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e-4, 16px);
-}
-.solo-opcao-linha .tutorial-botao { flex: none; }

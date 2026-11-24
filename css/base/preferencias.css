@@ -1,0 +1,35 @@
+/* ==========================================================================
+   TECLAR — preferencias.css
+   O que as preferências do aparelho (Configurações > Acessibilidade e
+   Interface) mudam no visual. As classes ficam no <html> e são postas antes
+   da pintura por js/nucleo/preferencias-cedo.ts. O "reduzir movimento" e as
+   "transições desligadas" moram em movimento.css, junto do que desligam.
+   Carregar depois de tokens.css, luz.css e vidro.css.
+   ========================================================================== */
+
+/* Tamanho do texto. O CSS do projeto mede letra em px, então aumentar o
+   font-size da raiz não mudaria quase nada: o zoom amplia a página inteira
+   (texto, campos, botões e espaços juntos), como o zoom do navegador. */
+:root.texto-grande body { zoom: 1.15; }
+:root.texto-muito-grande body { zoom: 1.3; }
+
+/* Alto contraste (as cores estão em tokens.css, :root.alto-contraste): o
+   vidro vira superfície sólida (o desfoque sobre as estrelas some), e as
+   estrelas e o grão do fundo saem: nada brilha atrás do texto. */
+.alto-contraste .vidro {
+  background: var(--cor-superficie);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.alto-contraste .fundo-estrelas,
+.alto-contraste .disco,
+.alto-contraste .grao::before,
+.alto-contraste .grao::after { display: none; }
+
+/* Dicas escondidas (Configurações > Interface): só as frases de ajuda que
+   ninguém precisa depois de aprender. Avisos, erros e o "Salvando…" do
+   treino continuam. visibility, e não display, onde a linha segura o
+   desenho da tela. */
+.sem-dicas .moldura-pessoa-dica { display: none; }
+.sem-dicas .dica-de-uso,
+.sem-dicas .teclado-legenda { visibility: hidden; }

@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Antes de qualquer CSS: as preferencias do aparelho (tamanho do texto,
+     contraste, movimento) entram no <html> antes da primeira pintura. -->
+<script src="../../js/nucleo/preferencias-cedo.js"></script>
 <title>Teclar &mdash; Configura&ccedil;&otilde;es</title>
 <meta name="description" content="Configura&ccedil;&otilde;es do modo Professor.">
 <link rel="stylesheet" href="../../css/base/fontes.css">
@@ -29,6 +32,10 @@
     "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
 }}
 </script>
+<!-- Os campos de Conta (os mesmos das telas de entrada) e as se&ccedil;&otilde;es da p&aacute;gina. -->
+<link rel="stylesheet" href="../../css/componentes/campos.css">
+<link rel="stylesheet" href="../../css/componentes/configuracoes.css">
+<link rel="stylesheet" href="../../css/base/preferencias.css">
 </head>
 <body class="zona-trabalho">
 

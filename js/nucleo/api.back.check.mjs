@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 62 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 65 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -118,6 +118,12 @@ const loginProf = await entrarCom(api.auth.entrar({ email: `teste-prof-${marca}@
 confere('auth.entrar (conta) devolve o mesmo id do cadastro', loginProf.usuario.id === cadastroProf.usuario.id);
 confere('auth.eu é o dono do token', (await api.auth.eu()).id === cadastroProf.usuario.id);
 
+// Configurações > Conta
+confere('conta.renomear devolve a conta com o nome novo', (await api.conta.renomear('Prof Renomeado')).nome === 'Prof Renomeado');
+await confereErro('conta.trocarSenha com a senha atual errada', api.conta.trocarSenha('errada123', 'outra2026'), 400, 'SENHA_ATUAL_INCORRETA');
+confere('conta.trocarSenha devolve null (204)', (await api.conta.trocarSenha(SENHA, 'outra2026')) === null);
+confere('conta.trocarSenha: a nova vale (e volta à de antes)', (await api.conta.trocarSenha('outra2026', SENHA)) === null);
+
 // Turma
 const turma = await api.turmas.criar(`Turma Teste ${marca}`, 1);
 confere('turmas.criar devolve turma ativa com código', turma.ativa === true && /^[A-HJ-NP-Z2-9]{6}$/.test(turma.codigo));
@@ -188,6 +194,9 @@ confere('primeiro acesso: entra com a provisória e precisaTrocarSenha', loginBi
 confere('escola.aluno.criarSenha devolve null (204)', (await api.escola.aluno.criarSenha('bia2026')) === null);
 await confereErro('escola.aluno.criarSenha de novo', api.escola.aluno.criarSenha('outra2026'), 409, 'SENHA_JA_CRIADA');
 confere('auth.eu sem precisaTrocarSenha depois de criar', !('precisaTrocarSenha' in (await api.auth.eu())));
+await confereErro('escola.aluno.trocarSenha com a senha atual errada', api.escola.aluno.trocarSenha('errada2026', 'bia2027'), 400, 'SENHA_ATUAL_INCORRETA');
+confere('escola.aluno.trocarSenha devolve null (204)', (await api.escola.aluno.trocarSenha('bia2026', 'bia2027')) === null);
+confere('escola.aluno.trocarSenha: a nova vale (e volta à de antes)', (await api.escola.aluno.trocarSenha('bia2027', 'bia2026')) === null);
 confere('a turma do aluno vem no login (sessao.turmaAtiva)', sessao.turmaAtiva() === turma.id);
 
 const salas = await api.escola.aluno.salas();
@@ -386,4 +395,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 62 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 65 funções do api.ts contra o back.`);

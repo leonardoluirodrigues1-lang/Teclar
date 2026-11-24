@@ -32,7 +32,7 @@ import bcrypt from 'bcryptjs';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regras-do-cadastro.js';
-import { problemaNaSenhaDoAluno, provisoriaValida } from './senha-do-aluno.js';
+import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno, provisoriaValida } from './senha-do-aluno.js';
 import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
@@ -72,7 +72,7 @@ interface UsuarioAluno {
   tipo: 'aluno';
   // Uma turma só (o aluno é por turma), mas em lista: é a forma que o
   // contrato e a tela já usam.
-  turmas: { id: string; nome: string }[];
+  turmas: { id: string; nome: string; codigo: string }[];
   // true enquanto o aluno não criou a senha dele (entrou pela provisória).
   precisaTrocarSenha?: true;
 }
@@ -153,7 +153,7 @@ export class AutenticacaoService {
         ? null
         : await this.banco.classesprof.findUnique({
             where: { Codigo: codigo },
-            select: { ClassID: true, NomeTurma: true, Ativa: true },
+            select: { ClassID: true, NomeTurma: true, Codigo: true, Ativa: true },
           });
     if (!turma) {
       throw new NotFoundException({ mensagem: 'Não existe turma com esse código.', codigo: 'TURMA_NAO_ENCONTRADA' });
@@ -294,6 +294,66 @@ export class AutenticacaoService {
     return this.contaDoToken(identidade.id);
   }
 
+  // --- Configurações > Conta (perfil.controller.ts) ---------------------------
+
+  // PATCH /conta: o nome da conta, com a regra e a forma do cadastro.
+  async renomearConta(identidade: Identidade, corpo: { nome?: unknown }): Promise<Usuario> {
+    const id = soConta(identidade);
+    const nome = normalizarNome(corpo?.nome);
+    const problema = problemaNoNome(nome);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
+    }
+    await this.banco.users.update({ where: { ID: id }, data: { Nome: nome } });
+    return this.contaDoToken(id);
+  }
+
+  // POST /conta/senha: pede a senha atual. A nova segue a regra do cadastro
+  // (8+, letra e número) e é gravada sem aparar, como lá.
+  async trocarSenhaDaConta(identidade: Identidade, corpo: { senhaAtual?: unknown; novaSenha?: unknown }): Promise<void> {
+    const id = soConta(identidade);
+    const nova = String(corpo?.novaSenha ?? '');
+    const problema = problemaNaSenhaDaConta(nova);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
+    }
+    const conta = await this.banco.users.findUnique({ where: { ID: id }, select: { SenhaHash: true } });
+    await this.conferirSenhaAtual(`troca|conta|${id}`, String(corpo?.senhaAtual ?? ''), conta?.SenhaHash ?? null);
+    await this.banco.users.update({ where: { ID: id }, data: { SenhaHash: await bcrypt.hash(nova, CUSTO_BCRYPT) } });
+  }
+
+  // PUT /aluno/senha: o aluno que JÁ tem senha troca a da matrícula dele,
+  // com a senha atual e a regra da senha do aluno (6 a 20, letra e número,
+  // aparada). A provisória que restar deixa de valer.
+  async trocarSenhaDoAluno(identidade: Identidade, corpo: { senhaAtual?: unknown; novaSenha?: unknown }): Promise<void> {
+    if (identidade.tipo !== 'aluno') {
+      throw new ForbiddenException({ mensagem: 'Rota só para alunos.', codigo: 'TIPO_INVALIDO' });
+    }
+    const nova = String(corpo?.novaSenha ?? '').trim();
+    const problema = problemaNaSenhaDoAluno(nova);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
+    }
+    const aluno = await this.banco.alunosturmas.findUnique({ where: { AlunoID: identidade.id }, select: { SenhaHash: true } });
+    await this.conferirSenhaAtual(`troca|aluno|${identidade.id}`, String(corpo?.senhaAtual ?? '').trim(), aluno?.SenhaHash ?? null);
+    await this.banco.alunosturmas.update({
+      where: { AlunoID: identidade.id },
+      data: { SenhaHash: await bcrypt.hash(nova, CUSTO_BCRYPT_ALUNO), SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null },
+    });
+  }
+
+  // A senha atual errada é 400, e não 401: o 401 derruba a sessão na tela.
+  // Conta no mesmo contador do login (5 erradas = 429 por um tempo), por
+  // quem está trocando.
+  private async conferirSenhaAtual(chave: string, senhaAtual: string, hash: string | null): Promise<void> {
+    this.tentativas.conferir(chave);
+    if (!(await senhaConfere(senhaAtual, hash))) {
+      this.tentativas.somarFalha(chave);
+      throw new BadRequestException({ mensagem: 'A senha atual não confere.', codigo: 'SENHA_ATUAL_INCORRETA' });
+    }
+    this.tentativas.zerar(chave);
+  }
+
   private async contaDoToken(id: string): Promise<UsuarioConta> {
     const conta = await this.banco.users.findUnique({
       where: { ID: id },
@@ -313,7 +373,7 @@ export class AutenticacaoService {
     // v10: o id do token é o AlunoID da matrícula (alunosturmas).
     const aluno = await this.banco.alunosturmas.findUnique({
       where: { AlunoID: id },
-      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
+      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Codigo: true, Ativa: true } } },
     });
     // Mesmo raciocínio da conta: aluno removido, desativado, ou com a
     // turma arquivada depois do login perde a sessão.
@@ -377,7 +437,7 @@ export class AutenticacaoService {
     }
     return this.banco.alunosturmas.findFirst({
       where: { Nome: nome, classesprof: { Codigo: codigo } },
-      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Ativa: true } } },
+      include: { classesprof: { select: { ClassID: true, NomeTurma: true, Codigo: true, Ativa: true } } },
     });
   }
 
@@ -447,7 +507,7 @@ function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
     id: aluno.AlunoID,
     nome: aluno.Nome,
     tipo: 'aluno',
-    turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '' }],
+    turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '', codigo: aluno.classesprof.Codigo }],
   };
   // Sem senha própria: entrou pela provisória e ainda não criou a dele.
   if (aluno.SenhaHash === null) {
@@ -519,6 +579,14 @@ function credenciaisInvalidas(): UnauthorizedException {
 // dizer que o errado é a senha não entrega nada novo.
 function senhaIncorreta(): UnauthorizedException {
   return new UnauthorizedException({ mensagem: 'Senha incorreta.', codigo: 'CREDENCIAIS' });
+}
+
+// As rotas de Configurações > Conta são só da conta (o aluno não tem e-mail nem nome próprio para trocar).
+function soConta(identidade: Identidade): string {
+  if (identidade.tipo !== 'conta') {
+    throw new ForbiddenException({ mensagem: 'Rota só para contas.', codigo: 'TIPO_INVALIDO' });
+  }
+  return identidade.id;
 }
 
 function contaDesativada(): ForbiddenException {

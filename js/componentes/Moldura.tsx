@@ -28,9 +28,9 @@
 // Os hrefs são absolutos (/pages/...): a mesma moldura serve a telas de
 // pastas diferentes.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import { api } from '../nucleo/api.js';
-import { sessao } from '../nucleo/sessao.js';
+import { EVENTO_USUARIO, sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { CONFIG, ROTA_INICIAL } from '../config.js';
 import type { Campanha } from '../nucleo/tipos.js';
@@ -123,16 +123,31 @@ function itensDo(modo: ModoDaMoldura): Item[] {
   }
   return [
     { tela: 'caminho', rotulo: 'Início', href: '/pages/solo/caminho.html', icone: ICONES.inicio },
-    { tela: 'configuracoes', rotulo: 'Configurações', href: '/pages/solo/configuracoes.html', icone: ICONES.configuracoes },
     { tela: 'ajuda', rotulo: 'Ajuda e sobre', href: '/pages/solo/ajuda.html', icone: ICONES.ajuda },
   ];
 }
+
+const ROTA_CONFIGURACOES: Record<ModoDaMoldura, string> = {
+  solo: '/pages/solo/configuracoes.html',
+  professor: '/pages/professor/configuracoes.html',
+  aluno: '/pages/aluno/configuracoes.html',
+};
 
 const NOME_DO_MENU: Record<ModoDaMoldura, string> = {
   solo: 'Menu do Solo',
   professor: 'Menu do Professor',
   aluno: 'Menu do aluno',
 };
+
+// Redesenha quem chama quando o usuário salvo muda (nome trocado em
+// Configurações): sessao.atualizarUsuario dispara EVENTO_USUARIO.
+function useUsuarioAtual(): void {
+  const [, redesenhar] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    window.addEventListener(EVENTO_USUARIO, redesenhar);
+    return () => window.removeEventListener(EVENTO_USUARIO, redesenhar);
+  }, []);
+}
 
 // "Leonardo" -> "L". Sem nome, fica vazio: melhor que um placeholder.
 function inicialDoNome(nome: string): string {
@@ -143,6 +158,7 @@ function inicialDoNome(nome: string): string {
 // Nível e XP saem das MESMAS rotas e da MESMA conta que o painel usa
 // (GET /solo/campanha, GET /parametros e progressoDe()).
 function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; xpPorNivel: number }) {
+  useUsuarioAtual();
   const nome = sessao.nomeExibicao();
   const progresso = campanha ? progressoDe(campanha, xpPorNivel) : null;
   const rotulo = progresso
@@ -174,6 +190,7 @@ function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; 
 
 // Topo à direita, no Professor e no Aluno: quem está logado e em que papel.
 function Pessoa({ papel }: { papel: string }) {
+  useUsuarioAtual();
   const nome = sessao.nomeExibicao();
   return (
     <div className="moldura-pessoa moldura-pessoa-fixa">
@@ -190,6 +207,7 @@ function Pessoa({ papel }: { papel: string }) {
 
 // O nome e o e-mail da conta, no pé da barra do Professor.
 function ContaDaBarra() {
+  useUsuarioAtual();
   const nome = sessao.nomeExibicao();
   const email = sessao.usuario()?.email;
   return (
@@ -301,17 +319,20 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
 
       <hr className="barra-lateral-divisoria" />
 
-      {/* Professor: Configurações e Ajuda. A Ajuda é o tutorial do modo,
-          o mesmo do "Rever" das Configurações: abre nas turmas. */}
+      {/* Configurações: no MESMO lugar nos três modos, o primeiro item depois
+          da divisória, logo acima das saídas. */}
+      <a
+        className={'barra-lateral-item' + (ativo === 'configuracoes' ? ' barra-lateral-item-ativo' : '')}
+        href={ROTA_CONFIGURACOES[modo]}
+        aria-current={ativo === 'configuracoes' ? 'page' : undefined}
+      >
+        {ICONES.configuracoes} Configurações
+      </a>
+
+      {/* Professor: a Ajuda é o tutorial do modo, o mesmo do "Rever" das
+          Configurações: abre nas turmas. */}
       {modo === 'professor' && (
         <>
-          <a
-            className={'barra-lateral-item' + (ativo === 'configuracoes' ? ' barra-lateral-item-ativo' : '')}
-            href="/pages/professor/configuracoes.html"
-            aria-current={ativo === 'configuracoes' ? 'page' : undefined}
-          >
-            {ICONES.configuracoes} Configurações
-          </a>
           <button
             type="button"
             className="barra-lateral-item"

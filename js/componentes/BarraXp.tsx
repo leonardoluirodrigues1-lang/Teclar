@@ -50,8 +50,8 @@ export function progressoDe(
   };
 }
 
-// Pedido pelo sistema OU pela tela de Configurações do Solo (a classe que
-// guarda.aplicarMundo põe no <html>).
+// Pedido pelo sistema OU por Configurações (a classe que
+// js/nucleo/preferencias-cedo.ts põe no <html>).
 export function movimentoReduzido(): boolean {
   if (document.documentElement.classList.contains('movimento-reduzido')) return true;
   return (

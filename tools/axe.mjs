@@ -83,6 +83,7 @@ const PAGINAS = [
   ['/pages/aluno/sala.html?id=turma-2', 'aluno'],
   ['/pages/aluno/dashboard.html', 'aluno'],
   ['/pages/aluno/historico.html', 'aluno'],
+  ['/pages/aluno/configuracoes.html', 'aluno'],
 ].filter(([pagina]) => !process.argv[2] || pagina.includes(process.argv[2]));
 
 // Roda dentro da página: os textos abaixo do contraste mínimo.

@@ -223,8 +223,8 @@
   }
 }
 
-/* O mesmo pedido feito dentro do app, em Configurações do Solo: a classe
-   vem de guarda.aplicarMundo(), no <html>. */
+/* O mesmo pedido feito dentro do app, em Configurações: a classe vem de
+   js/nucleo/preferencias-cedo.ts, no <html>. */
 :root.movimento-reduzido {
   --dur-rapida: 0ms;
   --dur-normal: 0ms;
@@ -247,4 +247,20 @@
     --cor-borda: #4a4a4a;
     --cor-borda-forte: #6c6c6c;
   }
+}
+
+/* O "Alto contraste" de Configurações > Acessibilidade (a classe vem de
+   js/nucleo/preferencias-cedo.ts, no <html>): vai além do prefers-contrast.
+   Texto de apoio em branco, bordas acesas e o vidro sem transparência (as
+   regras que usam isto estão em css/base/preferencias.css). */
+:root.alto-contraste {
+  --cor-texto-suave: #ffffff;
+  --cor-texto-fraco: #e6e6e6;
+  --cor-borda: #a0a0a0;
+  --cor-borda-forte: #ffffff;
+  --cor-char-pendente: #b8b8b8;
+  --luz-vidro-claro: var(--cor-superficie);
+  --luz-vidro-escuro: var(--cor-superficie);
+  --luz-borda-acesa: #ffffff;
+  --luz-borda-apagada: #ffffff;
 }

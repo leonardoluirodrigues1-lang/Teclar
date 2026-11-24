@@ -385,6 +385,9 @@ function lerCamposDaRota(rota, grupo) {
 // rota no back? Ponha a chave aqui e rode "npm run contrato".
 const ROTAS_IMPLEMENTADAS = [
   'auth.entrar',
+  'conta.renomear',
+  'conta.trocarSenha',
+  'escola.aluno.trocarSenha',
   'auth.cadastrar',
   'auth.eu',
   'auth.sair',

@@ -306,6 +306,48 @@ confere('limite: a 5ª errada (pelo /auth/login) ainda é 401', r.status === 401
 r = await entrarNaTurma('Duda Teste', 'duda2026');
 confere('limite: depois de 5 erradas no minuto, a entrada dá 429 até com a senha certa', r.status === 429 && r.corpo.codigo === 'MUITAS_TENTATIVAS');
 
+// ============================================================================
+// Configurações > Conta: PATCH /conta, POST /conta/senha e PUT /aluno/senha
+// ============================================================================
+
+r = await naApi('PATCH', '/conta', { nome: '  Conta   Renomeada ' }, tokenDoCadastro);
+confere('PATCH /conta: 200 com o nome aparado, como no cadastro', r.status === 200 && r.corpo.nome === 'Conta Renomeada' && r.corpo.email === email);
+r = await chamar('GET', '/eu', null, tokenDoCadastro);
+confere('PATCH /conta: o /auth/eu já traz o nome novo', r.corpo.nome === 'Conta Renomeada');
+r = await naApi('PATCH', '/conta', { nome: 'X' }, tokenDoCadastro);
+confere('PATCH /conta: nome curto 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+
+r = await naApi('POST', '/conta/senha', { senhaAtual: 'errada123', novaSenha: 'nova12345' }, tokenDoCadastro);
+confere('POST /conta/senha: senha atual errada 400 SENHA_ATUAL_INCORRETA (não 401, que derrubaria a sessão)', r.status === 400 && r.corpo.codigo === 'SENHA_ATUAL_INCORRETA');
+r = await naApi('POST', '/conta/senha', { senhaAtual: 'abc12345', novaSenha: 'curta1' }, tokenDoCadastro);
+confere('POST /conta/senha: nova fora da regra da conta 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await naApi('POST', '/conta/senha', { senhaAtual: 'abc12345', novaSenha: 'nova12345' }, tokenDoCadastro);
+confere('POST /conta/senha: 204', r.status === 204);
+// O login desta conta está no 429 do teste acima: quem prova a senha nova é
+// a próxima troca, que a usa como senha atual.
+r = await naApi('POST', '/conta/senha', { senhaAtual: 'nova12345', novaSenha: 'abc12345' }, tokenDoCadastro);
+confere('POST /conta/senha: a senha nova vale como atual (e volta a abc12345)', r.status === 204);
+
+const lia = (await entrarNaTurma('Lia Teste', 'lia2026')).corpo;
+confere('aluno: o usuario traz o código da turma (Configurações mostra)', lia.usuario.turmas[0].codigo === turmaDaEntrada.codigo);
+r = await naApi('PATCH', '/conta', { nome: 'Lia Outra' }, lia.token);
+confere('PATCH /conta com token de aluno: 403 TIPO_INVALIDO', r.status === 403 && r.corpo.codigo === 'TIPO_INVALIDO');
+r = await naApi('PUT', '/aluno/senha', { senhaAtual: 'lia2026', novaSenha: 'abc' }, lia.token);
+confere('PUT /aluno/senha: fora da regra do aluno 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await naApi('PUT', '/aluno/senha', { senhaAtual: 'errada2026', novaSenha: 'gato2015' }, lia.token);
+confere('PUT /aluno/senha: senha atual errada 400 SENHA_ATUAL_INCORRETA', r.status === 400 && r.corpo.codigo === 'SENHA_ATUAL_INCORRETA');
+r = await naApi('PUT', '/aluno/senha', { senhaAtual: ' lia2026 ', novaSenha: ' gato2015 ' }, lia.token);
+confere('PUT /aluno/senha: 204 (aparada, como no login do aluno)', r.status === 204);
+r = await entrarNaTurma('Lia Teste', 'lia2026');
+confere('PUT /aluno/senha: a senha antiga não entra mais', r.status === 401);
+r = await entrarNaTurma('Lia Teste', 'gato2015');
+confere('PUT /aluno/senha: a nova entra', r.status === 200);
+r = await naApi('PUT', '/aluno/senha', { senhaAtual: 'nova12345', novaSenha: 'gato2016' }, tokenDoCadastro);
+confere('PUT /aluno/senha com token de conta: 403 TIPO_INVALIDO', r.status === 403);
+for (let vez = 0; vez < 5; vez++) await naApi('PUT', '/aluno/senha', { senhaAtual: 'errada2026', novaSenha: 'gato2016' }, lia.token);
+r = await naApi('PUT', '/aluno/senha', { senhaAtual: 'gato2015', novaSenha: 'gato2016' }, lia.token);
+confere('PUT /aluno/senha: 5 senhas atuais erradas e a 6ª tentativa dá 429, até a certa', r.status === 429 && r.corpo.codigo === 'MUITAS_TENTATIVAS');
+
 r = await naApi('PATCH', `/turmas/${turmaDaEntrada.id}`, { ativa: false }, tokenDoCadastro);
 confere('arquivada: turma de teste arquivada', r.status === 200);
 r = await chamar('GET', `/turmas/${turmaDaEntrada.codigo}`);

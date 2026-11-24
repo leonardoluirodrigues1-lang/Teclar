@@ -149,13 +149,9 @@ function aplicarMundo(): Mundo | null {
   // Sem sessão, sessao.mundo() devolve null: nenhuma classe é aplicada.
   // Marcar o body com 'mundo-null' inventaria um mundo que não existe.
   if (mundo) document.body.classList.add(`mundo-${mundo}`);
-  // O "reduzir movimento" de Configurações só existe no Solo, então só vale
-  // nele (inclusive no treino e no resultado abertos pelo Solo). No <html>,
-  // e não no <body>, porque os tokens de duração moram no :root.
-  document.documentElement.classList.toggle(
-    'movimento-reduzido',
-    mundo === 'solo' && sessao.movimentoReduzido()
-  );
+  // O "reduzir movimento" e as outras preferências do aparelho já estão no
+  // <html> desde antes da pintura (js/nucleo/preferencias-cedo.ts), em
+  // qualquer modo: aqui não há o que aplicar.
   return mundo;
 }
 

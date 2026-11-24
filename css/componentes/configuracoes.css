@@ -1,0 +1,163 @@
+/* ==========================================================================
+   TECLAR — configuracoes.css
+   A página Configurações, igual no Solo, no professor e no aluno
+   (js/componentes/SecoesDeConfiguracoes.tsx): três seções de vidro com
+   opções de marcar, a escolha do tamanho do texto e os formulários da Conta.
+   Os campos vêm de campos.css.
+   ========================================================================== */
+
+.config-secao {
+  margin-top: var(--e-5, 24px);
+  padding: 24px 28px 28px;
+  border-radius: var(--raio-card, 8px);
+  max-width: 760px;
+}
+.config-secao-titulo {
+  font-size: 20px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+.config-secao-intro {
+  margin-top: var(--e-1, 4px);
+  font-size: 14px;
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* Uma opção: a caixa de marcar e, ao lado, o nome e a explicação. O rótulo
+   inteiro é clicável. Uma linha fina separa uma da outra. */
+.config-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-4, 16px);
+  margin-top: var(--e-5, 24px);
+  padding-top: var(--e-5, 24px);
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  cursor: pointer;
+}
+.config-caixa,
+.config-escolha input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  /* Marcada fica branca: nenhuma cor nova. */
+  accent-color: var(--cor-texto, #fff);
+  cursor: pointer;
+}
+.config-opcao-nome {
+  display: block;
+  font-size: 16px;
+  color: var(--cor-texto, #fff);
+}
+.config-opcao-texto {
+  display: block;
+  margin-top: var(--e-1, 4px);
+  font-size: 14px;
+  line-height: var(--lh-normal, 1.5);
+  color: var(--cor-texto-suave, #c4c4c4);
+}
+
+/* Tamanho do texto: um <fieldset> com três rádios lado a lado. */
+.config-grupo {
+  display: block;
+  min-width: 0;
+  margin-inline: 0;
+  padding-inline: 0;
+  padding-bottom: 0;
+  border-inline: 0;
+  border-bottom: 0;
+  cursor: default;
+}
+.config-grupo legend { float: left; width: 100%; padding: 0; }
+.config-escolhas {
+  clear: both;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2, 8px) var(--e-5, 24px);
+  padding-top: var(--e-3, 12px);
+}
+.config-escolha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2, 8px);
+  font-size: 15px;
+  color: var(--cor-texto, #fff);
+  cursor: pointer;
+}
+.config-escolha input { margin-top: 0; }
+
+/* Opção com botão ao lado (rever o tutorial). Não é <label>: o que se clica
+   é o botão, não a linha. */
+.config-linha {
+  align-items: center;
+  justify-content: space-between;
+  cursor: default;
+}
+
+.config-botao {
+  flex: none;
+  padding: 11px 22px;
+  border-radius: var(--raio-p, 4px);
+  border: 1px solid var(--cor-borda-forte, #454545);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cor-texto, #fff);
+  background: transparent;
+  cursor: pointer;
+}
+.config-botao:disabled { opacity: 0.55; cursor: progress; }
+
+/* Conta: os formulários de nome e senha, um embaixo do outro. */
+.config-form {
+  margin-top: var(--e-5, 24px);
+  padding-top: var(--e-5, 24px);
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+  max-width: 420px;
+}
+.config-form-titulo {
+  margin-bottom: var(--e-4, 16px);
+  font-size: 16px;
+  font-weight: var(--peso-medio, 500);
+  color: var(--cor-texto, #fff);
+}
+.config-form .config-botao { margin-top: var(--e-5, 24px); }
+.config-aviso {
+  margin-top: var(--e-3, 12px);
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+}
+.config-aviso:empty { margin-top: 0; }
+
+/* Aluno: nome, turma e código, só de leitura. */
+.config-dados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4, 16px) var(--e-7, 48px);
+  margin-top: var(--e-5, 24px);
+  padding-top: var(--e-5, 24px);
+  border-top: 1px solid var(--cor-borda, #2b2b2b);
+}
+.config-dados dt {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cor-texto-fraco, #8a8a8a);
+}
+.config-dados dd {
+  margin-top: var(--e-1, 4px);
+  font-size: 17px;
+  color: var(--cor-texto, #fff);
+}
+.config-codigo {
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  letter-spacing: 0.16em;
+}
+.config-dados + .config-opcao-texto { margin-top: var(--e-3, 12px); }
+
+@media (max-width: 700px) {
+  .config-secao { padding: 18px 16px 20px; }
+  .config-linha { flex-direction: column; align-items: flex-start; }
+}

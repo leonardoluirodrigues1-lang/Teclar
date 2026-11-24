@@ -35,8 +35,9 @@
 // além disso é se a tecla morta de um acento já foi digitada (para passar
 // a acender a vogal), e isso vem dos eventos de composição do próprio
 // <input> de captura (compositionstart / compositionend), não de keydown.
-// O motor não muda. A pessoa pode esconder o teclado em Configurações do
-// Solo (sessao.tecladoGuiaEscondido); vale igual para Solo, aluno e prévia.
+// O motor não muda. A pessoa pode esconder o teclado em Configurações
+// (preferencias.ler().tecladoGuia); vale igual para Solo, aluno e prévia.
+// Tecla errada toca um som curto (utils/somDoErro.ts), que também desliga lá.
 //
 // Pintura do texto: o motor emite a lista inteira de caracteres a cada tecla
 // e a cada tick do relógio (100 ms). A lista de <span> não é recriada: os
@@ -72,6 +73,8 @@ import { MotorDigitacao, type EstadoMotor, type StatusCaractere } from './typing
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { Modal, type AcaoModal } from '../componentes/ModalReact.js';
 import { TecladoAbnt2 } from '../componentes/TecladoAbnt2.js';
+import { preferencias } from '../nucleo/preferencias.js';
+import { tocarErro } from '../utils/somDoErro.js';
 import { BlocoDeMetricas, formatarTempo } from './BlocoDeMetricas.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { ordemDoPercurso, progressoDoPercurso } from '../utils/percurso.js';
@@ -228,7 +231,10 @@ function Treino({ usuario }: PropsTreino) {
   const [modal, setModal] = useState<ConfigModal | null>(null);
 
   // --- teclado guia ---
-  const [mostrarTeclado] = useState(() => !sessao.tecladoGuiaEscondido());
+  const [mostrarTeclado] = useState(() => preferencias.ler().tecladoGuia);
+  // Lida uma vez, ao abrir: como o teclado, vale a partir do próximo treino.
+  const [comSom] = useState(() => preferencias.ler().sonsDoTreino);
+  const errosAtual = useRef(0);
   // A posição do cursor no texto: o índice do próximo caractere a digitar.
   const [posicao, setPosicao] = useState(0);
   // A mesma posição, lida pelo evento de composição (que não passa pelo
@@ -469,6 +475,9 @@ function Treino({ usuario }: PropsTreino) {
     // React não re-renderiza por um valor igual.
     posicaoAtual.current = estado.posicao;
     digitadosAtual.current = estado.digitados;
+    // Erro novo desde a última atualização: o som (um por tecla errada).
+    if (estado.erros > errosAtual.current && comSom) tocarErro();
+    errosAtual.current = estado.erros;
     setPosicao(estado.posicao);
 
     // Com limite mostra o restante; sem limite, o decorrido.
@@ -968,7 +977,7 @@ function Treino({ usuario }: PropsTreino) {
           <div className="progresso" aria-hidden="true">
             <div className="progresso-barra" id="progresso" style={{ width: `${hud.progresso}%` }} />
           </div>
-          <p className={`dica${dicaOculta ? ' oculta' : ''}`} id="dica">
+          <p className={`dica${dicaOculta ? ' oculta' : ''}${dica === DICA_INICIAL ? ' dica-de-uso' : ''}`} id="dica">
             {dica}
           </p>
           <p className="atalhos">Esc para sair</p>

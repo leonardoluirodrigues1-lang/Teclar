@@ -276,42 +276,9 @@ ul { list-style: none; }
 }
 .btn-texto:hover { color: var(--cor-texto, #fff); text-decoration-color: currentColor; }
 
-/* Campos do aluno */
-.campo { display: block; }
-.campo + .campo { margin-top: 18px; }
-.campo .rotulo { display: block; margin-bottom: 8px; }
-.campo input {
-  width: 100%;
-  padding: 13px 14px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 5px;
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  color: var(--cor-texto, #fff);
-  transition: border-color var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.campo input::placeholder { color: var(--cor-texto-fraco, #8a8a8a); opacity: 0.6; }
-.campo input:focus { outline: none; border-color: var(--cor-borda-forte, #454545); }
-.campo input:focus-visible { outline: 2px solid var(--cor-anel-foco, #fff); outline-offset: 2px; }
-
-.ajuda-campo {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--cor-texto-fraco, #8a8a8a);
-}
 
 .formulario .btn-solido { margin-top: 26px; }
 
-/* Erro: sempre presente no DOM (aria-live precisa existir antes da
-   mensagem); ocupa espaço só quando tem texto. */
-.erro {
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--cor-erro, #ff5a5a);
-}
-.erro:empty { margin-top: 0; }
 
 /* ---------------------------------------------------------------------------
    TELA 3 — cadastro.html
@@ -322,49 +289,6 @@ ul { list-style: none; }
    Formulário — peças novas (campo com erro, senha à mostra, links)
    ------------------------------------------------------------------------- */
 
-/* O .campo do login era <label> com o input dentro; agora é um bloco com
-   label, input e a linha de erro. A regra antiga de espaçamento continua
-   valendo para os dois. */
-.campo .rotulo { font-size: 11px; }
-.campo label.rotulo { cursor: pointer; }
-
-/* Campo reprovado na validação. A borda vermelha acompanha a mensagem de
-   texto embaixo — cor sozinha não é mensagem. */
-.campo input[aria-invalid="true"],
-.campo input.invalido {
-  border-color: var(--cor-erro, #ff5a5a);
-}
-
-/* Erro embaixo do campo. Sempre no DOM (o aria-live precisa existir antes
-   da mensagem); só ocupa espaço quando tem texto. */
-.erro-campo {
-  margin-top: 7px;
-  font-size: 12px;
-  line-height: var(--lh-normal, 1.5);
-  color: var(--cor-erro, #ff5a5a);
-}
-.erro-campo:empty { margin-top: 0; }
-
-/* Senha: o botão mostrar/esconder mora dentro do campo, e o input ganha
-   espaço à direita para o texto não passar por baixo dele. */
-.campo-senha { position: relative; }
-.campo-senha input { padding-right: 92px; }
-
-.btn-olho {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  padding: 6px 10px;
-  border-radius: var(--raio-p, 4px);
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--cor-texto-fraco, #8a8a8a);
-  transition: color var(--dur-rapida, 120ms) var(--ease-padrao, ease),
-              background var(--dur-rapida, 120ms) var(--ease-padrao, ease);
-}
-.btn-olho:hover { color: var(--cor-texto, #fff); background: rgba(255, 255, 255, 0.10); }
 
 /* Link dentro de texto corrido (rodapé do painel, mensagem de erro). */
 .link {
@@ -436,15 +360,6 @@ ul { list-style: none; }
   .cartoes { grid-template-columns: minmax(0, 398px); }
 }
 
-/* Medidor de força da senha do aluno: três barrinhas e a frase do que falta.
-   A cor nunca é a única pista: o texto diz fraca/boa/forte. */
-.medidor-barra { display: flex; gap: 6px; margin-top: 10px; }
-.medidor-barra span { flex: 1; height: 6px; border-radius: 3px; background: var(--cor-borda-forte, #454545); }
-.medidor-fraca span:nth-child(1) { background: var(--cor-erro, #ff5a5a); }
-.medidor-boa span:nth-child(-n + 2) { background: var(--cor-alerta, #f5b93b); }
-.medidor-forte span { background: var(--cor-texto, #fff); }
-.medidor-texto { margin-top: 8px; font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
-.medidor-texto strong { color: var(--cor-texto, #fff); }
 
 /* "Conta criada! Entre com sua senha." — vindo do cadastro. */
 .aviso-sucesso {

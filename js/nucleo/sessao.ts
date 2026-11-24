@@ -13,6 +13,9 @@ import type { Usuario, RespostaLogin, Mundo, Modo, TipoSessao } from './tipos.js
 
 const CHAVES = CONFIG.CHAVES_STORAGE;
 
+/** Disparado em window quando o usuário salvo muda (sessao.atualizarUsuario). */
+export const EVENTO_USUARIO = 'teclar:usuario';
+
 // Até a sessão ir para o sessionStorage, token e usuário ficavam no
 // localStorage. O que sobrou de lá não vale mais (ninguém lê) e é segredo
 // esquecido no disco: apaga ao carregar.
@@ -167,34 +170,6 @@ function mundo(): Mundo | null {
   return m === 'solo' ? 'solo' : 'escola';
 }
 
-// --- Reduzir movimento (pages/solo/configuracoes.html) ------------------------
-// Preferência do APARELHO, não da conta: quem pediu menos movimento neste
-// computador continua pedindo depois de sair, e por isso o sair() não a
-// apaga. Soma-se ao prefers-reduced-motion do sistema, não o substitui.
-
-function movimentoReduzido(): boolean {
-  return localStorage.getItem(CHAVES.MOVIMENTO_REDUZIDO) === 'sim';
-}
-
-function definirMovimentoReduzido(ligado: boolean): void {
-  if (ligado) localStorage.setItem(CHAVES.MOVIMENTO_REDUZIDO, 'sim');
-  else localStorage.removeItem(CHAVES.MOVIMENTO_REDUZIDO);
-}
-
-// --- Teclado guia do treino (pages/solo/configuracoes.html) ------------------
-// Também preferência do APARELHO, como o reduzir movimento, e também
-// sobrevive ao sair(). Vale para toda tela de treino (Solo, aluno e
-// prévia), que é uma tela só.
-
-function tecladoGuiaEscondido(): boolean {
-  return localStorage.getItem(CHAVES.TECLADO_GUIA_ESCONDIDO) === 'sim';
-}
-
-function definirTecladoGuiaEscondido(escondido: boolean): void {
-  if (escondido) localStorage.setItem(CHAVES.TECLADO_GUIA_ESCONDIDO, 'sim');
-  else localStorage.removeItem(CHAVES.TECLADO_GUIA_ESCONDIDO);
-}
-
 // --- Tutoriais do Solo e do Professor: já visto? ----------------------------
 // PROVISÓRIO: enquanto a tabela Users não tiver uma coluna para isso, a
 // marca fica no navegador, uma chave por conta (o id vai no nome da
@@ -271,6 +246,9 @@ function atualizarUsuario(campos: Partial<Usuario>): Usuario | null {
   const novo = { ...atual, ...campos };
   sessionStorage.setItem(CHAVES.USUARIO, JSON.stringify(novo));
   cacheUsuario = novo;
+  // A moldura (nome e foto no topo e na barra) escuta e se redesenha: o
+  // nome trocado em Configurações aparece na hora, sem recarregar.
+  if (typeof window !== 'undefined') window.dispatchEvent?.(new Event(EVENTO_USUARIO));
   return novo;
 }
 
@@ -296,10 +274,6 @@ export const sessao = {
   modo,
   definirModo,
   mundo,
-  movimentoReduzido,
-  definirMovimentoReduzido,
-  tecladoGuiaEscondido,
-  definirTecladoGuiaEscondido,
   tutorialVisto,
   marcarTutorialVisto,
   esquecerTutorial,

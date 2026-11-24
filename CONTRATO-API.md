@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-62 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+65 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -28,13 +28,14 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 ## Índice
 
 - **Autenticação**: `POST /auth/login`, `GET /auth/turmas/:codigo`, `POST /auth/aluno`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
+- **Conta (Configurações)**: `PATCH /conta`, `POST /conta/senha`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `POST /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
@@ -233,6 +234,74 @@ O token, que deixa de valer. Marcada como pública: um 401 aqui não pode derrub
 **Notas:**
 
 Pode falhar em silêncio: quem apaga a sessão local é o sessao.sair(), que não depende desta resposta.
+
+## Conta (Configurações)
+
+A parte "Conta" da página Configurações do Solo e do professor: o nome e a senha da própria conta (Users). O id sai do token; token de aluno é 403 TIPO_INVALIDO (o aluno troca a senha da matrícula em escola.aluno.trocarSenha). A senha atual errada é 400, e não 401: o 401 derrubaria a sessão na tela.
+
+### `PATCH /conta`
+
+Chamada no front: `api.conta.renomear`
+
+**Corpo:**
+
+{ nome } — a mesma regra do cadastro: aparado, espaços repetidos viram um, de 2 a 150 caracteres
+
+```json
+{ "nome": "Henrique Lima" }
+```
+
+**Resposta:**
+
+200 Usuario — a conta como ficou, na forma do /auth/eu
+
+```json
+{ "id": "u-2", "nome": "Henrique Lima", "email": "prof@teclar.dev", "tipo": "conta" }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — nome fora da regra
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token. Não recebe id: é sempre a própria conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+UPDATE Users SET Nome WHERE ID = token.
+
+### `POST /conta/senha`
+
+Chamada no front: `api.conta.trocarSenha`
+
+**Corpo:**
+
+{ senhaAtual, novaSenha } — a nova com a regra do cadastro (8+, letra e número, sem espaço nas pontas)
+
+```json
+{ "senhaAtual": "senha123", "novaSenha": "outra2026" }
+```
+
+**Resposta:**
+
+204 (sem corpo)
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — nova senha fora da regra
+- 400 SENHA_ATUAL_INCORRETA — a senha atual não confere
+- 403 TIPO_INVALIDO — token de aluno
+- 429 MUITAS_TENTATIVAS — 5 senhas atuais erradas seguidas (o mesmo limite do login)
+
+**Identidade:**
+
+O token.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Confere a senha atual com bcrypt e grava o hash novo em Users.SenhaHash. O token atual continua valendo.
 
 ## Solo
 
@@ -1636,6 +1705,41 @@ UPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash I
 **Notas:**
 
 Enquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para "Crie sua senha").
+
+### `PUT /aluno/senha`
+
+Chamada no front: `api.escola.aluno.trocarSenha`
+
+**Corpo:**
+
+{ senhaAtual, novaSenha } — a nova de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas
+
+```json
+{ "senhaAtual": "aluno2026", "novaSenha": "gato2015" }
+```
+
+**Resposta:**
+
+204 (sem corpo)
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — senha nova fora da regra (6 a 20, com letra e número)
+- 400 SENHA_ATUAL_INCORRETA — a senha atual não confere
+- 403 TIPO_INVALIDO — token de conta
+- 429 MUITAS_TENTATIVAS — 5 senhas atuais erradas seguidas
+
+**Identidade:**
+
+O token: a matrícula dele. Quem ainda está na provisória não chega aqui (403 TROCAR_SENHA): usa o POST /aluno/senha.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Confere a senha atual com bcrypt e grava alunosturmas.SenhaHash; apaga a provisória que restar.
+
+**Notas:**
+
+Configurações > Conta do aluno, com a mesma dica e o mesmo medidor do "Crie sua senha".
 
 ### `GET /aluno/historico`
 
