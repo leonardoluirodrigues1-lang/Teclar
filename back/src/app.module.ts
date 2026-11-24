@@ -20,6 +20,7 @@ import { RankingModule } from './ranking/ranking.module.js';
 import { SoloModule } from './solo/solo.module.js';
 import { AlunoModule } from './aluno/aluno.module.js';
 import { AdministracaoModule } from './administracao/administracao.module.js';
+import { DiagnosticoProxyController } from './diagnostico-proxy.controller.js';
 
 @Module({
   imports: [
@@ -39,6 +40,8 @@ import { AdministracaoModule } from './administracao/administracao.module.js';
     AdministracaoModule,
     ThrottlerModule.forRoot([LIMITE_GERAL]),
   ],
+  // TEMPORÁRIO: o diagnóstico da cadeia de proxies (ver o arquivo).
+  controllers: [DiagnosticoProxyController],
   // Guard global: vale para toda rota, antes do GuardaDoToken.
   providers: [{ provide: APP_GUARD, useClass: GuardaDoLimite }],
 })
