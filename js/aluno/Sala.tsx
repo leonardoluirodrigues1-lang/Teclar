@@ -11,8 +11,9 @@
 //                  Do quarto lugar em diante o nome vem vazio DO BACK; a
 //                  linha dele vem sempre com o nome, destacada.
 //   RELATÓRIO      o relatório individual dele na sala, com a comparação
-//                  com a média da sala. Abaixo de 3 sessões concluídas, só
-//                  a barra de quanto falta e os botões desligados.
+//                  com a média da sala. Sessões, lições e dias seguidos (com a
+//                  estrela de 3+) sempre; abaixo de 3 sessões concluídas, no
+//                  lugar das médias, a barra de quanto falta.
 //
 // Dados (api.escola.aluno, tudo pelo token; sala da qual ele não participa
 // é 404): GET /aluno/salas/:id dá o cabeçalho e a trilha; cada uma das
@@ -362,7 +363,7 @@ function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
       <PainelDeRelatorio
         rotulo="Seu relatório nesta sala"
         falta={temMedia ? null : { sessoes: d.sessoesConcluidas, minimo: MINIMO_DE_SESSOES }}
-        grupos={temMedia ? gruposDoAluno(d) : []}
+        grupos={gruposDoAluno(d, temMedia)}
         aoGerarCsv={() => baixarCsv(`relatorio-${slug(nomeDaSala)}.csv`, linhasDoCsv(nomeDaSala, d))}
       />
       <p className="nota">O relatório é só o seu. A média da sala soma as sessões concluídas de todos que estão nela.</p>
@@ -371,14 +372,18 @@ function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
 }
 
 // Cada número dele ao lado da média da sala, a média em tom apagado: o
-// assunto é ele, a sala é a régua.
-function gruposDoAluno(d: DesempenhoNaTurma) {
+// assunto é ele, a sala é a régua. A primeira fileira (sessões, lições e
+// dias seguidos, com a estrela de 3+) vale desde a primeira sessão; as
+// médias e a comparação, só com o mínimo de sessões (temMedia).
+function gruposDoAluno(d: DesempenhoNaTurma, temMedia: boolean) {
+  const sempre = [
+    { rotulo: 'Sessões', valor: contagem(d.sessoesConcluidas) },
+    { rotulo: 'Lições', valor: contagem(d.licoes) },
+    { rotulo: 'Dias seguidos', valor: contagem(d.diasSeguidos), selo: <SeloDosDiasSeguidos dias={d.diasSeguidos} /> },
+  ];
+  if (!temMedia) return [sempre];
   return [
-    [
-      { rotulo: 'Sessões', valor: contagem(d.sessoesConcluidas) },
-      { rotulo: 'Lições', valor: contagem(d.licoes) },
-      { rotulo: 'Dias seguidos', valor: contagem(d.diasSeguidos), selo: <SeloDosDiasSeguidos dias={d.diasSeguidos} /> },
-    ],
+    sempre,
     [
       { rotulo: 'Seu ritmo', valor: numero(d.minhaMedia.velocidade) },
       { rotulo: 'Média da sala', valor: numero(d.mediaSala.velocidade), apagado: true },

@@ -378,9 +378,10 @@ interface PropsPainel {
   /** Cada grupo é uma fileira de números; entre fileiras, uma linha fina. */
   grupos: NumeroDoRelatorio[][];
   /**
-   * Presente: ainda não há sessões bastantes, e o painel mostra quanto
-   * falta no lugar dos números, com PDF e CSV desligados. Quem decide é
-   * o back (manda as médias nulas); a tela só passa a contagem adiante.
+   * Presente: ainda não há sessões bastantes para as médias, e o painel
+   * mostra quanto falta embaixo dos números que já valem (os grupos), com
+   * PDF e CSV desligados. Quem decide é o back (manda as médias nulas); a
+   * tela só passa a contagem adiante.
    */
   falta?: { sessoes: number; minimo: number } | null;
   aoGerarCsv: () => void;
@@ -390,7 +391,10 @@ export function PainelDeRelatorio({ rotulo, grupos, falta, aoGerarCsv }: PropsPa
   const semDados = Boolean(falta);
   return (
     <section className="painel-relatorio vidro" aria-label={rotulo}>
-      {semDados ? <QuantoFalta sessoes={falta.sessoes} minimo={falta.minimo} /> : <Numeros grupos={grupos} />}
+      {/* Os números que não dependem de média (sessões, lições, dias
+          seguidos com a estrela) aparecem sempre; o que falta, só embaixo. */}
+      <Numeros grupos={grupos} />
+      {semDados && <QuantoFalta sessoes={falta.sessoes} minimo={falta.minimo} />}
 
       <div className="relatorio-acoes">
         {/* "Gerar PDF" é a impressão do navegador, que salva em PDF. A folha
