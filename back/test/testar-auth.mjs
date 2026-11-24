@@ -223,6 +223,95 @@ r = await chamar('POST', '/logout');
 confere('limite geral: 1000/min por IP (X-RateLimit-Limit)', r.status === 204 && r.headers.get('x-ratelimit-limit') === '1000');
 
 // ============================================================================
+// Entrada do aluno: GET /auth/turmas/:codigo e POST /auth/aluno
+// ============================================================================
+
+// A turma é da conta teste- criada acima: o limpar-testes a leva junto, com
+// os alunos que se matricularem nela.
+async function naApi(metodo, rota, corpo, token) {
+  const resposta = await fetch(`http://localhost:3000/api${rota}`, {
+    method: metodo,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const texto = await resposta.text();
+  return { status: resposta.status, corpo: texto ? JSON.parse(texto) : null };
+}
+r = await naApi('POST', '/turmas', { nome: `Teste entrada ${Date.now()}`, semestre: 1 }, tokenDoCadastro);
+confere('entrada: turma de teste criada', r.status === 200);
+const turmaDaEntrada = r.corpo;
+const entrarNaTurma = (nome, senha, codigo = turmaDaEntrada.codigo) => chamar('POST', '/aluno', { codigo, nome, senha });
+
+r = await chamar('GET', `/turmas/${turmaDaEntrada.codigo.toLowerCase()}`);
+confere('passo 1: código válido (minúsculo) 200 com o nome da turma', r.status === 200 && r.corpo.nome === turmaDaEntrada.nome);
+r = await chamar('GET', '/turmas/ZZZZZZ');
+confere('passo 1: código inexistente 404 TURMA_NAO_ENCONTRADA', r.status === 404 && r.corpo.codigo === 'TURMA_NAO_ENCONTRADA');
+
+r = await entrarNaTurma('Zeca Teste', 'zeca2026');
+confere(
+  'primeiro acesso: 200, token e usuario aluno da turma, sem precisaTrocarSenha',
+  r.status === 200 &&
+    typeof r.corpo.token === 'string' &&
+    r.corpo.usuario.tipo === 'aluno' &&
+    r.corpo.usuario.nome === 'Zeca Teste' &&
+    r.corpo.usuario.turmas[0].id === turmaDaEntrada.id &&
+    !('precisaTrocarSenha' in r.corpo.usuario),
+);
+r = await chamar('GET', '/eu', null, r.corpo.token);
+confere('primeiro acesso: o token novo abre /auth/eu', r.status === 200 && r.corpo.nome === 'Zeca Teste');
+
+r = await entrarNaTurma('  zeca   teste ', 'zeca2026');
+confere('login: o mesmo nome (sem maiúscula, espaços sobrando) com a senha certa 200', r.status === 200 && r.corpo.usuario.nome === 'Zeca Teste');
+r = await chamar('POST', '/login', { codigo: turmaDaEntrada.codigo, nome: 'Zeca Teste', senha: 'zeca2026' });
+confere('login: o aluno matriculado também entra pelo POST /auth/login', r.status === 200);
+
+r = await entrarNaTurma('Zeca Teste', 'outra2026');
+confere('nome já na turma + senha errada: 401 "Senha incorreta."', r.status === 401 && r.corpo.codigo === 'CREDENCIAIS' && r.corpo.mensagem === 'Senha incorreta.');
+
+r = await entrarNaTurma('Nina Teste', 'abc');
+confere('primeiro acesso com senha fora da regra: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await entrarNaTurma('N', 'nina2026');
+confere('primeiro acesso com nome curto: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await entrarNaTurma('Nina Teste', 'nina2026', 'ZZZZZZ');
+confere('entrada com código inexistente: 404 TURMA_NAO_ENCONTRADA', r.status === 404 && r.corpo.codigo === 'TURMA_NAO_ENCONTRADA');
+
+// Dois aparelhos matriculando o mesmo nome juntos: um entra, o outro cai no
+// UNIQUE (409) ou, se chegou depois, no login (401). Nunca dois alunos.
+const juntos = await Promise.all([entrarNaTurma('Duda Teste', 'duda2026'), entrarNaTurma('Duda Teste', 'outra2026')]);
+const statusJuntos = juntos.map((x) => x.status).sort().join(' ');
+confere(`nome igual ao mesmo tempo: um 200 e o outro 401 ou 409 (${statusJuntos})`, statusJuntos === '200 401' || statusJuntos === '200 409');
+const conflito = juntos.find((x) => x.status === 409);
+confere('nome igual: o 409 é NOME_EM_USO com a frase do sobrenome', !conflito || (conflito.corpo.codigo === 'NOME_EM_USO' && conflito.corpo.mensagem.includes('sobrenome')));
+r = await naApi('GET', `/turmas/${turmaDaEntrada.id}/alunos`, null, tokenDoCadastro);
+confere('nome igual: a turma tem Zeca e uma Duda só, sem ID órfão', r.status === 200 && r.corpo.map((a) => a.nome).join() === 'Duda Teste,Zeca Teste');
+
+// A provisória do professor (para quem esqueceu) entra uma vez, com precisaTrocarSenha.
+const zeca = r.corpo.find((a) => a.nome === 'Zeca Teste');
+r = await naApi('POST', `/turmas/${turmaDaEntrada.id}/alunos/${zeca.id}/senha-provisoria`, null, tokenDoCadastro);
+const provisoriaDoZeca = r.corpo.senhaProvisoria;
+r = await entrarNaTurma('Zeca Teste', 'zeca2026');
+confere('provisória gerada: a senha antiga deixa de entrar (401)', r.status === 401);
+r = await entrarNaTurma('Zeca Teste', provisoriaDoZeca);
+confere('provisória gerada: entra uma vez, com precisaTrocarSenha', r.status === 200 && r.corpo.usuario.precisaTrocarSenha === true);
+r = await entrarNaTurma('Zeca Teste', provisoriaDoZeca);
+confere('provisória gerada: a segunda vez 401', r.status === 401);
+
+// O mesmo limite do login: 5 senhas erradas no minuto e a 6ª dá 429.
+for (let vez = 0; vez < 3; vez++) await entrarNaTurma('Duda Teste', 'errada2026');
+r = await entrarNaTurma('Duda Teste', 'errada2026');
+r = await chamar('POST', '/login', { codigo: turmaDaEntrada.codigo, nome: 'Duda Teste', senha: 'errada2026' });
+confere('limite: a 5ª errada (pelo /auth/login) ainda é 401', r.status === 401);
+r = await entrarNaTurma('Duda Teste', 'duda2026');
+confere('limite: depois de 5 erradas no minuto, a entrada dá 429 até com a senha certa', r.status === 429 && r.corpo.codigo === 'MUITAS_TENTATIVAS');
+
+r = await naApi('PATCH', `/turmas/${turmaDaEntrada.id}`, { ativa: false }, tokenDoCadastro);
+confere('arquivada: turma de teste arquivada', r.status === 200);
+r = await chamar('GET', `/turmas/${turmaDaEntrada.codigo}`);
+confere('passo 1: turma arquivada 403 TURMA_ARQUIVADA', r.status === 403 && r.corpo.codigo === 'TURMA_ARQUIVADA');
+r = await entrarNaTurma('Nina Teste', 'nina2026');
+confere('entrada em turma arquivada: 403 TURMA_ARQUIVADA, sem matricular', r.status === 403 && r.corpo.codigo === 'TURMA_ARQUIVADA');
+
+// ============================================================================
 // Helmet (cabeçalhos de segurança)
 // ============================================================================
 

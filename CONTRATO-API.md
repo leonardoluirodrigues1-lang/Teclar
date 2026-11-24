@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-60 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+62 chamadas em 9 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -17,7 +17,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 ## Convenções de todas as rotas
 
-- Toda rota, menos as três públicas de /auth (login, cadastro e logout), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
+- Toda rota, menos as públicas de /auth (login, cadastro, logout, turmas/:codigo e aluno), exige o cabeçalho Authorization: Bearer <token>. Token ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.
 - Corpo de erro: { "mensagem": "...", "codigo": "NAO_ENCONTRADO" }. A tela decide pelo status e pelo código, nunca pelo texto da mensagem.
 - A identidade SEMPRE sai do token. Recurso de outra conta responde 404, igual ao que não existe — 403 confirmaria que ele existe. 403 TIPO_INVALIDO é só para o tipo de token errado (conta numa rota de aluno, aluno numa rota de conta). professorId no corpo de uma rota do professor é recusado com 400 DADOS_INVALIDOS, nunca ignorado.
 - Sucesso sem corpo (DELETE, zerar senha, logout): 204. Datas em ISO 8601 ("2026-10-03T14:20:00.000Z"; só a data: "2026-10-03"). O dia (só a data, "hoje", "ontem", dias seguidos) é o do calendário de Brasília (UTC-3): uma sessão às 22h de 03/10 é do dia 03/10.
@@ -27,7 +27,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 ## Índice
 
-- **Autenticação**: `POST /auth/login`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
+- **Autenticação**: `POST /auth/login`, `GET /auth/turmas/:codigo`, `POST /auth/aluno`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
@@ -39,7 +39,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 
 ## Autenticação
 
-Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
+Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha (POST /auth/aluno, que também matricula no primeiro acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".
 
 ### `POST /auth/login`
 
@@ -85,6 +85,76 @@ Pública. O token devolvido carrega o id e o tipo de quem entrou.
 **Notas:**
 
 Código, nome ou senha errados dão o mesmo 401. A senha é aparada nas pontas antes de conferir o hash. Limite de senhas erradas: conta só o 401 CREDENCIAIS, por IP + pessoa (o e-mail; no aluno, o código da turma + o nome, sem distinguir maiúscula e acento). Na 5ª falha em 1 minuto a pessoa fica bloqueada (429) até o minuto da primeira falha passar; outro e-mail, ou um colega da mesma turma no mesmo IP, entra normalmente. Login certo não conta e zera a contagem. Este 429 não traz Retry-After.
+
+### `GET /auth/turmas/:codigo`
+
+Chamada no front: `api.auth.turmaDoCodigo`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo
+
+```json
+{ "nome": "9º Ano A — Manhã" }
+```
+
+**Erros:**
+
+- 404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
+- 403 TURMA_ARQUIVADA — a turma existe, mas foi arquivada
+
+**Identidade:**
+
+Pública. É o passo 1 da tela do aluno.
+
+**Regras de negócio no back (a tela não calcula):**
+
+classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma.
+
+### `POST /auth/aluno`
+
+Chamada no front: `api.auth.entrarNaTurma`
+
+**Corpo:**
+
+CredenciaisAluno — o código da turma, o nome completo e a senha
+
+```json
+{ "codigo": "K7M2QX", "nome": "Ana Pires", "senha": "aluno2026" }
+```
+
+**Resposta:**
+
+200 RespostaLogin — a sessão do aluno, como no login
+
+```json
+{ "token": "...", "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
+  "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — primeiro acesso com nome ou senha fora da regra (a mensagem diz qual)
+- 401 CREDENCIAIS — o nome já está na turma e a senha não confere ("Senha incorreta.")
+- 403 TURMA_ARQUIVADA — a turma foi arquivada
+- 403 CONTA_INATIVA — o aluno foi desativado
+- 404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
+- 409 NOME_EM_USO — outro aparelho matriculou o mesmo nome ao mesmo tempo
+- 429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem)
+
+**Identidade:**
+
+Pública. É o passo 2 da tela do aluno, e a única entrada dele na turma.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Procura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.
+
+**Notas:**
+
+Aqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o preço de o aluno se matricular sozinho. O POST /auth/login continua aceitando { codigo, nome, senha } para quem já tem matrícula.
 
 ### `POST /auth/cadastro`
 

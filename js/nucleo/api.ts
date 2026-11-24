@@ -15,6 +15,8 @@ import type {
   Campanha,
   Categoria,
   Credenciais,
+  CredenciaisAluno,
+  TurmaDoCodigo,
   DadosCadastro,
   DadosExercicio,
   DadosSessaoTreino,
@@ -270,6 +272,12 @@ export const api = {
 
     cadastrar: ({ nome, email, senha }: DadosCadastro) =>
       postPublico<RespostaLogin>('/auth/cadastro', { nome, email, senha }),
+
+    // Os dois passos da tela do aluno: o código existe? e entrar (ou
+    // matricular-se, no primeiro acesso).
+    turmaDoCodigo: (codigo: string) => get<TurmaDoCodigo>(`/auth/turmas/${encodeURIComponent(codigo)}`),
+
+    entrarNaTurma: (credenciais: CredenciaisAluno) => postPublico<RespostaLogin>('/auth/aluno', credenciais),
 
     eu: () => get<Usuario>('/auth/eu'),
 

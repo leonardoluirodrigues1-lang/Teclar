@@ -8,7 +8,7 @@
   "tags": [
     {
       "name": "Autenticação",
-      "description": "Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha. As três primeiras rotas são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
+      "description": "Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra pelo código da turma, o nome e a senha (POST /auth/aluno, que também matricula no primeiro acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer \"credencial errada\", não \"sessão expirada\"."
     },
     {
       "name": "Solo",
@@ -170,6 +170,270 @@
             }
           }
         }
+      }
+    },
+    "/api/auth/turmas/{codigo}": {
+      "get": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.turmaDoCodigo",
+        "summary": "(ainda não implementada) turmaDoCodigo: TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.turmaDoCodigo`\n\n**Resposta:** 200 TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo\n\n**Identidade:**\n\nPública. É o passo 1 da tela do aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\nclassesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma.",
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "nome": "9º Ano A — Manhã"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TURMA_ARQUIVADA` — a turma existe, mas foi arquivada",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TURMA_ARQUIVADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TURMA_ARQUIVADA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`TURMA_NAO_ENCONTRADA` — nenhuma turma com esse código",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TURMA_NAO_ENCONTRADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TURMA_NAO_ENCONTRADA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/aluno": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "operationId": "auth.entrarNaTurma",
+        "summary": "(ainda não implementada) entrarNaTurma: RespostaLogin — a sessão do aluno, como no login",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.entrarNaTurma`\n\n**Corpo:** CredenciaisAluno — o código da turma, o nome completo e a senha\n\n**Resposta:** 200 RespostaLogin — a sessão do aluno, como no login\n\n**Identidade:**\n\nPública. É o passo 2 da tela do aluno, e a única entrada dele na turma.\n\n**Regras de negócio no back (a tela não calcula):**\n\nProcura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.\n\n**Notas:**\n\nAqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o preço de o aluno se matricular sozinho. O POST /auth/login continua aceitando { codigo, nome, senha } para quem já tem matrícula.",
+        "parameters": [],
+        "requestBody": {
+          "description": "CredenciaisAluno — o código da turma, o nome completo e a senha",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "codigo": "K7M2QX",
+                    "nome": "Ana Pires",
+                    "senha": "aluno2026"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RespostaLogin — a sessão do aluno, como no login",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "token": "...",
+                      "usuario": {
+                        "id": "al-9f3k2",
+                        "nome": "Ana Pires",
+                        "tipo": "aluno",
+                        "turmas": [
+                          {
+                            "id": "turma-1",
+                            "nome": "9º Ano A — Manhã"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — primeiro acesso com nome ou senha fora da regra (a mensagem diz qual)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`CREDENCIAIS` — o nome já está na turma e a senha não confere (\"Senha incorreta.\")\n\n`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "CREDENCIAIS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CREDENCIAIS"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TURMA_ARQUIVADA` — a turma foi arquivada\n\n`CONTA_INATIVA` — o aluno foi desativado",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TURMA_ARQUIVADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TURMA_ARQUIVADA"
+                    }
+                  },
+                  "exemplo2": {
+                    "summary": "CONTA_INATIVA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "CONTA_INATIVA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`TURMA_NAO_ENCONTRADA` — nenhuma turma com esse código",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TURMA_NAO_ENCONTRADA",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TURMA_NAO_ENCONTRADA"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`NOME_EM_USO` — outro aparelho matriculou o mesmo nome ao mesmo tempo",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NOME_EM_USO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NOME_EM_USO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`MUITAS_TENTATIVAS` — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "MUITAS_TENTATIVAS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "MUITAS_TENTATIVAS"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/auth/cadastro": {

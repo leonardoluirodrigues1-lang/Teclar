@@ -24,6 +24,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -31,7 +32,7 @@ import bcrypt from 'bcryptjs';
 import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { problemaNaSenhaDaConta, problemaNoEmail, problemaNoNome } from './regras-do-cadastro.js';
-import { provisoriaValida } from './senha-do-aluno.js';
+import { problemaNaSenhaDoAluno, provisoriaValida } from './senha-do-aluno.js';
 import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
@@ -105,20 +106,101 @@ export class AutenticacaoService {
   // tentativas-de-login.ts). A chave é IP + quem tenta entrar: numa escola
   // todos os alunos saem pelo mesmo IP, e contar só por IP bloquearia a
   // turma inteira pelos erros de um.
-  async entrar(corpo: CorpoDoLogin, ip: string): Promise<RespostaLogin> {
-    const chave = `${ip}|${identidadeDoLogin(corpo)}`;
+  entrar(corpo: CorpoDoLogin, ip: string): Promise<RespostaLogin> {
+    return this.comLimite(`${ip}|${identidadeDoLogin(corpo)}`, () => this.autenticar(corpo));
+  }
+
+  // POST /auth/aluno: a entrada do aluno, com o mesmo contador do login. A
+  // chave é a mesma do login de aluno (código + nome): errar aqui e lá soma
+  // no mesmo minuto.
+  entrarNaTurma(corpo: CorpoDoLogin, ip: string): Promise<RespostaLogin> {
+    const identidade = identidadeDoLogin({ codigo: corpo?.codigo ?? '', nome: corpo?.nome });
+    return this.comLimite(`${ip}|${identidade}`, () =>
+      this.entrarOuMatricular(
+        normalizarCodigo(corpo?.codigo),
+        normalizarNome(corpo?.nome),
+        String(corpo?.senha ?? '').trim(),
+      ),
+    );
+  }
+
+  private async comLimite(chave: string, autenticar: () => Promise<RespostaLogin>): Promise<RespostaLogin> {
     this.tentativas.conferir(chave);
     try {
-      const resposta = await this.autenticar(corpo);
+      const resposta = await autenticar();
       this.tentativas.zerar(chave);
       return resposta;
     } catch (erro) {
-      // Só o 401 CREDENCIAIS é chute de senha; 400 e 403 não contam.
+      // Só o 401 (senha errada) é chute de senha; 400, 403, 404 e 409 não contam.
       if (erro instanceof UnauthorizedException) {
         this.tentativas.somarFalha(chave);
       }
       throw erro;
     }
+  }
+
+  // GET /auth/turmas/:codigo: o passo 1 da tela do aluno. Devolve o nome da
+  // turma para ele conferir que digitou o código certo.
+  async turmaPeloCodigo(codigoBruto: unknown): Promise<{ nome: string }> {
+    const turma = await this.turmaAberta(normalizarCodigo(codigoBruto));
+    return { nome: turma.NomeTurma ?? '' };
+  }
+
+  // A turma do código, só se existe e não está arquivada.
+  private async turmaAberta(codigo: string) {
+    const turma =
+      codigo === ''
+        ? null
+        : await this.banco.classesprof.findUnique({
+            where: { Codigo: codigo },
+            select: { ClassID: true, NomeTurma: true, Ativa: true },
+          });
+    if (!turma) {
+      throw new NotFoundException({ mensagem: 'Não existe turma com esse código.', codigo: 'TURMA_NAO_ENCONTRADA' });
+    }
+    if (turma.Ativa === false) {
+      throw new ForbiddenException({ mensagem: 'Esta turma foi arquivada.', codigo: 'TURMA_ARQUIVADA' });
+    }
+    return turma;
+  }
+
+  // Nome já na turma: é login (a mesma conferência do POST /auth/login).
+  // Nome novo: é o primeiro acesso, e a matrícula nasce com a senha que ele
+  // escolheu. Aqui o nome na turma deixa de ser segredo (a resposta muda
+  // entre os dois casos): é o preço de o aluno se matricular sozinho.
+  private async entrarOuMatricular(codigo: string, nome: string, senha: string): Promise<RespostaLogin> {
+    const turma = await this.turmaAberta(codigo);
+    const aluno = await this.procurarAluno(codigo, nome);
+    if (aluno !== null) {
+      return this.conferirAluno(aluno, senha, senhaIncorreta);
+    }
+
+    const problema = problemaNoNome(nome) ?? problemaNaSenhaDoAluno(senha);
+    if (problema !== null) {
+      throw dadosInvalidos(problema);
+    }
+    // bcrypt fora da transação: não segura a conexão durante o hash.
+    const hash = await bcrypt.hash(senha, CUSTO_BCRYPT);
+    let novo;
+    try {
+      // O ID e a matrícula nascem juntos: se o nome colidir (outro aparelho
+      // matriculou o mesmo nome agora), a transação desfaz o ID.
+      novo = await this.banco.$transaction(async (tx) => {
+        const id = randomUUID();
+        await tx.alunos.create({ data: { ID: id } });
+        return tx.alunosturmas.create({ data: { ClassID: turma.ClassID, AlunoID: id, Nome: nome, SenhaHash: hash } });
+      });
+    } catch (erro) {
+      // P2002: o UNIQUE (ClassID, Nome) recusou.
+      if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
+        throw new ConflictException({
+          mensagem: 'Já tem alguém com esse nome nesta turma. Se não é você, use também seu sobrenome.',
+          codigo: 'NOME_EM_USO',
+        });
+      }
+      throw erro;
+    }
+    return this.respostaDoAluno({ ...novo, classesprof: turma });
   }
 
   private async autenticar(corpo: CorpoDoLogin): Promise<RespostaLogin> {
@@ -252,17 +334,26 @@ export class AutenticacaoService {
       await senhaConfere(senha, null);
       throw credenciaisInvalidas();
     }
+    return this.conferirAluno(aluno, senha, credenciaisInvalidas);
+  }
 
+  // O aluno achado: confere a senha (ou a provisória) e entra. `recusa` é o
+  // 401 de quem chamou: o login não diz o que errou; a entrada diz.
+  private async conferirAluno(
+    aluno: AlunoEncontrado,
+    senha: string,
+    recusa: () => UnauthorizedException,
+  ): Promise<RespostaLogin> {
     // SenhaHash NULL: o aluno ainda não criou a senha dele. Só a provisória
     // do professor, dentro da validade, abre o login — nunca uma senha
     // qualquer.
     if (aluno.SenhaHash === null) {
-      return this.entrarComProvisoria(aluno, senha);
+      return this.entrarComProvisoria(aluno, senha, recusa);
     }
 
     const senhaCerta = await senhaConfere(senha, aluno.SenhaHash);
     if (!senhaCerta) {
-      throw credenciaisInvalidas();
+      throw recusa();
     }
     // Só depois da senha certa, como na conta: o 403 confirmaria que o
     // nome está na turma.
@@ -294,11 +385,15 @@ export class AutenticacaoService {
   // se bate e está no prazo, APAGA a provisória (uso único) e entra com
   // precisaTrocarSenha. Sem provisória válida, gasta o tempo do bcrypt e
   // responde o mesmo 401 de senha errada.
-  private async entrarComProvisoria(aluno: AlunoEncontrado, senha: string): Promise<RespostaLogin> {
+  private async entrarComProvisoria(
+    aluno: AlunoEncontrado,
+    senha: string,
+    recusa: () => UnauthorizedException,
+  ): Promise<RespostaLogin> {
     const valida = provisoriaValida(aluno.SenhaProvisoriaHash, aluno.SenhaProvisoriaExpira);
     const senhaCerta = await senhaConfere(senha, valida ? aluno.SenhaProvisoriaHash : null);
     if (!senhaCerta) {
-      throw credenciaisInvalidas();
+      throw recusa();
     }
     exigirAlunoLiberado(aluno);
 
@@ -309,7 +404,7 @@ export class AutenticacaoService {
       data: { SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null },
     });
     if (consumiu.count !== 1) {
-      throw credenciaisInvalidas();
+      throw recusa();
     }
     return this.respostaDoAluno(aluno);
   }
@@ -418,6 +513,12 @@ function exigirAlunoLiberado(aluno: AlunoEncontrado): void {
 // { mensagem, codigo }. O Nest devolve o objeto passado tal como está.
 function credenciaisInvalidas(): UnauthorizedException {
   return new UnauthorizedException({ mensagem: 'Credenciais inválidas.', codigo: 'CREDENCIAIS' });
+}
+
+// O 401 da entrada do aluno (POST /auth/aluno): lá o nome já existe, então
+// dizer que o errado é a senha não entrega nada novo.
+function senhaIncorreta(): UnauthorizedException {
+  return new UnauthorizedException({ mensagem: 'Senha incorreta.', codigo: 'CREDENCIAIS' });
 }
 
 function contaDesativada(): ForbiddenException {

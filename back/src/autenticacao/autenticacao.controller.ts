@@ -1,7 +1,7 @@
 // As rotas HTTP do grupo Autenticação. Só recebe e devolve: a regra está
 // no AutenticacaoService. As quatro do contrato existem: login, cadastro,
 // eu e logout.
-import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { AutenticacaoService } from './autenticacao.service.js';
 import type { CorpoDoCadastro, CorpoDoLogin, RespostaLogin, Usuario } from './autenticacao.service.js';
 import { GuardaDoToken, PermitidoSemSenha } from './guarda-do-token.js';
@@ -20,6 +20,19 @@ export class AutenticacaoController {
   @HttpCode(HttpStatus.OK)
   entrar(@Body() corpo: CorpoDoLogin, @Ip() ip: string): Promise<RespostaLogin> {
     return this.autenticacao.entrar(corpo, ip);
+  }
+
+  // Públicas: o passo 1 (o código existe?) e o passo 2 (primeiro acesso ou
+  // login) da tela do aluno. A entrada usa o contador de senhas do login.
+  @Get('turmas/:codigo')
+  turma(@Param('codigo') codigo: string): Promise<{ nome: string }> {
+    return this.autenticacao.turmaPeloCodigo(codigo);
+  }
+
+  @Post('aluno')
+  @HttpCode(HttpStatus.OK)
+  entrarNaTurma(@Body() corpo: CorpoDoLogin, @Ip() ip: string): Promise<RespostaLogin> {
+    return this.autenticacao.entrarNaTurma(corpo, ip);
   }
 
   // Pública, como o login. Aqui sim se cria um recurso, mas o contrato diz

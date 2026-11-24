@@ -93,7 +93,7 @@ import { CONFIG } from '../config.js';
 import { sequenciaDeDias } from '../utils/desempenho.js';
 import { ordemDoPercurso } from '../utils/percurso.js';
 import { LICOES, montarLicao } from './licoes.js';
-import { validarSenhaAluno } from '../utils/validacao.js';
+import { validarNome, validarSenhaAluno } from '../utils/validacao.js';
 import type {
   Aluno,
   ImagemDaCapa,
@@ -1713,6 +1713,37 @@ function entrarComoAluno(corpo: any, senha: string): RespostaLogin {
   return sessaoDe(usuarioDoAluno(turma, aluno));
 }
 
+// A turma do código, como o back: 404 se não existe, 403 se arquivada.
+function turmaAbertaDoCodigo(bruto: unknown): (typeof dados.turmas)[number] {
+  const codigo = String(bruto ?? '').trim().toUpperCase();
+  const turma = dados.turmas.find((t) => t.codigo === codigo);
+  if (!turma) throw erro(404, 'Não existe turma com esse código.', 'TURMA_NAO_ENCONTRADA');
+  if (!turma.ativa) throw erro(403, 'Esta turma foi arquivada.', 'TURMA_ARQUIVADA');
+  return turma;
+}
+
+// POST /auth/aluno: nome já na turma é login; nome novo é o primeiro
+// acesso e vira matrícula com a senha escolhida.
+function entrarNaTurma(corpo: any): RespostaLogin {
+  const turma = turmaAbertaDoCodigo(corpo?.codigo);
+  const senha = String(corpo?.senha ?? '').trim();
+  const nome = normalizarNome(corpo?.nome);
+  const lista = (dados.alunos[turma.id] ??= []);
+  const aluno = lista.find((a) => chaveDoNome(a.nome) === chaveDoNome(nome));
+  if (aluno) {
+    const confere = aluno.senha !== null ? aluno.senha === senha : provisoriaValida(aluno) && aluno.provisoria.senha === senha;
+    if (!confere) throw erro(401, 'Senha incorreta.', 'CREDENCIAIS');
+    if (aluno.senha === null) aluno.provisoria = null; // uso único
+    return sessaoDe(usuarioDoAluno(turma, aluno));
+  }
+  const problema = validarNome(nome) ?? validarSenhaAluno(senha);
+  if (problema) throw erro(400, problema, 'DADOS_INVALIDOS');
+  const novo: AlunoMock = { id: gerarId('al'), nome, entrouEm: hoje(), senha, provisoria: null };
+  lista.push(novo);
+  turma.totalAlunos = lista.length;
+  return sessaoDe(usuarioDoAluno(turma, novo));
+}
+
 // A sessão pelo id, só se for de quem pede: token de aluno lê as sessões
 // Escola DELE; token de conta lê as sessões Solo da campanha DELA. É a rota
 // do F5 da tela de resultado — sem esta checagem, qualquer pessoa logada
@@ -1874,6 +1905,8 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   ['POST', montarRegex('/auth/logout'), () => null],
+  ['GET', montarRegex('/auth/turmas/:codigo'), (params) => ({ nome: turmaAbertaDoCodigo(decodeURIComponent(params[0])).nome })],
+  ['POST', montarRegex('/auth/aluno'), (params, corpo) => entrarNaTurma(corpo)],
 
   // --- solo: a campanha do jogador logado (singular) ---------------------
   // Sem id na URL: o dono sai do token. Estas duas rotas substituíram a
@@ -2921,7 +2954,8 @@ const rotas: [string, RegExp, Handler][] = [
 
 // Rotas que não exigem token: são justamente as que o entregam (ou o
 // descartam). 401 nelas quer dizer "credencial errada", não "sessão morta".
-const ROTAS_PUBLICAS = ['/auth/login', '/auth/cadastro', '/auth/logout'];
+const ROTAS_PUBLICAS = ['/auth/login', '/auth/cadastro', '/auth/logout', '/auth/aluno'];
+const ehPublica = (caminho: string) => ROTAS_PUBLICAS.includes(caminho) || caminho.startsWith('/auth/turmas/');
 
 // O mock não valida assinatura nenhuma — só confere se o token tem a cara
 // dos que ele mesmo emite. Serve para uma coisa: dá para testar a sessão
@@ -2946,7 +2980,7 @@ export async function responderMock(
   const [caminho, queryString = ''] = caminhoComQuery.split('?');
   const query = new URLSearchParams(queryString);
 
-  if (!ROTAS_PUBLICAS.includes(caminho) && !tokenValido(token)) {
+  if (!ehPublica(caminho) && !tokenValido(token)) {
     throw erro(401, 'Token inválido ou expirado.', 'TOKEN_INVALIDO');
   }
   for (const [metodoRota, regex, handler] of rotas) {

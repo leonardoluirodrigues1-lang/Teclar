@@ -91,6 +91,11 @@ export interface CredenciaisAluno {
 }
 export type Credenciais = CredenciaisEmail | CredenciaisAluno;
 
+/** Resposta de GET /auth/turmas/:codigo — o passo 1 da entrada do aluno. */
+export interface TurmaDoCodigo {
+  nome: string;
+}
+
 /** Corpo de POST /auth/cadastro. */
 export interface DadosCadastro {
   nome: string;

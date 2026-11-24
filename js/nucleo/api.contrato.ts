@@ -45,8 +45,8 @@ export interface Grupo {
 
 // Valem para todas as rotas.
 export const convencoes: Texto[] = [
-  `Toda rota, menos as três públicas de /auth (login, cadastro e
-  logout), exige o cabeçalho Authorization: Bearer <token>. Token
+  `Toda rota, menos as públicas de /auth (login, cadastro, logout,
+  turmas/:codigo e aluno), exige o cabeçalho Authorization: Bearer <token>. Token
   ausente, vencido ou inválido: 401 TOKEN_INVALIDO, e a tela volta ao login.`,
   `Corpo de erro: { "mensagem": "...", "codigo": "NAO_ENCONTRADO" }.
   A tela decide pelo status e pelo código, nunca pelo texto da mensagem.`,
@@ -120,8 +120,8 @@ export const grupos: Grupo[] = [
   {
     nome: 'Autenticação',
     intro: `Um login para as duas tabelas: Users entra por e-mail; alunosturmas (a matrícula) entra
-pelo código da turma, o nome e a senha. As três primeiras rotas são
-PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
+pelo código da turma, o nome e a senha (POST /auth/aluno, que também matricula no primeiro
+acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
     rotas: {
       'auth.entrar': {
         rota: 'POST /auth/login',
@@ -155,6 +155,40 @@ PÚBLICAS: nelas 401 quer dizer "credencial errada", não "sessão expirada".`,
   minuto da primeira falha passar; outro e-mail, ou um colega da mesma
   turma no mesmo IP, entra normalmente. Login certo não conta e zera a
   contagem. Este 429 não traz Retry-After.`,
+      },
+      'auth.turmaDoCodigo': {
+        rota: 'GET /auth/turmas/:codigo',
+        resposta: `200 TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo
+  { "nome": "9º Ano A — Manhã" }`,
+        erros: `404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
+  403 TURMA_ARQUIVADA — a turma existe, mas foi arquivada`,
+        identidade: `Pública. É o passo 1 da tela do aluno.`,
+        back: `classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma.`,
+      },
+      'auth.entrarNaTurma': {
+        rota: 'POST /auth/aluno',
+        corpo: `CredenciaisAluno — o código da turma, o nome completo e a senha
+  { "codigo": "K7M2QX", "nome": "Ana Pires", "senha": "aluno2026" }`,
+        resposta: `200 RespostaLogin — a sessão do aluno, como no login
+  { "token": "...", "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
+    "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }`,
+        erros: `400 DADOS_INVALIDOS — primeiro acesso com nome ou senha fora da regra (a mensagem diz qual)
+  401 CREDENCIAIS — o nome já está na turma e a senha não confere ("Senha incorreta.")
+  403 TURMA_ARQUIVADA — a turma foi arquivada
+  403 CONTA_INATIVA — o aluno foi desativado
+  404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
+  409 NOME_EM_USO — outro aparelho matriculou o mesmo nome ao mesmo tempo
+  429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem)`,
+        identidade: `Pública. É o passo 2 da tela do aluno, e a única entrada dele na turma.`,
+        back: `Procura o nome na turma como o login (sem distinguir maiúscula e acento,
+  espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência
+  de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso —
+  confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa
+  transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da
+  senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.`,
+        nota: `Aqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o
+  preço de o aluno se matricular sozinho. O POST /auth/login continua aceitando
+  { codigo, nome, senha } para quem já tem matrícula.`,
       },
       'auth.cadastrar': {
         rota: 'POST /auth/cadastro',

@@ -3,10 +3,11 @@
 // login. Um HTML só, dois formulários:
 //   Conta (padrão) -> e-mail e senha; depois cai na tela de modo (Solo ou
 //                     Professor), ou direto no último modo salvo
-//   Aluno          -> código da turma, nome (como o professor subiu na
-//                     lista) e senha; vai para o dashboard do aluno. No
-//                     primeiro acesso a senha digitada é gravada, e um
-//                     aviso pede para guardá-la antes do dashboard.
+//   Aluno          -> 2 passos: o código da turma (o back diz se existe e
+//                     mostra o nome dela) e depois nome completo + senha.
+//                     Nome novo na turma é o primeiro acesso: a senha
+//                     digitada vira a dele (POST /auth/aluno). O professor
+//                     não cadastra ninguém.
 // O de aluno é alcançado pelo "Sou aluno, tenho o código da turma", ou
 // abre direto com ?aluno=1 (o cartão "Aluno" da tela de modo).
 //
@@ -28,16 +29,15 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
 
-import type { RespostaLogin } from '../nucleo/tipos.js';
+import type { ErroDaApi, RespostaLogin } from '../nucleo/tipos.js';
 import {
   validarEmail,
   validarSenhaLogin,
-  validarSenhaAluno,
   validarNome,
   validarCodigo,
   normalizarCodigo,
 } from '../utils/validacao.js';
-import { mensagemDoErro, MENSAGENS } from './comum.js';
+import { mensagemDoErro, mensagemDoCodigo, mensagemDaEntrada, MENSAGENS } from './comum.js';
 import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -87,9 +87,9 @@ function Login() {
     senha: { ref: senha, checar: () => validarSenhaLogin(senha.current.value) },
     codigo: { ref: codigo, checar: () => validarCodigo(codigo.current.value) },
     nome: { ref: nome, checar: () => validarNome(nome.current.value) },
-    // A regra da senha de aluno vale também no login: a tela não sabe se é
-    // o primeiro acesso, e toda senha de aluno gravada já segue a regra.
-    senhaAluno: { ref: senhaAluno, checar: () => validarSenhaAluno(senhaAluno.current.value) },
+    // Só "não vazia": a tela não sabe se é o primeiro acesso, e uma senha
+    // antiga pode não seguir a regra de hoje. A regra vale no 400 do back.
+    senhaAluno: { ref: senhaAluno, checar: () => validarSenhaLogin(senhaAluno.current.value) },
   });
   const refs = { email, senha, codigo, nome, senhaAluno };
 
@@ -100,9 +100,12 @@ function Login() {
 
   // Foco no primeiro campo do formulário que está à vista — ao abrir e a
   // cada troca de modo (o que mostrarModo() fazia no fim).
+  // No aluno, o passo diz qual: o código (passo 1) ou o nome (passo 2).
+  const [turmaDoCodigo, setTurmaDoCodigo] = useState<{ codigo: string; nome: string } | null>(null);
   useEffect(() => {
-    (modo === 'aluno' ? codigo : email).current?.focus();
-  }, [modo]);
+    if (modo === 'conta') email.current?.focus();
+    else (turmaDoCodigo ? nome : codigo).current?.focus();
+  }, [modo, turmaDoCodigo]);
 
   function mostrarModo(novo: Modo) {
     limparTudo();
@@ -124,6 +127,11 @@ function Login() {
   function aoEnviarConta(evento: FormEvent) {
     evento.preventDefault();
     entrarComConta();
+  }
+
+  function aoEnviarCodigo(evento: FormEvent) {
+    evento.preventDefault();
+    conferirCodigo();
   }
 
   function aoEnviarAluno(evento: FormEvent) {
@@ -160,38 +168,74 @@ function Login() {
     });
   }
 
+  // Passo 1: o código existe e a turma está aberta? Mostra o nome dela no passo 2.
+  async function conferirCodigo() {
+    if (enviando.current) return;
+    const comErro = campos.validar(['codigo']);
+    if (comErro) {
+      codigo.current.focus();
+      return;
+    }
+    enviando.current = true;
+    setOcupado(true);
+    limparErros();
+    const valor = normalizarCodigo(codigo.current.value);
+    try {
+      const { nome: nomeDaTurma } = await api.auth.turmaDoCodigo(valor);
+      setTurmaDoCodigo({ codigo: valor, nome: nomeDaTurma });
+    } catch (excecao) {
+      setErroAluno(mensagemDoCodigo(excecao));
+      codigo.current.focus();
+    } finally {
+      enviando.current = false;
+      setOcupado(false);
+    }
+  }
+
+  // Passo 2: nome novo na turma é o primeiro acesso (a senha digitada vira
+  // a dele); nome que já está é login normal.
   async function entrarComoAluno() {
     if (enviando.current) return;
 
-    const comErro = campos.validar(['codigo', 'nome', 'senhaAluno']);
+    const comErro = campos.validar(['nome', 'senhaAluno']);
     if (comErro) {
       refs[comErro].current.focus();
       return;
     }
 
-    await enviar({
-      requisicao: () =>
-        api.auth.entrar({
-          // Vai sem espaço e em maiúscula, a forma em que o back guarda.
-          codigo: normalizarCodigo(codigo.current.value),
-          // Maiúscula, acento e espaço repetido o back resolve: compara
-          // como o banco ("ana pires" acha "Ana Pires").
-          nome: nome.current.value.trim(),
-          // Aparada pelo mesmo motivo da senha de conta: nenhuma senha de
-          // aluno tem espaço nas pontas (o primeiro acesso recusa).
-          senha: senhaAluno.current.value.trim(),
-        }),
-      frases: {
-        credenciais: MENSAGENS.CREDENCIAIS_ALUNO,
-        inativa: MENSAGENS.INATIVA_ALUNO,
-        dadosInvalidos: MENSAGENS.SENHA_PRIMEIRO_ACESSO,
-      },
-      mostrarErro: setErroAluno,
-      aoFalhar: () => {
+    enviando.current = true;
+    setOcupado(true);
+    limparErros();
+    try {
+      const resposta = await api.auth.entrarNaTurma({
+        codigo: turmaDoCodigo.codigo,
+        // Maiúscula, acento e espaço repetido o back resolve: compara
+        // como o banco ("ana pires" acha "Ana Pires").
+        nome: nome.current.value.trim(),
+        // Aparada: nenhuma senha de aluno tem espaço nas pontas.
+        senha: senhaAluno.current.value.trim(),
+      });
+      sessao.entrar(resposta);
+      guarda.entrar();
+    } catch (excecao) {
+      const erro = excecao as ErroDaApi;
+      if (erro?.name === 'ErroApi' && erro.status === 404) {
+        // A turma sumiu entre os passos: volta ao 1 com o motivo.
+        voltarAoCodigo();
+        setErroAluno(mensagemDoCodigo(excecao));
+      } else {
+        setErroAluno(mensagemDaEntrada(excecao, nome.current.value, senhaAluno.current.value));
         senhaAluno.current.value = '';
         senhaAluno.current.focus();
-      },
-    });
+      }
+      enviando.current = false;
+      setOcupado(false);
+    }
+  }
+
+  function voltarAoCodigo() {
+    limparTudo();
+    setTurmaDoCodigo(null);
   }
 
   // Fluxo comum aos dois formulários: trava o botão, chama a API, grava a
@@ -284,12 +328,11 @@ function Login() {
       <section id="modo-aluno" aria-labelledby="titulo-aluno" hidden={modo !== 'aluno'}>
         <p className="rotulo">Aluno</p>
         <h1 id="titulo-aluno">Entrar</h1>
-        <p className="descricao">
-          Digite o código que o professor passou e o seu nome completo, igual ao da chamada. Na primeira vez,
-          use a senha que o professor te deu. Depois você cria a sua.
-        </p>
+        {turmaDoCodigo === null ? (
+        <>
+        <p className="descricao">Digite o código da turma que o professor passou.</p>
 
-        <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
+        <form className="acoes formulario" id="form-codigo" noValidate onSubmit={aoEnviarCodigo}>
           <div className="campo">
             <label className="rotulo" htmlFor="campo-codigo">
               Código da turma
@@ -315,9 +358,30 @@ function Login() {
             <ErroCampo id="erro-codigo" erro={campos.erros.codigo} />
           </div>
 
+          <button type="submit" className="btn btn-solido tecla tecla-clara" id="btn-continuar-codigo" disabled={ocupado}>
+            {ocupado ? 'Procurando…' : 'Continuar'}
+          </button>
+          <p className="erro" id="erro-aluno" aria-live="polite">
+            {erroAluno}
+          </p>
+        </form>
+        </>
+        ) : (
+        <>
+        <p className="descricao" id="turma-escolhida">
+          Turma: <strong>{turmaDoCodigo.nome}</strong>{' '}
+          <button type="button" className="btn-texto" id="btn-trocar-codigo" onClick={voltarAoCodigo}>
+            Trocar código
+          </button>
+        </p>
+        <p className="descricao">
+          Primeira vez? Escreva seu nome completo e crie uma senha. Já entrou antes? Use o mesmo nome e a sua senha.
+        </p>
+
+        <form className="acoes formulario" id="form-aluno" noValidate onSubmit={aoEnviarAluno}>
           <div className="campo">
             <label className="rotulo" htmlFor="campo-nome-aluno">
-              Seu nome
+              Seu nome completo
             </label>
             <input
               type="text"
@@ -359,6 +423,8 @@ function Login() {
             {erroAluno}
           </p>
         </form>
+        </>
+        )}
 
         <button type="button" className="btn-texto" id="btn-ir-conta" onClick={irParaConta}>
           Não sou aluno

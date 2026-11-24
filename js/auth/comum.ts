@@ -15,9 +15,10 @@
 // muda, vem em inglês, vem com detalhe técnico ou vaza informação. E o
 // status HTTP nunca aparece para a pessoa.
 
+import { validarNome, validarSenhaAluno } from '../utils/validacao.js';
+
 export const MENSAGENS = {
   CREDENCIAIS: 'E-mail ou senha incorretos.',
-  CREDENCIAIS_ALUNO: 'Código da turma, nome ou senha incorretos.',
   INATIVA: 'Esta conta está desativada.',
   INATIVA_ALUNO: 'Esta turma foi arquivada ou o seu acesso foi desativado. Fale com o professor.',
   // O 400 do login de aluno só acontece no PRIMEIRO ACESSO: a senha
@@ -67,6 +68,37 @@ export function mensagemDoErro(
   // Todo o resto — 500, 501, rede fora — é a mesma frase para quem está na
   // tela. Status HTTP e texto cru do servidor nunca aparecem.
   return MENSAGENS.CONEXAO;
+}
+
+// --- Entrada do aluno (os dois passos do Login.tsx) --------------------------
+
+export const MENSAGENS_DO_ALUNO = {
+  CODIGO_NAO_EXISTE: 'Não achamos nenhuma turma com esse código. Confira as letras e os números com o professor.',
+  TURMA_ARQUIVADA: 'Esta turma foi arquivada. Fale com o professor.',
+  SENHA_INCORRETA: 'Senha incorreta. Se esqueceu, peça ao professor uma senha provisória.',
+  NOME_EM_USO: 'Já tem alguém com esse nome nesta turma. Se não é você, use também seu sobrenome.',
+};
+
+/** Passo 1: o código não serviu. */
+export function mensagemDoCodigo(excecao: unknown): string {
+  const erro = excecao as ErroComStatus | null | undefined;
+  if (erro?.name === 'ErroApi' && erro.status === 404) return MENSAGENS_DO_ALUNO.CODIGO_NAO_EXISTE;
+  if (erro?.name === 'ErroApi' && erro.status === 403) return MENSAGENS_DO_ALUNO.TURMA_ARQUIVADA;
+  return mensagemDoErro(excecao);
+}
+
+/** Passo 2: entrar ou matricular não deu certo. No 400 (primeiro acesso
+ *  fora da regra) a tela repete a regra aqui, com a mesma frase do back. */
+export function mensagemDaEntrada(excecao: unknown, nome: string, senha: string): string {
+  const erro = excecao as ErroComStatus | null | undefined;
+  const daApi = erro?.name === 'ErroApi';
+  if (daApi && erro.status === 401) return MENSAGENS_DO_ALUNO.SENHA_INCORRETA;
+  if (daApi && erro.status === 409) return MENSAGENS_DO_ALUNO.NOME_EM_USO;
+  if (daApi && erro.status === 403 && erro.codigo === 'TURMA_ARQUIVADA') return MENSAGENS_DO_ALUNO.TURMA_ARQUIVADA;
+  if (daApi && erro.status === 400) {
+    return validarNome(nome) ?? validarSenhaAluno(senha.trim()) ?? MENSAGENS.SENHA_PRIMEIRO_ACESSO;
+  }
+  return mensagemDoErro(excecao, { inativa: MENSAGENS.INATIVA_ALUNO });
 }
 
 /** O 409 do cadastro: e-mail já com conta. Quem chama mostra no campo. */
