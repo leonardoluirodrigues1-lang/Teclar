@@ -172,16 +172,6 @@ function TelaModo() {
           <p>Entrar como aluno vai sair da conta de {sessao.nomeExibicao()}.</p>
         </Modal>
       )}
-
-      <p className="ajuda vidro">
-        <span className="interrogacao" aria-hidden="true">
-          ?
-        </span>
-        <span>
-          A mesma conta serve para os dois. Você pode ter uma campanha no Solo e turmas como
-          professor, e ir de um para o outro sem sair.
-        </span>
-      </p>
     </>
   );
 }
