@@ -79,7 +79,6 @@ const PAGINAS = [
   ['/pages/solo/estatisticas.html', 'leo'],
   ['/pages/solo/configuracoes.html', 'leo'],
   ['/pages/solo/ajuda.html', 'leo'],
-  ['/pages/solo/sobre.html', 'leo'],
   ['/pages/treino/treino.html?exercicio=solo-001', 'leo'],
   ['/pages/aluno/sala.html?id=turma-2', 'aluno'],
   ['/pages/aluno/dashboard.html', 'aluno'],

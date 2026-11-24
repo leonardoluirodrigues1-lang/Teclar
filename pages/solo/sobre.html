@@ -3,57 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teclar &mdash; Sobre</title>
-<meta name="description" content="O que &eacute; o TECLAR e quem fez.">
-<link rel="stylesheet" href="../../css/base/fontes.css">
-<link rel="stylesheet" href="../../css/base/tokens.css">
-<link rel="stylesheet" href="../../css/base/luz.css">
-<link rel="stylesheet" href="../../css/base/movimento.css">
-<link rel="stylesheet" href="../../css/componentes/vidro.css">
-<link rel="stylesheet" href="../../css/componentes/moldura.css">
-
-<!-- De reset.css vem a base comum a todas as telas (margens, fundo e fonte
-     do body, anel de foco); de dashboard.css, o estilo neutro de links,
-     bot&otilde;es e listas e o .fundo (as estrelas v&ecirc;m de
-     css/base/luz.css e js/componentes/campoDeEstrelas.ts); de
-     solo.css, a moldura do Solo (topo, barra lateral) e o resto desta tela.
-     solo.css vem DEPOIS, como em todas as telas do Solo. -->
-<link rel="stylesheet" href="../../css/base/reset.css">
-<link rel="stylesheet" href="../../css/dashboard.css">
-<link rel="stylesheet" href="../../css/solo.css">
-
-<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
-     projeto, sem depender de internet). O import map traduz os nomes que o
-     .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
-     <script type="module">. -->
-<script type="importmap">
-{ "imports": {
-    "react": "../../vendor/react/react.mjs",
-    "react-dom": "../../vendor/react/react-dom.mjs",
-    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
-    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
-}}
-</script>
+<title>Teclar &mdash; Ajuda e sobre</title>
+<!-- "Sobre" virou uma seção de "Ajuda e sobre". Na Vercel o vercel.json
+     já redireciona antes de chegar aqui; isto cobre o servidor local. -->
+<meta http-equiv="refresh" content="0; url=ajuda.html#sobre">
+<link rel="canonical" href="ajuda.html#sobre">
+<style>body { background: #000; color: #fff; font-family: sans-serif; padding: 24px; } a { color: #fff; }</style>
 </head>
 <body>
-
-<!-- A luz de fundo do mundo Solo: o disco de acre&ccedil;&atilde;o no canto superior
-     direito (css/base/luz.css), o campo de estrelas e o gr&atilde;o. -->
-<div class="fundo fundo-largo grao" aria-hidden="true">
-  <div class="disco disco-canto-superior-direito"></div>
-  <div class="fundo-estrelas"></div>
-</div>
-
-<!-- O React monta aqui a moldura do Solo (js/componentes/Moldura.tsx)
-     e, dentro dela, a tela. Sem .entrada-da-pagina aqui: as pe&ccedil;as da
-     moldura s&atilde;o fixas, e o transform da anima&ccedil;&atilde;o as prenderia a esta
-     div vazia. A entrada vai no conte&uacute;do, dentro da moldura. -->
-<div id="raiz"></div>
-
-<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
-<!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
-<script type="module" src="../../js/utils/respiracaoDaLuz.js"></script>
-<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
-<script type="module" src="../../js/solo/Sobre.js"></script>
+<main>
+<p>Esta página mudou: agora é a seção <a href="ajuda.html#sobre">Sobre o TECLAR, em Ajuda e sobre</a>.</p>
+</main>
 </body>
 </html>

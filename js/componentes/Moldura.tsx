@@ -44,7 +44,6 @@ export type TelaDaMoldura =
   | 'caminho'
   | 'configuracoes'
   | 'ajuda'
-  | 'sobre'
   | 'turmas'
   | 'biblioteca'
   | 'relatorios'
@@ -93,7 +92,6 @@ const ICONES = {
     <Icone circulo={[12, 12, 3.2]} d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
   ),
   ajuda: <Icone circulo={[12, 12, 9]} d="M9.5 9.5a2.5 2.5 0 113.3 2.4c-.6.2-.8.7-.8 1.3v.5M12 17h.01" />,
-  sobre: <Icone circulo={[12, 12, 9]} d="M12 11v5M12 8h.01" />,
   pessoa: <Icone circulo={[12, 8, 4]} d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" />,
   trocar: <Icone d="M4 12a8 8 0 0113.7-5.7M20 12a8 8 0 01-13.7 5.7M18 3v4h-4M6 21v-4h4" />,
   turmas: <Icone d="M3 7h18v12H3zM8 7V5h8v2" />,
@@ -128,8 +126,7 @@ function itensDo(modo: ModoDaMoldura): Item[] {
   return [
     { tela: 'caminho', rotulo: 'Início', href: '/pages/solo/caminho.html', icone: ICONES.inicio },
     { tela: 'configuracoes', rotulo: 'Configurações', href: '/pages/solo/configuracoes.html', icone: ICONES.configuracoes },
-    { tela: 'ajuda', rotulo: 'Ajuda', href: '/pages/solo/ajuda.html', icone: ICONES.ajuda },
-    { tela: 'sobre', rotulo: 'Sobre', href: '/pages/solo/sobre.html', icone: ICONES.sobre },
+    { tela: 'ajuda', rotulo: 'Ajuda e sobre', href: '/pages/solo/ajuda.html', icone: ICONES.ajuda },
   ];
 }
 

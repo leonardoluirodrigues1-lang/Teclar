@@ -1250,6 +1250,25 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-weight: var(--peso-leve, 300);
   letter-spacing: var(--ls-titulo, -0.02em);
 }
+/* O índice de "Ajuda e sobre": as seções da página, em linha. */
+.solo-texto-indice ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2, 8px) var(--e-5, 24px);
+  margin: var(--e-3, 12px) 0 var(--e-5, 24px);
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+/* A seção que o link abre não fica embaixo do topo fixo da moldura. */
+.solo-texto-indice a {
+  color: var(--cor-texto, #fff);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.45);
+}
+.solo-texto-indice a:hover { text-decoration-color: currentColor; }
+.solo-texto-cartao[id] { scroll-margin-top: 104px; }
 .solo-texto-intro {
   margin: -8px 0 var(--e-5, 24px);
   font-size: 15px;
