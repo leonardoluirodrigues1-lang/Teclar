@@ -235,7 +235,13 @@ try {
   chrome.kill();
   servidor.close();
   await esperar(500);
-  rmSync(perfil, { recursive: true, force: true, maxRetries: 3 });
+  // No Windows o Chrome solta o perfil um pouco depois de morrer (EPERM). Um
+  // perfil temporário que sobrou não muda o resultado da auditoria: só avisa.
+  try {
+    rmSync(perfil, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  } catch (erro) {
+    console.warn(`\nAviso: não deu para apagar o perfil temporário ${perfil} (${erro.code}).`);
+  }
 }
 
 console.log(`\n${falhas ? `${falhas} falha(s) de acessibilidade.` : `Tudo certo: ${PAGINAS.length} tela(s) sem falha de acessibilidade.`}`);
