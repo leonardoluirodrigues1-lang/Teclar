@@ -443,7 +443,9 @@ export function Moldura({
                 <span aria-hidden="true">←</span> {voltar.rotulo}
               </a>
             ) : (
-              !telaDaPessoa && <span className="moldura-marca">TECLAR</span>
+              // No professor a marca fica só na barra lateral (que lá aparece
+              // sempre aberta na tela larga): no topo seria a segunda.
+              !telaDaPessoa && modo !== 'professor' && <span className="moldura-marca">TECLAR</span>
             )}
             {telaDaPessoa && <h1 className="moldura-titulo-pessoa">{sessao.nomeExibicao()}</h1>}
           </div>
