@@ -16,7 +16,7 @@ export const LIMITES = {
   NOME_MAX: 150,
   EMAIL_MAX: 150,
   SENHA_MIN: 8,
-  SENHA_ALUNO_MIN: 4,
+  SENHA_ALUNO_MIN: 6,
   SENHA_ALUNO_MAX: 20,
   TURMA_MIN: 3,
   TURMA_MAX: 100,
@@ -155,19 +155,49 @@ export function validarSenhaLogin(valor: unknown): Validacao {
 }
 
 /**
- * Senha de ALUNO: de 4 a 20 caracteres, qualquer coisa serve — quem digita
- * é criança, e não se exige letra, número nem símbolo. Conta-se depois de
- * aparar as pontas, porque é assim que ela vai para o back e é gravada.
- * A mensagem diz só quantos caracteres faltam. Vale no login do aluno
- * (que no primeiro acesso grava essa senha) e em qualquer outro lugar que
- * valide senha de aluno. A senha de CONTA continua em validarSenha.
+ * Senha de ALUNO: de 6 a 20 caracteres, com pelo menos uma letra e um
+ * número (a mesma regra de back/src/autenticacao/senha-do-aluno.ts, com as
+ * mesmas mensagens). Conta-se depois de aparar as pontas, porque é assim
+ * que ela vai para o back e é gravada. Vale no primeiro acesso e no "Crie
+ * sua senha". A senha de CONTA continua em validarSenha.
  */
 export function validarSenhaAluno(valor: unknown): Validacao {
   const senha = String(valor ?? '').trim();
   const faltam = LIMITES.SENHA_ALUNO_MIN - senha.length;
   if (faltam > 0) return faltam === 1 ? 'Falta 1 caractere.' : `Faltam ${faltam} caracteres.`;
   if (senha.length > LIMITES.SENHA_ALUNO_MAX) return 'A senha pode ter no máximo 20 caracteres.';
+  if (!/\p{L}/u.test(senha)) return 'Coloque pelo menos uma letra.';
+  if (!TEM_NUMERO.test(senha)) return 'Coloque pelo menos um número.';
   return null;
+}
+
+export type ForcaDaSenha = 'fraca' | 'boa' | 'forte';
+
+// Senhas que toda criança tenta primeiro.
+const OBVIAS = ['123456', '1234567', '12345678', 'abc123', 'senha1', 'senha123', 'teclar1', 'qwerty1'];
+
+/**
+ * O medidor do primeiro acesso: fraca / boa / forte e, em linguagem
+ * simples, o que falta. Fraca = fora da regra, óbvia ou com o próprio nome
+ * (só a regra impede salvar). Forte = 10 ou mais, com maiúscula e
+ * minúscula ou um símbolo.
+ */
+export function forcaDaSenhaAluno(valor: unknown, nome: unknown = ''): { forca: ForcaDaSenha; falta: string | null } {
+  const senha = String(valor ?? '').trim();
+  const problema = validarSenhaAluno(senha);
+  if (problema) return { forca: 'fraca', falta: problema };
+  const minuscula = senha.toLowerCase();
+  if (OBVIAS.includes(minuscula)) return { forca: 'fraca', falta: 'Essa é fácil de adivinhar. Invente outra.' };
+  const partesDoNome = String(nome ?? '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((parte) => parte.length >= 3);
+  if (partesDoNome.some((parte) => minuscula.includes(parte))) {
+    return { forca: 'fraca', falta: 'Não use o seu nome na senha.' };
+  }
+  const misturada = (/\p{Lu}/u.test(senha) && /\p{Ll}/u.test(senha)) || /[^\p{L}\d]/u.test(senha);
+  if (senha.length >= 10 && misturada) return { forca: 'forte', falta: null };
+  return { forca: 'boa', falta: 'Para ficar forte: 10 ou mais, com uma letra maiúscula ou um símbolo (! ? #).' };
 }
 
 // --- Código da turma (o login do aluno) -------------------------------------

@@ -24,7 +24,7 @@ export const MENSAGENS = {
   // O 400 do login de aluno só acontece no PRIMEIRO ACESSO: a senha
   // digitada ia ser gravada e não segue a regra. A tela já confere antes
   // (validarSenhaAluno); isto é a rede de segurança.
-  SENHA_PRIMEIRO_ACESSO: 'A senha precisa ter de 4 a 20 caracteres.',
+  SENHA_PRIMEIRO_ACESSO: 'A senha precisa ter de 6 a 20 caracteres, com letras e números.',
   // 429 do login: 5 senhas erradas no mesmo minuto (back/src/autenticacao/tentativas-de-login.ts).
   MUITAS_TENTATIVAS: 'Muitas tentativas seguidas. Espere um minuto e tente de novo.',
   CONEXAO: 'Não foi possível conectar. Tente de novo.',

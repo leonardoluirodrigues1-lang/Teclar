@@ -270,6 +270,8 @@ confere('nome já na turma + senha errada: 401 "Senha incorreta."', r.status ===
 
 r = await entrarNaTurma('Nina Teste', 'abc');
 confere('primeiro acesso com senha fora da regra: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await entrarNaTurma('Nina Teste', 'ninateste');
+confere('primeiro acesso com senha sem número: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
 r = await entrarNaTurma('N', 'nina2026');
 confere('primeiro acesso com nome curto: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
 r = await entrarNaTurma('Nina Teste', 'nina2026', 'ZZZZZZ');

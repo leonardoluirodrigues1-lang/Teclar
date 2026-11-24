@@ -183,7 +183,7 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
         back: `Procura o nome na turma como o login (sem distinguir maiúscula e acento,
   espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência
   de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso —
-  confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa
+  confere o nome (2 a 150) e a senha (6 a 20 caracteres, com pelo menos uma letra e um número) e cria, numa
   transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da
   senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.`,
         nota: `Aqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o
@@ -903,10 +903,10 @@ da conta, e mora em \`solo\`.`,
     rotas: {
       'escola.aluno.criarSenha': {
         rota: 'POST /aluno/senha',
-        corpo: `{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas
+        corpo: `{ novaSenha } — de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas
   { "novaSenha": "minhasenha" }`,
         resposta: `204 (sem corpo)`,
-        erros: `400 DADOS_INVALIDOS — senha fora de 4 a 20 caracteres
+        erros: `400 DADOS_INVALIDOS — senha fora da regra (6 a 20, com letra e número)
   403 TIPO_INVALIDO — token de conta
   409 SENHA_JA_CRIADA — o aluno já tem senha (trocar é com o professor, que gera outra provisória)`,
         identidade: `O token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.`,

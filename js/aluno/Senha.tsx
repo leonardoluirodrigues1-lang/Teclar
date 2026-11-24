@@ -13,7 +13,7 @@ import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { validarSenhaAluno } from '../utils/validacao.js';
 import { mensagemDoErro, MENSAGENS } from '../auth/comum.js';
-import { useErrosDeCampo, ErroCampo, CampoSenha } from '../auth/Formulario.js';
+import { useErrosDeCampo, ErroCampo, CampoSenha, MedidorDeSenha, useForcaDaSenha } from '../auth/Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 const NAO_CONFEREM = 'As duas senhas não são iguais.';
@@ -29,6 +29,7 @@ function Senha({ nome }: { nome: string }) {
     },
   });
   const refs = { senha, repetir };
+  const forca = useForcaDaSenha(senha, () => nome);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
@@ -63,8 +64,7 @@ function Senha({ nome }: { nome: string }) {
       <p className="rotulo">Primeira vez</p>
       <h1 id="titulo-senha">Crie sua senha</h1>
       <p className="descricao">
-        Oi, {nome}! A senha do professor só valia uma vez. Agora invente a sua (de 4 a 20 letras ou números) e
-        guarde bem. Se esquecer, peça ajuda ao professor.
+        Oi, {nome}! A senha do professor só valia uma vez. Agora invente a sua e guarde bem. Se esquecer, peça ajuda ao professor.
       </p>
 
       <form className="acoes formulario" noValidate onSubmit={aoEnviar}>
@@ -76,12 +76,14 @@ function Senha({ nome }: { nome: string }) {
             id="campo-senha-nova"
             name="senha"
             autoComplete="new-password"
-            describedBy="erro-senha-nova"
+            describedBy="medidor-senha-nova erro-senha-nova"
             idBotao="btn-ver-senha-nova"
             erro={campos.erros.senha}
             inputRef={senha}
             onBlur={() => campos.aoSair('senha')}
+            onInput={forca.atualizar}
           />
+          <MedidorDeSenha id="medidor-senha-nova" forca={forca.forca} falta={forca.falta} />
           <ErroCampo id="erro-senha-nova" erro={campos.erros.senha} />
         </div>
 

@@ -23,7 +23,7 @@
 // sendo `ref.current.value = ''`.
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import type { Validacao } from '../utils/validacao.js';
+import { forcaDaSenhaAluno, type ForcaDaSenha, type Validacao } from '../utils/validacao.js';
 
 // Erro por campo
 
@@ -153,6 +153,8 @@ interface PropsCampoSenha {
   erro: ErroDeCampo | null | undefined;
   inputRef: RefObject<HTMLInputElement>;
   onBlur: () => void;
+  /** A cada tecla (o medidor de força usa). */
+  onInput?: () => void;
 }
 
 /**
@@ -169,6 +171,7 @@ export function CampoSenha({
   erro,
   inputRef,
   onBlur,
+  onInput,
 }: PropsCampoSenha) {
   const [visivel, setVisivel] = useState(false);
   // O foco volta DEPOIS de o tipo do input ter trocado no DOM, na mesma
@@ -197,6 +200,7 @@ export function CampoSenha({
         required
         ref={inputRef}
         onBlur={onBlur}
+        onInput={onInput}
         {...atributosDeErro(erro)}
       />
       <button
@@ -211,4 +215,54 @@ export function CampoSenha({
       </button>
     </div>
   );
+}
+
+// Senha que o aluno cria (primeiro acesso e "Crie sua senha")
+
+/** A dica que fica à vista embaixo do campo. */
+export const DICA_SENHA_ALUNO =
+  'Crie uma senha que só você saiba: misture letras e números, como o nome do seu bicho + o ano que você nasceu. Não use 123456 nem seu nome.';
+
+const ROTULO_DA_FORCA = { fraca: 'Fraca', boa: 'Boa', forte: 'Forte' };
+
+interface PropsMedidor {
+  id: string;
+  forca: ForcaDaSenha | null;
+  falta: string | null;
+}
+
+/**
+ * Fraca / boa / forte e o que falta, em frase curta. Fica dentro de um
+ * aria-live polite: quem usa leitor de tela ouve a força ao parar de digitar.
+ * Sem nada digitado, só a dica.
+ */
+export function MedidorDeSenha({ id, forca, falta }: PropsMedidor) {
+  return (
+    <div className="medidor-senha" id={id} aria-live="polite">
+      <p className="ajuda-campo">{DICA_SENHA_ALUNO}</p>
+      {forca && (
+        <>
+          <div className={`medidor-barra medidor-${forca}`} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <p className="medidor-texto">
+            Senha <strong>{ROTULO_DA_FORCA[forca].toLowerCase()}</strong>
+            {falta ? `. ${falta}` : '. Ótima escolha!'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** O estado do medidor: chame `atualizar` no onInput do campo. */
+export function useForcaDaSenha(ref: RefObject<HTMLInputElement>, nome: () => string = () => '') {
+  const [estado, setEstado] = useState<{ forca: ForcaDaSenha | null; falta: string | null }>({ forca: null, falta: null });
+  function atualizar() {
+    const valor = ref.current?.value ?? '';
+    setEstado(valor.trim() === '' ? { forca: null, falta: null } : forcaDaSenhaAluno(valor, nome()));
+  }
+  return { ...estado, atualizar };
 }

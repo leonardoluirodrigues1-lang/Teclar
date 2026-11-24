@@ -460,3 +460,13 @@ ul { list-style: none; }
 @media (max-width: 699px) {
   .cartoes { grid-template-columns: minmax(0, 398px); }
 }
+
+/* Medidor de força da senha do aluno: três barrinhas e a frase do que falta.
+   A cor nunca é a única pista: o texto diz fraca/boa/forte. */
+.medidor-barra { display: flex; gap: 6px; margin-top: 10px; }
+.medidor-barra span { flex: 1; height: 6px; border-radius: 3px; background: var(--cor-borda-forte, #454545); }
+.medidor-fraca span:nth-child(1) { background: var(--cor-erro, #ff5a5a); }
+.medidor-boa span:nth-child(-n + 2) { background: var(--cor-alerta, #f5b93b); }
+.medidor-forte span { background: var(--cor-texto, #fff); }
+.medidor-texto { margin-top: 8px; font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
+.medidor-texto strong { color: var(--cor-texto, #fff); }

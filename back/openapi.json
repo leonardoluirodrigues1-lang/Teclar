@@ -269,7 +269,7 @@
         ],
         "operationId": "auth.entrarNaTurma",
         "summary": "(ainda não implementada) entrarNaTurma: RespostaLogin — a sessão do aluno, como no login",
-        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.entrarNaTurma`\n\n**Corpo:** CredenciaisAluno — o código da turma, o nome completo e a senha\n\n**Resposta:** 200 RespostaLogin — a sessão do aluno, como no login\n\n**Identidade:**\n\nPública. É o passo 2 da tela do aluno, e a única entrada dele na turma.\n\n**Regras de negócio no back (a tela não calcula):**\n\nProcura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.\n\n**Notas:**\n\nAqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o preço de o aluno se matricular sozinho. O POST /auth/login continua aceitando { codigo, nome, senha } para quem já tem matrícula.",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.auth.entrarNaTurma`\n\n**Corpo:** CredenciaisAluno — o código da turma, o nome completo e a senha\n\n**Resposta:** 200 RespostaLogin — a sessão do aluno, como no login\n\n**Identidade:**\n\nPública. É o passo 2 da tela do aluno, e a única entrada dele na turma.\n\n**Regras de negócio no back (a tela não calcula):**\n\nProcura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (6 a 20 caracteres, com pelo menos uma letra e um número) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.\n\n**Notas:**\n\nAqui a resposta diz se o nome já está na turma (401 x primeiro acesso): é o preço de o aluno se matricular sozinho. O POST /auth/login continua aceitando { codigo, nome, senha } para quem já tem matrícula.",
         "parameters": [],
         "requestBody": {
           "description": "CredenciaisAluno — o código da turma, o nome completo e a senha",
@@ -4201,10 +4201,10 @@
         ],
         "operationId": "escola.aluno.criarSenha",
         "summary": "criarSenha: (sem corpo)",
-        "description": "**Chamada no front:** `api.escola.aluno.criarSenha`\n\n**Corpo:** { novaSenha } — de 4 a 20 caracteres, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.\n\n**Notas:**\n\nEnquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para \"Crie sua senha\").",
+        "description": "**Chamada no front:** `api.escola.aluno.criarSenha`\n\n**Corpo:** { novaSenha } — de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token. Só vale para quem entrou com a senha provisória e ainda não criou a dele.\n\n**Regras de negócio no back (a tela não calcula):**\n\nUPDATE alunosturmas SET SenhaHash = bcrypt WHERE AlunoID = token AND SenhaHash IS NULL (e apaga o que restar de provisória). O /auth/eu deixa de mandar precisaTrocarSenha.\n\n**Notas:**\n\nEnquanto o aluno não cria a senha, o token dele só abre GET /auth/eu, POST /auth/logout e esta rota: qualquer outra responde 403 TROCAR_SENHA (o front manda para \"Crie sua senha\").",
         "parameters": [],
         "requestBody": {
-          "description": "{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas",
+          "description": "{ novaSenha } — de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas",
           "content": {
             "application/json": {
               "schema": {
@@ -4226,7 +4226,7 @@
             "description": "(sem corpo)"
           },
           "400": {
-            "description": "`DADOS_INVALIDOS` — senha fora de 4 a 20 caracteres",
+            "description": "`DADOS_INVALIDOS` — senha fora da regra (6 a 20, com letra e número)",
             "content": {
               "application/json": {
                 "examples": {

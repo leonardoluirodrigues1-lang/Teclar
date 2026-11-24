@@ -1,9 +1,10 @@
 // A regra da senha de ALUNO, conferida quando ele cria a senha dele
 // (POST /aluno/senha, depois de entrar com a senha provisória).
 //
-// Quem digita é criança: de 4 a 20 caracteres, qualquer coisa serve, sem
-// exigir letra, número nem símbolo. A senha de CONTA (Users) tem outra
-// regra, mais forte, e não passa por aqui.
+// Quem digita é criança: de 6 a 20 caracteres, com pelo menos uma letra e
+// um número (vale no primeiro acesso, POST /auth/aluno, e no "Crie sua
+// senha", POST /aluno/senha). A senha de CONTA (Users) tem outra regra e
+// não passa por aqui.
 //
 // A mesma regra existe no front, em js/utils/validacao.ts
 // (validarSenhaAluno), com as mesmas mensagens. Está repetida porque o back
@@ -12,8 +13,10 @@
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
-export const SENHA_DO_ALUNO_MINIMO = 4;
+export const SENHA_DO_ALUNO_MINIMO = 6;
 export const SENHA_DO_ALUNO_MAXIMO = 20;
+const TEM_LETRA = /\p{L}/u;
+const TEM_NUMERO = /\d/;
 
 // Devolve null quando a senha serve, e a mensagem pronta quando não serve.
 // A senha chega já aparada nas pontas (o login apara antes de tudo), então
@@ -28,6 +31,12 @@ export function problemaNaSenhaDoAluno(senha: string): string | null {
   }
   if (senha.length > SENHA_DO_ALUNO_MAXIMO) {
     return `A senha pode ter no máximo ${SENHA_DO_ALUNO_MAXIMO} caracteres.`;
+  }
+  if (!TEM_LETRA.test(senha)) {
+    return 'Coloque pelo menos uma letra.';
+  }
+  if (!TEM_NUMERO.test(senha)) {
+    return 'Coloque pelo menos um número.';
   }
   return null;
 }

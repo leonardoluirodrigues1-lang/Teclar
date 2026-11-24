@@ -150,7 +150,7 @@ Pública. É o passo 2 da tela do aluno, e a única entrada dele na turma.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Procura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (regra da senha de aluno) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.
+Procura o nome na turma como o login (sem distinguir maiúscula e acento, espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência de senha e de provisória do POST /auth/login. Não achou: é o primeiro acesso — confere o nome (2 a 150) e a senha (6 a 20 caracteres, com pelo menos uma letra e um número) e cria, numa transação, o ID em alunos e a matrícula em alunosturmas com SenhaHash = bcrypt da senha escolhida. O UNIQUE (ClassID, Nome) decide nomes iguais.
 
 **Notas:**
 
@@ -1609,7 +1609,7 @@ Chamada no front: `api.escola.aluno.criarSenha`
 
 **Corpo:**
 
-{ novaSenha } — de 4 a 20 caracteres, aparada nas pontas
+{ novaSenha } — de 6 a 20 caracteres, com pelo menos uma letra e um número, aparada nas pontas
 
 ```json
 { "novaSenha": "minhasenha" }
@@ -1621,7 +1621,7 @@ Chamada no front: `api.escola.aluno.criarSenha`
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — senha fora de 4 a 20 caracteres
+- 400 DADOS_INVALIDOS — senha fora da regra (6 a 20, com letra e número)
 - 403 TIPO_INVALIDO — token de conta
 - 409 SENHA_JA_CRIADA — o aluno já tem senha (trocar é com o professor, que gera outra provisória)
 

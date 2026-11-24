@@ -38,7 +38,7 @@ import {
   normalizarCodigo,
 } from '../utils/validacao.js';
 import { mensagemDoErro, mensagemDoCodigo, mensagemDaEntrada, MENSAGENS } from './comum.js';
-import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha } from './Formulario.js';
+import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha, MedidorDeSenha, useForcaDaSenha } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 type Modo = 'conta' | 'aluno';
@@ -92,6 +92,8 @@ function Login() {
     senhaAluno: { ref: senhaAluno, checar: () => validarSenhaLogin(senhaAluno.current.value) },
   });
   const refs = { email, senha, codigo, nome, senhaAluno };
+  // O nome digitado entra no medidor: "Não use o seu nome na senha."
+  const forca = useForcaDaSenha(senhaAluno, () => nome.current?.value ?? '');
 
   // O cadastro é só de conta: o aluno nasce da lista que o professor sobe.
   const hrefCadastro = ROTA_CADASTRO;
@@ -407,12 +409,14 @@ function Login() {
               id="campo-senha-aluno"
               name="senha"
               autoComplete="current-password"
-              describedBy="erro-senha-aluno"
+              describedBy="medidor-senha-aluno erro-senha-aluno"
               idBotao="btn-ver-senha-aluno"
               erro={campos.erros.senhaAluno}
               inputRef={senhaAluno}
               onBlur={() => campos.aoSair('senhaAluno')}
+              onInput={forca.atualizar}
             />
+            <MedidorDeSenha id="medidor-senha-aluno" forca={forca.forca} falta={forca.falta} />
             <ErroCampo id="erro-senha-aluno" erro={campos.erros.senhaAluno} />
           </div>
 
