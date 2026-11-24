@@ -103,3 +103,15 @@
 .medidor-forte span { background: var(--cor-texto, #fff); }
 .medidor-texto { margin-top: 8px; font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
 .medidor-texto strong { color: var(--cor-texto, #fff); }
+
+/* Entrada do aluno, antes de saber se é a primeira vez: as duas frases
+   curtas, uma ao lado da outra (uma embaixo da outra na tela estreita). */
+.dicas-lado-a-lado {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-3, 12px);
+}
+.dicas-lado-a-lado strong { color: var(--cor-texto, #fff); font-weight: var(--peso-medio, 500); }
+@media (max-width: 420px) {
+  .dicas-lado-a-lado { grid-template-columns: 1fr; }
+}

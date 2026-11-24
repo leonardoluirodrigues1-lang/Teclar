@@ -96,6 +96,11 @@ function Login() {
   const refs = { email, senha, codigo, nome, senhaAluno };
   // O nome digitado entra no medidor: "Não use o seu nome na senha."
   const forca = useForcaDaSenha(senhaAluno, () => nome.current?.value ?? '');
+  // Quem é o aluno do passo 2, pelo que a API já respondeu a ESTE nome: a tela
+  // não pergunta antes (nenhuma rota diz quem está na turma). 401 "Senha
+  // incorreta." só sai para nome que existe; o 400 da regra, só para o
+  // primeiro acesso. Mexer no nome volta ao "?", com as duas frases.
+  const [quemEntra, setQuemEntra] = useState<'?' | 'novo' | 'antigo'>('?');
 
   // O cadastro é só de conta: o aluno nasce da lista que o professor sobe.
   const hrefCadastro = ROTA_CADASTRO;
@@ -232,7 +237,10 @@ function Login() {
         setErroAluno(mensagemDoCodigo(excecao));
       } else {
         setErroAluno(mensagemDaEntrada(excecao, nome.current.value, senhaAluno.current.value));
+        if (erro?.name === 'ErroApi' && (erro.status === 401 || erro.status === 409)) setQuemEntra('antigo');
+        if (erro?.name === 'ErroApi' && erro.status === 400) setQuemEntra('novo');
         senhaAluno.current.value = '';
+        forca.atualizar();
         senhaAluno.current.focus();
       }
       enviando.current = false;
@@ -243,6 +251,7 @@ function Login() {
   function voltarAoCodigo() {
     limparTudo();
     setTurmaDoCodigo(null);
+    setQuemEntra('?');
   }
 
   // Fluxo comum aos dois formulários: trava o botão, chama a API, grava a
@@ -406,6 +415,7 @@ function Login() {
               required
               ref={nome}
               onBlur={() => campos.aoSair('nome')}
+              onInput={() => setQuemEntra('?')}
               {...atributosDeErro(campos.erros.nome)}
             />
             <ErroCampo id="erro-nome-aluno" erro={campos.erros.nome} />
@@ -426,7 +436,27 @@ function Login() {
               onBlur={() => campos.aoSair('senhaAluno')}
               onInput={forca.atualizar}
             />
-            <MedidorDeSenha id="medidor-senha-aluno" forca={forca.forca} falta={forca.falta} />
+            {/* Quem já entrou só precisa lembrar a senha: sem a dica de criar
+                nem o medidor. Sem saber ainda, as duas frases curtas. */}
+            <MedidorDeSenha
+              id="medidor-senha-aluno"
+              forca={quemEntra === 'antigo' ? null : forca.forca}
+              falta={forca.falta}
+              dica={
+                quemEntra === 'antigo' ? (
+                  'Digite a senha que você criou.'
+                ) : quemEntra === 'novo' ? undefined : (
+                  <span className="dicas-lado-a-lado">
+                    <span>
+                      <strong>Primeira vez?</strong> Invente uma senha com letras e números.
+                    </span>
+                    <span>
+                      <strong>Já entrou antes?</strong> Digite a senha que você criou.
+                    </span>
+                  </span>
+                )
+              }
+            />
             <ErroCampo id="erro-senha-aluno" erro={campos.erros.senhaAluno} />
           </div>
 

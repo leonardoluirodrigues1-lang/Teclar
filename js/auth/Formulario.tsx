@@ -229,6 +229,8 @@ interface PropsMedidor {
   id: string;
   forca: ForcaDaSenha | null;
   falta: string | null;
+  /** O texto de cima. Sem ele, a dica de criar senha. */
+  dica?: ReactNode;
 }
 
 /**
@@ -236,10 +238,10 @@ interface PropsMedidor {
  * aria-live polite: quem usa leitor de tela ouve a força ao parar de digitar.
  * Sem nada digitado, só a dica.
  */
-export function MedidorDeSenha({ id, forca, falta }: PropsMedidor) {
+export function MedidorDeSenha({ id, forca, falta, dica = DICA_SENHA_ALUNO }: PropsMedidor) {
   return (
     <div className="medidor-senha" id={id} aria-live="polite">
-      <p className="ajuda-campo">{DICA_SENHA_ALUNO}</p>
+      <p className="ajuda-campo">{dica}</p>
       {forca && (
         <>
           <div className={`medidor-barra medidor-${forca}`} aria-hidden="true">
