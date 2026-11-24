@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 60 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 62 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -248,6 +248,13 @@ confere('alunos.remover devolve null (204)', (await api.alunos.remover(turma.id,
 confere('alunos.daTurma sem o removido', (await api.alunos.daTurma(turma.id)).length === 1);
 await confereErro('alunos.remover de quem já saiu', api.alunos.remover(turma.id, caio.id), 404, 'NAO_ENCONTRADO');
 
+// A entrada de hoje: o código mostra a turma, e o aluno se matricula sozinho.
+confere('auth.turmaDoCodigo devolve o nome da turma', (await api.auth.turmaDoCodigo(codigo.toLowerCase())).nome === (await api.turmas.obter(turma.id)).nome);
+await confereErro('auth.turmaDoCodigo com código inexistente', api.auth.turmaDoCodigo('ZZZZZZ'), 404, 'TURMA_NAO_ENCONTRADA');
+const novoAluno = await api.auth.entrarNaTurma({ codigo, nome: 'Dani Teste', senha: 'dani2026' });
+confere('auth.entrarNaTurma: primeiro acesso matricula e entra', novoAluno.usuario.tipo === 'aluno' && novoAluno.usuario.turmas[0].id === turma.id);
+await confereErro('auth.entrarNaTurma com a senha errada', api.auth.entrarNaTurma({ codigo, nome: 'Dani Teste', senha: 'outra2026' }), 401, 'CREDENCIAIS');
+
 // ============================================================================
 // 3. Solo
 // ============================================================================
@@ -379,4 +386,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 60 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 62 funções do api.ts contra o back.`);

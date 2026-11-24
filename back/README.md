@@ -160,11 +160,11 @@ e nome não diferenciam maiúscula nem acento ("ana pires" entra).
 | `R8VD3K` | Ana Pires | `aluno2026` | Turma-2: o aluno de teste (3 sessões) |
 | `K7M2QX` | Ana Pires | `aluno2026` | Turma-1: **outra** Ana, outro histórico (2 sessões) |
 | `D6YG2S` | Ana Pires | `aluno2026` | Turma-5 (de leo): a terceira Ana |
-| `K7M2QX` | Davi Moreira | `davi26` (senha provisória) | **Primeiro acesso**: entra com a provisória e cai em "Crie sua senha". Uso único: para repetir a demo, rode `npm run seed` de novo (ou gere outra provisória na turma) |
-| `H3ZT6B` | Júlia Campos | nenhuma | Sem senha e sem provisória: não entra até o professor gerar uma ("Senha provisória" na turma) |
+| `K7M2QX` | Davi Moreira | `davi26` (senha provisória) | **Esqueceu a senha**: o professor gerou a provisória; entra com ela e cai em "Crie sua senha". Uso único: para repetir a demo, rode `npm run seed` de novo (ou gere outra provisória na turma) |
+| `K7M2QX` | qualquer nome novo (ex.: `Rafa Lima`) | a que você criar (6 a 20, letra e número, ex.: `rex2015`) | **Primeiro acesso**: o aluno se matricula sozinho e entra |
 
 Os outros alunos (Caio, Marina, Helena, os colegas do ranking da turma-2,
-Igor) também entram com `aluno2026`. A turma-8 (`P4WN8R`) está arquivada e
+Igor, Júlia) também entram com `aluno2026`. A turma-8 (`P4WN8R`) está arquivada e
 não tem alunos. Para ver o 403 de turma arquivada:
 `UPDATE ClassesProf SET Ativa = FALSE WHERE Codigo = 'D6YG2S';` e rode o
 seed de novo para voltar.
@@ -235,26 +235,39 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
   jeito de descobrir quem está em qual turma.
 - A comparação do nome sem maiúscula e acento é a collation do banco
   ("ana pires" acha "Ana Pires"), a mesma do UNIQUE (ClassID, Nome).
-- A senha do aluno vai de 4 a 20 caracteres, sem exigir letra nem número,
-  porque quem digita é criança. A regra forte (8+, letra e número) é só da
-  senha de conta, no `POST /auth/cadastro`.
+- A senha do aluno vai de 6 a 20 caracteres, com pelo menos uma letra e um
+  número; a tela mostra a dica e um medidor fraca/boa/forte. A senha de
+  conta (8+, letra e número, sem espaço nas pontas) é do `POST /auth/cadastro`.
 - O login apara as pontas da senha porque senha colada costuma trazer um
   espaço ou uma quebra de linha no fim. Isso só é seguro porque nenhuma
   senha válida tem espaço nas pontas: por isso o cadastro recusa esse caso
   (a tela barra antes, mas o back também precisa barrar). Uma conta criada
   com `"abc12345 "` nunca mais entraria.
-- Conta não tem entrada de aluno: o aluno nasce da lista que o professor
-  sobe na turma.
+- Conta não tem entrada de aluno: o aluno entra pela turma (abaixo).
 
-**Aluno, turma e código**
+**Aluno, turma e código: o fluxo de entrada**
 
-- O aluno entra a primeira vez com uma **senha provisória**: a importação
-  gera uma para cada aluno novo (6 letras e números, bcrypt em
-  `SenhaProvisoriaHash`, validade de 7 dias em `SenhaProvisoriaExpira`) e a
-  devolve em texto uma vez só, para o professor imprimir. O login com ela a
-  apaga (uso único) e responde `usuario.precisaTrocarSenha: true`; o aluno
-  cria a dele em `POST /aluno/senha`. Sem `SenhaHash` e sem provisória
-  válida, nenhuma senha entra.
+1. O professor passa o código da turma para a sala (está no topo da turma
+   e na aba Alunos). Ele não cadastra ninguém.
+2. Passo 1 da tela: o aluno digita o código; `GET /auth/turmas/:codigo`
+   devolve o nome da turma (404 `TURMA_NAO_ENCONTRADA`, 403
+   `TURMA_ARQUIVADA`).
+3. Passo 2: nome completo + senha em `POST /auth/aluno`. Nome que ainda não
+   está na turma é o **primeiro acesso**: o ID em `alunos` e a matrícula em
+   `alunosturmas` nascem numa transação, com o bcrypt da senha que ele
+   escolheu. Nome que já está é login normal; senha errada dá 401 "Senha
+   incorreta." (a tela completa: "Se esqueceu, peça ao professor uma senha
+   provisória."). Dois aparelhos com o mesmo nome ao mesmo tempo: o UNIQUE
+   (ClassID, Nome) recusa o segundo com 409 `NOME_EM_USO` ("use também seu
+   sobrenome"). Mesmo limite de senhas erradas do login (a mesma contagem).
+
+- Quem esqueceu a senha recebe do professor uma **senha provisória**
+  (6 letras e números, bcrypt em `SenhaProvisoriaHash`, validade de 7 dias
+  em `SenhaProvisoriaExpira`), mostrada em texto uma vez só. O login com ela
+  a apaga (uso único) e responde `usuario.precisaTrocarSenha: true`; o
+  aluno cria a dele em `POST /aluno/senha`.
+- `POST /turmas/:id/alunos/importar` ficou **obsoleta**: continua no back
+  (as suítes ainda a usam para montar turmas de teste), sem tela.
 - O aluno não tem e-mail, então não existe "esqueci minha senha"
   automático. Quem desbloqueia é o professor, em
   `POST /turmas/:id/alunos/:alunoId/senha-provisoria`: a senha antiga deixa
@@ -268,9 +281,8 @@ O Swagger diz só a regra de cada rota. O porquê fica aqui.
 - Turma é arquivada, nunca excluída: SessionsProf aponta para a turma com
   ON DELETE CASCADE, e apagar a turma apagaria o histórico de treino de
   todos os alunos dela.
-- A importação é a única porta de entrada do aluno, por isso é obrigatória:
-  sem o nome na lista, o login responde 401. Aluno removido por engano volta
-  como linha nova, sem a senha e sem o histórico antigos.
+- Aluno removido ("Remover da turma") pode entrar de novo com o código,
+  mas volta como matrícula nova, sem a senha e sem o histórico antigos.
 - Na v8 cada aluno é de uma turma só, então "as sessões dele" e "as sessões
   dele nesta turma" são a mesma coisa. `GET /aluno/salas` continua lista
   para a tela não mudar de forma.

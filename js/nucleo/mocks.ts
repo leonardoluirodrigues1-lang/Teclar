@@ -45,7 +45,7 @@
 //                                      exercício, e só 2 sessões concluídas
 //                                      (o relatório mostra quanto falta).
 //   D6YG2S   Ana Pires     aluno2026   turma-5 (de leo): nenhum feito.
-//   K7M2QX   Davi Moreira  davi26      PRIMEIRO ACESSO: sem senha, com a
+//   K7M2QX   Davi Moreira  davi26      ESQUECEU A SENHA: sem senha, com a
 //                                      provisória davi26 (uso único). Entra
 //                                      com precisaTrocarSenha e cria a dele
 //                                      em POST /aluno/senha. Até o F5.
@@ -280,8 +280,8 @@ function provisoriaValida(aluno: AlunoMock): boolean {
   return aluno.senha === null && !!aluno.provisoria && Date.parse(aluno.provisoria.expira) > Date.now();
 }
 
-// A senha dos alunos de teste. Segue a regra do primeiro acesso (4 a 20
-// caracteres), para ser uma senha que o login aceitaria gravar. Fica antes
+// A senha dos alunos de teste. Segue a regra do primeiro acesso (6 a 20,
+// com letra e número), para ser uma senha que a entrada aceitaria gravar. Fica antes
 // de `dados` porque `dados` a usa ao ser montado.
 const SENHA_ALUNO_DE_TESTE = 'aluno2026';
 
@@ -560,13 +560,14 @@ export const dados: BancoMock = {
   // histórico. `entrouEm` é Alunos.Data_Cadastro. Nada de agregado aqui:
   // sai das sessões (linhaDoAluno).
   //
-  // senha null = primeiro acesso pendente: Davi (turma-1) e Júlia (turma-4).
+  // Todos com senha (o aluno cria a dele ao entrar), menos o Davi (turma-1):
+  // ele esqueceu a dele e o professor gerou a provisória davi26.
   alunos: {
     'turma-1': [
       { id: 'al-43-t1', nome: 'Ana Pires', entrouEm: '2026-02-01', senha: SENHA_ALUNO_DE_TESTE },
       { id: 'al-44', nome: 'Caio Ferreira', entrouEm: '2026-02-01', senha: SENHA_ALUNO_DE_TESTE },
-      // Nunca treinou e nunca entrou: é a linha apagada, com travessão em
-      // todo número, e o caminho do primeiro acesso no login.
+      // Nunca treinou e está com a provisória: é a linha apagada, com travessão em
+      // todo número, e o caminho do "Crie sua senha" no login.
       {
         id: 'al-45',
         nome: 'Davi Moreira',
@@ -591,7 +592,7 @@ export const dados: BancoMock = {
     'turma-3': [],
     'turma-4': [
       { id: 'al-47', nome: 'Igor Batista', entrouEm: '2026-03-02', senha: SENHA_ALUNO_DE_TESTE },
-      { id: 'al-48', nome: 'Júlia Campos', entrouEm: '2026-03-02', senha: null },
+      { id: 'al-48', nome: 'Júlia Campos', entrouEm: '2026-03-02', senha: SENHA_ALUNO_DE_TESTE },
     ],
     // A turma de leo: só a Ana desta turma, que ainda não treinou nela.
     'turma-5': [{ id: 'al-43-t5', nome: 'Ana Pires', entrouEm: '2026-03-12', senha: SENHA_ALUNO_DE_TESTE }],

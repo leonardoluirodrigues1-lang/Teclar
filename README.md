@@ -9,10 +9,10 @@ Dois mundos, com a mesma tela de treino e o mesmo motor de digitação
 
 - **Solo**: quem tem conta treina sozinho, numa campanha com níveis, missões
   e XP.
-- **Escola**: o professor (também uma conta) cria turmas, importa os nomes
-  dos alunos por CSV e atribui exercícios. O aluno entra com o **código da
+- **Escola**: o professor (também uma conta) cria turmas, passa o código
+  para a sala e atribui exercícios. O aluno entra sozinho com o **código da
   turma, o próprio nome e uma senha**; no primeiro acesso, a senha que ele
-  digita é gravada. O aluno não tem e-mail nem conta, e não há convites.
+  cria (6 a 20, com letra e número) é gravada e a matrícula nasce. O aluno não tem e-mail nem conta, e não há convites.
   **Matrícula = login**: cada matrícula (linha de `alunosturmas`) tem o
   seu nome, a sua senha e o seu histórico. O mesmo nome em duas turmas são
   dois logins independentes; zerar a senha de um não mexe no outro.
@@ -77,7 +77,8 @@ as contas criadas pelo cadastro ficam intactas (ver `back/README.md`).
 | Solo | `leo@teclar.dev` | `senha123` |
 | Administradora | `ana@teclar.dev` | `senha123` |
 | Aluno | código `R8VD3K`, nome `Ana Pires` | `aluno2026` |
-| Aluno (primeiro acesso) | código `K7M2QX`, nome `Davi Moreira` | qualquer, de 4 a 20 caracteres |
+| Aluno (primeiro acesso) | código `K7M2QX`, um nome novo | a que você criar: 6 a 20, com letra e número |
+| Aluno (esqueceu a senha) | código `K7M2QX`, nome `Davi Moreira` | `davi26` (provisória, uso único) |
 
 A lista completa está em `back/README.md`.
 

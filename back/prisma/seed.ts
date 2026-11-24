@@ -25,7 +25,9 @@
 // O aluno segue o banco v10: é uma matrícula (alunosturmas) com nome, senha
 // e histórico próprios, e entra com o código da turma, o nome e a senha.
 // SenhaHash NULL é o aluno que ainda não criou a senha dele: só entra com
-// a senha provisória do professor (Davi tem uma, conhecida, para a demo).
+// a senha provisória do professor. Os alunos da demo já têm senha (o
+// aluno cria a dele no primeiro acesso, POST /auth/aluno); só o Davi está
+// com uma provisória conhecida, como quem esqueceu a senha.
 //
 // As credenciais estão no README do back.
 import 'dotenv/config';
@@ -42,11 +44,11 @@ import { apagarContas, type Transacao } from './apagar-contas.js';
 const CUSTO_BCRYPT = 10;
 
 // As senhas dos dados de teste, as mesmas do mock. A dos alunos segue a
-// regra da senha de aluno (4 a 20 caracteres), como se o próprio aluno a
+// regra da senha de aluno (6 a 20, com letra e número), como se o próprio aluno a
 // tivesse criado no primeiro acesso.
 const SENHA_DAS_CONTAS = 'senha123';
 const SENHA_DOS_ALUNOS = 'aluno2026';
-// A provisória do Davi Moreira (turma-1), para a demo do primeiro acesso.
+// A provisória do Davi Moreira (turma-1): a demo do "esqueci a senha".
 // Uso único: depois de um login com ela, rode o seed de novo para repetir.
 const PROVISORIA_DO_DAVI = 'davi26';
 const VALIDADE_DA_PROVISORIA_DO_SEED_DIAS = 365;
@@ -343,7 +345,7 @@ function atribuicao(turmaId: string, exercicioId: string, data: string) {
 // al-43-t1, al-43 e al-43-t5 —, cada uma com a sua senha e o seu
 // histórico. O código da turma é o que diz qual delas entra.
 const ALUNOS = [
-  // turma-1 (K7M2QX): a dos relatórios. Davi nunca entrou.
+  // turma-1 (K7M2QX): a dos relatórios. Davi esqueceu a senha (provisória).
   { id: 'al-43-t1', turma: 'turma-1', nome: 'Ana Pires', entrou: '2026-02-01', senha: true },
   { id: 'al-44', turma: 'turma-1', nome: 'Caio Ferreira', entrou: '2026-02-01', senha: true },
   { id: 'al-45', turma: 'turma-1', nome: 'Davi Moreira', entrou: '2026-02-24', senha: false, provisoria: true },
@@ -357,9 +359,9 @@ const ALUNOS = [
   { id: 'al-53', turma: 'turma-2', nome: 'Elisa Prado', entrou: '2026-02-10', senha: true },
   { id: 'al-54', turma: 'turma-2', nome: 'Fábio Mendes', entrou: '2026-02-10', senha: true },
   { id: 'al-55', turma: 'turma-2', nome: 'Gabriela Luz', entrou: '2026-02-10', senha: true },
-  // turma-4 (H3ZT6B): Júlia nunca entrou.
+  // turma-4 (H3ZT6B).
   { id: 'al-47', turma: 'turma-4', nome: 'Igor Batista', entrou: '2026-03-02', senha: true },
-  { id: 'al-48', turma: 'turma-4', nome: 'Júlia Campos', entrou: '2026-03-02', senha: false },
+  { id: 'al-48', turma: 'turma-4', nome: 'Júlia Campos', entrou: '2026-03-02', senha: true },
   // turma-5 (D6YG2S), de leo: a terceira Ana.
   { id: 'al-43-t5', turma: 'turma-5', nome: 'Ana Pires', entrou: '2026-03-12', senha: true },
 ];

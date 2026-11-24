@@ -124,6 +124,8 @@ const igualPeloDia = (a, b) => peloDia(a) === peloDia(b);
 seed();
 const demoOriginal = await retratoDaDemo();
 confere('a demo do seed tem as turmas do prof', demoOriginal.turmas.some((t) => t.id === 'turma-1'));
+// Os alunos da demo já têm senha: a Júlia (que antes esperava o professor) entra.
+await exigir('Júlia entra com a senha da demo', chamar('POST', '/auth/aluno', { codigo: 'H3ZT6B', nome: 'Júlia Campos', senha: 'aluno2026' }));
 
 // ============================================================================
 // 2. Uma conta de verdade, pelo cadastro, com tudo pendurado nela
@@ -138,10 +140,8 @@ const exercicio = await exigir(
   chamar('POST', '/exercicios', { titulo: 'Real', texto: 'O rato roeu a roupa do rei de Roma e a rainha riu.', dificuldade: 'facil', tempoLimiteSegundos: 0 }, real),
 );
 await exigir('atribuição', chamar('POST', `/turmas/${turma.id}/atribuicoes`, { exercicioIds: [exercicio.id] }, real));
-const importados = await exigir('aluno', chamar('POST', `/turmas/${turma.id}/alunos/importar`, { nomes: ['Rita Real'] }, real));
-const provisoria = importados.adicionados[0].senhaProvisoria;
-const primeiroAcesso = await exigir('primeiro acesso do aluno', chamar('POST', '/auth/login', { codigo: turma.codigo, nome: 'Rita Real', senha: provisoria }));
-await exigir('senha do aluno', chamar('POST', '/aluno/senha', { novaSenha: 'rita2026' }, primeiroAcesso.token), 204);
+// O aluno se matricula sozinho, com o código da turma (o fluxo de hoje).
+await exigir('primeiro acesso do aluno', chamar('POST', '/auth/aluno', { codigo: turma.codigo, nome: 'Rita Real', senha: 'rita2026' }));
 const aluno = (await exigir('login do aluno', chamar('POST', '/auth/login', { codigo: turma.codigo, nome: 'Rita Real', senha: 'rita2026' }))).token;
 await exigir('sessão escola', chamar('POST', '/sessoes', { ...MEDIDAS, exercicio_id: exercicio.id, turma_id: turma.id }, aluno));
 await exigir('campanha Solo da conta', chamar('POST', '/solo/campanha', null, real));
