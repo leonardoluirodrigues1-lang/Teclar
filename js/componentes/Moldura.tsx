@@ -32,7 +32,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import { CONFIG, ROTA_INICIAL } from '../config.js';
+import { CONFIG } from '../config.js';
 import type { Campanha } from '../nucleo/tipos.js';
 import { progressoDe } from './BarraXp.js';
 import { IconeSair } from './IconesDoTutorial.js';
@@ -118,7 +118,10 @@ function itensDo(modo: ModoDaMoldura): Item[] {
   }
   if (modo === 'aluno') {
     return [
-      { tela: 'sala', rotulo: 'Minha sala', href: ROTA_INICIAL.aluno, icone: ICONES.inicio },
+      // Direto na sala dele (com o ?id=): sem o id, sala.html acharia a sala e
+      // trocaria de endereço logo ao abrir, e essa navegação no meio da
+      // transição de página faz o Chrome abortar a transição (InvalidStateError).
+      { tela: 'sala', rotulo: 'Minha sala', href: guarda.casa(), icone: ICONES.inicio },
       { tela: 'historico', rotulo: 'Meu histórico', href: '/pages/aluno/historico.html', icone: ICONES.historico },
     ];
   }
