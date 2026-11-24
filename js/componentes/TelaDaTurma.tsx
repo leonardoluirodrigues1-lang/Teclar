@@ -9,7 +9,7 @@
 //   useAbaDaUrl         a aba escolhida, guardada em ?aba= para o F5
 //   TurmaNaoEncontrada  a tela inteira quando a turma não existe para ele
 //   TrilhaDeExercicios  os exercícios como pedras, na ordem de atribuição
-//   PainelDeRelatorio   os números, a barra de quanto falta e PDF/CSV
+//   PainelDeRelatorio   os números e a barra de quanto falta (o do aluno)
 //
 // A tabela de participantes é o componente Tabela (./Tabela.tsx); só as
 // colunas mudam por papel, e por isso elas ficam em cada tela.
@@ -379,15 +379,16 @@ interface PropsPainel {
   grupos: NumeroDoRelatorio[][];
   /**
    * Presente: ainda não há sessões bastantes para as médias, e o painel
-   * mostra quanto falta embaixo dos números que já valem (os grupos), com
-   * PDF e CSV desligados. Quem decide é o back (manda as médias nulas); a
-   * tela só passa a contagem adiante.
+   * mostra quanto falta embaixo dos números que já valem (os grupos).
+   * Quem decide é o back (manda as médias nulas); a tela só passa a
+   * contagem adiante.
    */
   falta?: { sessoes: number; minimo: number } | null;
-  aoGerarCsv: () => void;
 }
 
-export function PainelDeRelatorio({ rotulo, grupos, falta, aoGerarCsv }: PropsPainel) {
+// É a visão do ALUNO (sala.html, aba Relatório): sem PDF nem CSV, que são
+// coisa do professor (RelatorioDaTurma.tsx).
+export function PainelDeRelatorio({ rotulo, grupos, falta }: PropsPainel) {
   const semDados = Boolean(falta);
   return (
     <section className="painel-relatorio vidro" aria-label={rotulo}>
@@ -395,23 +396,6 @@ export function PainelDeRelatorio({ rotulo, grupos, falta, aoGerarCsv }: PropsPa
           seguidos com a estrela) aparecem sempre; o que falta, só embaixo. */}
       <Numeros grupos={grupos} />
       {semDados && <QuantoFalta sessoes={falta.sessoes} minimo={falta.minimo} />}
-
-      <div className="relatorio-acoes">
-        {/* "Gerar PDF" é a impressão do navegador, que salva em PDF. A folha
-            de impressão (@media print, escola.css) deixa só o relatório,
-            em preto no branco. */}
-        <button
-          type="button"
-          className="btn btn-solido tecla tecla-clara"
-          disabled={semDados}
-          onClick={() => window.print()}
-        >
-          Gerar PDF
-        </button>
-        <button type="button" className="btn btn-vidro vidro tecla" disabled={semDados} onClick={aoGerarCsv}>
-          Gerar CSV
-        </button>
-      </div>
     </section>
   );
 }
@@ -442,12 +426,12 @@ function QuantoFalta({ sessoes, minimo }: { sessoes: number; minimo: number }) {
     <>
       <div className="relatorio-falta">
         <span>
-          {sessoes} de {minimo} sessões concluídas nesta turma
+          {sessoes} de {minimo} atividades concluídas nesta turma
         </span>
         <span
           className="barra-falta"
           role="progressbar"
-          aria-label="Sessões concluídas para o relatório"
+          aria-label="Atividades concluídas para ver a sua média"
           aria-valuemin={0}
           aria-valuemax={minimo}
           aria-valuenow={Math.min(sessoes, minimo)}
@@ -456,8 +440,8 @@ function QuantoFalta({ sessoes, minimo }: { sessoes: number; minimo: number }) {
         </span>
       </div>
       <p className="relatorio-aviso">
-        {falta === 1 ? 'Falta 1 sessão' : `Faltam ${falta} sessões`} para o relatório sair com média e comparação.
-        Abaixo de {minimo}, o número não diz nada sobre como a pessoa está indo.
+        {/* Para criança: o que fazer, e não por que a conta não vale. */}
+        Conclua mais {falta === 1 ? '1 atividade' : `${falta} atividades`} para ver sua média e comparar com a turma.
       </p>
     </>
   );

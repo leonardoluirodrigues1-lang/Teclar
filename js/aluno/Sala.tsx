@@ -39,7 +39,6 @@ import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
 import { Estrela } from '../componentes/Estrela.js';
 import { AvisoBloqueada } from '../componentes/AvisoBloqueada.js';
 import { contagem, numero, porcentagem } from '../utils/formato.js';
-import { baixarCsv, slug } from '../utils/csv.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Guarda de aluno antes de qualquer outra coisa. Devolveu null, já
@@ -364,7 +363,6 @@ function AbaRelatorio({ nomeDaSala }: { nomeDaSala: string }) {
         rotulo="Seu relatório nesta sala"
         falta={temMedia ? null : { sessoes: d.sessoesConcluidas, minimo: MINIMO_DE_SESSOES }}
         grupos={gruposDoAluno(d, temMedia)}
-        aoGerarCsv={() => baixarCsv(`relatorio-${slug(nomeDaSala)}.csv`, linhasDoCsv(nomeDaSala, d))}
       />
       <p className="nota">O relatório é só o seu. A média da sala soma as sessões concluídas de todos que estão nela.</p>
     </>
@@ -390,22 +388,6 @@ function gruposDoAluno(d: DesempenhoNaTurma, temMedia: boolean) {
       { rotulo: 'Sua precisão', valor: porcentagem(d.minhaMedia.precisao) },
       { rotulo: 'Média da sala', valor: porcentagem(d.mediaSala.precisao), apagado: true },
     ],
-  ];
-}
-
-// As linhas do CSV: o que a tela mostra, com os números crus (o Excel
-// precisa de número, não de "94%").
-function linhasDoCsv(nomeDaSala: string, d: DesempenhoNaTurma): (string | number)[][] {
-  return [
-    ['Sala', nomeDaSala],
-    ['Sessões concluídas', d.sessoesConcluidas],
-    ['Lições', d.licoes],
-    ['Nível', d.nivelAtual],
-    ['Dias seguidos', d.diasSeguidos],
-    ['Seu ritmo (PPM)', d.minhaMedia?.velocidade ?? ''],
-    ['Ritmo médio da sala (PPM)', d.mediaSala?.velocidade ?? ''],
-    ['Sua precisão (%)', d.minhaMedia?.precisao ?? ''],
-    ['Precisão média da sala (%)', d.mediaSala?.precisao ?? ''],
   ];
 }
 
