@@ -2092,3 +2092,15 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   /* As linhas do gráfico são brancas na tela: no papel, invertidas para preto. */
   .grafico canvas { filter: invert(1); }
 }
+
+/* --- 3 dias seguidos ou mais: a estrela e "Mandou bem!" (aluno/Sala.tsx) - */
+.selo-dias-seguidos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--cor-texto, #fff);
+  white-space: nowrap;
+}
+.metrica-item .selo-dias-seguidos { margin: 6px 0 0; }

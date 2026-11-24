@@ -369,6 +369,8 @@ export interface NumeroDoRelatorio {
   apagado?: boolean;
   /** Tooltip curto: como o número é calculado. */
   dica?: string;
+  /** Ao lado do número: a estrela dos dias seguidos, por exemplo. */
+  selo?: ReactNode;
 }
 
 interface PropsPainel {
@@ -419,6 +421,7 @@ function Numeros({ grupos }: { grupos: NumeroDoRelatorio[][] }) {
             <div key={j} className={numero.apagado ? 'metrica-item relatorio-apagado' : 'metrica-item'} title={numero.dica}>
               <span className="metrica-rotulo">{comPpm(numero.rotulo)}</span>
               <span className="metrica-valor">{numero.valor}</span>
+              {numero.selo}
             </div>
           ))}
         </div>

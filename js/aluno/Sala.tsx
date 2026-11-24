@@ -253,20 +253,37 @@ function AbaParticipantes() {
   );
 }
 
+// 3 dias seguidos ou mais é conquista: a estrela (o símbolo de conquista do
+// site, ver Estrela.tsx) e "Mandou bem!", no relatório e no ranking.
+const DIAS_PARA_ESTRELA = 3;
+
+function SeloDosDiasSeguidos({ dias }: { dias: number }) {
+  if (dias < DIAS_PARA_ESTRELA) return null;
+  return (
+    <span className="selo-dias-seguidos">
+      <Estrela tamanho={14} />
+      <span>Mandou bem! {dias} dias seguidos</span>
+    </span>
+  );
+}
+
 // A ordem e os pontos são os do back: a tela não ordena e não soma nada.
 const COLUNAS_DO_RANKING: ColunaTabela<LinhaDoRanking>[] = [
   { rotulo: '#', classe: 'col-numero', celula: (l) => l.posicao },
   {
     rotulo: 'Participante',
     celula: (l) =>
-      l.voce ? (
-        <>
-          {l.nome} <span className="marca-voce">você</span>
-        </>
-      ) : (
-        // null: o back não mandou o nome. A tela não tem o que esconder.
-        (l.nome ?? 'Participante')
-      ),
+      <>
+        {l.voce ? (
+          <>
+            {l.nome} <span className="marca-voce">você</span>
+          </>
+        ) : (
+          // null: o back não mandou o nome. A tela não tem o que esconder.
+          (l.nome ?? 'Participante')
+        )}
+        <SeloDosDiasSeguidos dias={l.diasSeguidos} />
+      </>,
   },
   { rotulo: 'Lições', classe: 'col-numero', celula: (l) => contagem(l.licoes) },
   { rotulo: 'Ritmo', classe: 'col-numero', celula: (l) => numero(l.ritmo) },
@@ -360,7 +377,7 @@ function gruposDoAluno(d: DesempenhoNaTurma) {
     [
       { rotulo: 'Sessões', valor: contagem(d.sessoesConcluidas) },
       { rotulo: 'Lições', valor: contagem(d.licoes) },
-      { rotulo: 'Dias seguidos', valor: contagem(d.diasSeguidos) },
+      { rotulo: 'Dias seguidos', valor: contagem(d.diasSeguidos), selo: <SeloDosDiasSeguidos dias={d.diasSeguidos} /> },
     ],
     [
       { rotulo: 'Seu ritmo', valor: numero(d.minhaMedia.velocidade) },
