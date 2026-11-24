@@ -1044,7 +1044,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 /* --- faixa do nível ------------------------------------------------------ */
 .caminho-faixa {
   position: absolute;
-  top: 104px;
+  top: 92px;
   left: 50%;
   z-index: 1;
   display: flex;
@@ -1057,6 +1057,33 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   transform: translateX(-50%);
 }
 .caminho-faixa-esqueleto { height: 74px; }
+
+/* Com o nível carregado, faixa e trilha vão empilhadas: a faixa ocupa o
+   próprio espaço (logo abaixo do topo) e a trilha começa onde ela termina.
+   Assim nenhuma pedra fica atrás da faixa, em nenhuma largura, nem quando o
+   nome do nível quebra em duas linhas. */
+.caminho-nivel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 92px;
+}
+.caminho-nivel > .caminho-faixa {
+  position: relative;
+  top: auto;
+  left: auto;
+  flex: none;
+  transform: none;
+}
+.caminho-nivel > .caminho-trilha {
+  position: relative;
+  inset: auto;
+  flex: 1;
+  align-self: stretch;
+  min-height: 0;
+}
 
 .caminho-faixa-rotulo {
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
@@ -1087,7 +1114,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 /* Erro e "nenhuma lição" ocupam o lugar da faixa. */
 .caminho-aviso {
   position: absolute;
-  top: 104px;
+  top: 92px;
   left: 50%;
   width: min(620px, calc(100% - 32px));
   transform: translateX(-50%);

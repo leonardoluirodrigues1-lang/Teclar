@@ -87,8 +87,8 @@ const MARGEM_ESQUERDA = 170;
 const MARGEM_DIREITA = 150;
 // Em tela estreita as margens encolhem junto, para sobrar lugar às pedras.
 const MARGEM_MAXIMA_DA_LARGURA = 0.15;
-// O meio da onda fica um pouco abaixo do centro: em cima mora a faixa do nível.
-const ALTURA_DO_MEIO = 0.56;
+// A área da trilha já começa abaixo da faixa do nível: a onda fica no meio.
+const ALTURA_DO_MEIO = 0.5;
 const AMPLITUDE_MAXIMA = 150;
 const AMPLITUDE_DA_ALTURA = 0.17;
 // 2.1 meias-voltas de seno: termina subindo, com o troféu fora da linha reta.
@@ -527,8 +527,10 @@ function Caminho() {
     }
 
     const grupo = grupos[indiceDoNivel];
+    // Faixa e trilha empilhadas: a trilha começa onde a faixa termina, então
+    // as pedras nunca ficam atrás dela, em qualquer largura (ver solo.css).
     return (
-      <>
+      <div className="caminho-nivel">
         <FaixaDoNivel
           grupo={grupo}
           temAnterior={indiceDoNivel > 0}
@@ -536,7 +538,7 @@ function Caminho() {
           aoMudar={mudarNivel}
         />
         <Trilha grupo={grupo} progresso={progresso} ehEstrelaNova={ehEstrelaNova} />
-      </>
+      </div>
     );
   }
 
