@@ -443,7 +443,7 @@
         ],
         "operationId": "auth.cadastrar",
         "summary": "cadastrar: RespostaLogin — a sessão, como no login",
-        "description": "**Chamada no front:** `api.auth.cadastrar`\n\n**Corpo:** DadosCadastro\n\n**Resposta:** 200 RespostaLogin — a sessão, como no login\n\n**Identidade:**\n\nPública.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCria só a linha em Users. Nome: aparado, espaços internos reduzidos a um, de 2 a 150 caracteres. E-mail: aparado e minúsculo, formato algo@algo.algo, até 150 caracteres. Senha de CONTA: pelo menos 8 caracteres, ao menos uma letra e um número, sem espaço no começo nem no fim; é gravada sem aparar. Mesma regra do front (validacao.ts) e do back (regras-do-cadastro.ts).\n\n**Notas:**\n\nQuem acabou de se cadastrar não passa pelo login de novo.",
+        "description": "**Chamada no front:** `api.auth.cadastrar`\n\n**Corpo:** DadosCadastro\n\n**Resposta:** 200 RespostaLogin — a sessão, como no login\n\n**Identidade:**\n\nPública.\n\n**Regras de negócio no back (a tela não calcula):**\n\nCria só a linha em Users. Nome: aparado, espaços internos reduzidos a um, de 2 a 150 caracteres. E-mail: aparado e minúsculo, formato algo@algo.algo, até 150 caracteres. Senha de CONTA: pelo menos 8 caracteres, ao menos uma letra e um número, sem espaço no começo nem no fim; é gravada sem aparar. Mesma regra do front (validacao.ts) e do back (regras-do-cadastro.ts).\n\n**Notas:**\n\nA resposta traz a sessão, mas a tela a descarta: depois do cadastro a pessoa vai para o login com o e-mail preenchido e entra com a senha que acabou de criar.",
         "parameters": [],
         "requestBody": {
           "description": "DadosCadastro",

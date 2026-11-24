@@ -206,7 +206,8 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
   caracteres, ao menos uma letra e um número, sem espaço no começo nem no
   fim; é gravada sem aparar. Mesma regra do front (validacao.ts) e do back
   (regras-do-cadastro.ts).`,
-        nota: `Quem acabou de se cadastrar não passa pelo login de novo.`,
+        nota: `A resposta traz a sessão, mas a tela a descarta: depois do cadastro a pessoa vai
+  para o login com o e-mail preenchido e entra com a senha que acabou de criar.`,
       },
       'auth.eu': {
         rota: 'GET /auth/eu',

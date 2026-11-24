@@ -192,7 +192,7 @@ Cria só a linha em Users. Nome: aparado, espaços internos reduzidos a um, de 2
 
 **Notas:**
 
-Quem acabou de se cadastrar não passa pelo login de novo.
+A resposta traz a sessão, mas a tela a descarta: depois do cadastro a pessoa vai para o login com o e-mail preenchido e entra com a senha que acabou de criar.
 
 ### `GET /auth/eu`
 

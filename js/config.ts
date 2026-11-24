@@ -41,6 +41,7 @@ export const CONFIG = {
   // durante o desenvolvimento (Live Server na 5500).
   CHAVES_STORAGE: {
     TOKEN: 'teclar:token',
+    CONTA_CRIADA: 'teclar:conta_criada', // e-mail da conta recém-criada, lido (e apagado) pelo login
     USUARIO: 'teclar:usuario',
     MODO: 'teclar:modo', // último modo (solo | professor) da conta, ver sessao.modo()
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back

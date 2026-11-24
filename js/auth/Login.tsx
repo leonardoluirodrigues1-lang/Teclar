@@ -23,7 +23,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ROTA_CADASTRO } from '../config.js';
+import { CONFIG, ROTA_CADASTRO } from '../config.js';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
@@ -67,6 +67,8 @@ function Login() {
   const [ocupado, setOcupado] = useState(false);
 
   const [erroConta, setErroConta] = useState('');
+  // Vindo do cadastro: o e-mail da conta nova (lido uma vez e apagado).
+  const [contaCriada] = useState(lerContaCriada);
   const [erroAluno, setErroAluno] = useState('');
   // Primeiro acesso do aluno: a senha que ele digitou acabou de ser gravada.
   // O aviso fica entre o login e o dashboard, porque ele não tem e-mail para
@@ -105,7 +107,10 @@ function Login() {
   // No aluno, o passo diz qual: o código (passo 1) ou o nome (passo 2).
   const [turmaDoCodigo, setTurmaDoCodigo] = useState<{ codigo: string; nome: string } | null>(null);
   useEffect(() => {
-    if (modo === 'conta') email.current?.focus();
+    if (modo === 'conta') {
+      if (contaCriada && email.current && email.current.value === '') email.current.value = contaCriada;
+      (contaCriada ? senha : email).current?.focus();
+    }
     else (turmaDoCodigo ? nome : codigo).current?.focus();
   }, [modo, turmaDoCodigo]);
 
@@ -285,6 +290,11 @@ function Login() {
         <p className="rotulo">Sua conta</p>
         <h1 id="titulo-conta">Entrar</h1>
         <p className="descricao">Use o e-mail e a senha da sua conta.</p>
+        {contaCriada && (
+          <p className="aviso-sucesso" role="status">
+            Conta criada! Entre com sua senha.
+          </p>
+        )}
 
         <form className="acoes formulario" id="form-conta" noValidate onSubmit={aoEnviarConta}>
           <CampoEmail inputRef={email} erro={campos.erros.email} onBlur={() => campos.aoSair('email')} />
@@ -437,6 +447,18 @@ function Login() {
 
     </div>
   );
+}
+
+// O e-mail que o cadastro deixou no sessionStorage, uma vez só: um F5
+// depois já não mostra "Conta criada!" de novo.
+function lerContaCriada(): string {
+  try {
+    const email = sessionStorage.getItem(CONFIG.CHAVES_STORAGE.CONTA_CRIADA) ?? '';
+    sessionStorage.removeItem(CONFIG.CHAVES_STORAGE.CONTA_CRIADA);
+    return email;
+  } catch {
+    return '';
+  }
 }
 
 // Montagem — guarda primeiro, React depois

@@ -3,8 +3,9 @@
 // Professor. Conta não tem entrada de aluno: o aluno nasce da lista de
 // nomes que o professor sobe na turma, e entra pelo código dela.
 //
-// Deu certo: a sessão é gravada e a pessoa segue para a tela de modo — sem
-// passar pelo login, porque o back já devolveu token e usuário.
+// Deu certo: vai para o login com o e-mail já preenchido e "Conta criada!
+// Entre com sua senha." (a pessoa confirma a senha que acabou de criar). O
+// token que o cadastro devolve é descartado.
 //
 // Conversão de js/auth/cadastro.js para React: mesmo markup, mesmas classes
 // de css/auth.css, mesmas validações, mensagens, códigos de erro e focos.
@@ -12,9 +13,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ROTA_LOGIN } from '../config.js';
+import { CONFIG, ROTA_LOGIN } from '../config.js';
 import { api } from '../nucleo/api.js';
-import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import {
@@ -93,7 +93,7 @@ function Cadastro() {
     setErroForm('');
 
     try {
-      const resposta = await api.auth.cadastrar({
+      await api.auth.cadastrar({
         nome: nome.current.value.trim(),
         email: email.current.value.trim(),
         // A senha vai direto para a requisição e não sobra em lugar nenhum:
@@ -102,10 +102,15 @@ function Cadastro() {
       });
 
       limparSenhas();
-      toasts.mostrar('Conta criada');
+      // O e-mail vai pelo sessionStorage, não pela URL: assim não fica no
+      // histórico nem nos logs do servidor. Sem storage, o login abre vazio.
+      try {
+        sessionStorage.setItem(CONFIG.CHAVES_STORAGE.CONTA_CRIADA, email.current.value.trim());
+      } catch {
+        /* sem storage: segue sem o e-mail preenchido */
+      }
       // Não libera o botão: a página está sendo substituída.
-      sessao.entrar(resposta);
-      guarda.entrar();
+      window.location.replace(ROTA_LOGIN);
     } catch (excecao) {
       tratarFalha(excecao);
       enviando.current = false;

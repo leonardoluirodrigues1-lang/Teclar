@@ -470,3 +470,13 @@ ul { list-style: none; }
 .medidor-forte span { background: var(--cor-texto, #fff); }
 .medidor-texto { margin-top: 8px; font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
 .medidor-texto strong { color: var(--cor-texto, #fff); }
+
+/* "Conta criada! Entre com sua senha." — vindo do cadastro. */
+.aviso-sucesso {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda-forte, #454545);
+  border-radius: var(--raio-p, 4px);
+  font-size: 14px;
+  color: var(--cor-texto, #fff);
+}
