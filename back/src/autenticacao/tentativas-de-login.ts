@@ -27,10 +27,12 @@ export class TentativasDeLogin {
   private readonly falhas = new Map<string, Falhas>();
 
   // Chamado antes de conferir a senha: chave bloqueada nem chega no banco.
-  conferir(chave: string): void {
+  // `maximo` e `mensagem`: o código da turma usa outro teto (ver
+  // MAXIMO_DE_CODIGOS_ERRADOS no AutenticacaoService), com a frase dele.
+  conferir(chave: string, maximo = MAXIMO_DE_FALHAS, mensagem?: string): void {
     const registro = this.falhas.get(chave);
-    if (registro && registro.venceEm > Date.now() && registro.quantas >= MAXIMO_DE_FALHAS) {
-      throw muitasTentativas();
+    if (registro && registro.venceEm > Date.now() && registro.quantas >= maximo) {
+      throw muitasTentativas(mensagem);
     }
   }
 

@@ -77,6 +77,7 @@ export const MENSAGENS_DO_ALUNO = {
   TURMA_ARQUIVADA: 'Esta turma foi arquivada. Fale com o professor.',
   SENHA_INCORRETA: 'Senha incorreta. Se esqueceu, peça ao professor uma senha provisória.',
   NOME_EM_USO: 'Já tem alguém com esse nome nesta turma. Se não é você, use também seu sobrenome.',
+  CODIGOS_DEMAIS: 'Muitos códigos errados seguidos. Espere um minuto e tente de novo.',
 };
 
 /** Passo 1: o código não serviu. */
@@ -84,6 +85,8 @@ export function mensagemDoCodigo(excecao: unknown): string {
   const erro = excecao as ErroComStatus | null | undefined;
   if (erro?.name === 'ErroApi' && erro.status === 404) return MENSAGENS_DO_ALUNO.CODIGO_NAO_EXISTE;
   if (erro?.name === 'ErroApi' && erro.status === 403) return MENSAGENS_DO_ALUNO.TURMA_ARQUIVADA;
+  // 429: códigos errados demais deste computador (o limite por IP do back).
+  if (erro?.name === 'ErroApi' && erro.status === 429) return MENSAGENS_DO_ALUNO.CODIGOS_DEMAIS;
   return mensagemDoErro(excecao);
 }
 

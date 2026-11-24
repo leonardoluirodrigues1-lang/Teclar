@@ -11,9 +11,9 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 export const LIMITE_GERAL = { ttl: 60_000, limit: 1000 };
 
 // O mesmo 429 para os dois limites, no corpo de erro do contrato.
-export function muitasTentativas(): HttpException {
+export function muitasTentativas(mensagem = 'Muitas tentativas. Espere um minuto e tente de novo.'): HttpException {
   return new HttpException(
-    { mensagem: 'Muitas tentativas. Espere um minuto e tente de novo.', codigo: 'MUITAS_TENTATIVAS' },
+    { mensagem, codigo: 'MUITAS_TENTATIVAS' },
     HttpStatus.TOO_MANY_REQUESTS,
   );
 }

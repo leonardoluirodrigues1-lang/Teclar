@@ -98,6 +98,13 @@ const CUSTO_BCRYPT = 10;
 // (ou o aluno) não existe, a senha é comparada com ele mesmo assim: sem
 // isso o "não existe" responderia em 1 ms e o "senha errada" em ~70 ms (o
 // tempo do bcrypt), e a demora denunciaria quem existe.
+// Códigos de turma que não existem, por IP, no mesmo minuto (o esquema do
+// login: em memória, só a falha conta). Bem acima das 5 senhas do login: a
+// turma inteira sai pelo mesmo IP da escola e erra o código digitando, e o
+// que se quer barrar é quem chuta códigos aos montes para achar turmas.
+const MAXIMO_DE_CODIGOS_ERRADOS = 20;
+const CODIGOS_DEMAIS = 'Muitos códigos errados seguidos. Espere um minuto e tente de novo.';
+
 const HASH_DE_NINGUEM = bcrypt.hashSync('nenhuma-senha-confere-com-este-hash', CUSTO_BCRYPT);
 
 @Injectable()
@@ -123,6 +130,7 @@ export class AutenticacaoService {
     const identidade = identidadeDoLogin({ codigo: corpo?.codigo ?? '', nome: corpo?.nome });
     return this.comLimite(`${ip}|${identidade}`, () =>
       this.entrarOuMatricular(
+        ip,
         normalizarCodigo(corpo?.codigo),
         normalizarNome(corpo?.nome),
         String(corpo?.senha ?? '').trim(),
@@ -147,13 +155,18 @@ export class AutenticacaoService {
 
   // GET /auth/turmas/:codigo: o passo 1 da tela do aluno. Devolve o nome da
   // turma para ele conferir que digitou o código certo.
-  async turmaPeloCodigo(codigoBruto: unknown): Promise<{ nome: string }> {
-    const turma = await this.turmaAberta(normalizarCodigo(codigoBruto));
+  async turmaPeloCodigo(codigoBruto: unknown, ip: string): Promise<{ nome: string }> {
+    const turma = await this.turmaAberta(normalizarCodigo(codigoBruto), ip);
     return { nome: turma.NomeTurma ?? '' };
   }
 
-  // A turma do código, só se existe e não está arquivada.
-  private async turmaAberta(codigo: string) {
+  // A turma do código, só se existe e não está arquivada. O código que não
+  // existe soma no contador do IP (GET /auth/turmas/:codigo e POST
+  // /auth/aluno, as duas portas que dizem se um código existe); passou do
+  // teto, 429 até o minuto passar, mesmo com um código certo.
+  private async turmaAberta(codigo: string, ip: string) {
+    const chave = `codigo|${ip}`;
+    this.tentativas.conferir(chave, MAXIMO_DE_CODIGOS_ERRADOS, CODIGOS_DEMAIS);
     const turma =
       codigo === ''
         ? null
@@ -162,6 +175,7 @@ export class AutenticacaoService {
             select: { ClassID: true, NomeTurma: true, Codigo: true, Ativa: true },
           });
     if (!turma) {
+      this.tentativas.somarFalha(chave);
       throw new NotFoundException({ mensagem: 'Não existe turma com esse código.', codigo: 'TURMA_NAO_ENCONTRADA' });
     }
     if (turma.Ativa === false) {
@@ -174,8 +188,8 @@ export class AutenticacaoService {
   // Nome novo: é o primeiro acesso, e a matrícula nasce com a senha que ele
   // escolheu. Aqui o nome na turma deixa de ser segredo (a resposta muda
   // entre os dois casos): é o preço de o aluno se matricular sozinho.
-  private async entrarOuMatricular(codigo: string, nome: string, senha: string): Promise<RespostaLogin> {
-    const turma = await this.turmaAberta(codigo);
+  private async entrarOuMatricular(ip: string, codigo: string, nome: string, senha: string): Promise<RespostaLogin> {
+    const turma = await this.turmaAberta(codigo, ip);
     const aluno = await this.procurarAluno(codigo, nome);
     if (aluno !== null) {
       return this.conferirAluno(aluno, senha, senhaIncorreta);

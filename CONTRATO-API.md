@@ -105,6 +105,7 @@ Chamada no front: `api.auth.turmaDoCodigo`
 
 - 404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
 - 403 TURMA_ARQUIVADA — a turma existe, mas foi arquivada
+- 429 MUITAS_TENTATIVAS — 20 códigos que não existem no mesmo minuto, deste IP ("Muitos códigos errados seguidos...")
 
 **Identidade:**
 
@@ -112,7 +113,7 @@ Pública. É o passo 1 da tela do aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma.
+classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma. O código que não existe soma num contador por IP (em memória, como o das senhas do login), o mesmo do POST /auth/aluno; passou de 20 no minuto, 429 até o minuto passar, mesmo com um código certo. Barra quem chuta códigos para achar turmas.
 
 ### `POST /auth/aluno`
 
@@ -143,7 +144,7 @@ CredenciaisAluno — o código da turma, o nome completo e a senha
 - 403 CONTA_INATIVA — o aluno foi desativado
 - 404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
 - 409 NOME_EM_USO — outro aparelho matriculou o mesmo nome ao mesmo tempo
-- 429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem)
+- 429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem), ou 20 códigos que não existem no minuto, deste IP
 
 **Identidade:**
 

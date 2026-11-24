@@ -161,9 +161,13 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
         resposta: `200 TurmaDoCodigo — o nome da turma, para o aluno conferir que digitou o código certo
   { "nome": "9º Ano A — Manhã" }`,
         erros: `404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
-  403 TURMA_ARQUIVADA — a turma existe, mas foi arquivada`,
+  403 TURMA_ARQUIVADA — a turma existe, mas foi arquivada
+  429 MUITAS_TENTATIVAS — 20 códigos que não existem no mesmo minuto, deste IP ("Muitos códigos errados seguidos...")`,
         identidade: `Pública. É o passo 1 da tela do aluno.`,
-        back: `classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma.`,
+        back: `classesprof pelo Codigo (aparado e em maiúscula). Só sai o NomeTurma. O código
+  que não existe soma num contador por IP (em memória, como o das senhas do login),
+  o mesmo do POST /auth/aluno; passou de 20 no minuto, 429 até o minuto passar,
+  mesmo com um código certo. Barra quem chuta códigos para achar turmas.`,
       },
       'auth.entrarNaTurma': {
         rota: 'POST /auth/aluno',
@@ -178,7 +182,7 @@ acesso). Todas menos GET /auth/eu são PÚBLICAS: nelas 401 quer dizer "credenci
   403 CONTA_INATIVA — o aluno foi desativado
   404 TURMA_NAO_ENCONTRADA — nenhuma turma com esse código
   409 NOME_EM_USO — outro aparelho matriculou o mesmo nome ao mesmo tempo
-  429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem)`,
+  429 MUITAS_TENTATIVAS — o mesmo limite de senhas erradas do POST /auth/login (a mesma contagem), ou 20 códigos que não existem no minuto, deste IP`,
         identidade: `Pública. É o passo 2 da tela do aluno, e a única entrada dele na turma.`,
         back: `Procura o nome na turma como o login (sem distinguir maiúscula e acento,
   espaços repetidos reduzidos a um). Achou: é login, com a mesma conferência

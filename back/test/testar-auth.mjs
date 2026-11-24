@@ -307,6 +307,39 @@ r = await entrarNaTurma('Duda Teste', 'duda2026');
 confere('limite: depois de 5 erradas no minuto, a entrada dá 429 até com a senha certa', r.status === 429 && r.corpo.codigo === 'MUITAS_TENTATIVAS');
 
 // ============================================================================
+// Códigos de turma errados: limite por IP em GET /auth/turmas/:codigo e
+// POST /auth/aluno (20 por minuto). Um IP de documentação (X-Forwarded-For,
+// o back confia no primeiro proxy) para o bloqueio não pegar os outros casos
+// nem as outras suítes, que saem todas de localhost.
+// ============================================================================
+
+const ipDoTeste = `203.0.113.${Math.floor(Math.random() * 200) + 20}`;
+const deOutroIp = (metodo, rota, corpo, ip = ipDoTeste) =>
+  fetch(`http://localhost:3000/api/auth${rota}`, {
+    method: metodo,
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': ip },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  }).then(async (resposta) => ({ status: resposta.status, corpo: await resposta.json().catch(() => null) }));
+
+const codigoBom = turmaDaEntrada.codigo;
+r = await deOutroIp('GET', `/turmas/${codigoBom}`);
+confere('códigos: o código certo responde 200 do IP do teste', r.status === 200);
+const errados = [];
+for (let vez = 0; vez < 19; vez++) errados.push((await deOutroIp('GET', `/turmas/ZZ${String(vez).padStart(4, '0')}`)).status);
+// A 20ª errada pelo POST /auth/aluno: as duas portas somam no mesmo contador.
+errados.push((await deOutroIp('POST', '/aluno', { codigo: 'ZZ9999', nome: 'Chute Teste', senha: 'chute2026' })).status);
+confere('códigos: até 20 errados no minuto, 404 TURMA_NAO_ENCONTRADA', errados.every((status) => status === 404));
+r = await deOutroIp('GET', `/turmas/${codigoBom}`);
+confere(
+  'códigos: depois de 20 errados, 429 MUITAS_TENTATIVAS até com o código certo, com a frase dos códigos',
+  r.status === 429 && r.corpo.codigo === 'MUITAS_TENTATIVAS' && r.corpo.mensagem === 'Muitos códigos errados seguidos. Espere um minuto e tente de novo.',
+);
+r = await deOutroIp('POST', '/aluno', { codigo: codigoBom, nome: 'Zeca Teste', senha: 'zeca2026' });
+confere('códigos: a entrada pelo POST /auth/aluno também fica no 429', r.status === 429);
+r = await deOutroIp('GET', `/turmas/${codigoBom}`, undefined, `198.51.100.${Math.floor(Math.random() * 200) + 20}`);
+confere('códigos: outro IP não é afetado', r.status === 200);
+
+// ============================================================================
 // Configurações > Conta: PATCH /conta, POST /conta/senha e PUT /aluno/senha
 // ============================================================================
 

@@ -25,8 +25,8 @@ export class AutenticacaoController {
   // Públicas: o passo 1 (o código existe?) e o passo 2 (primeiro acesso ou
   // login) da tela do aluno. A entrada usa o contador de senhas do login.
   @Get('turmas/:codigo')
-  turma(@Param('codigo') codigo: string): Promise<{ nome: string }> {
-    return this.autenticacao.turmaPeloCodigo(codigo);
+  turma(@Param('codigo') codigo: string, @Ip() ip: string): Promise<{ nome: string }> {
+    return this.autenticacao.turmaPeloCodigo(codigo, ip);
   }
 
   @Post('aluno')
