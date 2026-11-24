@@ -49,7 +49,7 @@ const CARTOES: Cartao[] = [
     nome: 'SOLO',
     numero: '01',
     resumo: 'Treino livre, no seu ritmo.',
-    itens: ['Campanhas com personagem', 'Níveis e XP por sessão', 'Missões que abrem por nível'],
+    itens: ['76 lições em 10 níveis', 'XP e nível a cada treino', 'Lições que abrem em ordem'],
     rodape: 'Entrar no Solo',
   },
   {
@@ -57,10 +57,12 @@ const CARTOES: Cartao[] = [
     nome: 'PROFESSOR',
     numero: '02',
     resumo: 'Turmas, exercícios e relatórios.',
+    // O que existe hoje: o aluno entra sozinho pelo código; a biblioteca
+    // traz os exercícios do sistema; os relatórios têm gráficos.
     itens: [
-      'Cadastro e importação de alunos',
-      'Biblioteca de exercícios',
-      'Desempenho por turma e aluno',
+      'Turmas com código de entrada',
+      'Biblioteca com exercícios do sistema',
+      'Relatórios com gráficos por turma e aluno',
     ],
     rodape: 'Entrar como professor',
   },
@@ -70,7 +72,7 @@ const CARTAO_ALUNO: ConteudoCartao = {
   nome: 'ALUNO',
   numero: '03',
   resumo: 'Entrar com o código da turma, o seu nome e a sua senha.',
-  itens: ['As salas em que você entrou', 'Seu histórico de desempenho', 'Acompanhado pelo professor'],
+  itens: ['As atividades da sua turma', 'Seu histórico e seus dias seguidos', 'O ranking da turma'],
   rodape: 'Entrar como aluno',
 };
 
