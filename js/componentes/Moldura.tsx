@@ -92,12 +92,10 @@ const ICONES = {
     <Icone circulo={[12, 12, 3.2]} d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
   ),
   ajuda: <Icone circulo={[12, 12, 9]} d="M9.5 9.5a2.5 2.5 0 113.3 2.4c-.6.2-.8.7-.8 1.3v.5M12 17h.01" />,
-  pessoa: <Icone circulo={[12, 8, 4]} d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" />,
   trocar: <Icone d="M4 12a8 8 0 0113.7-5.7M20 12a8 8 0 01-13.7 5.7M18 3v4h-4M6 21v-4h4" />,
   turmas: <Icone d="M3 7h18v12H3zM8 7V5h8v2" />,
   biblioteca: <Icone d="M5 4h4v16H5zM10 4h4v16h-4zM15.5 4.5l3.8 1 -3.6 15 -3.8-1z" />,
   relatorios: <Icone d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  teclado: <Icone d="M3 7h18v10H3zM6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8" />,
   historico: <Icone circulo={[12, 12, 9]} d="M12 7v5l3 2" />,
 };
 
@@ -324,17 +322,8 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
         </>
       )}
 
-      {/* As saídas. O aluno não tem outro modo: só sai. */}
-      {modo === 'solo' && (
-        <button type="button" className="barra-lateral-item" onClick={() => guarda.trocarModo('professor')}>
-          {ICONES.pessoa} Ir para Professor
-        </button>
-      )}
-      {modo === 'professor' && (
-        <button type="button" className="barra-lateral-item" onClick={() => guarda.trocarModo('solo')}>
-          {ICONES.teclado} Ir para o Solo
-        </button>
-      )}
+      {/* As saídas. Solo e professor trocam pela tela de modo; o aluno não
+          tem outro modo: só sai. */}
       {modo !== 'aluno' && (
         <a className="barra-lateral-item" href="/pages/modo.html">
           {ICONES.trocar} Trocar de modo

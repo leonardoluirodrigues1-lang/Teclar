@@ -5,7 +5,7 @@
 // que a pessoa veja uma tela quebrada, sem dado e sem sentido. Nada impede
 // alguém de burlar este arquivo — e tudo bem, porque a API vai recusar.
 
-import { ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, ROTA_SENHA_ALUNO, rotaInicial } from '../config.js';
+import { ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, ROTA_SENHA_ALUNO, rotaInicial } from '../config.js';
 import { api } from './api.js';
 import { sessao } from './sessao.js';
 import type { Usuario, Mundo, Modo, TipoSessao } from './tipos.js';
@@ -130,14 +130,6 @@ function entrar(): void {
   irPara(voltaSegura() ?? destinoAoEntrar());
 }
 
-// "Ir para o Solo" / "Ir para Professor": troca o modo e navega. Sem
-// logout, sem tela intermediária. href, e não replace: é navegação que a
-// pessoa pediu, o voltar pode devolvê-la ao mundo de antes.
-function trocarModo(modo: Modo): void {
-  sessao.definirModo(modo);
-  window.location.href = ROTA_INICIAL[modo];
-}
-
 // Encerra a sessão e volta para a landing.
 // O aviso ao back é disparado e esquecido: se ele falhar, a sessão local
 // some do mesmo jeito. O contrário — deixar a pessoa logada porque o
@@ -175,7 +167,6 @@ export const guarda = {
   redirecionarSeLogado,
   casa,
   entrar,
-  trocarModo,
   sair,
   aplicarMundo,
 };

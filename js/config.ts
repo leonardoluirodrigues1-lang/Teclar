@@ -130,7 +130,7 @@ export const ROTA_INICIAL = {
   // o dashboard (pages/solo/dashboard.html), que é onde mora o convite de
   // começar — ver o fim de js/solo/Caminho.tsx.
   solo: '/pages/solo/caminho.html',
-  // As TURMAS, com a Nav e o menu do avatar (onde mora o "Ir para o Solo").
+  // As TURMAS, com a barra lateral (o "Trocar de modo" leva à tela de modo).
   // O antigo professor/dashboard.html (lista mínima) foi apagado.
   professor: '/pages/professor/turmas.html',
   // A sala dele. Sem ?id= a própria sala descobre qual é (js/aluno/Sala.tsx).
