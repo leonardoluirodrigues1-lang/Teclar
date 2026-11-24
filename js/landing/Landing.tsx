@@ -191,8 +191,8 @@ function Landing() {
           </p>
           <p className="body" data-split="" data-delay="180">
             O Teclar é um espaço de treino sem ruído: textos curtos, repetição deliberada e retorno
-            imediato sobre precisão e ritmo. Nada de troféus barulhentos — apenas o silêncio
-            necessário para o teclado virar reflexo.
+            imediato sobre precisão e ritmo. Conquistas discretas, sem barulho: XP, níveis e
+            estrelas na medida, e o silêncio necessário para o teclado virar reflexo.
           </p>
         </div>
       </section>
@@ -215,6 +215,26 @@ function Landing() {
           </section>
         ))}
       </div>
+
+      {/* Para escolas: o mesmo desenho da seção "Sobre", com o caminho do
+          professor e o do aluno em duas frases. */}
+      <section className="wrap intro" id="para-escolas">
+        <div className="col-a">
+          <h2 data-split="">Para escolas</h2>
+        </div>
+        <div className="col-b">
+          <p className="eyebrow" data-split="" data-delay="120">
+            PROFESSOR E ALUNO
+          </p>
+          <p className="body" data-split="" data-delay="180">
+            O professor cria a turma, passa um código para os alunos, atribui exercícios (os dele ou os
+            prontos do TECLAR) e acompanha cada um nos relatórios.
+          </p>
+          <p className="body" data-split="" data-delay="240">
+            O aluno entra com o código da turma, o nome e uma senha que ele mesmo cria.
+          </p>
+        </div>
+      </section>
 
       <section className="cta-final">
         <div className="glow" aria-hidden="true"></div>
