@@ -214,5 +214,43 @@ confere(
   (await banco.atribuicoesprof.findMany({ where: { ClassID: 'turma-5' } })).map((a) => a.ExerciseID).join() === 'ex-prof-6',
 );
 
+// ============================================================================
+// Modo de seleção com exercício do sistema: o "Atribuir à turma" copia a
+// lição para a biblioteca (se ainda não está) e atribui a cópia, junto com os
+// outros marcados, numa atribuição só.
+// ============================================================================
+
+const leo = await entrar({ email: 'leo@teclar.dev', senha: 'senha123' });
+const licaoDoSistema = (await chamar('GET', '/exercicios/sistema', null, prof)).corpo[4];
+async function atribuirComoNaSelecao(licaoIds, proprios) {
+  const copias = await Promise.all(licaoIds.map((id) => chamar('POST', `/exercicios/sistema/${id}/copiar`, null, prof)));
+  const ids = [...new Set([...proprios, ...copias.map((c) => c.corpo.exercicio.id)])];
+  return { copias, atribuicao: await chamar('POST', rota, { exercicioIds: ids }, prof) };
+}
+let selecao = await atribuirComoNaSelecao([licaoDoSistema.id], [exC.id]);
+const copiaNaTurma = selecao.copias[0].corpo.exercicio;
+confere('seleção: a lição vira cópia na biblioteca (nova)', selecao.copias[0].status === 200 && selecao.copias[0].corpo.jaExistia === false);
+confere(
+  'seleção: a cópia e o exercício próprio entram na turma na mesma atribuição',
+  selecao.atribuicao.status === 200 && selecao.atribuicao.corpo.some((a) => a.exerciseId === copiaNaTurma.id) && selecao.atribuicao.corpo.some((a) => a.exerciseId === exC.id),
+);
+confere(
+  'seleção: a lista do sistema diz que a lição está na biblioteca (a tela mostra "Já atribuído")',
+  (await chamar('GET', '/exercicios/sistema', null, prof)).corpo.find((e) => e.id === licaoDoSistema.id).naBiblioteca === copiaNaTurma.id,
+);
+const quantasNaTurma = selecao.atribuicao.corpo.length;
+selecao = await atribuirComoNaSelecao([licaoDoSistema.id], []);
+confere(
+  'seleção de novo: a mesma cópia (jaExistia) e nada duplica na turma nem na biblioteca',
+  selecao.copias[0].corpo.jaExistia === true && selecao.copias[0].corpo.exercicio.id === copiaNaTurma.id &&
+    selecao.atribuicao.corpo.length === quantasNaTurma &&
+    (await banco.exerciciosprof.count({ where: { ProfessorID: 'u-2', ExerciseID: { startsWith: `sis-${licaoDoSistema.id}-` } } })) === 1,
+);
+confere('seleção: o id da lição não se atribui direto (sem cópia é 404)', ehErro(await chamar('POST', rota, { exercicioIds: [licaoDoSistema.id] }, prof), 404, 'NAO_ENCONTRADO'));
+confere(
+  'outra conta: o leo não atribui a cópia do prof à turma dele (404)',
+  ehErro(await chamar('POST', '/turmas/turma-5/atribuicoes', { exercicioIds: [copiaNaTurma.id] }, leo), 404, 'NAO_ENCONTRADO'),
+);
+
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id}`);

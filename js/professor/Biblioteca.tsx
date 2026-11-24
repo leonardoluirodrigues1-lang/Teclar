@@ -12,7 +12,10 @@
 //     já atribuídos à turma vêm marcados e indisponíveis. Embaixo, "N
 //     selecionados", "Atribuir à turma" e "Cancelar"; "+ Criar novo
 //     exercício" cria e já deixa marcado. Confirmar ou cancelar volta para a
-//     aba Atividades da mesma turma (que recarrega a lista).
+//     aba Atividades da mesma turma (que recarrega a lista). Os exercícios do
+//     sistema aparecem numa seção separada, também com caixa: ao confirmar,
+//     a cópia de cada lição marcada é criada (se ainda não existe) e entra
+//     na mesma atribuição.
 //
 // Embaixo de "Meus exercícios", a seção "Exercícios do sistema": as lições
 // do Solo (GET /exercicios/sistema), só de leitura — sem Editar nem Arquivar.
@@ -105,7 +108,9 @@ function Biblioteca() {
   const [ordenacao, setOrdenacao] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
   const [modal, setModal] = useState<ConfigModal | null>(null);
   // Modo de seleção: os marcados agora (os já atribuídos não entram aqui).
+  // Os da biblioteca pelo id do exercício; os do sistema pelo id da lição.
   const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set());
+  const [selecionadosDoSistema, setSelecionadosDoSistema] = useState<Set<string>>(() => new Set());
   const [erroAtribuir, setErroAtribuir] = useState<string | null>(null);
   const atribuindo = useRef(false);
   const [ocupado, setOcupado] = useState(false);
@@ -159,13 +164,18 @@ function Biblioteca() {
     setCarga((atual) => (atual.estado === 'pronto' ? { ...atual, exercicios: transformar(atual.exercicios) } : atual));
   }
 
-  function alternar(id: string, marcado: boolean) {
-    setSelecionados((atual) => {
+  function alternar(id: string, marcado: boolean, doSistema = false) {
+    (doSistema ? setSelecionadosDoSistema : setSelecionados)((atual) => {
       const proximo = new Set(atual);
       if (marcado) proximo.add(id);
       else proximo.delete(id);
       return proximo;
     });
+  }
+
+  // A lição já está na turma: a cópia dela é um dos atribuídos.
+  function licaoJaAtribuida(licao: ExercicioDoSistema): boolean {
+    return Boolean(licao.naBiblioteca && destino?.jaAtribuidos.has(licao.naBiblioteca));
   }
 
   function abrirCriar(opener: HTMLElement) {
@@ -220,14 +230,20 @@ function Biblioteca() {
   // --- atribuir (modo de seleção) -------------------------------------------
 
   async function atribuir() {
-    if (atribuindo.current || selecionados.size === 0) return;
+    if (atribuindo.current || totalSelecionado === 0) return;
     atribuindo.current = true;
     setOcupado(true);
     setErroAtribuir(null);
     try {
-      await api.turmas.atribuir(turmaDestino, [...selecionados]);
+      // As lições do sistema viram cópias na biblioteca primeiro (a que já
+      // existe volta a mesma, sem duplicar), e tudo entra numa atribuição só.
+      // Se a atribuição falhar, as cópias ficam e um novo "Atribuir" as reusa.
+      const copias = await Promise.all([...selecionadosDoSistema].map((id) => api.exercicios.copiarDoSistema(id)));
+      copias.forEach((copia, i) => guardarCopia([...selecionadosDoSistema][i], copia.exercicio));
+      const ids = new Set([...selecionados, ...copias.map((copia) => copia.exercicio.id)]);
+      await api.turmas.atribuir(turmaDestino, [...ids]);
       // A turma recarrega as atribuições ao abrir e avisa quantas entraram.
-      location.assign(hrefDaTurma({ atribuidos: String(selecionados.size) }));
+      location.assign(hrefDaTurma({ atribuidos: String(ids.size) }));
     } catch (excecao) {
       setErroAtribuir(mensagemDaFalha(excecao));
       atribuindo.current = false;
@@ -369,6 +385,38 @@ function Biblioteca() {
     },
   ];
 
+  // No modo de seleção: a caixa no lugar do botão, e o "Já atribuído".
+  const colunasDoSistemaNaSelecao: ColunaTabela<ExercicioDoSistema>[] = [
+    {
+      rotulo: 'Selecionar',
+      classe: 'col-selecao',
+      celula: (ex) => {
+        const ja = licaoJaAtribuida(ex);
+        return (
+          <input
+            type="checkbox"
+            className="caixa-selecao"
+            aria-label={ja ? `“${ex.titulo}” já está atribuído a esta turma` : `Selecionar “${ex.titulo}”`}
+            checked={ja || selecionadosDoSistema.has(ex.id)}
+            disabled={ja || ocupado}
+            onChange={(evento) => alternar(ex.id, evento.target.checked, true)}
+          />
+        );
+      },
+    },
+    {
+      ...colunasDoSistema[0],
+      celula: (ex) => (
+        <>
+          {colunasDoSistema[0].celula(ex)}
+          {licaoJaAtribuida(ex) && <span className="etiqueta etiqueta-espera">Já atribuído</span>}
+        </>
+      ),
+    },
+    // Nível, caracteres e tempo; sem a coluna de ações.
+    ...colunasDoSistema.slice(1, -1),
+  ];
+
   function renderizarSistema() {
     if (carga.estado !== 'pronto') return null;
     const visiveis = ordenar(filtrar(sistema, busca.trim(), dificuldade), ordenacaoSistema, valorOrdenavelExercicio);
@@ -377,9 +425,10 @@ function Biblioteca() {
     }
     return (
       <Tabela
-        colunas={colunasDoSistema}
+        colunas={selecao ? colunasDoSistemaNaSelecao : colunasDoSistema}
         linhas={visiveis}
         chave={(ex) => ex.id}
+        classeLinha={(ex) => (selecao && licaoJaAtribuida(ex) ? 'linha-indisponivel' : undefined)}
         ordenacao={ordenacaoSistema}
         aoOrdenar={setOrdenacaoSistema}
       />
@@ -492,6 +541,7 @@ function Biblioteca() {
     );
   }
 
+  const totalSelecionado = selecionados.size + selecionadosDoSistema.size;
   const voltar: Voltar = selecao ? { href: hrefDaTurma(), rotulo: destino?.nome ?? 'Turma' } : VOLTAR_TURMAS;
   // Valem para as duas seções: só fazem sentido com algum exercício na tela.
   const filtrosVisiveis = carga.estado === 'pronto' && exercicios.length + sistema.length > 0;
@@ -568,10 +618,14 @@ function Biblioteca() {
           </div>
         </Bloco>
 
-        {!selecao && carga.estado === 'pronto' && sistema.length > 0 && (
+        {carga.estado === 'pronto' && sistema.length > 0 && (
           <Bloco
             titulo="Exercícios do sistema"
-            texto="Textos prontos do TECLAR para você usar como base. Use na sua biblioteca para editar e atribuir às turmas."
+            texto={
+              selecao
+                ? 'Textos prontos do TECLAR. Ao atribuir, cada um marcado entra também na sua biblioteca, para você editar depois.'
+                : 'Textos prontos do TECLAR para você usar como base. Use na sua biblioteca para editar e atribuir às turmas.'
+            }
           >
             {renderizarSistema()}
           </Bloco>
@@ -581,7 +635,7 @@ function Biblioteca() {
         {selecao && (
           <div className="barra-selecao" role="region" aria-label="Atribuição">
             <p className="barra-selecao-contagem" aria-live="polite">
-              {selecionados.size === 1 ? '1 selecionado' : `${selecionados.size} selecionados`}
+              {totalSelecionado === 1 ? '1 selecionado' : `${totalSelecionado} selecionados`}
             </p>
             <p className="erro-campo" aria-live="polite">
               {erroAtribuir}
@@ -592,7 +646,7 @@ function Biblioteca() {
             <button
               type="button"
               className="btn btn-solido tecla tecla-clara"
-              disabled={ocupado || selecionados.size === 0}
+              disabled={ocupado || totalSelecionado === 0}
               onClick={atribuir}
             >
               {ocupado ? 'Atribuindo…' : 'Atribuir à turma'}
