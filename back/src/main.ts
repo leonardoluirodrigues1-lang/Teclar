@@ -34,9 +34,16 @@ async function iniciar(): Promise<void> {
   // WEBP viram ~200 KB). O teto da imagem é conferido em turmas/capa.ts.
   app.useBodyParser('json', { limit: '256kb' });
   app.useBodyParser('urlencoded', { extended: true });
-  // No Render o back fica atrás de um proxy: sem isto, req.ip seria o IP do
-  // proxy, e o limite de tentativas contaria todo mundo como um só.
-  app.set('trust proxy', 1);
+  // No Render há TRÊS proxies na frente do back, medidos em produção (a
+  // conexão chega de um proxy local; no X-Forwarded-For, da direita para a
+  // esquerda: o balanceador interno do Render, 10.x, e a borda da Cloudflare,
+  // que mudam a cada pedido; depois, o cliente). Com 3, req.ip é o cliente;
+  // um X-Forwarded-For falso mandado por ele fica à esquerda e é ignorado.
+  // Com 1, req.ip era o balanceador, diferente a cada pedido, e o limite de
+  // tentativas (login, código da turma) nunca acumulava. Nunca `true`: aí
+  // valeria o primeiro da lista, que o cliente escreve.
+  // shortcut: o número supõe Cloudflare + Render na frente; se a hospedagem mudar, medir de novo.
+  app.set('trust proxy', 3);
   app.setGlobalPrefix(PREFIXO);
   app.enableCors({ origin: ORIGENS_DO_FRONT });
   // Cabeçalhos de segurança. O CSP padrão do helmet já serve o Swagger
