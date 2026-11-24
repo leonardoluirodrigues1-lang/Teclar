@@ -362,3 +362,25 @@
     rgba(255, 255, 255, 0.04) 45%,
     transparent 75%);
 }
+
+/* ============================================================================
+   7. CÉU DISCRETO — professor (.zona-trabalho) e aluno (.ceu-discreto no
+   <body>): o mesmo campo de estrelas das outras telas (semente da landing),
+   parado e a ~30%. Nada se mexe aqui, com ou sem prefers-reduced-motion: as
+   estrelas são pontos fixos, e o disco e o grão não entram.
+   Tabela, gráfico e formulário nunca ficam com estrela atrás: o bloco que
+   tem um deles vira superfície sólida (no professor, todo .vidro já é).
+   ========================================================================== */
+
+.zona-trabalho .fundo-estrelas,
+.ceu-discreto .fundo-estrelas { opacity: 0.3; }
+.zona-trabalho .disco,
+.zona-trabalho .grao::after { display: none; }
+
+.ceu-discreto .vidro:has(.tabela-painel, .grafico, form),
+.ceu-discreto .tabela-painel,
+.ceu-discreto .grafico {
+  background: var(--cor-superficie, #0e0e0e);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

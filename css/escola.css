@@ -1786,11 +1786,12 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 
 /* ============================================================================
    ZONA TRABALHO — as telas do professor (Figma "TECLAR — Estética por
-   zona"): superfícies sólidas, sem desfoque, sem estrelas nem luz no fundo,
+   zona"): superfícies sólidas, sem desfoque, sem luz no fundo (só as
+   estrelas paradas a 30%, ver "céu discreto" em css/base/luz.css),
    contraste máximo. A classe vai no <body> de pages/professor/*.html.
    ========================================================================== */
 .zona-trabalho { background: #000; }
-.zona-trabalho .fundo { display: none; }
+/* O .fundo fica (as estrelas); o disco e o grão saem em css/base/luz.css. */
 
 .zona-trabalho .vidro {
   background: #111;
