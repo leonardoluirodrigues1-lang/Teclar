@@ -126,6 +126,13 @@ const demoOriginal = await retratoDaDemo();
 confere('a demo do seed tem as turmas do prof', demoOriginal.turmas.some((t) => t.id === 'turma-1'));
 // Os alunos da demo já têm senha: a Júlia (que antes esperava o professor) entra.
 await exigir('Júlia entra com a senha da demo', chamar('POST', '/auth/aluno', { codigo: 'H3ZT6B', nome: 'Júlia Campos', senha: 'aluno2026' }));
+// A Ana da demonstração (turma-2) treinou nos 3 dias até ontem: vê a própria estrela de 3+ dias.
+{
+  const ana = await exigir('a Ana da turma-2 entra', chamar('POST', '/auth/login', { codigo: 'R8VD3K', nome: 'Ana Pires', senha: 'aluno2026' }));
+  const ranking = await exigir('ranking da turma-2', chamar('GET', '/turmas/turma-2/ranking', undefined, ana.token));
+  const linha = ranking.find((l) => l.voce);
+  confere('a Ana da turma-2 tem 3 dias seguidos (ontem, anteontem e o dia antes) e segue em 7º', linha.diasSeguidos === 3 && linha.posicao === 7);
+}
 
 // ============================================================================
 // 2. Uma conta de verdade, pelo cadastro, com tudo pendurado nela

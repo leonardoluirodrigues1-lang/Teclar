@@ -402,9 +402,11 @@ async function inserirSessoes(tx: Transacao): Promise<void> {
       sessao('ses-6', 'al-49', 'ex-prof-2', 'turma-1', 33, 79, 79, 21, 104, true, diasAtras(2)),
       sessao('ses-7', 'al-49', 'ex-prof-1', 'turma-1', 30, 76, 86, 27, 131, true, diasAtras(9)),
       // turma-2
-      sessao('ses-8', 'al-43', 'ex-prof-3', 'turma-2', 28, 84, 126, 24, 178, true, diasAtras(26)),
-      sessao('ses-9', 'al-43', 'ex-prof-3', 'turma-2', 31, 86, 129, 21, 165, true, diasAtras(22)),
-      sessao('ses-10', 'al-43', 'ex-prof-5', 'turma-2', 30, 82, 41, 9, 45, false, diasAtras(18)),
+      // Anteontem de anteontem até ontem: a Ana da demonstração chega com 3 dias
+      // seguidos e vê a própria estrela de 3+ dias (as mesmas 3 sessões, só as datas).
+      sessao('ses-8', 'al-43', 'ex-prof-3', 'turma-2', 28, 84, 126, 24, 178, true, diasAtras(3)),
+      sessao('ses-9', 'al-43', 'ex-prof-3', 'turma-2', 31, 86, 129, 21, 165, true, diasAtras(2)),
+      sessao('ses-10', 'al-43', 'ex-prof-5', 'turma-2', 30, 82, 41, 9, 45, false, diasAtras(1)),
       ...COLEGAS_DA_TURMA_2.flatMap(sessoesDoColega),
     ],
   });

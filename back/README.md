@@ -157,7 +157,7 @@ e nome não diferenciam maiúscula nem acento ("ana pires" entra).
 
 | Código | Nome | Senha | Situação |
 | --- | --- | --- | --- |
-| `R8VD3K` | Ana Pires | `aluno2026` | Turma-2: o aluno de teste (3 sessões) |
+| `R8VD3K` | Ana Pires | `aluno2026` | Turma-2: o aluno de teste (3 sessões, nos 3 dias até ontem: 3 dias seguidos e a estrela "Mandou bem!") |
 | `K7M2QX` | Ana Pires | `aluno2026` | Turma-1: **outra** Ana, outro histórico (2 sessões) |
 | `D6YG2S` | Ana Pires | `aluno2026` | Turma-5 (de leo): a terceira Ana |
 | `K7M2QX` | Davi Moreira | `davi26` (senha provisória) | **Esqueceu a senha**: o professor gerou a provisória; entra com ela e cai em "Crie sua senha". Uso único: para repetir a demo, rode `npm run seed` de novo (ou gere outra provisória na turma) |
