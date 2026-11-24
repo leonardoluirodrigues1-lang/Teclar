@@ -22,6 +22,8 @@ import type { Sessao } from '../sessoes/sessao-escola.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { semFoto, type ImagemDaFoto } from '../foto.js';
+import { webpComoDataUrl } from '../imagem-webp.js';
 
 // O corpo do importar como chega: tudo unknown, vem da rede.
 export interface CorpoDaImportacao {
@@ -42,6 +44,8 @@ export interface Aluno {
   wpmMedio: number | null;
   precisaoMedia: number | null;
   ultimaAtividade: string | null;
+  /** Tem foto de perfil: a tela pede GET /turmas/:id/alunos/:alunoId/foto; sem, as iniciais. */
+  temFoto: boolean;
 }
 
 // A senha provisória sai em texto UMA vez, na resposta de quem a gerou.
@@ -97,7 +101,34 @@ export class AlunosService {
       orderBy: { Nome: 'asc' },
     });
     const agregados = await this.agregadosDaTurma(turmaId);
-    return alunos.map((aluno) => alunoNaForma(aluno, agregados.get(aluno.AlunoID) ?? SEM_SESSOES));
+    // Quem tem foto, numa consulta só e sem trazer os bytes.
+    const comFoto = new Set(
+      (
+        await this.banco.alunosturmas.findMany({
+          where: { ClassID: turmaId, Ativo: true, Foto: { not: null } },
+          select: { AlunoID: true },
+        })
+      ).map((aluno) => aluno.AlunoID),
+    );
+    return alunos.map((aluno) => alunoNaForma(aluno, agregados.get(aluno.AlunoID) ?? SEM_SESSOES, comFoto.has(aluno.AlunoID)));
+  }
+
+  // GET /turmas/:turmaId/alunos/:alunoId/foto. O professor LÊ a foto dos
+  // alunos das turmas dele; de outra conta ou de outra turma, o mesmo 404.
+  async foto(identidade: Identidade, turmaId: string, alunoId: string): Promise<ImagemDaFoto> {
+    const professorId = professorDoToken(identidade);
+    await turmaDaConta(this.banco, professorId, turmaId);
+    const linha = await this.banco.alunosturmas.findFirst({
+      where: { AlunoID: alunoId, ClassID: turmaId },
+      select: { Foto: true },
+    });
+    if (!linha) {
+      throw new NotFoundException({ mensagem: 'Aluno não encontrado nesta turma.', codigo: 'NAO_ENCONTRADO' });
+    }
+    if (!linha.Foto) {
+      throw semFoto();
+    }
+    return { imagem: webpComoDataUrl(linha.Foto) };
   }
 
   // POST /turmas/:turmaId/alunos/importar. Importação parcial vale: cada
@@ -297,7 +328,7 @@ type LinhaDeAluno = {
   Data_Cadastro: Date | null;
 };
 
-function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
+function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados, temFoto = false): Aluno {
   return {
     id: aluno.AlunoID,
     nome: aluno.Nome,
@@ -309,6 +340,7 @@ function alunoNaForma(aluno: LinhaDeAluno, agregados: Agregados): Aluno {
         ? (aluno.SenhaProvisoriaExpira as Date).toISOString()
         : null,
     ...agregados,
+    temFoto,
   };
 }
 

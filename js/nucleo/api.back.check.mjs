@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 65 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 72 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -123,6 +123,12 @@ confere('conta.renomear devolve a conta com o nome novo', (await api.conta.renom
 await confereErro('conta.trocarSenha com a senha atual errada', api.conta.trocarSenha('errada123', 'outra2026'), 400, 'SENHA_ATUAL_INCORRETA');
 confere('conta.trocarSenha devolve null (204)', (await api.conta.trocarSenha(SENHA, 'outra2026')) === null);
 confere('conta.trocarSenha: a nova vale (e volta à de antes)', (await api.conta.trocarSenha('outra2026', SENHA)) === null);
+// Um WEBP 1×1 de verdade: a forma que utils/imagemDaCapa.ts (imagemDaFoto) entrega.
+const FOTO = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+confere('conta.enviarFoto devolve a conta com temFoto', (await api.conta.enviarFoto(FOTO)).temFoto === true);
+confere('conta.foto devolve a mesma imagem', (await api.conta.foto()).imagem === FOTO);
+confere('conta.removerFoto devolve null (204)', (await api.conta.removerFoto()) === null);
+await confereErro('conta.foto depois de remover', api.conta.foto(), 404, 'NAO_ENCONTRADO');
 
 // Turma
 const turma = await api.turmas.criar(`Turma Teste ${marca}`, 1);
@@ -197,6 +203,11 @@ confere('auth.eu sem precisaTrocarSenha depois de criar', !('precisaTrocarSenha'
 await confereErro('escola.aluno.trocarSenha com a senha atual errada', api.escola.aluno.trocarSenha('errada2026', 'bia2027'), 400, 'SENHA_ATUAL_INCORRETA');
 confere('escola.aluno.trocarSenha devolve null (204)', (await api.escola.aluno.trocarSenha('bia2026', 'bia2027')) === null);
 confere('escola.aluno.trocarSenha: a nova vale (e volta à de antes)', (await api.escola.aluno.trocarSenha('bia2027', 'bia2026')) === null);
+confere('escola.aluno.enviarFoto devolve o aluno com temFoto', (await api.escola.aluno.enviarFoto(FOTO)).temFoto === true);
+confere('escola.aluno.foto devolve a mesma imagem', (await api.escola.aluno.foto()).imagem === FOTO);
+confere('escola.aluno.removerFoto devolve null (204)', (await api.escola.aluno.removerFoto()) === null);
+await confereErro('escola.aluno.foto depois de remover', api.escola.aluno.foto(), 404, 'NAO_ENCONTRADO');
+await api.escola.aluno.enviarFoto(FOTO); // de volta, para o professor ler mais adiante
 confere('a turma do aluno vem no login (sessao.turmaAtiva)', sessao.turmaAtiva() === turma.id);
 
 const salas = await api.escola.aluno.salas();
@@ -249,6 +260,8 @@ confere('relatorios.turma conta as tentativas', Number.isInteger(relatorio.tenta
 const sessoesBia = await api.relatorios.sessoesDoAluno(turma.id, bia.id);
 confere('relatorios.sessoesDoAluno com título', sessoesBia.total === 2 && sessoesBia.itens[0].tituloExercicio === 'Exercício Teste 2');
 confere('alunos.desempenho', (await api.alunos.desempenho(turma.id, bia.id)).totalSessoes === 2);
+confere('alunos.daTurma diz temFoto da Bia', (await api.alunos.daTurma(turma.id)).find((a) => a.id === bia.id).temFoto === true);
+confere('alunos.foto: o professor lê a foto da aluna da turma dele', (await api.alunos.foto(turma.id, bia.id)).imagem === FOTO);
 confere('turmas.atribuicoes conta a Bia como concluinte', (await api.turmas.atribuicoes(turma.id))[0].concluidoPor === 1);
 confere('turmas.obter: ppmMedio de quem treinou', (await api.turmas.obter(turma.id)).ppmMedio === 35);
 const gerada = await api.alunos.gerarSenhaProvisoria(turma.id, bia.id);
@@ -395,4 +408,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 65 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 72 funções do api.ts contra o back.`);

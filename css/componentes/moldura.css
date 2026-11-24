@@ -113,6 +113,9 @@
   font-size: 14px;
 }
 
+/* A foto de perfil no lugar da inicial: o mesmo círculo, preenchido. */
+.avatar-foto { padding: 0; object-fit: cover; }
+
 .moldura-pessoa-texto {
   display: flex;
   flex-direction: column;
@@ -374,7 +377,9 @@
   color: rgba(255, 255, 255, 0.86);
   overflow-wrap: anywhere;
 }
-.moldura-professor .barra-lateral-versao { margin-top: var(--e-2, 8px); }
+/* Com a pessoa no pé da barra (os três modos), ela vai para baixo e a
+   versão fica logo embaixo dela. */
+.barra-lateral-conta + .barra-lateral-versao { margin-top: var(--e-2, 8px); }
 
 @media (min-width: 1024px) {
   .moldura-professor .barra-lateral {

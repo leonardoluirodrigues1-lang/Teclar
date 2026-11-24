@@ -10,9 +10,11 @@ estatísticas); as de turmas (listar, criar, detalhe, PATCH, código novo e
 as três de atribuições); as cinco de alunos da turma; as cinco da
 biblioteca de exercícios (o `DELETE /exercicios/:id` arquiva, não apaga);
 as duas de sessões; as quatro de relatórios; as seis do próprio aluno
-(histórico, resumo, salas, sala, meu desempenho e o ranking); as três de
-Configurações > Conta (`PATCH /conta`, `POST /conta/senha` e `PUT /aluno/senha`,
-em `src/autenticacao/perfil.controller.ts`); e as seis de
+(histórico, resumo, salas, sala, meu desempenho e o ranking); as nove de
+Configurações > Conta (`PATCH /conta`, `POST /conta/senha`, `PUT /aluno/senha` e
+PUT/GET/DELETE de `/conta/foto` e `/aluno/foto`, em
+`src/autenticacao/perfil.controller.ts`), mais `GET /turmas/:id/alunos/:alunoId/foto`
+(o professor lê a foto dos alunos dele); e as seis de
 administração (categorias e parâmetros). Testes de fumaça, com o back no
 ar e o seed aplicado: `npm run test:auth`, `test:solo`, `test:turmas`,
 `test:atribuicoes`, `test:alunos`, `test:exercicios`, `test:sessoes`,
@@ -87,6 +89,8 @@ criado pelo `DB_Teclar_v10.sql` (na raiz do repositório).
   dados antes dos CHECKs) e depois o passo 2.
 - **`teclardb_v10` já criado antes da senha provisória do aluno:** rode
   uma vez o `ALTER_v10_senha_provisoria.sql` e depois o passo 2.
+- **`teclardb_v10` já criado antes da foto de perfil:** rode uma vez o
+  `ALTER_v10_foto.sql` (as colunas `Foto` de `users` e `alunosturmas`).
 - **Banco v9 (`teclardb`):** não há migração. Ele só tinha dados de
   teste/demonstração; o deploy deve ser **recriado do zero** com
   `DB_Teclar_v10.sql` + `npm run seed`.

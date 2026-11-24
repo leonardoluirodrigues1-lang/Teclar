@@ -97,6 +97,7 @@ import { validarNome, validarSenha, validarSenhaAluno } from '../utils/validacao
 import type {
   Aluno,
   ImagemDaCapa,
+  ImagemDaFoto,
   Atribuicao,
   Campanha,
   Categoria,
@@ -1159,6 +1160,27 @@ function recalcularNivel(xpTotal: number): number {
 // onde a coluna não vem junto com a turma. Somem ao recarregar a página.
 const capas: Record<string, string> = {};
 
+// As fotos de perfil (PUT /conta/foto e /aluno/foto), por id da conta ou do
+// aluno, fora de `dados` como no back (a foto não vem nas outras rotas).
+const fotos: Record<string, string> = {};
+
+// As mesmas recusas do back (back/src/foto.ts), menos as dimensões, que o
+// mock não lê do cabeçalho.
+function fotoConferida(imagem: unknown): string {
+  if (typeof imagem !== 'string' || !imagem.startsWith('data:image/webp;base64,')) {
+    throw erro(400, 'A foto precisa ser uma imagem WEBP.', 'DADOS_INVALIDOS');
+  }
+  if (((imagem.length - 'data:image/webp;base64,'.length) * 3) / 4 > 50 * 1024) {
+    throw erro(400, 'A foto pode ter no máximo 50 KB.', 'DADOS_INVALIDOS');
+  }
+  return imagem;
+}
+
+function fotoDe(id: string): ImagemDaFoto {
+  if (!fotos[id]) throw erro(404, 'Sem foto de perfil.', 'NAO_ENCONTRADO');
+  return { imagem: fotos[id] };
+}
+
 function montarRegex(padrao: string): RegExp {
   return new RegExp('^' + padrao.replace(/:[A-Za-z]+/g, '([^/]+)') + '$');
 }
@@ -1250,6 +1272,7 @@ function linhaDoAluno(turmaId: string, aluno: AlunoMock): Aluno {
     wpmMedio: media(concluidas.map((s) => s.wpm)),
     precisaoMedia: media(concluidas.map((s) => s.precisao)),
     ultimaAtividade: ultimaData(minhas),
+    temFoto: Boolean(fotos[aluno.id]),
   };
 }
 
@@ -1632,6 +1655,7 @@ interface Conta {
 function usuarioDoAluno(turma: Turma, aluno: AlunoMock): Usuario {
   const usuario: Usuario = { id: aluno.id, nome: aluno.nome, tipo: 'aluno', turmas: [{ id: turma.id, nome: turma.nome, codigo: turma.codigo }] };
   if (aluno.senha === null) usuario.precisaTrocarSenha = true;
+  usuario.temFoto = Boolean(fotos[aluno.id]);
   return usuario;
 }
 
@@ -2376,6 +2400,16 @@ const rotas: [string, RegExp, Handler][] = [
   ],
   [
     'GET',
+    montarRegex('/turmas/:turmaId/alunos/:alunoId/foto'),
+    (params, corpo, token) => {
+      const [turmaId, alunoId] = params;
+      turmaDaConta(turmaId, token);
+      alunoDaTurma(turmaId, alunoId);
+      return fotoDe(alunoId);
+    },
+  ],
+  [
+    'GET',
     montarRegex('/turmas/:turmaId/alunos/:alunoId/desempenho'),
     (params, corpo, token) => {
       const [turmaId, alunoId] = params;
@@ -2694,6 +2728,47 @@ const rotas: [string, RegExp, Handler][] = [
       return null;
     },
   ],
+  // Configurações > Conta: a foto de perfil, só a própria.
+  [
+    'PUT',
+    montarRegex('/conta/foto'),
+    (params, corpo, token) => {
+      const usuario = contaDoToken(token);
+      fotos[usuario.id] = fotoConferida(corpo?.imagem);
+      usuario.temFoto = true;
+      return usuario;
+    },
+  ],
+  ['GET', montarRegex('/conta/foto'), (params, corpo, token) => fotoDe(contaDoToken(token).id)],
+  [
+    'DELETE',
+    montarRegex('/conta/foto'),
+    (params, corpo, token) => {
+      const usuario = contaDoToken(token);
+      delete fotos[usuario.id];
+      usuario.temFoto = false;
+      return null;
+    },
+  ],
+  [
+    'PUT',
+    montarRegex('/aluno/foto'),
+    (params, corpo, token) => {
+      const achado = alunoMockPorId(alunoDoToken(token).id);
+      fotos[achado.aluno.id] = fotoConferida(corpo?.imagem);
+      return usuarioDoAluno(achado.turma, achado.aluno);
+    },
+  ],
+  ['GET', montarRegex('/aluno/foto'), (params, corpo, token) => fotoDe(alunoDoToken(token).id)],
+  [
+    'DELETE',
+    montarRegex('/aluno/foto'),
+    (params, corpo, token) => {
+      delete fotos[alunoDoToken(token).id];
+      return null;
+    },
+  ],
+
   // Configurações > Conta. A senha atual errada é 400 (não 401, que derrubaria a sessão).
   [
     'PUT',

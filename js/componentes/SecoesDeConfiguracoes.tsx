@@ -4,15 +4,18 @@
 //
 //   · Acessibilidade e Interface: preferências do APARELHO, no localStorage
 //     (js/nucleo/preferencias-cedo.ts). Valem na hora e em todas as páginas.
-//   · Conta: pela API. A conta (Solo e professor) troca o nome e a senha; o
-//     aluno vê o nome, a turma e o código e troca a senha da matrícula, com
-//     a regra, a dica e o medidor do "Crie sua senha".
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+//   · Conta: pela API. Todos trocam a foto de perfil. A conta (Solo e
+//     professor) troca o nome e a senha; o aluno vê o nome, a turma e o
+//     código e troca a senha da matrícula, com a regra, a dica e o medidor
+//     do "Crie sua senha".
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { api } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { preferencias, type Preferencias, type Tamanho } from '../nucleo/preferencias.js';
 import { validarNome, validarSenha, validarSenhaAluno } from '../utils/validacao.js';
 import { MENSAGENS } from '../auth/comum.js';
+import { imagemDaFoto } from '../utils/imagemDaCapa.js';
+import { Avatar, useMinhaFoto, useUsuarioAtual } from './Avatar.js';
 import { CampoSenha, ErroCampo, MedidorDeSenha, atributosDeErro, useErrosDeCampo, useForcaDaSenha } from '../auth/Formulario.js';
 
 export type ModoDasConfiguracoes = 'solo' | 'professor' | 'aluno';
@@ -172,11 +175,116 @@ function Interface({ aoReverTutorial }: { aoReverTutorial?: () => void }) {
   );
 }
 
+// --- Conta: a foto de perfil (conta e aluno) --------------------------------------
+
+// Escolher -> prévia (o navegador já recortou o quadrado, reduziu e converteu,
+// utils/imagemDaCapa.ts) -> Salvar ou Cancelar. Com foto, Remover volta às
+// iniciais. A foto salva vai para o usuario da sessão: o topo e a barra
+// trocam na hora.
+function FotoDePerfil() {
+  useUsuarioAtual();
+  const foto = useMinhaFoto();
+  const aluno = sessao.tipo() === 'aluno';
+  const rotas = aluno ? api.escola.aluno : api.conta;
+  const arquivo = useRef<HTMLInputElement>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [aviso, setAviso] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+
+  async function aoEscolher(evento: ChangeEvent<HTMLInputElement>) {
+    const escolhido = evento.target.files?.[0];
+    // Limpa o campo: escolher o mesmo arquivo de novo dispara de novo.
+    evento.target.value = '';
+    if (!escolhido) return;
+    setAviso('');
+    try {
+      setPrevia(await imagemDaFoto(escolhido));
+    } catch (erro) {
+      setAviso((erro as Error).message);
+    }
+  }
+
+  async function salvar() {
+    if (!previa || ocupado) return;
+    setOcupado(true);
+    try {
+      await rotas.enviarFoto(previa);
+      sessao.atualizarUsuario({ temFoto: true, foto: previa });
+      setPrevia(null);
+      setAviso('Foto salva.');
+    } catch (excecao) {
+      setAviso(mensagemDaFalha(excecao));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function remover() {
+    if (ocupado) return;
+    setOcupado(true);
+    try {
+      await rotas.removerFoto();
+      sessao.atualizarUsuario({ temFoto: false, foto: undefined });
+      setAviso('Foto removida. No lugar dela, aparece a sua inicial.');
+    } catch (excecao) {
+      setAviso(mensagemDaFalha(excecao));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="config-form config-foto" role="group" aria-labelledby="titulo-foto">
+      <Avatar nome={sessao.nomeExibicao()} foto={previa ?? foto} classe="config-foto-circulo" />
+      <div>
+        <h3 className="config-form-titulo" id="titulo-foto">
+          Foto de perfil
+        </h3>
+        <p className="config-opcao-texto">
+          {previa
+            ? 'Assim vai ficar. Salve para usar esta foto.'
+            : `Aparece no topo e na barra lateral${aluno ? ', e para o seu professor na lista da turma' : ''}. Sem foto, aparece a sua inicial.`}
+        </p>
+        {/* O <input type="file"> fica escondido e o botão o abre: o botão
+            é o que o teclado e o leitor de tela alcançam. */}
+        <input ref={arquivo} type="file" accept="image/*" hidden onChange={aoEscolher} />
+        <div className="config-foto-acoes">
+          {previa ? (
+            <>
+              <button type="button" className="config-botao tecla" onClick={salvar} disabled={ocupado}>
+                {ocupado ? 'Salvando…' : 'Salvar foto'}
+              </button>
+              <button type="button" className="config-botao tecla" onClick={() => setPrevia(null)} disabled={ocupado}>
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="config-botao tecla" onClick={() => arquivo.current?.click()} disabled={ocupado}>
+                {foto ? 'Trocar foto' : 'Escolher foto'}
+              </button>
+              {foto && (
+                <button type="button" className="config-botao tecla" onClick={remover} disabled={ocupado}>
+                  Remover foto
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        <p className="config-aviso" role="status">
+          {aviso}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // --- Conta: Solo e professor -----------------------------------------------------
 
 function ContaDaConta() {
   return (
     <Secao id="config-conta" titulo="Conta" intro="Os dados da sua conta, os mesmos no Solo e no modo Professor.">
+      <FotoDePerfil />
       <FormNome />
       <FormSenha
         regra="Pelo menos 8 caracteres, com uma letra e um número."
@@ -254,6 +362,7 @@ function ContaDoAluno() {
   const turma = usuario?.turmas?.[0];
   return (
     <Secao id="config-conta" titulo="Conta" intro="Você entra com o código da turma, o seu nome e a sua senha.">
+      <FotoDePerfil />
       <dl className="config-dados">
         <div>
           <dt>Nome</dt>

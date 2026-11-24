@@ -130,6 +130,34 @@
 }
 .config-aviso:empty { margin-top: 0; }
 
+/* A foto de perfil: o círculo grande à esquerda, texto e botões à direita. */
+.config-foto {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-5, 24px);
+  max-width: none;
+}
+.config-foto-circulo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid var(--cor-borda-forte, #454545);
+  background: var(--cor-superficie, #0e0e0e);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 34px;
+  color: var(--cor-texto, #fff);
+}
+.config-foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3, 12px);
+}
+.config-foto .config-foto-acoes { margin-top: var(--e-4, 16px); }
+.config-foto .config-botao { margin-top: 0; }
+
 /* Aluno: nome, turma e código, só de leitura. */
 .config-dados {
   display: flex;
@@ -159,5 +187,6 @@
 
 @media (max-width: 700px) {
   .config-secao { padding: 18px 16px 20px; }
+  .config-foto { flex-direction: column; }
   .config-linha { flex-direction: column; align-items: flex-start; }
 }

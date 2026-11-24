@@ -4,7 +4,7 @@
 // Roda no .js gerado pelo tsc (npm run build), não no .ts. A conversão em
 // WEBP (canvas) só existe no navegador; aqui fica a conta das medidas.
 import assert from 'node:assert/strict';
-import { CAPA_ALTURA, CAPA_LARGURA, medidasDaCapa } from './imagemDaCapa.js';
+import { CAPA_ALTURA, CAPA_LARGURA, FOTO_LADO, medidasDaCapa, medidasDaFoto } from './imagemDaCapa.js';
 
 const casos = [
   // [foto, recorte esperado, final esperado]
@@ -25,3 +25,13 @@ for (const [[l, a], [rl, ra], [fl, fa]] of casos) {
 assert.deepEqual([medidasDaCapa(6000, 1000).x, medidasDaCapa(3000, 4000).y], [1500, 1500]);
 
 console.log('imagemDaCapa.check: ok');
+
+// A foto de perfil: o quadrado do meio, no máximo 256×256, nunca ampliada.
+for (const [l, a] of [[4000, 3000], [3000, 4000], [256, 256], [100, 60]]) {
+  const m = medidasDaFoto(l, a);
+  assert.equal(m.recorte.largura, m.recorte.altura, `${l}×${a}: o recorte é quadrado`);
+  assert.equal(m.final.largura, m.final.altura, `${l}×${a}: a foto final é quadrada`);
+  assert.ok(m.final.largura <= FOTO_LADO && m.final.largura <= Math.min(l, a), `${l}×${a} cabe em 256×256 sem ampliar`);
+}
+assert.deepEqual([medidasDaFoto(4000, 3000).x, medidasDaFoto(3000, 4000).y], [500, 500], 'o quadrado é o do meio');
+console.log('ok - recorte quadrado da foto de perfil');

@@ -114,7 +114,8 @@
                         "turmas": [
                           {
                             "id": "turma-1",
-                            "nome": "9º Ano A — Manhã"
+                            "nome": "9º Ano A — Manhã",
+                            "codigo": "K7M2QX"
                           }
                         ],
                         "precisaTrocarSenha": true
@@ -312,7 +313,8 @@
                         "turmas": [
                           {
                             "id": "turma-1",
-                            "nome": "9º Ano A — Manhã"
+                            "nome": "9º Ano A — Manhã",
+                            "codigo": "K7M2QX"
                           }
                         ]
                       }
@@ -793,6 +795,223 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "MUITAS_TENTATIVAS"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/conta/foto": {
+      "put": {
+        "tags": [
+          "Conta (Configurações)"
+        ],
+        "operationId": "conta.enviarFoto",
+        "summary": "enviarFoto: Usuario — a conta como ficou, com temFoto true",
+        "description": "**Chamada no front:** `api.conta.enviarFoto`\n\n**Corpo:** { imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB\n\n**Resposta:** 200 Usuario — a conta como ficou, com temFoto true\n\n**Identidade:**\n\nO token: só a própria foto.\n\n**Regras de negócio no back (a tela não calcula):**\n\nConfere tipo, tamanho e dimensões no cabeçalho (back/src/foto.ts) e grava em Users.Foto (MEDIUMBLOB). A foto nunca vem nas outras consultas: o login e o /auth/eu só dizem temFoto.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "imagem": "data:image/webp;base64,UklGR..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario — a conta como ficou, com temFoto true"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Conta (Configurações)"
+        ],
+        "operationId": "conta.foto",
+        "summary": "foto: ImagemDaFoto",
+        "description": "**Chamada no front:** `api.conta.foto`\n\n**Resposta:** 200 ImagemDaFoto\n\n**Identidade:**\n\nO token: só a própria. A tela pede quando o usuario diz temFoto.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "ImagemDaFoto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "imagem": "data:image/webp;base64,UklGR..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a conta não tem foto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Conta (Configurações)"
+        ],
+        "operationId": "conta.removerFoto",
+        "summary": "removerFoto: (sem corpo) — volta às iniciais",
+        "description": "**Chamada no front:** `api.conta.removerFoto`\n\n**Resposta:** 204 (sem corpo) — volta às iniciais\n\n**Identidade:**\n\nO token: só a própria.",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "(sem corpo) — volta às iniciais"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
                     }
                   }
                 }
@@ -3289,6 +3508,92 @@
         ]
       }
     },
+    "/api/turmas/{id}/alunos/{alunoId}/foto": {
+      "get": {
+        "tags": [
+          "Alunos (professor)"
+        ],
+        "operationId": "alunos.foto",
+        "summary": "foto: ImagemDaFoto — a foto que o aluno pôs em Configurações",
+        "description": "**Chamada no front:** `api.alunos.foto`\n\n**Resposta:** 200 ImagemDaFoto — a foto que o aluno pôs em Configurações\n\n**Identidade:**\n\nO token: o professor dono da turma. Só lê: quem troca a foto é o aluno.\n\n**Notas:**\n\nA lista (GET /turmas/:id/alunos) diz temFoto em cada aluno: a tela só pede a de quem tem, e mostra as iniciais nos outros.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "alunoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ImagemDaFoto — a foto que o aluno pôs em Configurações"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, aluno de outra turma ou aluno sem foto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/turmas/{id}/relatorio": {
       "get": {
         "tags": [
@@ -4609,6 +4914,211 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "MUITAS_TENTATIVAS"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/foto": {
+      "put": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.enviarFoto",
+        "summary": "enviarFoto: Usuario — o aluno como ficou, com temFoto true",
+        "description": "**Chamada no front:** `api.escola.aluno.enviarFoto`\n\n**Corpo:** { imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB\n\n**Resposta:** 200 Usuario — o aluno como ficou, com temFoto true\n\n**Identidade:**\n\nO token: a foto da própria matrícula (o mesmo nome em outra turma é outra foto).\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava em alunosturmas.Foto (MEDIUMBLOB), com a conferência de PUT /conta/foto.",
+        "parameters": [],
+        "requestBody": {
+          "description": "{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "imagem": "data:image/webp;base64,UklGR..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario — o aluno como ficou, com temFoto true"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.foto",
+        "summary": "foto: ImagemDaFoto",
+        "description": "**Chamada no front:** `api.escola.aluno.foto`\n\n**Resposta:** 200 ImagemDaFoto\n\n**Identidade:**\n\nO token.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "ImagemDaFoto"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — sem foto",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.removerFoto",
+        "summary": "removerFoto: (sem corpo) — volta às iniciais",
+        "description": "**Chamada no front:** `api.escola.aluno.removerFoto`\n\n**Resposta:** 204 (sem corpo) — volta às iniciais\n\n**Identidade:**\n\nO token.",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "(sem corpo) — volta às iniciais"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
                     }
                   }
                 }

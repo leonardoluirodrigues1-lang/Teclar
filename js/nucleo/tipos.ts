@@ -71,6 +71,11 @@ export interface Usuario {
   /** Aluno que entrou com a senha provisória e ainda não criou a dele
    *  (POST /aluno/senha). Enquanto true, o guarda só abre aluno/senha.html. */
   precisaTrocarSenha?: boolean;
+  /** Tem foto de perfil (Configurações > Conta). Sem: as iniciais. */
+  temFoto?: boolean;
+  /** Só no front: a foto já baixada (data URL WEBP), guardada na sessão
+   *  para a moldura não pedir de novo a cada tela. Sai junto no Sair. */
+  foto?: string;
 }
 
 /** Resposta de POST /auth/login e de POST /auth/cadastro. */
@@ -325,6 +330,12 @@ export interface ImagemDaCapa {
   imagem: string;
 }
 
+/** GET /conta/foto, /aluno/foto e /turmas/:id/alunos/:alunoId/foto: a foto
+ *  de perfil, WEBP quadrado de até 256×256, como data URL. */
+export interface ImagemDaFoto {
+  imagem: string;
+}
+
 export interface TurmaDetalhe extends Turma {
   /** média com 1 casa decimal, só dos alunos que treinaram; null se ninguém */
   ppmMedio: number | null;
@@ -351,6 +362,8 @@ export interface Aluno {
   totalSessoes: number;
   wpmMedio: number | null;
   precisaoMedia: number | null;
+  /** Tem foto de perfil: a lista pede GET /turmas/:id/alunos/:alunoId/foto. */
+  temFoto: boolean;
   ultimaAtividade: string | null;
 }
 

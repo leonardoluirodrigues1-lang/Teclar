@@ -36,6 +36,8 @@ import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno, provisoriaValida } from './
 import { TentativasDeLogin } from './tentativas-de-login.js';
 import type { ConteudoDoToken, Identidade, TipoDeLogin } from './token.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { bytesDaFoto, semFoto, type ImagemDaFoto } from '../foto.js';
+import { webpComoDataUrl } from '../imagem-webp.js';
 
 // O corpo como chega. Tudo unknown: vem da rede, e nada garante que a tela
 // (ou quem chamar com curl) mandou texto.
@@ -64,6 +66,8 @@ interface UsuarioConta {
   // Só existe se a conta tem campanha no Solo (como no mock): a tela usa
   // para abrir o lobby sem pedir a campanha de novo.
   campanhaAtiva?: string;
+  // Tem foto de perfil: a tela pede GET /conta/foto; sem, mostra as iniciais.
+  temFoto: boolean;
 }
 
 interface UsuarioAluno {
@@ -75,6 +79,8 @@ interface UsuarioAluno {
   turmas: { id: string; nome: string; codigo: string }[];
   // true enquanto o aluno não criou a senha dele (entrou pela provisória).
   precisaTrocarSenha?: true;
+  // Tem foto de perfil (GET /aluno/foto).
+  temFoto: boolean;
 }
 
 export type Usuario = UsuarioConta | UsuarioAluno;
@@ -238,7 +244,7 @@ export class AutenticacaoService {
       throw contaDesativada();
     }
 
-    return { token: await this.emitirToken(conta.ID, 'conta'), usuario: usuarioDaConta(conta) };
+    return { token: await this.emitirToken(conta.ID, 'conta'), usuario: usuarioDaConta(conta, await this.temFoto({ id: conta.ID, tipo: 'conta' })) };
   }
 
   // Cadastro (só conta: aluno não se cadastra, é importado pelo professor)
@@ -278,7 +284,7 @@ export class AutenticacaoService {
     }
 
     // Conta recém-criada não tem campanha: o usuario sai sem campanhaAtiva.
-    const usuario = usuarioDaConta({ ...conta, campanhassolo: null });
+    const usuario = usuarioDaConta({ ...conta, campanhassolo: null }, false);
     return { token: await this.emitirToken(conta.ID, 'conta'), usuario };
   }
 
@@ -326,9 +332,7 @@ export class AutenticacaoService {
   // com a senha atual e a regra da senha do aluno (6 a 20, letra e número,
   // aparada). A provisória que restar deixa de valer.
   async trocarSenhaDoAluno(identidade: Identidade, corpo: { senhaAtual?: unknown; novaSenha?: unknown }): Promise<void> {
-    if (identidade.tipo !== 'aluno') {
-      throw new ForbiddenException({ mensagem: 'Rota só para alunos.', codigo: 'TIPO_INVALIDO' });
-    }
+    soAluno(identidade);
     const nova = String(corpo?.novaSenha ?? '').trim();
     const problema = problemaNaSenhaDoAluno(nova);
     if (problema !== null) {
@@ -340,6 +344,50 @@ export class AutenticacaoService {
       where: { AlunoID: identidade.id },
       data: { SenhaHash: await bcrypt.hash(nova, CUSTO_BCRYPT_ALUNO), SenhaProvisoriaHash: null, SenhaProvisoriaExpira: null },
     });
+  }
+
+  // --- Foto de perfil: PUT, GET e DELETE de /conta/foto e /aluno/foto ---------
+  // Só a própria: o id sai do token, e o tipo do token tem de ser o da rota.
+
+  async gravarFoto(identidade: Identidade, tipo: TipoDeLogin, corpo: { imagem?: unknown }): Promise<Usuario> {
+    const id = tipo === 'conta' ? soConta(identidade) : soAluno(identidade);
+    const Foto = bytesDaFoto(corpo?.imagem);
+    if (tipo === 'conta') {
+      await this.banco.users.update({ where: { ID: id }, data: { Foto } });
+    } else {
+      await this.banco.alunosturmas.update({ where: { AlunoID: id }, data: { Foto } });
+    }
+    return this.quemSouEu(identidade);
+  }
+
+  async foto(identidade: Identidade, tipo: TipoDeLogin): Promise<ImagemDaFoto> {
+    const id = tipo === 'conta' ? soConta(identidade) : soAluno(identidade);
+    const linha =
+      tipo === 'conta'
+        ? await this.banco.users.findUnique({ where: { ID: id }, select: { Foto: true } })
+        : await this.banco.alunosturmas.findUnique({ where: { AlunoID: id }, select: { Foto: true } });
+    if (!linha?.Foto) {
+      throw semFoto();
+    }
+    return { imagem: webpComoDataUrl(linha.Foto) };
+  }
+
+  async apagarFoto(identidade: Identidade, tipo: TipoDeLogin): Promise<void> {
+    const id = tipo === 'conta' ? soConta(identidade) : soAluno(identidade);
+    if (tipo === 'conta') {
+      await this.banco.users.update({ where: { ID: id }, data: { Foto: null } });
+    } else {
+      await this.banco.alunosturmas.update({ where: { AlunoID: id }, data: { Foto: null } });
+    }
+  }
+
+  // Se tem foto, sem trazer os bytes.
+  private async temFoto(identidade: Identidade): Promise<boolean> {
+    const quantas =
+      identidade.tipo === 'conta'
+        ? await this.banco.users.count({ where: { ID: identidade.id, Foto: { not: null } } })
+        : await this.banco.alunosturmas.count({ where: { AlunoID: identidade.id, Foto: { not: null } } });
+    return quantas > 0;
   }
 
   // A senha atual errada é 400, e não 401: o 401 derruba a sessão na tela.
@@ -366,7 +414,7 @@ export class AutenticacaoService {
     if (!conta || conta.Ativo === false) {
       throw tokenInvalido();
     }
-    return usuarioDaConta(conta);
+    return usuarioDaConta(conta, await this.temFoto({ id, tipo: 'conta' }));
   }
 
   private async alunoDoToken(id: string): Promise<UsuarioAluno> {
@@ -380,7 +428,7 @@ export class AutenticacaoService {
     if (!aluno || aluno.Ativo === false || aluno.classesprof.Ativa === false) {
       throw tokenInvalido();
     }
-    return usuarioDoAluno(aluno);
+    return usuarioDoAluno(aluno, await this.temFoto({ id, tipo: 'aluno' }));
   }
 
   // Aluno (Alunos, dentro de uma turma)
@@ -470,7 +518,7 @@ export class AutenticacaoService {
   }
 
   private async respostaDoAluno(aluno: AlunoEncontrado): Promise<RespostaLogin> {
-    return { token: await this.emitirToken(aluno.AlunoID, 'aluno'), usuario: usuarioDoAluno(aluno) };
+    return { token: await this.emitirToken(aluno.AlunoID, 'aluno'), usuario: usuarioDoAluno(aluno, await this.temFoto({ id: aluno.AlunoID, tipo: 'aluno' })) };
   }
 
   private emitirToken(id: string, tipo: TipoDeLogin): Promise<string> {
@@ -492,8 +540,8 @@ interface ContaComCampanha {
 
 // O `usuario` de conta. Um lugar só monta, para o login, o cadastro e o
 // /auth/eu não divergirem no formato.
-function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
-  const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta' };
+function usuarioDaConta(conta: ContaComCampanha, temFoto: boolean): UsuarioConta {
+  const usuario: UsuarioConta = { id: conta.ID, nome: conta.Nome, email: conta.Email, tipo: 'conta', temFoto };
   const campanha = conta.campanhassolo;
   if (campanha) {
     usuario.campanhaAtiva = campanha.CampanhaID;
@@ -502,12 +550,13 @@ function usuarioDaConta(conta: ContaComCampanha): UsuarioConta {
 }
 
 // O `usuario` de aluno, igual no login e no /auth/eu.
-function usuarioDoAluno(aluno: AlunoEncontrado): UsuarioAluno {
+function usuarioDoAluno(aluno: AlunoEncontrado, temFoto: boolean): UsuarioAluno {
   const usuario: UsuarioAluno = {
     id: aluno.AlunoID,
     nome: aluno.Nome,
     tipo: 'aluno',
     turmas: [{ id: aluno.classesprof.ClassID, nome: aluno.classesprof.NomeTurma ?? '', codigo: aluno.classesprof.Codigo }],
+    temFoto,
   };
   // Sem senha própria: entrou pela provisória e ainda não criou a dele.
   if (aluno.SenhaHash === null) {
@@ -585,6 +634,13 @@ function senhaIncorreta(): UnauthorizedException {
 function soConta(identidade: Identidade): string {
   if (identidade.tipo !== 'conta') {
     throw new ForbiddenException({ mensagem: 'Rota só para contas.', codigo: 'TIPO_INVALIDO' });
+  }
+  return identidade.id;
+}
+
+function soAluno(identidade: Identidade): string {
+  if (identidade.tipo !== 'aluno') {
+    throw new ForbiddenException({ mensagem: 'Rota só para alunos.', codigo: 'TIPO_INVALIDO' });
   }
   return identidade.id;
 }

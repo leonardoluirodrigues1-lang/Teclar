@@ -51,6 +51,7 @@ import {
   type PedraDaTrilha,
 } from '../componentes/TelaDaTurma.js';
 import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
+import { AvatarDoAluno } from '../componentes/Avatar.js';
 import { RelatorioDaTurma } from './RelatorioDaTurma.js';
 import { ModalArquivar, ModalCapa, ModalNome } from './modaisDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
@@ -309,7 +310,13 @@ function Turma() {
     {
       rotulo: 'Aluno',
       campo: 'nome',
-      celula: (a) => <span className="celula-aluno-nome">{a.nome}</span>,
+      // A foto que o aluno pôs em Configurações, ou a inicial.
+      celula: (a) => (
+        <span className="celula-aluno">
+          <AvatarDoAluno turmaId={turmaId} alunoId={a.id} nome={a.nome} temFoto={a.temFoto} />
+          <span className="celula-aluno-nome">{a.nome}</span>
+        </span>
+      ),
     },
     { rotulo: 'Acesso', celula: (a) => <SituacaoDoAcesso aluno={a} /> },
     { rotulo: 'Na lista desde', celula: (a) => formatarData(a.entrouEm) },

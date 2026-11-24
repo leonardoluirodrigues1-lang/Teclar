@@ -256,6 +256,31 @@ A senha atual errada é 400, e não 401: o 401 derrubaria a sessão na tela.`,
         identidade: `O token.`,
         back: `Confere a senha atual com bcrypt e grava o hash novo em Users.SenhaHash. O token atual continua valendo.`,
       },
+      'conta.enviarFoto': {
+        rota: 'PUT /conta/foto',
+        corpo: `{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        resposta: `200 Usuario — a conta como ficou, com temFoto true`,
+        erros: `400 DADOS_INVALIDOS — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: só a própria foto.`,
+        back: `Confere tipo, tamanho e dimensões no cabeçalho (back/src/foto.ts) e grava em Users.Foto (MEDIUMBLOB).
+  A foto nunca vem nas outras consultas: o login e o /auth/eu só dizem temFoto.`,
+      },
+      'conta.foto': {
+        rota: 'GET /conta/foto',
+        resposta: `200 ImagemDaFoto
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        erros: `404 NAO_ENCONTRADO — a conta não tem foto
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: só a própria. A tela pede quando o usuario diz temFoto.`,
+      },
+      'conta.removerFoto': {
+        rota: 'DELETE /conta/foto',
+        resposta: `204 (sem corpo) — volta às iniciais`,
+        erros: `403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: só a própria.`,
+      },
     },
   },
   {
@@ -694,6 +719,15 @@ sem tela.`,
         nota: `Nenhuma tela usa (o modal de relatórios usa
   GET /turmas/:id/alunos/:alunoId/sessoes).`,
       },
+      'alunos.foto': {
+        rota: 'GET /turmas/:id/alunos/:alunoId/foto',
+        resposta: `200 ImagemDaFoto — a foto que o aluno pôs em Configurações`,
+        erros: `404 NAO_ENCONTRADO — turma de outra conta, aluno de outra turma ou aluno sem foto
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: o professor dono da turma. Só lê: quem troca a foto é o aluno.`,
+        nota: `A lista (GET /turmas/:id/alunos) diz temFoto em cada aluno: a tela só pede a de quem tem, e
+  mostra as iniciais nos outros.`,
+      },
     },
   },
   {
@@ -962,6 +996,29 @@ da conta, e mora em \`solo\`.`,
         identidade: `O token: a matrícula dele. Quem ainda está na provisória não chega aqui (403 TROCAR_SENHA): usa o POST /aluno/senha.`,
         nota: `Configurações > Conta do aluno, com a mesma dica e o mesmo medidor do "Crie sua senha".`,
         back: `Confere a senha atual com bcrypt e grava alunosturmas.SenhaHash; apaga a provisória que restar.`,
+      },
+      'escola.aluno.enviarFoto': {
+        rota: 'PUT /aluno/foto',
+        corpo: `{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB
+  { "imagem": "data:image/webp;base64,UklGR..." }`,
+        resposta: `200 Usuario — o aluno como ficou, com temFoto true`,
+        erros: `400 DADOS_INVALIDOS — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada
+  403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token: a foto da própria matrícula (o mesmo nome em outra turma é outra foto).`,
+        back: `Grava em alunosturmas.Foto (MEDIUMBLOB), com a conferência de PUT /conta/foto.`,
+      },
+      'escola.aluno.foto': {
+        rota: 'GET /aluno/foto',
+        resposta: `200 ImagemDaFoto`,
+        erros: `404 NAO_ENCONTRADO — sem foto
+  403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token.`,
+      },
+      'escola.aluno.removerFoto': {
+        rota: 'DELETE /aluno/foto',
+        resposta: `204 (sem corpo) — volta às iniciais`,
+        erros: `403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token.`,
       },
       'escola.aluno.historico': {
         rota: 'GET /aluno/historico',

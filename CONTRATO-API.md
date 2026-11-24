@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-65 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+72 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -28,14 +28,14 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 ## Índice
 
 - **Autenticação**: `POST /auth/login`, `GET /auth/turmas/:codigo`, `POST /auth/aluno`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
-- **Conta (Configurações)**: `PATCH /conta`, `POST /conta/senha`
+- **Conta (Configurações)**: `PATCH /conta`, `POST /conta/senha`, `PUT /conta/foto`, `GET /conta/foto`, `DELETE /conta/foto`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
-- **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`
+- **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`, `GET /turmas/:id/alunos/:alunoId/foto`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `PUT /aluno/foto`, `GET /aluno/foto`, `DELETE /aluno/foto`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
@@ -65,7 +65,7 @@ Conta: { email, senha }. Aluno: { codigo, nome, senha } (Credenciais)
                "tipo": "conta", "campanhaAtiva": "camp-2" } }
 Aluno: { "token": "...",
          "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-         "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }],
+         "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã", "codigo": "K7M2QX" }],
          "precisaTrocarSenha": true } }
 ```
 
@@ -132,7 +132,7 @@ CredenciaisAluno — o código da turma, o nome completo e a senha
 
 ```json
 { "token": "...", "usuario": { "id": "al-9f3k2", "nome": "Ana Pires", "tipo": "aluno",
-  "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã" }] } }
+  "turmas": [{ "id": "turma-1", "nome": "9º Ano A — Manhã", "codigo": "K7M2QX" }] } }
 ```
 
 **Erros:**
@@ -302,6 +302,76 @@ O token.
 **Regras de negócio no back (a tela não calcula):**
 
 Confere a senha atual com bcrypt e grava o hash novo em Users.SenhaHash. O token atual continua valendo.
+
+### `PUT /conta/foto`
+
+Chamada no front: `api.conta.enviarFoto`
+
+**Corpo:**
+
+{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Resposta:**
+
+200 Usuario — a conta como ficou, com temFoto true
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: só a própria foto.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Confere tipo, tamanho e dimensões no cabeçalho (back/src/foto.ts) e grava em Users.Foto (MEDIUMBLOB). A foto nunca vem nas outras consultas: o login e o /auth/eu só dizem temFoto.
+
+### `GET /conta/foto`
+
+Chamada no front: `api.conta.foto`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ImagemDaFoto
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — a conta não tem foto
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: só a própria. A tela pede quando o usuario diz temFoto.
+
+### `DELETE /conta/foto`
+
+Chamada no front: `api.conta.removerFoto`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+204 (sem corpo) — volta às iniciais
+
+**Erros:**
+
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: só a própria.
 
 ## Solo
 
@@ -1255,6 +1325,29 @@ As sessões do aluno nesta turma e os agregados sobre elas.
 
 Nenhuma tela usa (o modal de relatórios usa GET /turmas/:id/alunos/:alunoId/sessoes).
 
+### `GET /turmas/:id/alunos/:alunoId/foto`
+
+Chamada no front: `api.alunos.foto`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ImagemDaFoto — a foto que o aluno pôs em Configurações
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — turma de outra conta, aluno de outra turma ou aluno sem foto
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: o professor dono da turma. Só lê: quem troca a foto é o aluno.
+
+**Notas:**
+
+A lista (GET /turmas/:id/alunos) diz temFoto em cada aluno: a tela só pede a de quem tem, e mostra as iniciais nos outros.
+
 ## Relatórios (professor)
 
 pages/professor/relatorios.html e a aba Relatório da turma. Tudo sai de SessionsProf com JOIN e chega PRONTO: nenhuma média é calculada na tela, e toda média pode vir null — que vira "—", nunca 0. A turma tem de ser da conta do token (senão 404); token de aluno é 403. Contam TODAS as sessões da turma (SessionsProf.ClassID) dos alunos ativos dela, inclusive as de exercício arquivado ou que o professor tirou da turma: o que o aluno já fez não some do relatório por uma ação do professor.
@@ -1740,6 +1833,72 @@ Confere a senha atual com bcrypt e grava alunosturmas.SenhaHash; apaga a provis�
 **Notas:**
 
 Configurações > Conta do aluno, com a mesma dica e o mesmo medidor do "Crie sua senha".
+
+### `PUT /aluno/foto`
+
+Chamada no front: `api.escola.aluno.enviarFoto`
+
+**Corpo:**
+
+{ imagem } — data URL WEBP: o navegador recorta o quadrado do meio, reduz para no máximo 256×256 e converte em WEBP de até 50 KB
+
+```json
+{ "imagem": "data:image/webp;base64,UklGR..." }
+```
+
+**Resposta:**
+
+200 Usuario — o aluno como ficou, com temFoto true
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — não é WEBP, passa de 50 KB, de 256×256 ou não é quadrada
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token: a foto da própria matrícula (o mesmo nome em outra turma é outra foto).
+
+**Regras de negócio no back (a tela não calcula):**
+
+Grava em alunosturmas.Foto (MEDIUMBLOB), com a conferência de PUT /conta/foto.
+
+### `GET /aluno/foto`
+
+Chamada no front: `api.escola.aluno.foto`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ImagemDaFoto
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — sem foto
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token.
+
+### `DELETE /aluno/foto`
+
+Chamada no front: `api.escola.aluno.removerFoto`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+204 (sem corpo) — volta às iniciais
+
+**Erros:**
+
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token.
 
 ### `GET /aluno/historico`
 

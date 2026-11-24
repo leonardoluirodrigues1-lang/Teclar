@@ -370,5 +370,76 @@ confere(
 );
 confere('importar: nenhum ID sem matrícula', (await banco.alunos.count({ where: { alunosturmas: { is: null } } })) === 0);
 
+// ============================================================================
+// Foto de perfil: PUT/GET/DELETE /aluno/foto e /conta/foto (só a própria) e
+// GET /turmas/:id/alunos/:alunoId/foto (o professor lê a dos alunos dele)
+// ============================================================================
+
+// Um WEBP 1×1 de verdade (VP8L) e cabeçalhos VP8X montados à mão para as
+// dimensões (o back lê o tamanho do cabeçalho, não decodifica).
+const WEBP_1X1 = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+function webpVp8x(largura, altura) {
+  const b = Buffer.alloc(30);
+  b.write('RIFF', 0, 'latin1');
+  b.writeUInt32LE(22, 4);
+  b.write('WEBPVP8X', 8, 'latin1');
+  b.writeUInt32LE(10, 16);
+  b.writeUIntLE(largura - 1, 24, 3);
+  b.writeUIntLE(altura - 1, 27, 3);
+  return 'data:image/webp;base64,' + b.toString('base64');
+}
+const leo = await entrar({ email: 'leo@teclar.dev', senha: 'senha123' });
+const FOTO_DA_ANA = '/turmas/turma-1/alunos/al-43-t1/foto';
+
+const grandeDemais = 'data:image/webp;base64,' + Buffer.concat([Buffer.from(WEBP_1X1.split(',')[1], 'base64'), Buffer.alloc(50 * 1024)]).toString('base64');
+for (const [caso, imagem] of [
+  ['PNG no lugar de WEBP', 'data:image/png;base64,iVBORw0KGgo='],
+  ['prefixo WEBP com bytes que não são WEBP', 'data:image/webp;base64,' + Buffer.from('não sou uma imagem, só texto comprido').toString('base64')],
+  ['arquivo grande (mais de 50 KB)', grandeDemais],
+  ['300×300 (mais que 256)', webpVp8x(300, 300)],
+  ['200×100 (não é quadrada)', webpVp8x(200, 100)],
+]) {
+  confere(`foto: ${caso} 400 DADOS_INVALIDOS`, ehErro(await chamar('PUT', '/aluno/foto', { imagem }, aluno), 400, 'DADOS_INVALIDOS'));
+}
+confere('foto: o aluno sem foto recebe 404 no GET', ehErro(await chamar('GET', '/aluno/foto', null, aluno), 404, 'NAO_ENCONTRADO'));
+r = await chamar('PUT', '/aluno/foto', { imagem: webpVp8x(256, 256) }, aluno);
+confere('foto: 256×256 é o limite e passa', r.status === 200);
+r = await chamar('PUT', '/aluno/foto', { imagem: WEBP_1X1 }, aluno);
+confere('foto do aluno: PUT 200 com o usuario e temFoto true', r.status === 200 && r.corpo.temFoto === true && r.corpo.tipo === 'aluno');
+r = await chamar('GET', '/aluno/foto', null, aluno);
+confere('foto do aluno: GET devolve a mesma imagem, byte a byte', r.status === 200 && r.corpo.imagem === WEBP_1X1);
+confere('foto do aluno: /auth/eu diz temFoto', (await chamar('GET', '/auth/eu', null, aluno)).corpo.temFoto === true);
+confere(
+  'foto: não vem nas outras consultas (o omit do BancoService)',
+  (await banco.alunosturmas.findFirst({ where: { AlunoID: 'al-43-t1' } })).Foto === undefined,
+);
+
+// Dono x outro: cada rota é do tipo do token, e o id sai dele.
+confere('foto: token de aluno em /conta/foto 403 TIPO_INVALIDO', ehErro(await chamar('GET', '/conta/foto', null, aluno), 403, 'TIPO_INVALIDO'));
+confere('foto: token de conta em /aluno/foto 403 TIPO_INVALIDO', ehErro(await chamar('PUT', '/aluno/foto', { imagem: WEBP_1X1 }, prof), 403, 'TIPO_INVALIDO'));
+r = await chamar('PUT', '/conta/foto', { imagem: WEBP_1X1 }, prof);
+confere('foto da conta: PUT 200 com temFoto true', r.status === 200 && r.corpo.temFoto === true && r.corpo.tipo === 'conta');
+confere('foto da conta: o dono lê', (await chamar('GET', '/conta/foto', null, prof)).corpo?.imagem === WEBP_1X1);
+confere('foto da conta: outra conta lê a DELA (sem foto: 404), nunca a do prof', ehErro(await chamar('GET', '/conta/foto', null, leo), 404, 'NAO_ENCONTRADO'));
+
+// O professor lê a foto dos alunos das turmas dele, e só lê.
+r = await chamar('GET', '/turmas/turma-1/alunos', null, prof);
+confere(
+  'lista de alunos: temFoto true só na Ana',
+  r.status === 200 && r.corpo.find((a) => a.id === 'al-43-t1').temFoto === true && r.corpo.filter((a) => a.temFoto).length === 1,
+);
+r = await chamar('GET', FOTO_DA_ANA, null, prof);
+confere('foto: o professor lê a do aluno da própria turma', r.status === 200 && r.corpo.imagem === WEBP_1X1);
+confere('foto: aluno da turma, sem foto, 404', ehErro(await chamar('GET', '/turmas/turma-1/alunos/al-45/foto', null, prof), 404, 'NAO_ENCONTRADO'));
+confere('foto: o aluno por outra turma do mesmo professor 404', ehErro(await chamar('GET', '/turmas/turma-2/alunos/al-43-t1/foto', null, prof), 404, 'NAO_ENCONTRADO'));
+confere('foto: outra conta (leo) não lê a do aluno do prof: 404', ehErro(await chamar('GET', FOTO_DA_ANA, null, leo), 404, 'NAO_ENCONTRADO'));
+confere('foto: o prof não lê a do aluno da turma do leo: 404', ehErro(await chamar('GET', '/turmas/turma-5/alunos/al-43-t5/foto', null, prof), 404, 'NAO_ENCONTRADO'));
+confere('foto: token de aluno na rota do professor 403 TIPO_INVALIDO', ehErro(await chamar('GET', FOTO_DA_ANA, null, aluno), 403, 'TIPO_INVALIDO'));
+
+confere('foto do aluno: DELETE 204', ehVazio204(await chamar('DELETE', '/aluno/foto', null, aluno)));
+confere('foto do aluno: depois do DELETE, GET 404 e temFoto false', ehErro(await chamar('GET', '/aluno/foto', null, aluno), 404, 'NAO_ENCONTRADO') && (await chamar('GET', '/auth/eu', null, aluno)).corpo.temFoto === false);
+confere('foto do aluno: o professor também deixa de ver (404)', ehErro(await chamar('GET', FOTO_DA_ANA, null, prof), 404, 'NAO_ENCONTRADO'));
+confere('foto da conta: DELETE 204 e GET 404', ehVazio204(await chamar('DELETE', '/conta/foto', null, prof)) && ehErro(await chamar('GET', '/conta/foto', null, prof), 404, 'NAO_ENCONTRADO'));
+
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id} (${turma.codigo})`);

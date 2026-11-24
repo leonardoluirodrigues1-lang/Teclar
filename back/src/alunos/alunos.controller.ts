@@ -7,6 +7,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, 
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { AlunosService } from './alunos.service.js';
+import type { ImagemDaFoto } from '../foto.js';
 import type {
   Aluno,
   CorpoDaImportacao,
@@ -66,5 +67,15 @@ export class AlunosController {
     @Param('alunoId') alunoId: string,
   ): Promise<DesempenhoAluno> {
     return this.alunos.desempenho(requisicao.identidade, turmaId, alunoId);
+  }
+
+  // Só leitura: a foto é do aluno (ele troca em Configurações).
+  @Get(':alunoId/foto')
+  foto(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('alunoId') alunoId: string,
+  ): Promise<ImagemDaFoto> {
+    return this.alunos.foto(requisicao.identidade, turmaId, alunoId);
   }
 }

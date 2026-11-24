@@ -158,6 +158,7 @@ model users {
   Data_Cadastro     DateTime?           @default(now()) @db.Timestamp(0)
   Ativo             Boolean?            @default(true)
   Administrador     Boolean             @default(false)
+  Foto              Bytes?              @db.MediumBlob
   campanhassolo     campanhassolo?
   exerciciosprof    exerciciosprof[]
   professoresturmas professoresturmas[]
@@ -172,6 +173,7 @@ model alunosturmas {
   SenhaProvisoriaExpira DateTime? @db.Timestamp(0)
   Data_Cadastro DateTime?      @default(now()) @db.Timestamp(0)
   Ativo         Boolean        @default(true)
+  Foto          Bytes?         @db.MediumBlob
   alunos        alunos         @relation(fields: [AlunoID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "fk_alunos_turmas_aluno")
   classesprof   classesprof    @relation(fields: [ClassID], references: [ClassID], onUpdate: NoAction, map: "fk_alunos_turmas_turma")
   sessionsprof  sessionsprof[]

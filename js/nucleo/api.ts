@@ -28,6 +28,7 @@ import type {
   Filtros,
   EstatisticasSolo,
   ImagemDaCapa,
+  ImagemDaFoto,
   IndicadoresSolo,
   ItemFila,
   Missao,
@@ -289,6 +290,13 @@ export const api = {
     renomear: (nome: string) => patch<Usuario>('/conta', { nome }),
 
     trocarSenha: (senhaAtual: string, novaSenha: string) => post<null>('/conta/senha', { senhaAtual, novaSenha }),
+
+    // A foto de perfil, como data URL WEBP (ver utils/imagemDaCapa.ts, imagemDaFoto).
+    foto: () => get<ImagemDaFoto>('/conta/foto'),
+
+    enviarFoto: (imagem: string) => put<Usuario>('/conta/foto', { imagem }),
+
+    removerFoto: () => del('/conta/foto'),
   },
 
   solo: {
@@ -366,6 +374,10 @@ export const api = {
 
     desempenho: (turmaId: string, alunoId: string) =>
       get<DesempenhoAluno>(`/turmas/${turmaId}/alunos/${alunoId}/desempenho`),
+
+    // Só leitura: a foto é do aluno. Pedir só quando o Aluno diz temFoto.
+    foto: (turmaId: string, alunoId: string) =>
+      get<ImagemDaFoto>(`/turmas/${turmaId}/alunos/${alunoId}/foto`),
   },
 
   relatorios: {
@@ -407,6 +419,13 @@ export const api = {
 
       // Configurações > Conta do aluno: troca a senha da matrícula (já tem uma).
       trocarSenha: (senhaAtual: string, novaSenha: string) => put<null>('/aluno/senha', { senhaAtual, novaSenha }),
+
+      // A foto de perfil da matrícula (Configurações > Conta do aluno).
+      foto: () => get<ImagemDaFoto>('/aluno/foto'),
+
+      enviarFoto: (imagem: string) => put<Usuario>('/aluno/foto', { imagem }),
+
+      removerFoto: () => del('/aluno/foto'),
 
       historico: () => get<Paginado<SessaoDoHistorico>>('/aluno/historico'),
 

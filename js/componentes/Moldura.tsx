@@ -28,14 +28,15 @@
 // Os hrefs são absolutos (/pages/...): a mesma moldura serve a telas de
 // pastas diferentes.
 
-import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '../nucleo/api.js';
-import { EVENTO_USUARIO, sessao } from '../nucleo/sessao.js';
+import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { CONFIG, ROTA_INICIAL } from '../config.js';
 import type { Campanha } from '../nucleo/tipos.js';
 import { progressoDe } from './BarraXp.js';
 import { IconeSair } from './IconesDoTutorial.js';
+import { Avatar, useMinhaFoto, useUsuarioAtual } from './Avatar.js';
 
 export type ModoDaMoldura = 'solo' | 'professor' | 'aluno';
 
@@ -139,26 +140,13 @@ const NOME_DO_MENU: Record<ModoDaMoldura, string> = {
   aluno: 'Menu do aluno',
 };
 
-// Redesenha quem chama quando o usuário salvo muda (nome trocado em
-// Configurações): sessao.atualizarUsuario dispara EVENTO_USUARIO.
-function useUsuarioAtual(): void {
-  const [, redesenhar] = useReducer((n: number) => n + 1, 0);
-  useEffect(() => {
-    window.addEventListener(EVENTO_USUARIO, redesenhar);
-    return () => window.removeEventListener(EVENTO_USUARIO, redesenhar);
-  }, []);
-}
-
-// "Leonardo" -> "L". Sem nome, fica vazio: melhor que um placeholder.
-function inicialDoNome(nome: string): string {
-  return nome.trim().charAt(0).toUpperCase();
-}
 
 // Topo à direita, no Solo: a pessoa, com nível e XP, levando ao painel.
 // Nível e XP saem das MESMAS rotas e da MESMA conta que o painel usa
 // (GET /solo/campanha, GET /parametros e progressoDe()).
 function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; xpPorNivel: number }) {
   useUsuarioAtual();
+  const foto = useMinhaFoto();
   const nome = sessao.nomeExibicao();
   const progresso = campanha ? progressoDe(campanha, xpPorNivel) : null;
   const rotulo = progresso
@@ -167,9 +155,7 @@ function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; 
 
   return (
     <a className="moldura-pessoa tecla" href="/pages/solo/dashboard.html" aria-label={rotulo}>
-      <span className="moldura-pessoa-inicial" aria-hidden="true">
-        {inicialDoNome(nome)}
-      </span>
+      <Avatar nome={nome} foto={foto} />
       <span className="moldura-pessoa-texto" aria-hidden="true">
         <span className="moldura-pessoa-nome">{nome}</span>
         {/* Embaixo do nome, a dica de que o nome abre o painel. Divide a linha
@@ -191,12 +177,11 @@ function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; 
 // Topo à direita, no Professor e no Aluno: quem está logado e em que papel.
 function Pessoa({ papel }: { papel: string }) {
   useUsuarioAtual();
+  const foto = useMinhaFoto();
   const nome = sessao.nomeExibicao();
   return (
     <div className="moldura-pessoa moldura-pessoa-fixa">
-      <span className="moldura-pessoa-inicial" aria-hidden="true">
-        {inicialDoNome(nome)}
-      </span>
+      <Avatar nome={nome} foto={foto} />
       <span className="moldura-pessoa-texto">
         <span className="moldura-pessoa-nome">{nome}</span>
         <span className="moldura-pessoa-nivel">{papel}</span>
@@ -205,19 +190,20 @@ function Pessoa({ papel }: { papel: string }) {
   );
 }
 
-// O nome e o e-mail da conta, no pé da barra do Professor.
+// A pessoa logada, no pé da barra dos três modos: foto (ou inicial), nome
+// e, embaixo, o e-mail da conta ou a turma do aluno.
 function ContaDaBarra() {
   useUsuarioAtual();
+  const foto = useMinhaFoto();
   const nome = sessao.nomeExibicao();
-  const email = sessao.usuario()?.email;
+  const usuario = sessao.usuario();
+  const detalhe = usuario?.email ?? usuario?.turmas?.[0]?.nome;
   return (
     <div className="barra-lateral-conta">
-      <span className="moldura-pessoa-inicial" aria-hidden="true">
-        {inicialDoNome(nome)}
-      </span>
+      <Avatar nome={nome} foto={foto} />
       <span className="moldura-pessoa-texto">
         <span className="moldura-pessoa-nome">{nome}</span>
-        {email && <span className="barra-lateral-email">{email}</span>}
+        {detalhe && <span className="barra-lateral-email">{detalhe}</span>}
       </span>
     </div>
   );
@@ -357,8 +343,8 @@ function BarraLateral({ modo, aberta, ativo, aoFechar }: PropsBarraLateral) {
         <IconeSair /> Sair
       </button>
 
-      {/* A conta logada, embaixo (no Professor o topo não mostra a pessoa). */}
-      {modo === 'professor' && <ContaDaBarra />}
+      {/* A pessoa logada, embaixo, nos três modos. */}
+      <ContaDaBarra />
 
       <span className="barra-lateral-versao">v{CONFIG.VERSAO}</span>
     </nav>

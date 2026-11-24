@@ -1231,6 +1231,25 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   font-size: 15px;
 }
 
+/* O aluno na lista: a foto (ou a inicial) e o nome na mesma linha. */
+.celula-aluno {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3, 12px);
+}
+.avatar-aluno {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--raio-total, 9999px);
+  border: 1px solid var(--cor-borda-forte, #454545);
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--cor-texto, #fff);
+}
+
 /* Precisão média abaixo de 85%: tom mais forte e peso um pouco maior — o
    olho para nela. NÃO é cor de alerta: nem vermelho, nem amarelo, nem
    ícone. É informação, não acusação. */

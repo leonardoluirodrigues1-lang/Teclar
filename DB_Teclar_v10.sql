@@ -19,6 +19,7 @@ CREATE TABLE teclardb_v10.users (
     Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Ativo BOOLEAN DEFAULT TRUE,
     Administrador BOOLEAN NOT NULL DEFAULT FALSE,
+    Foto MEDIUMBLOB NULL,                   -- foto de perfil: WEBP quadrado de até 256×256 e 50 KB; NULL = as iniciais
     CONSTRAINT chk_users_login CHECK (GoogleID IS NOT NULL OR SenhaHash IS NOT NULL)
 ) ENGINE=InnoDB;
 
@@ -126,6 +127,7 @@ CREATE TABLE teclardb_v10.alunosturmas (
     SenhaProvisoriaExpira TIMESTAMP NULL,    -- validade da provisória
     Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    Foto MEDIUMBLOB NULL,                    -- foto de perfil da matrícula: WEBP quadrado de até 256×256 e 50 KB; NULL = as iniciais
     PRIMARY KEY (ClassID, AlunoID),
     CONSTRAINT uq_alunos_turmas_aluno UNIQUE (AlunoID),
     CONSTRAINT uq_aluno_turma_nome UNIQUE (ClassID, Nome),
