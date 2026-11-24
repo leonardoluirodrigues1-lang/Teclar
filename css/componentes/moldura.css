@@ -134,6 +134,25 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.86);
 }
+/* Solo: "NÍVEL 3   Ver meu painel →" embaixo do nome. */
+.moldura-pessoa-linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-3, 12px);
+  margin-top: 2px;
+}
+.moldura-pessoa-linha .moldura-pessoa-nivel { margin-top: 0; }
+.moldura-pessoa-dica {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+}
+.moldura-pessoa:hover .moldura-pessoa-dica,
+.moldura-pessoa:focus-visible .moldura-pessoa-dica {
+  color: var(--cor-texto, #fff);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .moldura-pessoa-trilho {
   width: 126px;
   height: 3px;

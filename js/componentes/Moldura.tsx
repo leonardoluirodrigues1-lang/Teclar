@@ -156,13 +156,16 @@ function BotaoPessoaSolo({ campanha, xpPorNivel }: { campanha: Campanha | null; 
       </span>
       <span className="moldura-pessoa-texto" aria-hidden="true">
         <span className="moldura-pessoa-nome">{nome}</span>
+        {/* Embaixo do nome, a dica de que o nome abre o painel. Divide a linha
+            com o nível para a etiqueta não crescer por cima da faixa do caminho. */}
+        <span className="moldura-pessoa-linha">
+          {progresso && <span className="moldura-pessoa-nivel">Nível {progresso.nivel}</span>}
+          <span className="moldura-pessoa-dica">Ver meu painel →</span>
+        </span>
         {progresso && (
-          <>
-            <span className="moldura-pessoa-nivel">Nível {progresso.nivel}</span>
-            <span className="moldura-pessoa-trilho">
-              <span style={{ width: `${progresso.percentual}%` }} />
-            </span>
-          </>
+          <span className="moldura-pessoa-trilho">
+            <span style={{ width: `${progresso.percentual}%` }} />
+          </span>
         )}
       </span>
     </a>
