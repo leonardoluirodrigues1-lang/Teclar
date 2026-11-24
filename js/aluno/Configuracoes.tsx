@@ -15,7 +15,6 @@ function Configuracoes() {
     <Moldura
       modo="aluno"
       ativo="configuracoes"
-      voltar={{ href: guarda.casa(), rotulo: 'Minha sala' }}
       classeDoConteudo="pagina pagina-aluno"
     >
       <main className="conteudo">

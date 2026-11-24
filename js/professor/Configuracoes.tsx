@@ -10,7 +10,7 @@
 import { createRoot } from 'react-dom/client';
 import { guarda } from '../nucleo/guarda.js';
 import { sessao } from '../nucleo/sessao.js';
-import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
+import { Moldura } from '../componentes/Moldura.js';
 import { SecoesDeConfiguracoes } from '../componentes/SecoesDeConfiguracoes.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -24,7 +24,7 @@ function Configuracoes() {
   }
 
   return (
-    <Moldura modo="professor" ativo="configuracoes" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
+    <Moldura modo="professor" ativo="configuracoes" classeDoConteudo="pagina">
       <main>
         <div className="cabecalho">
           <div className="cabecalho-texto">

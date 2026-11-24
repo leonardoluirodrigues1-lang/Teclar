@@ -364,7 +364,7 @@ function Historico({ usuario }: PropsHistorico) {
   }
 
   return (
-    <Moldura modo="aluno" ativo="historico" voltar={{ href: guarda.casa(), rotulo: 'Minha sala' }} classeDoConteudo="pagina pagina-tabela pagina-aluno">
+    <Moldura modo="aluno" ativo="historico" classeDoConteudo="pagina pagina-tabela pagina-aluno">
 
       <main className="conteudo">
         <section className="painel vidro historico" aria-labelledby="titulo">

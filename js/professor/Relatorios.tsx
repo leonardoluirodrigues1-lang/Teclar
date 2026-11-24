@@ -24,7 +24,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { ErroDaApi, RelatorioTurma, Turma } from '../nucleo/tipos.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { contagem, numero, porcentagem } from '../utils/formato.js';
-import { Moldura, VOLTAR_TURMAS } from '../componentes/Moldura.js';
+import { Moldura } from '../componentes/Moldura.js';
 import { Tabela, type ColunaTabela } from '../componentes/Tabela.js';
 import { EsqueletoTabela } from '../componentes/Esqueleto.js';
 import { PainelErro, PainelEstado } from '../componentes/PainelErro.js';
@@ -217,7 +217,7 @@ function Relatorios() {
   }
 
   return (
-    <Moldura modo="professor" ativo="relatorios" voltar={VOLTAR_TURMAS} classeDoConteudo="pagina">
+    <Moldura modo="professor" ativo="relatorios" classeDoConteudo="pagina">
       <main id="corpo">
         <div className="cabecalho">
           <div className="cabecalho-texto">

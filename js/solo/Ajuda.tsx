@@ -9,7 +9,7 @@
 import { createRoot } from 'react-dom/client';
 import { guarda } from '../nucleo/guarda.js';
 import { CONFIG } from '../config.js';
-import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
+import { Moldura } from '../componentes/Moldura.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // Os nomes da dupla, como devem aparecer na tela.
@@ -25,7 +25,7 @@ const SECOES = [
 
 function Ajuda() {
   return (
-    <Moldura ativo="ajuda" voltar={VOLTAR_INICIO_SOLO}>
+    <Moldura ativo="ajuda">
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Ajuda e sobre</h1>
 

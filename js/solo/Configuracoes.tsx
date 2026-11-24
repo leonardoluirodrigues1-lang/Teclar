@@ -9,7 +9,7 @@
 import { createRoot } from 'react-dom/client';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
-import { Moldura, VOLTAR_INICIO_SOLO } from '../componentes/Moldura.js';
+import { Moldura } from '../componentes/Moldura.js';
 import { SecoesDeConfiguracoes } from '../componentes/SecoesDeConfiguracoes.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
@@ -23,7 +23,7 @@ function Configuracoes() {
   }
 
   return (
-    <Moldura ativo="configuracoes" voltar={VOLTAR_INICIO_SOLO}>
+    <Moldura ativo="configuracoes">
       <main className="solo-texto">
         <h1 className="solo-texto-titulo">Configurações</h1>
         <p className="solo-texto-intro">Ajuste o TECLAR ao seu jeito.</p>

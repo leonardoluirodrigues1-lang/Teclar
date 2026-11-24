@@ -37,7 +37,7 @@ import { guarda } from '../nucleo/guarda.js';
 import type { Dificuldade, Exercicio, ExercicioDoSistema } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
-import { Moldura, VOLTAR_TURMAS, type Voltar } from '../componentes/Moldura.js';
+import { Moldura, type Voltar } from '../componentes/Moldura.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { ModalExercicio, formatarTempoLimite, mensagemDaFalha } from '../componentes/ModalExercicio.js';
 import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
@@ -542,7 +542,9 @@ function Biblioteca() {
   }
 
   const totalSelecionado = selecionados.size + selecionadosDoSistema.size;
-  const voltar: Voltar = selecao ? { href: hrefDaTurma(), rotulo: destino?.nome ?? 'Turma' } : VOLTAR_TURMAS;
+  // Só o modo de seleção volta (para a turma de onde veio): a Biblioteca em
+  // si é página do menu, e o menu é o caminho de volta.
+  const voltar: Voltar | undefined = selecao ? { href: hrefDaTurma(), rotulo: destino?.nome ?? 'Turma' } : undefined;
   // Valem para as duas seções: só fazem sentido com algum exercício na tela.
   const filtrosVisiveis = carga.estado === 'pronto' && exercicios.length + sistema.length > 0;
 
