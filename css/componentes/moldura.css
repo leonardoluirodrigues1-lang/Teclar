@@ -118,14 +118,21 @@
   flex-direction: column;
   text-align: left;
 }
-.moldura-pessoa-nome { font-size: 14px; font-weight: var(--peso-normal, 400); }
+/* O nome tem de ser fácil de ler sobre o vidro: 16px, peso médio, branco
+   puro (o vidro mais claro fica perto de #3a3a3a: contraste > 10:1). */
+.moldura-pessoa-nome {
+  font-size: 16px;
+  font-weight: var(--peso-medio, 500);
+  line-height: 1.25;
+  color: var(--cor-texto, #fff);
+}
 .moldura-pessoa-nivel {
   margin-top: 2px;
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.86);
 }
 .moldura-pessoa-trilho {
   width: 126px;
@@ -344,8 +351,8 @@
 .barra-lateral-conta .moldura-pessoa-texto { display: flex; min-width: 0; }
 .barra-lateral-email {
   margin-top: 2px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.86);
   overflow-wrap: anywhere;
 }
 .moldura-professor .barra-lateral-versao { margin-top: var(--e-2, 8px); }
