@@ -99,6 +99,7 @@ import type {
   ImagemDaCapa,
   ImagemDaFoto,
   ExercicioDoSistema,
+  CopiaDoSistema,
   Atribuicao,
   Campanha,
   Categoria,
@@ -1180,6 +1181,12 @@ function fotoConferida(imagem: unknown): string {
 function fotoDe(id: string): ImagemDaFoto {
   if (!fotos[id]) throw erro(404, 'Sem foto de perfil.', 'NAO_ENCONTRADO');
   return { imagem: fotos[id] };
+}
+
+// O id da cópia de uma lição na biblioteca de um professor (o back usa um
+// hash do professor no lugar do id: ver exercicios.service.ts, idDaCopia).
+function idDaCopiaNoMock(licaoId: string, professorId: string): string {
+  return `sis-${licaoId}-${professorId}`;
 }
 
 function montarRegex(padrao: string): RegExp {
@@ -2478,7 +2485,7 @@ const rotas: [string, RegExp, Handler][] = [
     'GET',
     montarRegex('/exercicios/sistema'),
     (params, corpo, token): ExercicioDoSistema[] => {
-      contaDoToken(token);
+      const dono = contaDoToken(token).id;
       return dados.missoes.map((m) => ({
         id: m.exerciseId,
         titulo: m.titulo,
@@ -2486,7 +2493,38 @@ const rotas: [string, RegExp, Handler][] = [
         dificuldade: m.dificuldade,
         tempoLimiteSegundos: m.tempoLimiteSegundos ?? 0,
         texto: m.texto,
+        naBiblioteca: dados.exercicios.some((e) => e.id === idDaCopiaNoMock(m.exerciseId, dono) && !e.arquivado)
+          ? idDaCopiaNoMock(m.exerciseId, dono)
+          : null,
       }));
+    },
+  ],
+  // A cópia para a biblioteca, idempotente como no back (o id é o par lição +
+  // dono; o back usa um hash do dono, o mock o id dele mesmo).
+  [
+    'POST',
+    montarRegex('/exercicios/sistema/:id/copiar'),
+    (params, corpo, token): CopiaDoSistema => {
+      const professorId = contaDoToken(token).id;
+      const licao = dados.missoes.find((m) => m.exerciseId === decodeURIComponent(params[0]));
+      if (!licao) throw erro(404, 'Exercício do sistema não encontrado.', 'NAO_ENCONTRADO');
+      const id = idDaCopiaNoMock(licao.exerciseId, professorId);
+      const existente = dados.exercicios.find((e) => e.id === id);
+      if (existente && !existente.arquivado) return { exercicio: comAtribuidoA(existente), jaExistia: true };
+      if (existente) {
+        delete existente.arquivado;
+        return { exercicio: comAtribuidoA(existente), jaExistia: false };
+      }
+      const novo: Exercicio = {
+        id,
+        professorId,
+        titulo: licao.titulo,
+        texto: licao.texto,
+        dificuldade: licao.dificuldade,
+        tempoLimiteSegundos: licao.tempoLimiteSegundos ?? 0,
+      };
+      dados.exercicios.push(novo);
+      return { exercicio: comAtribuidoA(novo), jaExistia: false };
     },
   ],
   [

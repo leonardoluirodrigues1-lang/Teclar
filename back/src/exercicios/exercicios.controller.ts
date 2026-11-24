@@ -21,7 +21,7 @@ import {
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { ExerciciosService } from './exercicios.service.js';
-import type { CorpoDoExercicio, Exercicio, ExercicioDoSistema, Paginado } from './exercicios.service.js';
+import type { CopiaDoSistema, CorpoDoExercicio, Exercicio, ExercicioDoSistema, Paginado } from './exercicios.service.js';
 
 @Controller('exercicios')
 @UseGuards(GuardaDoToken)
@@ -37,6 +37,13 @@ export class ExerciciosController {
   @Get('sistema')
   sistema(@Req() requisicao: RequisicaoComIdentidade): Promise<ExercicioDoSistema[]> {
     return this.exercicios.sistema(requisicao.identidade);
+  }
+
+  // "Usar na minha biblioteca". 200 (não 201) também quando a cópia já existia.
+  @Post('sistema/:id/copiar')
+  @HttpCode(HttpStatus.OK)
+  copiarDoSistema(@Req() requisicao: RequisicaoComIdentidade, @Param('id') id: string): Promise<CopiaDoSistema> {
+    return this.exercicios.copiarDoSistema(requisicao.identidade, id);
   }
 
   @Get(':id')

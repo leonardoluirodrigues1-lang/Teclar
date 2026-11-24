@@ -16,7 +16,10 @@
 //
 // Embaixo de "Meus exercícios", a seção "Exercícios do sistema": as lições
 // do Solo (GET /exercicios/sistema), só de leitura — sem Editar nem Arquivar.
-// A busca e o filtro de dificuldade valem para as duas seções.
+// Cada uma tem "Usar na minha biblioteca": a cópia entra em "Meus exercícios",
+// pronta para editar e atribuir; com a cópia feita, o botão vira "Já está na
+// sua biblioteca" (o back não duplica). A busca e o filtro de dificuldade
+// valem para as duas seções.
 //
 // Um exercício, no banco (ExerciciosProf), é: título, texto, dificuldade e
 // tempo limite. Não tem coluna de tamanho: os "caracteres" saem do texto,
@@ -149,6 +152,8 @@ function Biblioteca() {
   const exercicios = carga.estado === 'pronto' ? carga.exercicios : [];
   const sistema = carga.estado === 'pronto' ? carga.sistema : [];
   const [ordenacaoSistema, setOrdenacaoSistema] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
+  // As lições sendo copiadas agora: o botão delas fica ocupado.
+  const [copiando, setCopiando] = useState<Set<string>>(() => new Set());
 
   function atualizarExercicios(transformar: (lista: Exercicio[]) => Exercicio[]) {
     setCarga((atual) => (atual.estado === 'pronto' ? { ...atual, exercicios: transformar(atual.exercicios) } : atual));
@@ -171,6 +176,45 @@ function Biblioteca() {
     setBusca('');
     setDificuldade('todas');
     campoBusca.current?.focus();
+  }
+
+  // --- usar na minha biblioteca (a cópia de uma lição do sistema) --------------
+
+  function marcarCopiando(id: string, ligado: boolean) {
+    setCopiando((atual) => {
+      const proximo = new Set(atual);
+      if (ligado) proximo.add(id);
+      else proximo.delete(id);
+      return proximo;
+    });
+  }
+
+  // A cópia entra em "Meus exercícios" (uma vez só) e a lição passa a dizer
+  // que já está lá.
+  function guardarCopia(licaoId: string, copia: Exercicio) {
+    setCarga((atual) =>
+      atual.estado === 'pronto'
+        ? {
+            ...atual,
+            exercicios: atual.exercicios.some((e) => e.id === copia.id) ? atual.exercicios : [...atual.exercicios, copia],
+            sistema: atual.sistema.map((s) => (s.id === licaoId ? { ...s, naBiblioteca: copia.id } : s)),
+          }
+        : atual
+    );
+  }
+
+  async function usarNaBiblioteca(licao: ExercicioDoSistema) {
+    if (copiando.has(licao.id) || licao.naBiblioteca) return;
+    marcarCopiando(licao.id, true);
+    try {
+      const { exercicio, jaExistia } = await api.exercicios.copiarDoSistema(licao.id);
+      guardarCopia(licao.id, exercicio);
+      toasts.mostrar(jaExistia ? 'Já estava em Meus exercícios' : 'Copiado para Meus exercícios');
+    } catch (excecao) {
+      toasts.mostrar(mensagemDaFalha(excecao));
+    } finally {
+      marcarCopiando(licao.id, false);
+    }
   }
 
   // --- atribuir (modo de seleção) -------------------------------------------
@@ -301,6 +345,28 @@ function Biblioteca() {
     },
     { rotulo: 'Caracteres', campo: 'caracteres', classe: 'col-numero', celula: (ex) => String(tamanhoDoTexto(ex)) },
     { rotulo: 'Tempo limite', classe: 'col-numero', celula: (ex) => formatarTempoLimite(ex.tempoLimiteSegundos) },
+    {
+      rotulo: 'Ações',
+      classe: 'col-acoes',
+      // Já copiada: aria-disabled, e não disabled, para o foco ficar no
+      // botão (que acabou de mudar de texto) em vez de cair no começo da página.
+      celula: (ex) =>
+        ex.naBiblioteca ? (
+          <button type="button" className="btn btn-vidro vidro btn-pequeno btn-ja-copiado" aria-disabled="true">
+            Já está na sua biblioteca
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-vidro vidro tecla btn-pequeno"
+            aria-label={`Usar “${ex.titulo}” na minha biblioteca`}
+            disabled={copiando.has(ex.id)}
+            onClick={() => usarNaBiblioteca(ex)}
+          >
+            {copiando.has(ex.id) ? 'Copiando…' : 'Usar na minha biblioteca'}
+          </button>
+        ),
+    },
   ];
 
   function renderizarSistema() {

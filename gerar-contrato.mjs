@@ -389,6 +389,7 @@ const ROTAS_IMPLEMENTADAS = [
   'conta.trocarSenha',
   'escola.aluno.trocarSenha',
   'exercicios.sistema',
+  'exercicios.copiarDoSistema',
   'conta.enviarFoto',
   'conta.foto',
   'conta.removerFoto',

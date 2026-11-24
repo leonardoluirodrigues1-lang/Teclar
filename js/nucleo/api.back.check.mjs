@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 73 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 74 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -184,6 +184,10 @@ const doSistema = await api.exercicios.sistema();
 confere('exercicios.sistema: as lições do Solo, com texto', doSistema.length > 0 && doSistema[0].id === 'solo-001' && doSistema[0].texto.length > 0);
 const biblioteca = await api.exercicios.listar();
 confere('exercicios.listar (paginado) sem o arquivado', biblioteca.pagina === 1 && biblioteca.itens.map((e) => e.id).join() === exercicio.id);
+const copiaDoSistema = await api.exercicios.copiarDoSistema(doSistema[0].id);
+confere('exercicios.copiarDoSistema cria a cópia, e a segunda vez devolve a mesma',
+  copiaDoSistema.jaExistia === false && copiaDoSistema.exercicio.titulo === doSistema[0].titulo &&
+  (await api.exercicios.copiarDoSistema(doSistema[0].id)).exercicio.id === copiaDoSistema.exercicio.id);
 confere('exercicios.obter (conta)', (await api.exercicios.obter(exercicio.id)).atribuidoA === 1);
 const atribuicoes = await api.turmas.atribuicoes(turma.id);
 confere('turmas.atribuicoes com contagem pronta', atribuicoes.length === 1 && atribuicoes[0].concluidoPor === 0 && atribuicoes[0].totalAlunos === 2);
@@ -410,4 +414,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 73 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 74 funções do api.ts contra o back.`);

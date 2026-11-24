@@ -29,6 +29,7 @@ import type {
   EstatisticasSolo,
   ImagemDaCapa,
   ExercicioDoSistema,
+  CopiaDoSistema,
   ImagemDaFoto,
   IndicadoresSolo,
   ItemFila,
@@ -400,6 +401,9 @@ export const api = {
 
     // "Exercícios do sistema": as lições do Solo, só leitura.
     sistema: () => get<ExercicioDoSistema[]>('/exercicios/sistema'),
+
+    // "Usar na minha biblioteca": a cópia (idempotente: a segunda vez devolve a mesma).
+    copiarDoSistema: (id: string) => post<CopiaDoSistema>(`/exercicios/sistema/${encodeURIComponent(id)}/copiar`),
 
     obter: (id: string, turmaId?: string | null) =>
       get<ExercicioDetalhe>(`/exercicios/${id}${montarQuery({ turma: turmaId })}`),

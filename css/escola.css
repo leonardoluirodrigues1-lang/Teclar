@@ -2057,6 +2057,8 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   background: #fff;
 }
 .btn-pequeno { padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+/* "Já está na sua biblioteca": continua focável (aria-disabled), sem cara de clicável. */
+.btn-ja-copiado { cursor: default; color: var(--cor-texto-suave, #c4c4c4); }
 
 /* --- Relatórios: cartões de número --------------------------------------- */
 .cartoes-numero {

@@ -338,6 +338,14 @@ export interface ExercicioDoSistema {
   dificuldade: Dificuldade;
   tempoLimiteSegundos: number;
   texto: string;
+  /** O id da cópia ativa na biblioteca deste professor; null sem cópia. */
+  naBiblioteca: string | null;
+}
+
+/** POST /exercicios/sistema/:id/copiar: a cópia, nova ou a que já existia. */
+export interface CopiaDoSistema {
+  exercicio: Exercicio;
+  jaExistia: boolean;
 }
 
 export interface ImagemDaCapa {

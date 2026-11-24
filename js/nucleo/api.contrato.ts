@@ -835,13 +835,32 @@ feitas.`,
         rota: 'GET /exercicios/sistema',
         resposta: `200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso
   [{ "id": "solo-001", "titulo": "Lição 01 — Linha-guia", "nivel": 1, "dificuldade": "facil",
-     "tempoLimiteSegundos": 46, "texto": "asdf jklç asdf jklç" }]`,
+     "tempoLimiteSegundos": 46, "texto": "asdf jklç asdf jklç", "naBiblioteca": null }]`,
         erros: `403 TIPO_INVALIDO — token de aluno`,
         identidade: `O token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.`,
         back: `ExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições
-  da lição num bloco só), o que o aluno digitaria.`,
+  da lição num bloco só), o que o aluno digitaria. naBiblioteca = o id da cópia ATIVA
+  deste professor (a tela mostra "Já está na sua biblioteca"), ou null.`,
         nota: `"Exercícios do sistema" na Biblioteca: só leitura, sem Editar nem Arquivar. Para
   usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).`,
+      },
+      'exercicios.copiarDoSistema': {
+        rota: 'POST /exercicios/sistema/:id/copiar',
+        corpo: `nenhum.`,
+        resposta: `200 CopiaDoSistema — a cópia em "Meus exercícios", pronta para editar e atribuir
+  { "exercicio": { "id": "sis-solo-001-3f2a9c0d1e4b5a6f7c8d", "professorId": "u-2",
+      "titulo": "Lição 01 — Linha-guia", "texto": "...", "dificuldade": "facil",
+      "tempoLimiteSegundos": 46, "atribuidoA": 0 }, "jaExistia": false }`,
+        erros: `404 NAO_ENCONTRADO — a lição não existe ou foi desativada
+  403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: a cópia é sempre da conta logada; nunca devolve a de outra conta.`,
+        back: `Numa transação, sem coluna nova em ExerciciosProf: o id da cópia é determinístico
+  (sis-<lição>-<20 hex do sha256 do professor>), e a chave primária não deixa duplicar.
+  Já existe ativa: devolve a mesma, jaExistia true. Arquivada: volta (Ativo = TRUE) com o
+  que o professor tinha editado. Nova: título, texto, dificuldade e tempo limite da lição.
+  Dois pedidos juntos: o segundo bate na chave primária e devolve a do primeiro.`,
+        nota: `"Usar na minha biblioteca" na seção do sistema, e o modo de seleção, que copia o que
+  falta antes de atribuir (turmas.atribuir) no mesmo "Atribuir à turma".`,
       },
       'exercicios.obter': {
         rota: 'GET /exercicios/:id?turma=:turmaId',

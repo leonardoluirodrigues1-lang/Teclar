@@ -4217,7 +4217,7 @@
         ],
         "operationId": "exercicios.sistema",
         "summary": "sistema: ExercicioDoSistema[] — as lições do Solo, na ordem do percurso",
-        "description": "**Chamada no front:** `api.exercicios.sistema`\n\n**Resposta:** 200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso\n\n**Identidade:**\n\nO token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições da lição num bloco só), o que o aluno digitaria.\n\n**Notas:**\n\n\"Exercícios do sistema\" na Biblioteca: só leitura, sem Editar nem Arquivar. Para usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).",
+        "description": "**Chamada no front:** `api.exercicios.sistema`\n\n**Resposta:** 200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso\n\n**Identidade:**\n\nO token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições da lição num bloco só), o que o aluno digitaria. naBiblioteca = o id da cópia ATIVA deste professor (a tela mostra \"Já está na sua biblioteca\"), ou null.\n\n**Notas:**\n\n\"Exercícios do sistema\" na Biblioteca: só leitura, sem Editar nem Arquivar. Para usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).",
         "parameters": [],
         "responses": {
           "200": {
@@ -4234,7 +4234,8 @@
                         "nivel": 1,
                         "dificuldade": "facil",
                         "tempoLimiteSegundos": 46,
-                        "texto": "asdf jklç asdf jklç"
+                        "texto": "asdf jklç asdf jklç",
+                        "naBiblioteca": null
                       }
                     ]
                   }
@@ -4268,6 +4269,116 @@
                     "value": {
                       "mensagem": "...",
                       "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/exercicios/sistema/{id}/copiar": {
+      "post": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.copiarDoSistema",
+        "summary": "copiarDoSistema: CopiaDoSistema — a cópia em \"Meus exercícios\", pronta para editar e atribuir",
+        "description": "**Chamada no front:** `api.exercicios.copiarDoSistema`\n\n**Corpo:** nenhum.\n\n**Resposta:** 200 CopiaDoSistema — a cópia em \"Meus exercícios\", pronta para editar e atribuir\n\n**Identidade:**\n\nO token: a cópia é sempre da conta logada; nunca devolve a de outra conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nNuma transação, sem coluna nova em ExerciciosProf: o id da cópia é determinístico (sis-<lição>-<20 hex do sha256 do professor>), e a chave primária não deixa duplicar. Já existe ativa: devolve a mesma, jaExistia true. Arquivada: volta (Ativo = TRUE) com o que o professor tinha editado. Nova: título, texto, dificuldade e tempo limite da lição. Dois pedidos juntos: o segundo bate na chave primária e devolve a do primeiro.\n\n**Notas:**\n\n\"Usar na minha biblioteca\" na seção do sistema, e o modo de seleção, que copia o que falta antes de atribuir (turmas.atribuir) no mesmo \"Atribuir à turma\".",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "nenhum.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CopiaDoSistema — a cópia em \"Meus exercícios\", pronta para editar e atribuir",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "exercicio": {
+                        "id": "sis-solo-001-3f2a9c0d1e4b5a6f7c8d",
+                        "professorId": "u-2",
+                        "titulo": "Lição 01 — Linha-guia",
+                        "texto": "...",
+                        "dificuldade": "facil",
+                        "tempoLimiteSegundos": 46,
+                        "atribuidoA": 0
+                      },
+                      "jaExistia": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a lição não existe ou foi desativada",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
                     }
                   }
                 }

@@ -12,12 +12,12 @@
 // Exercício arquivado (ExerciciosProf.Ativo = false) é, para todas as
 // rotas, um exercício que não existe: 404. A linha continua no banco só
 // para as sessões antigas dos alunos continuarem apontando para ela.
-import { randomUUID } from 'node:crypto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { createHash, randomUUID } from 'node:crypto';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
 
@@ -53,6 +53,14 @@ export interface ExercicioDoSistema {
   dificuldade: Dificuldade;
   tempoLimiteSegundos: number;
   texto: string;
+  /** O id da cópia ATIVA na biblioteca deste professor, ou null sem cópia. */
+  naBiblioteca: string | null;
+}
+
+// POST /exercicios/sistema/:id/copiar: a cópia, nova ou a que já existia.
+export interface CopiaDoSistema {
+  exercicio: Exercicio;
+  jaExistia: boolean;
 }
 
 export interface Paginado<T> {
@@ -111,8 +119,22 @@ export class ExerciciosService {
   // GET /exercicios/sistema. As lições do Solo (ExerciciosSolo), na ordem do
   // percurso, para o professor usar como base. Só leitura e só conta.
   async sistema(identidade: Identidade): Promise<ExercicioDoSistema[]> {
-    professorDoToken(identidade);
+    const professorId = professorDoToken(identidade);
     const licoes = await this.banco.exerciciossolo.findMany({ where: { Ativo: true }, orderBy: { Ordem: 'asc' } });
+    // As cópias ativas deste professor, numa consulta: os ids são os
+    // determinísticos (idDaCopia), então não precisa de coluna de origem.
+    const copias = new Set(
+      (
+        await this.banco.exerciciosprof.findMany({
+          where: {
+            ProfessorID: professorId,
+            Ativo: true,
+            ExerciseID: { in: licoes.map((licao) => idDaCopia(licao.ExerciseID, professorId)) },
+          },
+          select: { ExerciseID: true },
+        })
+      ).map((linha) => linha.ExerciseID),
+    );
     return licoes.map((licao) => ({
       id: licao.ExerciseID,
       titulo: licao.Titulo,
@@ -122,7 +144,62 @@ export class ExerciciosService {
       // O texto já vem montado (as repetições da lição, num bloco só): é o
       // que o aluno digitaria.
       texto: licao.Texto,
+      naBiblioteca: copias.has(idDaCopia(licao.ExerciseID, professorId)) ? idDaCopia(licao.ExerciseID, professorId) : null,
     }));
+  }
+
+  // POST /exercicios/sistema/:id/copiar. Uma cópia da lição em
+  // ExerciciosProf, deste professor: mesmo título, texto, dificuldade e
+  // tempo limite, e daí em diante é dele (editar, atribuir, arquivar).
+  //
+  // Idempotente sem coluna nova: o id da cópia é determinístico (lição +
+  // professor), e a chave primária não deixa haver duas. Já existe e está
+  // ativa: devolve ela (jaExistia). Foi arquivada: volta como estava, com o
+  // que o professor tinha editado. Dois pedidos ao mesmo tempo: o segundo
+  // bate na chave primária (P2002) e lê a que o primeiro criou.
+  async copiarDoSistema(identidade: Identidade, licaoId: string): Promise<CopiaDoSistema> {
+    const professorId = professorDoToken(identidade);
+    try {
+      return await this.copiar(professorId, licaoId);
+    } catch (erro) {
+      if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
+        return this.copiar(professorId, licaoId);
+      }
+      throw erro;
+    }
+  }
+
+  private copiar(professorId: string, licaoId: string): Promise<CopiaDoSistema> {
+    const id = idDaCopia(licaoId, professorId);
+    return this.banco.$transaction(async (tx) => {
+      const licao = await tx.exerciciossolo.findFirst({ where: { ExerciseID: licaoId, Ativo: true } });
+      if (!licao) {
+        throw new NotFoundException({ mensagem: 'Exercício do sistema não encontrado.', codigo: 'NAO_ENCONTRADO' });
+      }
+      const existente = await tx.exerciciosprof.findUnique({ where: { ExerciseID: id }, include: COM_ATRIBUIDO_A });
+      // O hash do id é do professor: outro dono aqui só por colisão, e
+      // nunca se devolve a cópia de outra conta.
+      if (existente && existente.ProfessorID !== professorId) {
+        throw new ConflictException({ mensagem: 'Não foi possível copiar este exercício.', codigo: 'CONFLITO' });
+      }
+      if (existente?.Ativo) {
+        return { exercicio: exercicioNaForma(existente), jaExistia: true };
+      }
+      const linha = existente
+        ? await tx.exerciciosprof.update({ where: { ExerciseID: id }, data: { Ativo: true }, include: COM_ATRIBUIDO_A })
+        : await tx.exerciciosprof.create({
+            data: {
+              ExerciseID: id,
+              ProfessorID: professorId,
+              Titulo: licao.Titulo,
+              Texto: licao.Texto,
+              Dificuldade: licao.Dificuldade as Dificuldade,
+              Tempo_Limite_Segundos: licao.Tempo_Limite_Segundos ?? 0,
+            },
+            include: COM_ATRIBUIDO_A,
+          });
+      return { exercicio: exercicioNaForma(linha), jaExistia: false };
+    });
   }
 
   async obter(identidade: Identidade, id: string, turmaId: string | undefined): Promise<Exercicio> {
@@ -300,6 +377,14 @@ function tempoDoExercicio(valor: unknown): number {
     throw dadosInvalidos('O tempo limite vai de 0 a 3600 segundos.');
   }
   return valor;
+}
+
+// O id da cópia de uma lição na biblioteca de um professor: a lição e um
+// pedaço do hash do professor (o id dele pode ter até 100 caracteres, e a
+// coluna também). Sempre o mesmo para o mesmo par: é o que torna a cópia
+// idempotente.
+export function idDaCopia(licaoId: string, professorId: string): string {
+  return `sis-${licaoId}-${createHash('sha256').update(professorId).digest('hex').slice(0, 20)}`;
 }
 
 function naoEncontrado(): NotFoundException {

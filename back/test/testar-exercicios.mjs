@@ -262,5 +262,63 @@ confere(
     ehErro(await chamar('DELETE', `/exercicios/${primeiraDoSistema.id}`, null, prof), 404, 'NAO_ENCONTRADO'),
 );
 
+// ============================================================================
+// "Usar na minha biblioteca": POST /exercicios/sistema/:id/copiar
+// ============================================================================
+
+const licaoCopiada = (await chamar('GET', '/exercicios/sistema', null, prof)).corpo[1];
+const outraLicao = licoesAtivas[2].ExerciseID;
+// Quantas cópias da lição o professor tem (ativas ou não): o id começa por sis-<lição>-.
+const copiasDe = (licaoId, dono) => banco.exerciciosprof.count({ where: { ProfessorID: dono, ExerciseID: { startsWith: `sis-${licaoId}-` } } });
+r = await chamar('POST', `/exercicios/sistema/${licaoCopiada.id}/copiar`, null, prof);
+const copia = r.corpo?.exercicio;
+confere(
+  'copiar: 200, jaExistia false, com título, texto, dificuldade e tempo da lição',
+  r.status === 200 && r.corpo.jaExistia === false && copia.titulo === licaoCopiada.titulo && copia.texto === licaoCopiada.texto &&
+    copia.dificuldade === licaoCopiada.dificuldade && copia.tempoLimiteSegundos === licaoCopiada.tempoLimiteSegundos &&
+    copia.professorId === 'u-2' && copia.atribuidoA === 0,
+);
+confere('copiar: a cópia aparece em GET /exercicios (Meus exercícios)', (await chamar('GET', '/exercicios', null, prof)).corpo.itens.some((e) => e.id === copia.id));
+confere(
+  'copiar: a lista do sistema diz naBiblioteca só nela',
+  (await chamar('GET', '/exercicios/sistema', null, prof)).corpo.filter((e) => e.naBiblioteca).map((e) => `${e.id}=${e.naBiblioteca}`).join() === `${licaoCopiada.id}=${copia.id}`,
+);
+r = await chamar('POST', `/exercicios/sistema/${licaoCopiada.id}/copiar`, null, prof);
+confere('copiar de novo: a mesma cópia, jaExistia true', r.status === 200 && r.corpo.jaExistia === true && r.corpo.exercicio.id === copia.id);
+const juntas = await Promise.all([1, 2, 3].map(() => chamar('POST', `/exercicios/sistema/${outraLicao}/copiar`, null, prof)));
+confere(
+  'copiar: três pedidos juntos dão 200 e a mesma cópia',
+  juntas.every((x) => x.status === 200) && new Set(juntas.map((x) => x.corpo.exercicio.id)).size === 1,
+);
+confere(
+  'copiar: nunca duplica (uma linha por lição em ExerciciosProf do professor)',
+  (await copiasDe(licaoCopiada.id, 'u-2')) === 1 && (await copiasDe(outraLicao, 'u-2')) === 1,
+);
+confere('copiar: a cópia é editável como qualquer exercício', (await chamar('PATCH', `/exercicios/${copia.id}`, { ...FORMULARIO, titulo: `${licaoCopiada.titulo} (minha)` }, prof)).status === 200);
+
+// Professor A x professor B: cada um vê só as próprias cópias.
+confere('outra conta: a cópia do prof não aparece no GET /exercicios do leo', !(await chamar('GET', '/exercicios', null, leo)).corpo.itens.some((e) => e.id === copia.id));
+confere('outra conta: GET /exercicios/:id da cópia do prof é 404 para o leo', ehErro(await chamar('GET', `/exercicios/${copia.id}`, null, leo), 404, 'NAO_ENCONTRADO'));
+confere('outra conta: para o leo a lição não está na biblioteca', (await chamar('GET', '/exercicios/sistema', null, leo)).corpo.find((e) => e.id === licaoCopiada.id).naBiblioteca === null);
+r = await chamar('POST', `/exercicios/sistema/${licaoCopiada.id}/copiar`, null, leo);
+confere(
+  'outra conta: o leo faz a própria cópia, com outro id e o texto original',
+  r.status === 200 && r.corpo.jaExistia === false && r.corpo.exercicio.id !== copia.id && r.corpo.exercicio.professorId === 'u-1' && r.corpo.exercicio.titulo === licaoCopiada.titulo,
+);
+const copiaDoLeo = r.corpo.exercicio;
+
+// Arquivada, a cópia volta com o "Usar" (como estava, editada).
+await chamar('DELETE', `/exercicios/${copiaDoLeo.id}`, null, leo);
+confere('arquivada: a lição volta a não estar na biblioteca', (await chamar('GET', '/exercicios/sistema', null, leo)).corpo.find((e) => e.id === licaoCopiada.id).naBiblioteca === null);
+r = await chamar('POST', `/exercicios/sistema/${licaoCopiada.id}/copiar`, null, leo);
+confere(
+  'arquivada: copiar de novo reativa a mesma, sem duplicar',
+  r.status === 200 && r.corpo.jaExistia === false && r.corpo.exercicio.id === copiaDoLeo.id && (await copiasDe(licaoCopiada.id, 'u-1')) === 1,
+);
+
+confere('copiar: token de aluno 403 TIPO_INVALIDO', ehErro(await chamar('POST', `/exercicios/sistema/${licaoCopiada.id}/copiar`, null, aluno), 403, 'TIPO_INVALIDO'));
+confere('copiar: lição que não existe 404', ehErro(await chamar('POST', '/exercicios/sistema/solo-999/copiar', null, prof), 404, 'NAO_ENCONTRADO'));
+confere('copiar: exercício do professor não é lição (404)', ehErro(await chamar('POST', `/exercicios/sistema/${copia.id}/copiar`, null, prof), 404, 'NAO_ENCONTRADO'));
+
 await banco.$disconnect();
 console.log(`\nTudo certo. Exercício de teste (arquivado): ${criado.id}`);
