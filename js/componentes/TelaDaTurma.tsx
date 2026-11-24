@@ -87,8 +87,9 @@ interface PropsCasca {
   acoes?: ReactNode;
   /** Entre o título e as abas (as métricas do professor). */
   extra?: ReactNode;
-  /** A imagem de capa da turma, acima do título. Sem imagem, nada. */
-  capa?: { id: string; capaSemente?: number; daSala?: boolean } | null;
+  /** A capa da turma, acima do título: a imagem enviada (temCapa) ou, sem
+   *  ela, o desenho gerado pela semente. null: sem capa no topo. */
+  capa?: { id: string; capaSemente?: number; temCapa?: boolean; daSala?: boolean } | null;
   aba: AbaDaTurma;
   aoSelecionarAba: (aba: AbaDaTurma) => void;
   /** Sem ela, as três da sala do aluno. */
@@ -125,10 +126,15 @@ export function CascaDaTurma(props: PropsCasca) {
       classeDoConteudo="pagina"
     >
       <main>
-        {/* Só com imagem enviada: o desenho gerado fica para o cartão. */}
+        {/* A mesma capa do cartão da lista: a imagem, ou o desenho gerado. */}
         {capa && (
           <div className="capa-topo" aria-hidden="true">
-            <CapaOuImagem id={capa.id} semente={sementeDaTurma(capa.id, capa.capaSemente)} temCapa daSala={capa.daSala} />
+            <CapaOuImagem
+              id={capa.id}
+              semente={sementeDaTurma(capa.id, capa.capaSemente)}
+              temCapa={capa.temCapa ?? true}
+              daSala={capa.daSala}
+            />
           </div>
         )}
         <div className="cabecalho">

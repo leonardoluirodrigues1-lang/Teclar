@@ -641,7 +641,7 @@ function Turma() {
         subtitulo={resumo}
         acoes={acoes}
         extra={codigo}
-        capa={turma?.temCapa ? { id: turma.id, capaSemente: turma.capaSemente } : null}
+        capa={turma ? { id: turma.id, capaSemente: turma.capaSemente, temCapa: turma.temCapa } : null}
         aba={aba}
         aoSelecionarAba={selecionarAba}
         abas={abas}
