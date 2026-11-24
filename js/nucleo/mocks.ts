@@ -2317,7 +2317,7 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
 
-  // A lista de nomes do CSV — a única porta de entrada do aluno na turma.
+  // OBSOLETA (nenhuma tela chama): o aluno entra sozinho, POST /auth/aluno.
   // Cada nome cai numa de três listas; uma falha não desfaz as outras.
   [
     'POST',

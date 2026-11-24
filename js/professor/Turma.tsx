@@ -16,8 +16,9 @@
 //                       para cá com ?atribuidos=N;
 //   RELATÓRIO DA TURMA  os números da turma inteira (GET /turmas/:id/relatorio),
 //                       com PDF, CSV e o link para o relatório completo;
-//   ALUNOS              "Adicionar aluno" e "Importar CSV" (./Alunos.tsx) e a
-//                       lista, com a situação do acesso. Cada linha tem um
+//   ALUNOS              o código para passar à sala (os alunos entram
+//                       sozinhos, POST /auth/aluno) e a lista, com a
+//                       situação do acesso. Cada linha tem um
 //                       "⋯" com "Gerar nova senha provisória" (o aluno não tem
 //                       e-mail: quem esqueceu a senha só volta por aqui) e
 //                       "Remover da turma".
@@ -257,16 +258,11 @@ function Turma() {
     );
   }
 
-  // Os dois botões da aba Alunos: abrem ./Alunos.tsx já no fluxo certo, e o
-  // "Voltar para a turma" de lá traz de volta para esta aba.
-  const botoesDeAlunos = (
+  // O professor não cadastra ninguém: o aluno entra sozinho com o código.
+  const textoDoCodigo = (
     <>
-      <a className="btn btn-solido tecla tecla-clara" href={hrefDeAlunos('um')}>
-        Adicionar aluno
-      </a>
-      <a className="btn btn-vidro vidro tecla" href={hrefDeAlunos('csv')}>
-        Importar CSV
-      </a>
+      Os alunos entram sozinhos com o código da turma. Passe o código{' '}
+      <strong className="col-mono">{turma?.codigo ?? '—'}</strong> para a sala.
     </>
   );
 
@@ -275,10 +271,8 @@ function Turma() {
       return (
         <PainelEstado
           titulo="Nenhum aluno ainda"
-          texto="Esta turma ainda não tem alunos. Adicione um por um ou importe a lista de nomes."
-        >
-          <div className="painel-barra-botoes">{botoesDeAlunos}</div>
-        </PainelEstado>
+          texto={textoDoCodigo}
+        />
       );
     }
 
@@ -286,14 +280,13 @@ function Turma() {
     return (
       <Bloco
         titulo="Alunos"
-        texto="Quem está na lista da turma, como cada um vai e a situação do acesso."
-        acoes={botoesDeAlunos}
+        texto={textoDoCodigo}
       >
         {semSenha > 0 && (
           <p className="aviso-convite" role="note">
-            {semSenha === 1 ? '1 aluno ainda não criou senha.' : `${semSenha} alunos ainda não criaram senha.`} Cada
-            um entra a primeira vez com a senha provisória (vale uma vez, por 7 dias) e depois cria a sua. Perdeu a
-            folha ou esqueceu a senha? Use "⋯" › "Gerar nova senha provisória" na linha do aluno.
+            {semSenha === 1 ? '1 aluno está com senha provisória.' : `${semSenha} alunos estão com senha provisória.`} Ela vale
+            um login, por 7 dias, e depois o aluno cria a dele. Alguém esqueceu a senha? Use "⋯" › "Gerar nova senha
+            provisória" na linha do aluno.
           </p>
         )}
         <Tabela
@@ -660,10 +653,6 @@ function porExtenso(n: number, um: string, varios: string): string {
   return `${n} ${n === 1 ? um : varios}`;
 }
 
-// alunos.html já no fluxo pedido ('um' = Adicionar aluno, 'csv' = Importar CSV).
-function hrefDeAlunos(fluxo: 'um' | 'csv'): string {
-  return `alunos.html?${new URLSearchParams({ turma: turmaId, aba: fluxo })}`;
-}
 
 // A situação do acesso, como os dados da API dizem:
 //   senhaDefinida            -> a pessoal já foi criada (bcrypt no banco);

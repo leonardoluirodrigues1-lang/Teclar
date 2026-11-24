@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
 
 interface PropsEstado {
   titulo: string;
-  texto: string;
+  texto: ReactNode;
   /** A ação: um botão ou um link, já com as classes .btn. */
   children?: ReactNode;
 }

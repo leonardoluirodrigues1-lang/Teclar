@@ -25,6 +25,8 @@ export class AlunosController {
     return this.alunos.listar(requisicao.identidade, turmaId);
   }
 
+  // OBSOLETA: nenhuma tela chama (o aluno entra sozinho, POST /auth/aluno).
+  // Fica para não quebrar quem usa a API; ver o contrato.
   // @HttpCode porque o Nest responde POST com 201, e o contrato diz 200.
   @Post('importar')
   @HttpCode(HttpStatus.OK)

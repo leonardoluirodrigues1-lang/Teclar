@@ -1,5 +1,5 @@
-// Parser de CSV feito à mão, sem biblioteca. Existe para a importação de
-// alunos (pages/professor/alunos.html), mas não sabe nada de aluno: recebe
+// Parser de CSV feito à mão, sem biblioteca. Nasceu para a importação de
+// alunos (que saiu: o aluno entra sozinho); hoje o gerarCsv/baixarCsv servem os relatórios. Recebe
 // texto, devolve linhas de células. Sem fetch; o único toque no DOM é o
 // baixarCsv(), no fim, que entrega o arquivo ao navegador.
 //

@@ -1023,7 +1023,7 @@ A atribuição não tem id próprio: a remoção é pelo PAR turma + exercício,
 
 ## Alunos (professor)
 
-O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha da matrícula (alunosturmas.AlunoID), porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.  O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor (zerar-senha). Também não existe convite: o aluno entra na turma quando o professor sobe o nome dele (importar).
+O professor administrando a lista de UMA turma dele. A turma tem de ser da conta do token (senão 404); o aluno-alvo vai na URL pelo id da linha da matrícula (alunosturmas.AlunoID), porque é sobre ELE que a ação é — não é a identidade de quem pede, que continua saindo do token. Aluno de outra turma, mesmo da mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.  O aluno não tem e-mail, então não existe "esqueci minha senha" automático: quem desbloqueia é o professor (gerarSenhaProvisoria). O professor não cadastra mais ninguém: o aluno entra sozinho com o código da turma (POST /auth/aluno). O importar ficou OBSOLETO: existe no back, sem tela.
 
 ### `GET /turmas/:id/alunos`
 
@@ -1062,7 +1062,7 @@ Chamada no front: `api.alunos.importar`
 
 **Corpo:**
 
-{ nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes
+OBSOLETA (nenhuma tela chama; o aluno entra por POST /auth/aluno). { nomes } — a lista inteira numa requisição
 
 ```json
 { "nomes": ["Ana Pires", "Bruno Sato", "ana  pires", "", "Carla Nunes"] }
@@ -1097,7 +1097,7 @@ Cada nome é aparado, com espaços internos reduzidos a um, e cai em falhas (vaz
 
 **Notas:**
 
-É a única entrada do aluno na turma. Aluno removido volta como linha nova, sem senha nem histórico.
+OBSOLETA desde a entrada do aluno pelo código (POST /auth/aluno): fica no back, sem uso nas telas, e pode sair numa versão futura. Aluno removido volta como linha nova, sem senha nem histórico.
 
 ### `DELETE /turmas/:id/alunos/:alunoId`
 

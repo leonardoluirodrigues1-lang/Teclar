@@ -1,7 +1,7 @@
 // A regra do grupo "Alunos (professor)" do CONTRATO-API.md: o professor
 // administrando a lista de UMA turma dele.
 //   GET    /turmas/:turmaId/alunos                         a lista, com agregados
-//   POST   /turmas/:turmaId/alunos/importar                a única entrada do aluno
+//   POST   /turmas/:turmaId/alunos/importar                OBSOLETA (o aluno entra sozinho)
 //   DELETE /turmas/:turmaId/alunos/:alunoId                remove (e leva as sessões)
 //   POST   /turmas/:turmaId/alunos/:alunoId/senha-provisoria  senha nova de uso único
 //   GET    /turmas/:turmaId/alunos/:alunoId/desempenho     agregados e sessões

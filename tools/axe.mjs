@@ -69,8 +69,6 @@ const PAGINAS = [
   ['/pages/professor/turma.html?turma=turma-2&aba=atividades', 'prof'],
   ['/pages/professor/turma.html?turma=turma-2&aba=alunos', 'prof'],
   ['/pages/professor/turma.html?turma=turma-2&aba=relatorio', 'prof'],
-  ['/pages/professor/alunos.html?turma=turma-2', 'prof'],
-  ['/pages/professor/alunos.html?turma=turma-2&aba=csv', 'prof'],
   ['/pages/professor/biblioteca.html', 'prof'],
   ['/pages/professor/biblioteca.html?atribuir=turma-2', 'prof'],
   ['/pages/professor/relatorios.html', 'prof'],

@@ -576,9 +576,10 @@ pede, que continua saindo do token. Aluno de outra turma, mesmo da
 mesma conta, é 404 aqui: o :alunoId só vale dentro do :id.
 
 O aluno não tem e-mail, então não existe "esqueci minha senha"
-automático: quem desbloqueia é o professor (zerar-senha). Também não
-existe convite: o aluno entra na turma quando o professor sobe o nome
-dele (importar).`,
+automático: quem desbloqueia é o professor (gerarSenhaProvisoria). O
+professor não cadastra mais ninguém: o aluno entra sozinho com o código
+da turma (POST /auth/aluno). O importar ficou OBSOLETO: existe no back,
+sem tela.`,
     rotas: {
       'alunos.daTurma': {
         rota: 'GET /turmas/:id/alunos',
@@ -598,7 +599,7 @@ dele (importar).`,
       },
       'alunos.importar': {
         rota: 'POST /turmas/:id/alunos/importar',
-        corpo: `{ nomes } — a lista inteira numa requisição; a tela lê o CSV e manda só os nomes
+        corpo: `OBSOLETA (nenhuma tela chama; o aluno entra por POST /auth/aluno). { nomes } — a lista inteira numa requisição
   { "nomes": ["Ana Pires", "Bruno Sato", "ana  pires", "", "Carla Nunes"] }`,
         resposta: `200 ResultadoImportacao — cada nome cai numa das três listas
   { "adicionados": [{ "id": "al-7c1pz", "nome": "Bruno Sato", "entrouEm": "2026-10-05",
@@ -619,8 +620,9 @@ dele (importar).`,
   (bcrypt em SenhaProvisoriaHash, validade de 7 dias), na mesma transação. A provisória em texto
   vai só nesta resposta (senhaProvisoria, expiraEm). Importação parcial é permitida, e a
   rota pode ser chamada de novo com a lista completa.`,
-        nota: `É a única entrada do aluno na turma. Aluno removido volta como linha nova,
-  sem senha nem histórico.`,
+        nota: `OBSOLETA desde a entrada do aluno pelo código (POST /auth/aluno): fica no back,
+  sem uso nas telas, e pode sair numa versão futura. Aluno removido volta como linha
+  nova, sem senha nem histórico.`,
       },
       'alunos.remover': {
         rota: 'DELETE /turmas/:id/alunos/:alunoId',
