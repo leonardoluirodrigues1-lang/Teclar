@@ -8,7 +8,9 @@ repositório.
 Solo (campanha, lições, sessões com XP, histórico, indicadores e
 estatísticas); as de turmas (listar, criar, detalhe, PATCH, código novo e
 as três de atribuições); as cinco de alunos da turma; as cinco da
-biblioteca de exercícios (o `DELETE /exercicios/:id` arquiva, não apaga);
+biblioteca de exercícios (o `DELETE /exercicios/:id` arquiva, não apaga) e as
+duas dos exercícios do sistema (`GET /exercicios/sistema` e
+`POST /exercicios/sistema/:id/copiar`);
 as duas de sessões; as quatro de relatórios; as seis do próprio aluno
 (histórico, resumo, salas, sala, meu desempenho e o ranking); as nove de
 Configurações > Conta (`PATCH /conta`, `POST /conta/senha`, `PUT /aluno/senha` e
@@ -230,6 +232,23 @@ npx prisma studio
 ```
 
 ## Decisões de implementação
+
+### Exercícios do sistema (a Biblioteca do professor)
+
+As lições do Solo (ExerciciosSolo) aparecem na Biblioteca como "Exercícios do
+sistema", só de leitura (`GET /exercicios/sistema`). O professor usa uma
+fazendo a cópia (`POST /exercicios/sistema/:id/copiar`): uma linha nova em
+ExerciciosProf, dele, com o título, o texto montado, a dificuldade e o tempo
+limite da lição. Daí em diante é um exercício como os outros.
+
+**Sem coluna nova:** a cópia não guarda de onde veio. O id dela é
+determinístico, `sis-<lição>-<20 hex do sha256 do professor>`
+(`idDaCopia`, em `src/exercicios/exercicios.service.ts`): copiar de novo cai
+na mesma chave primária e devolve a mesma cópia (`jaExistia`), inclusive com
+dois pedidos juntos (o segundo bate no P2002 e lê a do primeiro). Cópia
+arquivada volta como estava. O modo de seleção copia o que falta e atribui
+tudo no mesmo "Atribuir à turma". O seed apaga as cópias das contas da demo
+com o resto dos exercícios delas, e não toca nas das contas do cadastro.
 
 O Swagger diz só a regra de cada rota. O porquê fica aqui.
 

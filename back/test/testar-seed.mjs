@@ -154,6 +154,9 @@ await exigir('sessão escola', chamar('POST', '/sessoes', { ...MEDIDAS, exercici
 await exigir('campanha Solo da conta', chamar('POST', '/solo/campanha', null, real));
 const licao = (await exigir('missões', chamar('GET', '/solo/missoes', null, real)))[0];
 await exigir('sessão Solo da conta', chamar('POST', '/solo/sessoes', { ...MEDIDAS, exercicio_id: licao.exerciseId }, real));
+// Uma lição do sistema copiada para a biblioteca da conta: o seed atualiza
+// as lições no lugar e não toca na cópia (que é dela, em ExerciciosProf).
+const copiaReal = (await exigir('cópia de exercício do sistema', chamar('POST', `/exercicios/sistema/${licao.exerciseId}/copiar`, null, real))).exercicio;
 const contaAntes = await retratoDaConta(email, turma.id, turma.codigo);
 confere('preparo: a conta tem turma, aluno, atribuição, sessão escola e sessão Solo',
   contaAntes.alunos.length === 1 && contaAntes.atribuicoes.length === 1 && contaAntes.historicoDoAluno.total === 1 && contaAntes.historicoSolo.total === 1);
@@ -168,6 +171,7 @@ await exigir('turma nova na conta da demo', chamar('POST', '/turmas', { nome: `C
 const leo = await entrar('leo@teclar.dev');
 const licaoDoLeo = (await exigir('missões do leo', chamar('GET', '/solo/missoes', null, leo)))[0];
 await exigir('sessão Solo do leo', chamar('POST', '/solo/sessoes', { ...MEDIDAS, exercicio_id: licaoDoLeo.exerciseId }, leo));
+await exigir('cópia de exercício do sistema na demo', chamar('POST', `/exercicios/sistema/${licaoDoLeo.exerciseId}/copiar`, null, prof));
 confere('preparo: a demo mudou', !igualPeloDia(await retratoDaDemo(), demoOriginal));
 
 // ============================================================================
@@ -186,5 +190,10 @@ for (const vez of ['1º', '2º']) {
   const diferentes = Object.keys(demoOriginal).filter((parte) => !igualPeloDia(demo[parte], demoOriginal[parte]));
   confere(`${vez} seed: a demo voltou ao retrato de um seed limpo${diferentes.length ? ` (difere: ${diferentes.join(', ')})` : ''}`, diferentes.length === 0);
 }
+
+const naBibliotecaDe = async (token) =>
+  (await exigir('exercícios do sistema', chamar('GET', '/exercicios/sistema', null, token))).find((e) => e.id === licao.exerciseId).naBiblioteca;
+confere('seed: a cópia do sistema da conta real continua na biblioteca dela', (await naBibliotecaDe(await entrar(email))) === copiaReal.id);
+confere('seed: a da demo some com o resto (a demo volta ao começo)', (await naBibliotecaDe(await entrar('prof@teclar.dev'))) === null);
 
 console.log(`\nTudo certo. Conta de teste (o limpar-testes apaga agora): ${email}`);
