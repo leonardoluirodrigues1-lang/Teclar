@@ -234,5 +234,33 @@ confere('arquivar: a sessão do aluno continua', (await banco.sessionsprof.count
 r = await chamar('GET', `/turmas/${turmaA.id}/alunos/${alunoDoTeste.id}/desempenho`, null, prof);
 confere('arquivar: o histórico do aluno não muda', r.status === 200 && r.corpo.sessoes.some((s) => s.id === sessaoId && s.exerciseId === criado.id));
 
+// ============================================================================
+// Exercícios do sistema: GET /exercicios/sistema (as lições do Solo, só leitura)
+// ============================================================================
+
+r = await chamar('GET', '/exercicios/sistema', null, prof);
+const licoesAtivas = await banco.exerciciossolo.findMany({ where: { Ativo: true }, orderBy: { Ordem: 'asc' } });
+confere(
+  'sistema: 200 com todas as lições ativas, na ordem do percurso',
+  r.status === 200 && r.corpo.length === licoesAtivas.length && r.corpo.map((e) => e.id).join() === licoesAtivas.map((l) => l.ExerciseID).join(),
+);
+const primeiraDoSistema = r.corpo[0];
+confere(
+  'sistema: cada uma com título, nível, dificuldade, tempo e o texto montado',
+  primeiraDoSistema.titulo === licoesAtivas[0].Titulo &&
+    primeiraDoSistema.nivel === licoesAtivas[0].Nivel &&
+    ['facil', 'medio', 'dificil'].includes(primeiraDoSistema.dificuldade) &&
+    primeiraDoSistema.tempoLimiteSegundos === (licoesAtivas[0].Tempo_Limite_Segundos ?? 0) &&
+    primeiraDoSistema.texto === licoesAtivas[0].Texto,
+);
+confere('sistema: a mesma lista para outra conta', JSON.stringify((await chamar('GET', '/exercicios/sistema', null, leo)).corpo) === JSON.stringify(r.corpo));
+confere('sistema: token de aluno 403 TIPO_INVALIDO', ehErro(await chamar('GET', '/exercicios/sistema', null, aluno), 403, 'TIPO_INVALIDO'));
+confere('sistema: sem token 401', (await chamar('GET', '/exercicios/sistema')).status === 401);
+confere(
+  'sistema: só leitura (PATCH e DELETE numa lição são 404, como exercício de outra conta)',
+  ehErro(await chamar('PATCH', `/exercicios/${primeiraDoSistema.id}`, FORMULARIO, prof), 404, 'NAO_ENCONTRADO') &&
+    ehErro(await chamar('DELETE', `/exercicios/${primeiraDoSistema.id}`, null, prof), 404, 'NAO_ENCONTRADO'),
+);
+
 await banco.$disconnect();
 console.log(`\nTudo certo. Exercício de teste (arquivado): ${criado.id}`);

@@ -44,6 +44,17 @@ export interface Exercicio {
   atribuidoA: number;
 }
 
+// Uma lição do Solo vista na Biblioteca do professor ("Exercícios do
+// sistema"): só leitura. O id é o da lição (solo-001).
+export interface ExercicioDoSistema {
+  id: string;
+  titulo: string;
+  nivel: number;
+  dificuldade: Dificuldade;
+  tempoLimiteSegundos: number;
+  texto: string;
+}
+
 export interface Paginado<T> {
   total: number;
   pagina: number;
@@ -97,6 +108,23 @@ export class ExerciciosService {
   //   Aluno: ?turma= tem de ser a turma DELE e o exercício tem de estar
   //   atribuído a ela — para ele descobrir na ABERTURA do treino, e não
   //   depois de digitar o texto inteiro.
+  // GET /exercicios/sistema. As lições do Solo (ExerciciosSolo), na ordem do
+  // percurso, para o professor usar como base. Só leitura e só conta.
+  async sistema(identidade: Identidade): Promise<ExercicioDoSistema[]> {
+    professorDoToken(identidade);
+    const licoes = await this.banco.exerciciossolo.findMany({ where: { Ativo: true }, orderBy: { Ordem: 'asc' } });
+    return licoes.map((licao) => ({
+      id: licao.ExerciseID,
+      titulo: licao.Titulo,
+      nivel: licao.Nivel,
+      dificuldade: licao.Dificuldade,
+      tempoLimiteSegundos: licao.Tempo_Limite_Segundos ?? 0,
+      // O texto já vem montado (as repetições da lição, num bloco só): é o
+      // que o aluno digitaria.
+      texto: licao.Texto,
+    }));
+  }
+
   async obter(identidade: Identidade, id: string, turmaId: string | undefined): Promise<Exercicio> {
     if (identidade.tipo === 'aluno') {
       return exercicioNaForma(await this.exercicioDoAluno(identidade.id, id, turmaId));

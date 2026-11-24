@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 72 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 73 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -180,6 +180,8 @@ const atribuidas = await api.turmas.atribuir(turma.id, [exercicio.id, descartave
 confere('turmas.atribuir devolve a lista crua', atribuidas.length === 2 && atribuidas.every((a) => a.prazo === null));
 confere('turmas.removerAtribuicao devolve null (204)', (await api.turmas.removerAtribuicao(turma.id, descartavel.id)) === null);
 confere('exercicios.excluir devolve null (204)', (await api.exercicios.excluir(descartavel.id)) === null);
+const doSistema = await api.exercicios.sistema();
+confere('exercicios.sistema: as lições do Solo, com texto', doSistema.length > 0 && doSistema[0].id === 'solo-001' && doSistema[0].texto.length > 0);
 const biblioteca = await api.exercicios.listar();
 confere('exercicios.listar (paginado) sem o arquivado', biblioteca.pagina === 1 && biblioteca.itens.map((e) => e.id).join() === exercicio.id);
 confere('exercicios.obter (conta)', (await api.exercicios.obter(exercicio.id)).atribuidoA === 1);
@@ -408,4 +410,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 72 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 73 funções do api.ts contra o back.`);

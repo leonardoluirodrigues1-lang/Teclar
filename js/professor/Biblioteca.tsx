@@ -14,6 +14,10 @@
 //     exercício" cria e já deixa marcado. Confirmar ou cancelar volta para a
 //     aba Atividades da mesma turma (que recarrega a lista).
 //
+// Embaixo de "Meus exercícios", a seção "Exercícios do sistema": as lições
+// do Solo (GET /exercicios/sistema), só de leitura — sem Editar nem Arquivar.
+// A busca e o filtro de dificuldade valem para as duas seções.
+//
 // Um exercício, no banco (ExerciciosProf), é: título, texto, dificuldade e
 // tempo limite. Não tem coluna de tamanho: os "caracteres" saem do texto,
 // aqui. O "em quantas turmas" é COUNT que o back faz em AtribuicoesProf.
@@ -24,7 +28,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { api } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
-import type { Dificuldade, Exercicio } from '../nucleo/tipos.js';
+import type { Dificuldade, Exercicio, ExercicioDoSistema } from '../nucleo/tipos.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import { desembrulhar } from '../componentes/listaExercicios.js';
 import { Moldura, VOLTAR_TURMAS, type Voltar } from '../componentes/Moldura.js';
@@ -65,7 +69,7 @@ function urlDaPrevia(id: string): string {
 type Carga =
   | { estado: 'carregando' }
   | { estado: 'erro'; mensagem: string }
-  | { estado: 'pronto'; exercicios: Exercicio[] };
+  | { estado: 'pronto'; exercicios: Exercicio[]; sistema: ExercicioDoSistema[] };
 
 // No modo de seleção: o nome da turma e o que ela já tem atribuído.
 // null fora dele (e enquanto não chega).
@@ -116,8 +120,9 @@ function Biblioteca() {
       try {
         // No modo de seleção a turma e as atribuições dela vêm junto: sem
         // elas não dá para dizer quais já estão lá.
-        const [lista, turma, atribuicoes] = await Promise.all([
+        const [lista, sistema, turma, atribuicoes] = await Promise.all([
           api.exercicios.listar(),
+          api.exercicios.sistema(),
           selecao ? api.turmas.obter(turmaDestino) : null,
           selecao ? api.turmas.atribuicoes(turmaDestino) : null,
         ]);
@@ -129,7 +134,7 @@ function Biblioteca() {
           });
           document.title = `Teclar — Atribuir exercício a ${turma?.nome ?? 'turma'}`;
         }
-        setCarga({ estado: 'pronto', exercicios: desembrulhar(lista) });
+        setCarga({ estado: 'pronto', exercicios: desembrulhar(lista), sistema });
       } catch (excecao) {
         if (!cancelado) setCarga({ estado: 'erro', mensagem: mensagemDaFalha(excecao) });
       }
@@ -142,11 +147,11 @@ function Biblioteca() {
   }, [tentativa]);
 
   const exercicios = carga.estado === 'pronto' ? carga.exercicios : [];
+  const sistema = carga.estado === 'pronto' ? carga.sistema : [];
+  const [ordenacaoSistema, setOrdenacaoSistema] = useState<Ordenacao>({ campo: null, direcao: 'asc' });
 
   function atualizarExercicios(transformar: (lista: Exercicio[]) => Exercicio[]) {
-    setCarga((atual) =>
-      atual.estado === 'pronto' ? { estado: 'pronto', exercicios: transformar(atual.exercicios) } : atual
-    );
+    setCarga((atual) => (atual.estado === 'pronto' ? { ...atual, exercicios: transformar(atual.exercicios) } : atual));
   }
 
   function alternar(id: string, marcado: boolean) {
@@ -269,6 +274,52 @@ function Biblioteca() {
     ...colunasDeDados,
   ];
 
+  // Exercícios do sistema: a etiqueta, o título (sem link: a lição não é do
+  // professor, e a prévia no treino seria um treino do Solo) e o trecho; o
+  // nível com a dificuldade por extenso; caracteres e tempo. Sem ações.
+  const colunasDoSistema: ColunaTabela<ExercicioDoSistema>[] = [
+    {
+      rotulo: 'Exercício',
+      campo: 'titulo',
+      celula: (ex) => (
+        <>
+          <span className="etiqueta etiqueta-sistema">Do sistema</span>
+          <span className="celula-titulo-sistema">{ex.titulo}</span>
+          <span className="celula-trecho">{trecho(ex.texto)}</span>
+        </>
+      ),
+    },
+    {
+      rotulo: 'Nível',
+      campo: 'dificuldade',
+      celula: (ex) => (
+        <>
+          <span className="celula-nivel">Nível {ex.nivel}</span>
+          <span className={`etiqueta etiqueta-${ex.dificuldade}`}>{rotuloDificuldade(ex.dificuldade)}</span>
+        </>
+      ),
+    },
+    { rotulo: 'Caracteres', campo: 'caracteres', classe: 'col-numero', celula: (ex) => String(tamanhoDoTexto(ex)) },
+    { rotulo: 'Tempo limite', classe: 'col-numero', celula: (ex) => formatarTempoLimite(ex.tempoLimiteSegundos) },
+  ];
+
+  function renderizarSistema() {
+    if (carga.estado !== 'pronto') return null;
+    const visiveis = ordenar(filtrar(sistema, busca.trim(), dificuldade), ordenacaoSistema, valorOrdenavelExercicio);
+    if (visiveis.length === 0) {
+      return <PainelEstado titulo="Nenhum exercício do sistema com esses filtros" texto="Confira a escrita do título ou mude a dificuldade." />;
+    }
+    return (
+      <Tabela
+        colunas={colunasDoSistema}
+        linhas={visiveis}
+        chave={(ex) => ex.id}
+        ordenacao={ordenacaoSistema}
+        aoOrdenar={setOrdenacaoSistema}
+      />
+    );
+  }
+
   // --- tabela e estados -----------------------------------------------------
 
   function renderizarConteudo() {
@@ -376,7 +427,8 @@ function Biblioteca() {
   }
 
   const voltar: Voltar = selecao ? { href: hrefDaTurma(), rotulo: destino?.nome ?? 'Turma' } : VOLTAR_TURMAS;
-  const filtrosVisiveis = carga.estado === 'pronto' && exercicios.length > 0;
+  // Valem para as duas seções: só fazem sentido com algum exercício na tela.
+  const filtrosVisiveis = carga.estado === 'pronto' && exercicios.length + sistema.length > 0;
 
   return (
     <Moldura modo="professor" ativo="biblioteca" voltar={voltar} classeDoConteudo="pagina">
@@ -407,10 +459,9 @@ function Biblioteca() {
           </button>
         </div>
 
-        <Bloco titulo={selecao ? 'Exercícios da biblioteca' : 'Seus exercícios'}>
-          {/* Busca por título e dificuldade, filtrados no cliente. Só fazem
-              sentido com exercício na lista. */}
-          <div className="filtros" id="filtros" hidden={!filtrosVisiveis}>
+        {/* Busca por título e dificuldade, filtrados no cliente, nas duas
+            seções (a sua biblioteca e a do sistema). */}
+        <div className="filtros" id="filtros" hidden={!filtrosVisiveis}>
             <div className="busca">
               <span className="lupa" aria-hidden="true">
                 /
@@ -441,14 +492,24 @@ function Biblioteca() {
                 </option>
               ))}
             </select>
-          </div>
+        </div>
 
+        <Bloco titulo={selecao ? 'Exercícios da biblioteca' : 'Meus exercícios'}>
           {/* A tabela e os estados (carregando, vazio, erro, sem resultado)
               ocupam o mesmo lugar. */}
           <div id="conteudo" aria-busy={carga.estado === 'carregando'}>
             {renderizarConteudo()}
           </div>
         </Bloco>
+
+        {!selecao && carga.estado === 'pronto' && sistema.length > 0 && (
+          <Bloco
+            titulo="Exercícios do sistema"
+            texto="Textos prontos do TECLAR para você usar como base. Use na sua biblioteca para editar e atribuir às turmas."
+          >
+            {renderizarSistema()}
+          </Bloco>
+        )}
 
         {/* A barra do modo de seleção: fica presa embaixo enquanto a lista rola. */}
         {selecao && (
@@ -481,8 +542,12 @@ function Biblioteca() {
 
 // Formatação, filtro e ordenação
 
+// Os dois tipos de linha (o seu e o do sistema) têm o que a busca, o filtro
+// e a ordenação olham.
+type ComTexto = Pick<Exercicio, 'titulo' | 'texto' | 'dificuldade'>;
+
 // Tamanho do texto contado no front: não existe coluna para isso no banco.
-function tamanhoDoTexto(ex: Exercicio): number {
+function tamanhoDoTexto(ex: ComTexto): number {
   return String(ex.texto ?? '').length;
 }
 
@@ -492,7 +557,7 @@ function trecho(texto: string | null | undefined): string {
   return limpo.length > TAMANHO_DO_TRECHO ? `${limpo.slice(0, TAMANHO_DO_TRECHO).trimEnd()}…` : limpo;
 }
 
-function filtrar(lista: Exercicio[], termo: string, dificuldade: FiltroDificuldade): Exercicio[] {
+function filtrar<T extends ComTexto>(lista: T[], termo: string, dificuldade: FiltroDificuldade): T[] {
   const alvo = normalizar(termo);
   return lista.filter(
     (ex) =>
@@ -505,7 +570,7 @@ function filtrar(lista: Exercicio[], termo: string, dificuldade: FiltroDificulda
 // texto (o ordenar compara em pt-BR, sem pesar acento nem caixa); a
 // dificuldade entra pelo peso dela (fácil < média < difícil), não pelo
 // rótulo.
-function valorOrdenavelExercicio(ex: Exercicio, campo: string): string | number | null {
+function valorOrdenavelExercicio<T extends ComTexto>(ex: T, campo: string): string | number | null {
   if (campo === 'titulo') return ex.titulo;
   if (campo === 'dificuldade') return pesoDificuldade(ex.dificuldade);
   if (campo === 'caracteres') return tamanhoDoTexto(ex);

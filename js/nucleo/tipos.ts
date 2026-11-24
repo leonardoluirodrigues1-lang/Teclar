@@ -326,6 +326,20 @@ export interface Turma {
 /** GET /turmas/:id — as métricas do topo da tela de turma, já calculadas. */
 /** GET /turmas/:id/capa e GET /aluno/salas/:id/capa: um WEBP em data URL,
  *  pronto para o src do <img>. */
+/**
+ * Uma lição do Solo vista na Biblioteca do professor, em "Exercícios do
+ * sistema" (GET /exercicios/sistema). Só leitura; o id é o da lição
+ * (solo-001). O texto já vem montado, como o aluno digitaria.
+ */
+export interface ExercicioDoSistema {
+  id: string;
+  titulo: string;
+  nivel: number;
+  dificuldade: Dificuldade;
+  tempoLimiteSegundos: number;
+  texto: string;
+}
+
 export interface ImagemDaCapa {
   imagem: string;
 }

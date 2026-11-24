@@ -98,6 +98,7 @@ import type {
   Aluno,
   ImagemDaCapa,
   ImagemDaFoto,
+  ExercicioDoSistema,
   Atribuicao,
   Campanha,
   Categoria,
@@ -2469,6 +2470,23 @@ const rotas: [string, RegExp, Handler][] = [
       };
       dados.exercicios.push(novo);
       return comAtribuidoA(novo);
+    },
+  ],
+  // As lições do Solo para a Biblioteca ("Exercícios do sistema"). Antes do
+  // /exercicios/:id, que leria "sistema" como id.
+  [
+    'GET',
+    montarRegex('/exercicios/sistema'),
+    (params, corpo, token): ExercicioDoSistema[] => {
+      contaDoToken(token);
+      return dados.missoes.map((m) => ({
+        id: m.exerciseId,
+        titulo: m.titulo,
+        nivel: m.nivel,
+        dificuldade: m.dificuldade,
+        tempoLimiteSegundos: m.tempoLimiteSegundos ?? 0,
+        texto: m.texto,
+      }));
     },
   ],
   [

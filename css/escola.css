@@ -1947,6 +1947,10 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 }
 .etiqueta-ok { color: #7ee2a8; }
 .etiqueta-espera { color: var(--cor-texto-suave, #c4c4c4); }
+/* "Do sistema" (Biblioteca): neutra, a palavra é que diz de onde vem. */
+.etiqueta-sistema { color: var(--cor-texto-suave, #c4c4c4); margin-right: var(--e-2, 8px); }
+.celula-titulo-sistema { font-size: 15px; color: var(--cor-texto, #fff); }
+.celula-nivel { display: block; margin-bottom: 6px; font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
 .etiqueta-alerta { color: var(--cor-alerta, #f5b93b); }
 
 /* --- o "⋯" de cada linha (js/componentes/MenuDeAcoes.tsx) --------------- */

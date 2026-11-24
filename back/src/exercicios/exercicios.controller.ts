@@ -21,7 +21,7 @@ import {
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { ExerciciosService } from './exercicios.service.js';
-import type { CorpoDoExercicio, Exercicio, Paginado } from './exercicios.service.js';
+import type { CorpoDoExercicio, Exercicio, ExercicioDoSistema, Paginado } from './exercicios.service.js';
 
 @Controller('exercicios')
 @UseGuards(GuardaDoToken)
@@ -31,6 +31,12 @@ export class ExerciciosController {
   @Get()
   listar(@Req() requisicao: RequisicaoComIdentidade): Promise<Paginado<Exercicio>> {
     return this.exercicios.listar(requisicao.identidade);
+  }
+
+  // Antes do :id, senão "sistema" seria lido como o id de um exercício.
+  @Get('sistema')
+  sistema(@Req() requisicao: RequisicaoComIdentidade): Promise<ExercicioDoSistema[]> {
+    return this.exercicios.sistema(requisicao.identidade);
   }
 
   @Get(':id')

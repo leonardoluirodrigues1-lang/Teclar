@@ -831,6 +831,18 @@ feitas.`,
   atribuído (COUNT em AtribuicoesProf). A tela não conta.`,
         nota: `Sem tamanho de página definido: vem tudo, com pagina = 1.`,
       },
+      'exercicios.sistema': {
+        rota: 'GET /exercicios/sistema',
+        resposta: `200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso
+  [{ "id": "solo-001", "titulo": "Lição 01 — Linha-guia", "nivel": 1, "dificuldade": "facil",
+     "tempoLimiteSegundos": 46, "texto": "asdf jklç asdf jklç" }]`,
+        erros: `403 TIPO_INVALIDO — token de aluno`,
+        identidade: `O token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.`,
+        back: `ExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições
+  da lição num bloco só), o que o aluno digitaria.`,
+        nota: `"Exercícios do sistema" na Biblioteca: só leitura, sem Editar nem Arquivar. Para
+  usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).`,
+      },
       'exercicios.obter': {
         rota: 'GET /exercicios/:id?turma=:turmaId',
         resposta: `200 ExercicioDetalhe — mesma forma de um item da listagem

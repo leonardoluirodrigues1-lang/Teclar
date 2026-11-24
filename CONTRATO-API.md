@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-72 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+73 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -33,7 +33,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`, `GET /turmas/:id/alunos/:alunoId/foto`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
-- **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
+- **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/sistema`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
 - **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `PUT /aluno/foto`, `GET /aluno/foto`, `DELETE /aluno/foto`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
@@ -1535,6 +1535,37 @@ Só os ativos (Ativo = TRUE). atribuidoA = em quantas turmas está atribuído (C
 **Notas:**
 
 Sem tamanho de página definido: vem tudo, com pagina = 1.
+
+### `GET /exercicios/sistema`
+
+Chamada no front: `api.exercicios.sistema`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso
+
+```json
+[{ "id": "solo-001", "titulo": "Lição 01 — Linha-guia", "nivel": 1, "dificuldade": "facil",
+   "tempoLimiteSegundos": 46, "texto": "asdf jklç asdf jklç" }]
+```
+
+**Erros:**
+
+- 403 TIPO_INVALIDO — token de aluno
+
+**Identidade:**
+
+O token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.
+
+**Regras de negócio no back (a tela não calcula):**
+
+ExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições da lição num bloco só), o que o aluno digitaria.
+
+**Notas:**
+
+"Exercícios do sistema" na Biblioteca: só leitura, sem Editar nem Arquivar. Para usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).
 
 ### `GET /exercicios/:id?turma=:turmaId`
 

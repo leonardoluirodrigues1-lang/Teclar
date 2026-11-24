@@ -28,6 +28,7 @@ import type {
   Filtros,
   EstatisticasSolo,
   ImagemDaCapa,
+  ExercicioDoSistema,
   ImagemDaFoto,
   IndicadoresSolo,
   ItemFila,
@@ -396,6 +397,9 @@ export const api = {
 
   exercicios: {
     listar: () => get<Paginado<Exercicio>>('/exercicios'),
+
+    // "Exercícios do sistema": as lições do Solo, só leitura.
+    sistema: () => get<ExercicioDoSistema[]>('/exercicios/sistema'),
 
     obter: (id: string, turmaId?: string | null) =>
       get<ExercicioDetalhe>(`/exercicios/${id}${montarQuery({ turma: turmaId })}`),

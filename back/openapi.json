@@ -4210,6 +4210,78 @@
         ]
       }
     },
+    "/api/exercicios/sistema": {
+      "get": {
+        "tags": [
+          "Biblioteca de exercícios (professor)"
+        ],
+        "operationId": "exercicios.sistema",
+        "summary": "sistema: ExercicioDoSistema[] — as lições do Solo, na ordem do percurso",
+        "description": "**Chamada no front:** `api.exercicios.sistema`\n\n**Resposta:** 200 ExercicioDoSistema[] — as lições do Solo, na ordem do percurso\n\n**Identidade:**\n\nO token: qualquer conta. As lições não são de ninguém; a lista é a mesma para todos.\n\n**Regras de negócio no back (a tela não calcula):**\n\nExerciciosSolo com Ativo = TRUE, por Ordem. O texto é o montado (as repetições da lição num bloco só), o que o aluno digitaria.\n\n**Notas:**\n\n\"Exercícios do sistema\" na Biblioteca: só leitura, sem Editar nem Arquivar. Para usar numa turma, o professor faz uma cópia na biblioteca dele (exercicios.copiarDoSistema).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "ExercicioDoSistema[] — as lições do Solo, na ordem do percurso",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": [
+                      {
+                        "id": "solo-001",
+                        "titulo": "Lição 01 — Linha-guia",
+                        "nivel": 1,
+                        "dificuldade": "facil",
+                        "tempoLimiteSegundos": 46,
+                        "texto": "asdf jklç asdf jklç"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de aluno",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/exercicios/{id}": {
       "get": {
         "tags": [
