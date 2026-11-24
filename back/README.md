@@ -233,6 +233,35 @@ npx prisma studio
 
 ## Decisões de implementação
 
+### Limites de tentativas (e o IP de quem pede)
+
+Três limites, todos por IP e na **memória do processo**:
+
+- senhas erradas no login e na entrada do aluno: 5 no minuto por IP + quem
+  tenta entrar, e a 6ª dá 429 (`src/autenticacao/tentativas-de-login.ts`);
+- códigos de turma que não existem (`GET /auth/turmas/:codigo` e
+  `POST /auth/aluno`): 20 no minuto por IP, e o resto do minuto dá 429 com
+  "Muitos códigos errados seguidos..." (20, e não 5: a turma inteira sai
+  pelo mesmo IP da escola);
+- o geral do `@nestjs/throttler`: 1000 pedidos no minuto por IP
+  (`src/limite-de-tentativas.ts`).
+
+**Em memória:** no Render free há uma instância só, então a contagem é uma
+só e funciona; mas todo reinício do back (deploy, ou o Render dormir e
+acordar) zera os contadores. Com mais de uma instância, cada uma contaria
+sozinha: aí o contador precisa ir para o banco ou para um Redis.
+
+**O IP:** no Render o pedido passa por três proxies (a borda da Cloudflare,
+o balanceador interno do Render e um proxy local na instância), medidos em
+produção. Por isso `app.set('trust proxy', 3)` no `main.ts`: req.ip é o 3º
+endereço do X-Forwarded-For a partir da direita, o do cliente, e um
+X-Forwarded-For falso que ele mande fica à esquerda e não conta. Com
+`trust proxy 1` (até 24/11/2026), req.ip era o balanceador, que muda a cada
+pedido, e nenhum limite acumulava em produção. Nunca `true` (valeria o
+primeiro da lista, que o cliente escreve). Mudou a hospedagem ou o Render
+mudou a frente: medir de novo antes de confiar nos limites. Localmente não
+há proxy; os testes que precisam de outro IP mandam um X-Forwarded-For.
+
 ### Exercícios do sistema (a Biblioteca do professor)
 
 As lições do Solo (ExerciciosSolo) aparecem na Biblioteca como "Exercícios do
