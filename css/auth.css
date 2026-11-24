@@ -98,8 +98,9 @@ ul { list-style: none; }
   text-align: center;
   margin-bottom: 44px;
 }
-/* "Olá, Leonardo": o nome em tamanho de leitura e claro. */
-.cabecalho .rotulo { font-size: 13px; color: var(--cor-texto-suave, #c4c4c4); }
+/* "Olá, Leonardo": o mesmo tratamento do nome no topo (B3): 16px, peso
+   médio e branco puro sobre o preto (21:1). */
+.cabecalho .rotulo { font-size: 16px; font-weight: var(--peso-medio, 500); color: var(--cor-texto, #fff); }
 .cabecalho h1 {
   margin-top: var(--e-4, 16px);
   font-size: 52px;
