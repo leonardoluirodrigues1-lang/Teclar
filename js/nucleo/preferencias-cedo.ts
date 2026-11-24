@@ -41,34 +41,52 @@ interface Window {
     texto: 'normal',
     altoContraste: false,
     reduzirMovimento: false,
-    sonsDoTreino: true,
+    // Desligado até a pessoa ligar: numa sala com 30 computadores, som é escolha.
+    sonsDoTreino: false,
     tecladoGuia: true,
     dicas: true,
     transicoes: true,
   };
 
-  // Só aproveita do salvo o que tem o tipo certo: um valor estranho (editado
-  // à mão, de uma versão antiga) cai no padrão daquele campo.
-  function ler(): PreferenciasDoAparelho {
-    const prefs = { ...PADRAO };
+  // O que a pessoa ESCOLHEU, e só isso: o que nunca foi mexido segue o
+  // padrão, mesmo que o padrão mude numa versão nova. VERSAO marca o que foi
+  // gravado assim; a primeira versão (sem marca) gravava tudo junto, com o som
+  // que então vinha ligado, e lá um "sonsDoTreino": true não foi escolha
+  // (a única escolha possível era desligar).
+  const VERSAO = 2;
+
+  function escolhas(): Record<string, unknown> {
     try {
       const guardado = localStorage.getItem(CHAVE);
       // Antes desta página existir, o Solo guardava duas escolhas soltas:
       // quem já pediu menos movimento ou o teclado escondido não as perde.
       if (guardado === null) {
-        prefs.reduzirMovimento = localStorage.getItem('teclar:movimento_reduzido') === 'sim';
-        prefs.tecladoGuia = localStorage.getItem('teclar:teclado_guia_escondido') !== 'sim';
+        const antigas: Record<string, unknown> = {};
+        if (localStorage.getItem('teclar:movimento_reduzido') === 'sim') antigas.reduzirMovimento = true;
+        if (localStorage.getItem('teclar:teclado_guia_escondido') === 'sim') antigas.tecladoGuia = false;
+        return antigas;
       }
-      const salvo = JSON.parse(guardado ?? '{}');
-      for (const campo of Object.keys(PADRAO) as (keyof PreferenciasDoAparelho)[]) {
-        if (campo === 'texto') {
-          if (TAMANHOS.includes(salvo?.texto)) prefs.texto = salvo.texto;
-        } else if (typeof salvo?.[campo] === 'boolean') {
-          prefs[campo] = salvo[campo];
-        }
-      }
+      const salvo = JSON.parse(guardado);
+      if (!salvo || typeof salvo !== 'object') return {};
+      if (salvo.v !== VERSAO && salvo.sonsDoTreino === true) delete salvo.sonsDoTreino;
+      return salvo;
     } catch {
-      // JSON quebrado ou storage bloqueado: fica o padrão.
+      // JSON quebrado ou storage bloqueado: nenhuma escolha.
+      return {};
+    }
+  }
+
+  // Só aproveita do salvo o que tem o tipo certo: um valor estranho (editado
+  // à mão, de uma versão antiga) cai no padrão daquele campo.
+  function ler(): PreferenciasDoAparelho {
+    const prefs = { ...PADRAO };
+    const salvo = escolhas();
+    for (const campo of Object.keys(PADRAO) as (keyof PreferenciasDoAparelho)[]) {
+      if (campo === 'texto') {
+        if (TAMANHOS.includes(salvo.texto as TamanhoDoTexto)) prefs.texto = salvo.texto as TamanhoDoTexto;
+      } else if (typeof salvo[campo] === 'boolean') {
+        prefs[campo] = salvo[campo] as boolean;
+      }
     }
     return prefs;
   }
@@ -87,7 +105,7 @@ interface Window {
     const prefs = ler();
     prefs[campo] = valor;
     try {
-      localStorage.setItem(CHAVE, JSON.stringify(prefs));
+      localStorage.setItem(CHAVE, JSON.stringify({ ...escolhas(), [campo]: valor, v: VERSAO }));
     } catch {
       // Sem storage, vale só nesta página.
     }

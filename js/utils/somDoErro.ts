@@ -1,7 +1,7 @@
 // O som do treino: um toque curto e grave quando a tecla sai errada, para a
 // pessoa sentir o erro sem tirar o olho do texto. Gerado na hora (WebAudio),
 // sem arquivo para baixar; baixo, para não incomodar uma sala inteira.
-// Desliga em Configurações > Acessibilidade ("Sons do treino").
+// Vem desligado; liga em Configurações > Acessibilidade ("Sons do treino").
 
 let contexto: AudioContext | null = null;
 

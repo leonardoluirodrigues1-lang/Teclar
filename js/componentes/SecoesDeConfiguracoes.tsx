@@ -128,7 +128,7 @@ function Acessibilidade() {
       />
       <Opcao
         nome="Sons do treino"
-        texto="Um toque curto e baixo quando a tecla sai errada. Desmarque para treinar em silêncio. Vale a partir do próximo treino."
+        texto="Um toque curto e baixo quando a tecla sai errada. Vem desligado: marque para ouvir. Vale a partir do próximo treino."
         marcada={prefs.sonsDoTreino}
         aoMudar={(marcada) => mudar('sonsDoTreino', marcada)}
       />
