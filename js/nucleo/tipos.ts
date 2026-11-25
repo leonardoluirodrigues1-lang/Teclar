@@ -755,6 +755,8 @@ export interface RelatorioExercicio extends AtribuicaoProfessor {
 export interface SessaoDoAluno extends Sessao {
   /** null: o exercício foi excluído da biblioteca depois da sessão. */
   tituloExercicio: string | null;
+  /** Feita depois do vencimento da atividade: vale igual, a tela marca "Feita com atraso". */
+  comAtraso: boolean;
 }
 
 // 11. Histórico do aluno (pages/aluno/historico.html)
@@ -779,7 +781,7 @@ export interface SessaoDoAluno extends Sessao {
  * turma só, então o nome é sempre o mesmo; o campo fica para a forma da
  * linha não mudar.
  */
-export interface SessaoDoHistorico extends SessaoDoAluno {
+export interface SessaoDoHistorico extends Omit<SessaoDoAluno, 'comAtraso'> {
   /** Nome da turma da sessão. null: sessão sem turma (ou turma removida).
    *  A tela só mostra esta coluna quando o aluno está em mais de uma. */
   nomeTurma: string | null;

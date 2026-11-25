@@ -4577,7 +4577,7 @@
         ],
         "operationId": "relatorios.sessoesDoAluno",
         "summary": "sessoesDoAluno: Paginado<SessaoDoAluno> — as sessões do aluno, da mais recente para a mais antiga",
-        "description": "**Chamada no front:** `api.relatorios.sessoesDoAluno`\n\n**Resposta:** 200 Paginado<SessaoDoAluno> — as sessões do aluno, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com ExerciciosProf; exercício arquivado mantém o título (a linha dele fica no banco).\n\n**Notas:**\n\nSem tamanho de página definido: vem tudo, com pagina = 1.",
+        "description": "**Chamada no front:** `api.relatorios.sessoesDoAluno`\n\n**Resposta:** 200 Paginado<SessaoDoAluno> — as sessões do aluno, da mais recente para a mais antiga\n\n**Identidade:**\n\nO token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.\n\n**Regras de negócio no back (a tela não calcula):**\n\nA ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com ExerciciosProf; exercício arquivado mantém o título (a linha dele fica no banco). comAtraso: a sessão foi feita depois do vencimento (AtribuicoesProf.Prazo) do exercício nesta turma; vale igual (é treino), e a tela marca \"Feita com atraso\".\n\n**Notas:**\n\nSem tamanho de página definido: vem tudo, com pagina = 1.",
         "parameters": [
           {
             "name": "id",
@@ -4619,7 +4619,8 @@
                           "erros": 7,
                           "concluida": true,
                           "data": "2026-02-19T09:30:00.000Z",
-                          "tituloExercicio": "Números do cotidiano"
+                          "tituloExercicio": "Números do cotidiano",
+                          "comAtraso": false
                         }
                       ]
                     }

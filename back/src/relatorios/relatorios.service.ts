@@ -23,6 +23,7 @@ import { BancoService } from '../banco/banco.service.js';
 import { arredondarOuNull, sessaoNaForma } from '../sessoes/sessao-escola.js';
 import { diaDe } from '../sessoes/dias-seguidos.js';
 import type { Sessao } from '../sessoes/sessao-escola.js';
+import { feitaComAtraso } from '../atribuicoes/posts.js';
 import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
 export interface RelatorioTurma {
@@ -60,6 +61,9 @@ export interface RelatorioExercicio extends AtribuicaoProfessor {
 
 export interface SessaoDoAluno extends Sessao {
   tituloExercicio: string | null;
+  // Feita depois do vencimento da atividade (AtribuicoesProf.Prazo). Vale
+  // igual (é treino); a tela mostra "Feita com atraso".
+  comAtraso: boolean;
 }
 
 export interface Paginado<T> {
@@ -237,9 +241,15 @@ export class RelatoriosService {
       // (sessões que a fila envia juntas): a ordem não muda entre uma chamada e outra.
       orderBy: [{ Data_Sessao: 'desc' }, { ID: 'desc' }],
     });
+    const prazos = new Map(
+      (await this.banco.atribuicoesprof.findMany({ where: { ClassID: turmaId }, select: { ExerciseID: true, Prazo: true } })).map(
+        (a) => [a.ExerciseID, a.Prazo],
+      ),
+    );
     const itens = linhas.map((linha) => ({
       ...sessaoNaForma(linha),
       tituloExercicio: linha.exerciciosprof?.Titulo ?? null,
+      comAtraso: feitaComAtraso(linha.Data_Sessao, prazos.get(linha.ExerciseID) ?? null),
     }));
     // O contrato não define tamanho de página: vem tudo, com pagina = 1,
     // como no GET /exercicios.

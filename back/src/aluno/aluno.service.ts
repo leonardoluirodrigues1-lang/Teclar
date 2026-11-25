@@ -22,7 +22,7 @@ import bcrypt from 'bcryptjs';
 import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno } from '../autenticacao/senha-do-aluno.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
-import { abertoEm, atribuicaoComPost, postNaForma } from '../atribuicoes/posts.js';
+import { abertoEm, atribuicaoComPost, feitaComAtraso, postNaForma } from '../atribuicoes/posts.js';
 import type { AnexoDoPost, ArquivoDoAnexo, LinkDoPost } from '../atribuicoes/posts.js';
 import { arquivoDoAnexo } from '../atribuicoes/posts.service.js';
 import type { Identidade } from '../autenticacao/token.js';
@@ -267,7 +267,7 @@ export class AlunoService {
       post: post.existe ? { instrucoes: post.instrucoes, links: post.links, anexos: post.anexos } : null,
       bloqueada: item.bloqueada,
       motivo: item.bloqueada ? `Conclua antes “${proxima?.titulo ?? 'a atividade anterior'}”.` : null,
-      situacao: situacaoDaAtividade(sessoes),
+      situacao: situacaoDaAtividade(sessoes, linha.Prazo),
       melhorWpm: item.melhorWpm,
       melhorPrecisao: item.melhorPrecisao,
       tentativas: sessoes.length,
@@ -412,10 +412,13 @@ function alunoDoToken(identidade: Identidade): string {
   return identidade.id;
 }
 
-// Alguma concluída: concluída. Sem concluir: tempo esgotado.
-function situacaoDaAtividade(sessoes: Sessao[]): SituacaoDaAtividade {
-  if (sessoes.some((sessao) => sessao.concluida)) {
-    return 'concluida';
+// Concluída no prazo (ou sem prazo) em alguma vez: concluída. Só concluída
+// depois do vencimento: concluída com atraso (ainda vale: é treino). Sem
+// concluir: tempo esgotado.
+function situacaoDaAtividade(sessoes: Sessao[], prazo: Date | null): SituacaoDaAtividade {
+  const concluidas = sessoes.filter((sessao) => sessao.concluida);
+  if (concluidas.length > 0) {
+    return concluidas.every((sessao) => feitaComAtraso(sessao.data, prazo)) ? 'concluida_com_atraso' : 'concluida';
   }
   return sessoes.length > 0 ? 'tempo_esgotado' : 'nao_feita';
 }

@@ -3027,6 +3027,10 @@ const rotas: [string, RegExp, Handler][] = [
           ...s,
           // O JOIN com ExerciciosProf. null se o exercício foi excluído.
           tituloExercicio: dados.exercicios.find((e) => e.id === s.exerciseId)?.titulo ?? null,
+          comAtraso: (() => {
+            const prazo = (dados.atribuicoes[turmaId] ?? []).find((a) => a.exerciseId === s.exerciseId)?.prazo;
+            return !!prazo && new Date(s.data).getTime() > new Date(prazo).getTime();
+          })(),
         }))
         // ISO ordena como texto; b antes de a = mais recente primeiro.
         .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));

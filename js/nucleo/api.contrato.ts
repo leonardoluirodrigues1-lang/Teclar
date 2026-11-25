@@ -878,13 +878,15 @@ que o aluno já fez não some do relatório por uma ação do professor.`,
   { "total": 2, "pagina": 1, "itens": [
     { "id": "ses-2", "exerciseId": "ex-prof-2", "alunoId": "al-9f3k2", "wpm": 36,
       "precisao": 92, "tempoSegundos": 61, "acertos": 80, "erros": 7, "concluida": true,
-      "data": "2026-02-19T09:30:00.000Z", "tituloExercicio": "Números do cotidiano" } ] }`,
+      "data": "2026-02-19T09:30:00.000Z", "tituloExercicio": "Números do cotidiano", "comAtraso": false } ] }`,
         erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o aluno não é desta turma (não lista vazia)`,
         identidade: `O token: a turma tem de ser da conta (senão 404). O
   :alunoId é o aluno-ALVO — sobre quem a ação é —, e não quem pede.`,
         back: `A ordem (mais recente primeiro) é parte do contrato. O título
   vem do JOIN com ExerciciosProf; exercício arquivado mantém o título
-  (a linha dele fica no banco).`,
+  (a linha dele fica no banco). comAtraso: a sessão foi feita depois do
+  vencimento (AtribuicoesProf.Prazo) do exercício nesta turma; vale igual (é
+  treino), e a tela marca "Feita com atraso".`,
         nota: `Sem tamanho de página definido: vem tudo, com pagina = 1.`,
       },
     },

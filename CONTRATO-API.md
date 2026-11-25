@@ -1663,7 +1663,7 @@ Chamada no front: `api.relatorios.sessoesDoAluno`
 { "total": 2, "pagina": 1, "itens": [
   { "id": "ses-2", "exerciseId": "ex-prof-2", "alunoId": "al-9f3k2", "wpm": 36,
     "precisao": 92, "tempoSegundos": 61, "acertos": 80, "erros": 7, "concluida": true,
-    "data": "2026-02-19T09:30:00.000Z", "tituloExercicio": "Números do cotidiano" } ] }
+    "data": "2026-02-19T09:30:00.000Z", "tituloExercicio": "Números do cotidiano", "comAtraso": false } ] }
 ```
 
 **Erros:**
@@ -1676,7 +1676,7 @@ O token: a turma tem de ser da conta (senão 404). O :alunoId é o aluno-ALVO �
 
 **Regras de negócio no back (a tela não calcula):**
 
-A ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com ExerciciosProf; exercício arquivado mantém o título (a linha dele fica no banco).
+A ordem (mais recente primeiro) é parte do contrato. O título vem do JOIN com ExerciciosProf; exercício arquivado mantém o título (a linha dele fica no banco). comAtraso: a sessão foi feita depois do vencimento (AtribuicoesProf.Prazo) do exercício nesta turma; vale igual (é treino), e a tela marca "Feita com atraso".
 
 **Notas:**
 

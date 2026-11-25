@@ -451,7 +451,15 @@ const colunasHistorico: ColunaTabela<SessaoDoAluno>[] = [
   { rotulo: 'Precisão', classe: 'col-numero', celula: (s) => porcentagem(s.precisao) },
   // "Concluiu" e "Não concluiu" são as duas metades da mesma informação:
   // as duas aparecem, e nenhuma em cor de alerta.
-  { rotulo: 'Resultado', celula: (s) => (s.concluida ? 'Concluiu' : 'Não concluiu') },
+  {
+    rotulo: 'Resultado',
+    celula: (s) => (
+      <>
+        {s.concluida ? 'Concluiu' : 'Não concluiu'}
+        {s.comAtraso && <span className="etiqueta etiqueta-espera etiqueta-atraso">Feita com atraso</span>}
+      </>
+    ),
+  },
 ];
 
 function ModalHistorico({ turmaId, aluno, aoFechar }: { turmaId: string; aluno: RelatorioAluno; aoFechar: () => void }) {

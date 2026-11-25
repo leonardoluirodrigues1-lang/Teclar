@@ -2011,6 +2011,7 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 /* Repetições do exercício marcado (Biblioteca, modo de seleção) e da
    atividade já atribuída (aba Atividades): o número e a conta ao lado. */
 .col-repeticoes { white-space: nowrap; }
+.etiqueta-atraso { margin-left: var(--e-2); }
 .campo-repeticoes { display: inline-flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .seletor.seletor-pequeno { min-width: 0; width: auto; padding-block: .25rem; }
 .previa-repeticoes { font-size: .8125rem; color: var(--cor-texto-fraco); }
