@@ -20,6 +20,7 @@ model atribuicoesprof {
   Data_Atribuicao DateTime?      @default(now()) @db.DateTime(0)
   Prazo           DateTime?      @db.DateTime(0)
   Repeticoes      Int            @default(1)
+  atribuicoesposts atribuicoesposts?
   classesprof     classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "atribuicoesprof_ibfk_1")
   exerciciosprof  exerciciosprof @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "atribuicoesprof_ibfk_2")
 
@@ -202,4 +203,44 @@ enum exerciciosprof_Dificuldade {
   facil
   medio
   dificil
+}
+
+model atribuicoesposts {
+  ClassID           String              @db.VarChar(100)
+  ExerciseID        String              @db.VarChar(100)
+  Titulo            String              @db.VarChar(150)
+  Instrucoes        String?             @db.Text
+  AbertoEm          DateTime?           @db.DateTime(0)
+  DataAtualizacao   DateTime?           @default(now()) @updatedAt @db.DateTime(0)
+  atribuicoesprof   atribuicoesprof     @relation(fields: [ClassID, ExerciseID], references: [ClassID, ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "fk_posts_atribuicao")
+  atribuicoeslinks  atribuicoeslinks[]
+  atribuicoesanexos atribuicoesanexos[]
+
+  @@id([ClassID, ExerciseID])
+}
+
+model atribuicoeslinks {
+  ID               Int              @id @default(autoincrement())
+  ClassID          String           @db.VarChar(100)
+  ExerciseID       String           @db.VarChar(100)
+  Ordem            Int
+  Titulo           String           @db.VarChar(150)
+  URL              String           @db.VarChar(2000)
+  atribuicoesposts atribuicoesposts @relation(fields: [ClassID, ExerciseID], references: [ClassID, ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "fk_links_post")
+
+  @@index([ClassID, ExerciseID], map: "fk_links_post")
+}
+
+model atribuicoesanexos {
+  ID               String           @id @db.VarChar(100)
+  ClassID          String           @db.VarChar(100)
+  ExerciseID       String           @db.VarChar(100)
+  NomeArquivo      String           @db.VarChar(255)
+  Tipo             String           @db.VarChar(100)
+  Tamanho          Int
+  Conteudo         Bytes            @db.MediumBlob
+  DataEnvio        DateTime?        @default(now()) @db.DateTime(0)
+  atribuicoesposts atribuicoesposts @relation(fields: [ClassID, ExerciseID], references: [ClassID, ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "fk_anexos_post")
+
+  @@index([ClassID, ExerciseID], map: "idx_anexos_post")
 }

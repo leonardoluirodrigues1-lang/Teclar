@@ -95,6 +95,9 @@ criado pelo `DB_Teclar_v10.sql` (na raiz do repositório).
   `ALTER_v10_foto.sql` (as colunas `Foto` de `users` e `alunosturmas`).
 - **`teclardb_v10` já criado antes das repetições por atividade:** rode uma
   vez o `ALTER_v10_repeticoes.sql` (a coluna `Repeticoes` de `atribuicoesprof`).
+- **`teclardb_v10` já criado antes do post da atividade:** rode uma vez o
+  `ALTER_v10_posts.sql` (as tabelas `atribuicoesposts`, `atribuicoeslinks` e
+  `atribuicoesanexos`), depois do de repetições.
 - **Banco v9 (`teclardb`):** não há migração. Ele só tinha dados de
   teste/demonstração; o deploy deve ser **recriado do zero** com
   `DB_Teclar_v10.sql` + `npm run seed`.
