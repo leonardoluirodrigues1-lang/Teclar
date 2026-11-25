@@ -5,7 +5,7 @@
 // que a pessoa veja uma tela quebrada, sem dado e sem sentido. Nada impede
 // alguém de burlar este arquivo — e tudo bem, porque a API vai recusar.
 
-import { ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, ROTA_SENHA_ALUNO, rotaInicial } from '../config.js';
+import { CONFIG, ROTA_INICIAL, ROTA_LOGIN, ROTA_LANDING, ROTA_MODO, ROTA_SENHA_ALUNO, rotaInicial } from '../config.js';
 import { api } from './api.js';
 import { sessao } from './sessao.js';
 import type { Usuario, Mundo, Modo, TipoSessao } from './tipos.js';
@@ -101,15 +101,41 @@ function qualquerLogado(): Usuario | null {
   return exigir();
 }
 
-// Para onde a pessoa vai ao ENTRAR no sistema (login, cadastro, ou quem
-// abre o login já logado). Aluno vai para a sala dele. Conta vai
-// SEMPRE para a tela de modo, e não para o último modo usado: a mesma
-// conta abre o Professor, o Solo e a entrada de aluno, e a cada entrada a
-// pessoa escolhe onde quer estar, em vez de cair no mundo da última vez.
-// O modo salvo continua valendo dentro da sessão (casa(), Nav).
+// O modo (Solo ou Professor) que a pessoa clicou na tela de modo ANTES de
+// entrar. No sessionStorage, não na URL: atravessa login -> cadastro ->
+// login na mesma aba sem aparecer no endereço, e some com a aba.
+function guardarModoEscolhido(modo: Modo): void {
+  try {
+    sessionStorage.setItem(CONFIG.CHAVES_STORAGE.MODO_ESCOLHIDO, modo);
+  } catch {
+    // Sem storage, a conta cai na tela de modo depois do login: um clique a mais.
+  }
+}
+
+// Lê e apaga: vale para uma entrada só.
+function tirarModoEscolhido(): Modo | null {
+  try {
+    const salvo = sessionStorage.getItem(CONFIG.CHAVES_STORAGE.MODO_ESCOLHIDO);
+    sessionStorage.removeItem(CONFIG.CHAVES_STORAGE.MODO_ESCOLHIDO);
+    return salvo === 'solo' || salvo === 'professor' ? salvo : null;
+  } catch {
+    return null;
+  }
+}
+
+// Para onde a pessoa vai ao ENTRAR no sistema (login, ou quem abre o login
+// já logado). Aluno vai para a sala dele. Conta vai para o modo que clicou
+// na tela de modo antes de entrar; sem escolha guardada (abriu o login
+// direto), para a tela de modo, e não para o último modo usado: a cada
+// entrada a pessoa escolhe onde quer estar.
 function destinoAoEntrar(): string {
+  const escolhido = tirarModoEscolhido();
   if (sessao.tipo() === 'aluno') {
     return casa();
+  }
+  if (escolhido) {
+    sessao.definirModo(escolhido);
+    return ROTA_INICIAL[escolhido];
   }
   return ROTA_MODO;
 }
@@ -119,7 +145,9 @@ function destinoAoEntrar(): string {
 // redirecionou.
 function redirecionarSeLogado(): boolean {
   if (!sessao.logado()) return false;
-  irPara(voltaSegura() ?? destinoAoEntrar());
+  // destinoAoEntrar() antes do ??: apaga a escolha guardada mesmo quando o ?volta= vence.
+  const destino = destinoAoEntrar();
+  irPara(voltaSegura() ?? destino);
   return true;
 }
 
@@ -127,7 +155,8 @@ function redirecionarSeLogado(): boolean {
 // a pessoa tentou abrir antes, ex.: a sessão expirou no meio do trabalho)
 // ou para o destino de quem entra.
 function entrar(): void {
-  irPara(voltaSegura() ?? destinoAoEntrar());
+  const destino = destinoAoEntrar();
+  irPara(voltaSegura() ?? destino);
 }
 
 // Encerra a sessão e volta para a landing.
@@ -165,4 +194,5 @@ export const guarda = {
   entrar,
   sair,
   aplicarMundo,
+  guardarModoEscolhido,
 };

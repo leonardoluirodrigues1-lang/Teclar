@@ -1,22 +1,20 @@
 // Modo.tsx — pages/modo.html
-// Escolha de MODO da conta, depois do login: Solo ou Professor. Só aparece
-// para sessão de conta — aluno não passa por aqui (vai do login direto para
-// o dashboard dele) e, se cair aqui, o guarda o devolve para lá.
+// Escolha de MODO: Solo, Professor ou Aluno. A landing ("Começar a treinar"
+// e "Entrar") traz para cá, ANTES do login:
+//   Solo / Professor -> o login de conta; o modo clicado fica guardado
+//                       (guarda.guardarModoEscolhido) e, ao entrar, a conta
+//                       vai direto para ele (também depois de criar conta).
+//   Aluno            -> a entrada do aluno (?aluno=1: código, nome e senha).
+// Quem já tem sessão de conta vê a mesma tela, com o "Olá, nome", e o clique
+// vai direto ao modo. Aluno logado não escolhe modo: o guarda o devolve à sala.
 //
 // Modo não é perfil nem permissão: a mesma conta abre os dois, e pode
-// trocar a qualquer hora pelo "Ir para ..." das telas. A escolha vai para a
-// sessão (sessao.definirModo) e vale enquanto a conta navega. No próximo
-// login esta tela aparece de novo: a conta sempre escolhe ao entrar (ver
-// destinoAoEntrar() em js/nucleo/guarda.ts).
+// trocar a qualquer hora pelo "Trocar de modo" das telas.
 //
-// O terceiro cartão, Aluno, NÃO é modo: aluno é outro tipo de sessão
-// (tabela Alunos, login pelo código da turma e pelo nome). Por isso ele não navega sozinho —
-// abre um modal avisando que vai sair da conta e, confirmado, encerra a
-// sessão e manda para o login já no formulário de aluno (?aluno=1).
-//
-// Substituiu a antiga tela de escolha de perfil (que ficava ANTES do login),
-// removida quando o projeto passou a ter conta única. Classes de
-// css/auth.css; o modal é o ModalReact, com css/componentes/modais.css.
+// O cartão Aluno com sessão de conta NÃO navega sozinho: aluno é outro tipo
+// de sessão (tabela Alunos), então abre um modal avisando que vai sair da
+// conta e, confirmado, encerra a sessão e manda para a entrada do aluno.
+// Classes de css/auth.css; o modal é o ModalReact, com css/componentes/modais.css.
 
 import { useState, type MouseEvent } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -114,6 +112,7 @@ function sairParaAluno() {
 }
 
 function TelaModo() {
+  const logado = sessao.logado();
   // Chave do modal aberto (null = fechado). Muda a cada abertura, como o
   // ModalReact pede.
   const [modal, setModal] = useState<number | null>(null);
@@ -121,6 +120,7 @@ function TelaModo() {
   // O href existe para o cartão ser link como os outros (Tab, Enter, leitor
   // de tela); o clique normal é interceptado e abre a confirmação.
   function aoClicarAluno(evento: MouseEvent) {
+    if (!logado) return; // sem conta aberta, não há de que sair: segue o href
     evento.preventDefault();
     setModal(Date.now());
   }
@@ -128,24 +128,24 @@ function TelaModo() {
   return (
     <>
       <div className="cabecalho">
-        <p className="rotulo">Olá, {sessao.nomeExibicao()}</p>
+        {logado && <p className="rotulo">Olá, {sessao.nomeExibicao()}</p>}
         <h1>Por onde vai hoje?</h1>
         <p>Dá para trocar a qualquer momento. Nada aqui é definitivo.</p>
       </div>
 
-      {/* Os cartões são <a href> para a casa do modo: a navegação é do
-          próprio link (funciona com Enter, com o meio do mouse, com leitor
-          de tela). O clique grava o modo antes de o navegador seguir o
-          href; a tela de destino grava de novo (guarda.soConta), então
-          quem abrir o link numa aba nova chega no mesmo estado. */}
+      {/* Os cartões são <a href>: a navegação é do próprio link (funciona
+          com Enter, com o meio do mouse, com leitor de tela). Logado, o href
+          é a casa do modo e o clique grava o modo (a tela de destino grava
+          de novo, guarda.soConta). Sem login, o href é o login e o clique
+          guarda o modo escolhido para depois da entrada. */}
       <nav className="cartoes" aria-label="Modos">
         {CARTOES.map((cartao) => (
           <a
             key={cartao.modo}
             className="cartao vidro"
-            href={ROTA_INICIAL[cartao.modo]}
+            href={logado ? ROTA_INICIAL[cartao.modo] : ROTA_LOGIN}
             data-modo={cartao.modo}
-            onClick={() => sessao.definirModo(cartao.modo)}
+            onClick={() => (logado ? sessao.definirModo(cartao.modo) : guarda.guardarModoEscolhido(cartao.modo))}
           >
             <CorpoCartao cartao={cartao} />
           </a>
@@ -153,7 +153,7 @@ function TelaModo() {
         <a
           className="cartao cartao-aluno vidro"
           href={ROTA_LOGIN_ALUNO}
-          aria-haspopup="dialog"
+          aria-haspopup={logado ? 'dialog' : undefined}
           onClick={aoClicarAluno}
         >
           <CorpoCartao cartao={CARTAO_ALUNO} />
@@ -180,9 +180,9 @@ function TelaModo() {
 
 // Montagem — guarda primeiro, React depois
 
-// Só sessão de conta escolhe modo. Sem sessão vai para o login; aluno vai
-// para o dashboard dele. Quando redireciona, nada abaixo roda.
-if (guarda.exigir('conta')) {
+// Abre sem login e para sessão de conta; aluno logado volta para a sala
+// dele (o guarda.exigir redireciona e devolve null).
+if (!sessao.logado() || guarda.exigir('conta')) {
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<TelaModo />);
 }

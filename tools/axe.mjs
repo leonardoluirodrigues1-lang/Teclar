@@ -64,6 +64,7 @@ const PAGINAS = [
   ['/index.html'],
   ['/pages/login.html'],
   ['/pages/cadastro.html'],
+  ['/pages/modo.html'],
   ['/pages/modo.html', 'prof'],
   ['/pages/professor/turmas.html', 'prof'],
   ['/pages/professor/turma.html?turma=turma-2&aba=atividades', 'prof'],

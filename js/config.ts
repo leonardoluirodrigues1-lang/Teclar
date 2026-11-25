@@ -44,6 +44,9 @@ export const CONFIG = {
     CONTA_CRIADA: 'teclar:conta_criada', // e-mail da conta recém-criada, lido (e apagado) pelo login
     USUARIO: 'teclar:usuario',
     MODO: 'teclar:modo', // último modo (solo | professor) da conta, ver sessao.modo()
+    // sessionStorage: o modo clicado na tela de modo ANTES do login, lido (e
+    // apagado) quando a pessoa entra. Ver destinoAoEntrar() em guarda.ts.
+    MODO_ESCOLHIDO: 'teclar:modo_escolhido',
     FILA_SESSOES: 'teclar:fila_sessoes', // sessões de treino aguardando envio ao back
     // As preferências do aparelho (tamanho do texto, contraste, movimento...)
     // ficam fora daqui, em 'teclar-preferencias': ver js/nucleo/preferencias-cedo.ts.
@@ -114,8 +117,8 @@ export const CONFIG = {
  * — e isso acontece em qualquer chamada do app, não só nas telas de
  * autenticação.
  *
- * ROTA_MODO é a escolha Solo/Professor, que só existe DEPOIS do login e
- * só para sessão de conta.
+ * ROTA_MODO é a escolha Solo/Professor/Aluno: abre sem login (a landing
+ * leva para lá) e também para a conta já logada. Aluno não passa por ela.
  */
 export const ROTA_MODO = '/pages/modo.html';
 export const ROTA_LOGIN = '/pages/login.html';

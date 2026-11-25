@@ -107,4 +107,28 @@ await cenario('sessão antiga no localStorage não loga e é apagada', () => {
   assert.ok(disco.has('teclar:modo'), 'sair() deixa o modo');
 }
 
+// O modo clicado na tela de modo ANTES do login: depois da entrada, a conta
+// vai direto para ele, uma vez só; sem escolha, para a tela de modo. O
+// ?volta= vence, e a escolha é apagada do mesmo jeito.
+{
+  const idas = [];
+  globalThis.window = { location: { pathname: '/pages/login.html', search: '', replace: (u) => idas.push(u) } };
+  const { guarda } = await import('./guarda.js');
+  const { sessao } = await import('./sessao.js');
+  loja.clear();
+  disco.clear();
+  guarda.guardarModoEscolhido('professor');
+  sessao.entrar({ token: 't', usuario: ok });
+  guarda.entrar();
+  assert.equal(idas.pop(), '/pages/professor/turmas.html', 'escolheu Professor antes do login');
+  assert.equal(sessao.modo(), 'professor', 'o modo escolhido fica gravado');
+  guarda.entrar();
+  assert.equal(idas.pop(), '/pages/modo.html', 'a escolha vale para uma entrada só');
+  guarda.guardarModoEscolhido('solo');
+  window.location.search = '?volta=%2Fpages%2Fsolo%2Festatisticas.html';
+  guarda.entrar();
+  assert.equal(idas.pop(), '/pages/solo/estatisticas.html', 'o ?volta= vence a escolha');
+  assert.equal(loja.has('teclar:modo_escolhido'), false, 'e a escolha é apagada');
+}
+
 console.log('sessao.check: ok');

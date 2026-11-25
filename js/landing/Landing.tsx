@@ -80,7 +80,7 @@ function Hero() {
           </h1>
         </div>
         <div className="cta-hero">
-          <a className="btn" href="pages/login.html">
+          <a className="btn" href="pages/modo.html">
             Começar a treinar
           </a>
         </div>
@@ -118,7 +118,7 @@ function Barra() {
       <a className="barra-marca" href="#top" aria-label="TECLAR, voltar ao topo">
         <span>TECLAR</span>
       </a>
-      <a className="btn barra-entrar" href="pages/login.html">
+      <a className="btn barra-entrar" href="pages/modo.html">
         Entrar
       </a>
     </header>
@@ -237,7 +237,7 @@ function Landing() {
             O teclado desaparece. Só resta a ideia.
           </h2>
           <div className="reveal" data-delay="420">
-            <a className="btn" href="pages/login.html">
+            <a className="btn" href="pages/modo.html">
               Começar a treinar
             </a>
           </div>
