@@ -21,6 +21,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
+import { abertaParaAluno } from '../atribuicoes/posts.js';
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
@@ -285,8 +286,9 @@ export class ExerciciosService {
       throw naoEncontrado();
     }
     const aluno = await this.banco.alunosturmas.findFirst({ where: { AlunoID: alunoId, ClassID: turmaId } });
-    const atribuicao = await this.banco.atribuicoesprof.findUnique({
-      where: { ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: id } },
+    // Agendada para depois: 404, como se não estivesse atribuída.
+    const atribuicao = await this.banco.atribuicoesprof.findFirst({
+      where: { ClassID: turmaId, ExerciseID: id, ...abertaParaAluno() },
       include: { exerciciosprof: { include: COM_ATRIBUIDO_A } },
     });
     // Ativo também, por segurança: arquivar já apaga as atribuições, então

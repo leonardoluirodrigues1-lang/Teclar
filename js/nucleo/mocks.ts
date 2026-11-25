@@ -96,6 +96,12 @@ import { LICOES, montarLicao } from './licoes.js';
 import { validarNome, validarSenha, validarSenhaAluno } from '../utils/validacao.js';
 import type {
   Aluno,
+  AnexoDoPost,
+  ArquivoDoAnexo,
+  AtividadeDoAluno,
+  LinkDoPost,
+  PostDaAtividade,
+  SituacaoDaAtividade,
   ImagemDaCapa,
   ImagemDaFoto,
   ExercicioDoSistema,
@@ -1246,7 +1252,10 @@ function exercicioAtribuidoAoAluno(
 ): Exercicio {
   const ex = dados.exercicios.find((e) => e.id === exercicioId && !e.arquivado);
   const atribuido =
-    !!turmaId && matriculasDaTurma(turmaId).has(alunoId) && exerciciosDaTurma(turmaId).has(exercicioId);
+    !!turmaId &&
+    matriculasDaTurma(turmaId).has(alunoId) &&
+    exerciciosDaTurma(turmaId).has(exercicioId) &&
+    abertaParaAluno(turmaId, exercicioId);
   if (!ex || !atribuido) throw erro(404, 'Exercício não encontrado.', 'NAO_ENCONTRADO');
   return ex;
 }
@@ -1508,7 +1517,85 @@ function exigirLiberada(id: string, idsEmOrdem: string[], concluidas: Set<string
 }
 
 function idsDaSala(turmaId: string): string[] {
-  return (dados.atribuicoes[turmaId] ?? []).map((atribuicao) => atribuicao.exerciseId);
+  return (dados.atribuicoes[turmaId] ?? [])
+    .filter((atribuicao) => abertaParaAluno(turmaId, atribuicao.exerciseId))
+    .map((atribuicao) => atribuicao.exerciseId);
+}
+
+// --- post da atividade (ver back/src/atribuicoes/posts.ts) ---------------------
+// Chave "turmaId|exercicioId". Os anexos guardam o conteúdo (base64) junto;
+// as respostas que não são o download tiram ele.
+interface AnexoMock extends AnexoDoPost {
+  conteudo: string;
+}
+interface PostMock {
+  titulo: string;
+  instrucoes: string;
+  links: LinkDoPost[];
+  abertoEm: string | null;
+  atualizadoEm: string;
+  anexos: AnexoMock[];
+}
+const posts: Record<string, PostMock> = {
+  'turma-2|ex-prof-3': {
+    titulo: 'Pontuação sem pressa',
+    instrucoes: 'Leia o texto **uma vez** antes de começar.\n\n- Respeite as vírgulas\n- Não olhe para o teclado\n\nDúvidas? Veja o [guia de digitação](https://pt.wikipedia.org/wiki/Datilografia).',
+    links: [{ titulo: 'Postura ao digitar', url: 'https://pt.wikipedia.org/wiki/Ergonomia' }],
+    abertoEm: null,
+    atualizadoEm: '2026-03-04T12:00:00.000Z',
+    anexos: [
+      { id: 'anx-1', nome: 'roteiro.pdf', tipo: 'application/pdf', tamanho: 9, enviadoEm: '2026-03-04T12:00:00.000Z', conteudo: 'JVBERi0xLjQK' },
+    ],
+  },
+};
+
+function chaveDoPost(turmaId: string | null | undefined, exercicioId: string): string {
+  return `${turmaId ?? ''}|${exercicioId}`;
+}
+
+function abertaParaAluno(turmaId: string | null | undefined, exercicioId: string): boolean {
+  const aberto = posts[chaveDoPost(turmaId, exercicioId)]?.abertoEm;
+  return !aberto || new Date(aberto).getTime() <= Date.now();
+}
+
+function semConteudo({ conteudo, ...anexo }: AnexoMock): AnexoDoPost {
+  return anexo;
+}
+
+function postDaAtividade(turmaId: string, atribuicao: Atribuicao): PostDaAtividade {
+  const post = posts[chaveDoPost(turmaId, atribuicao.exerciseId)];
+  const ex = dados.exercicios.find((e) => e.id === atribuicao.exerciseId);
+  return {
+    existe: !!post,
+    titulo: post?.titulo ?? ex?.titulo ?? '',
+    instrucoes: post?.instrucoes ?? '',
+    links: post?.links ?? [],
+    anexos: (post?.anexos ?? []).map(semConteudo),
+    abertoEm: post?.abertoEm ?? (atribuicao.atribuidoEm ? `${atribuicao.atribuidoEm}T00:00:00.000Z` : null),
+    prazo: atribuicao.prazo,
+    atualizadoEm: post?.atualizadoEm ?? null,
+  };
+}
+
+function atribuicaoDaTurma(turmaId: string, exercicioId: string): Atribuicao {
+  const atribuicao = (dados.atribuicoes[turmaId] ?? []).find((a) => a.exerciseId === exercicioId);
+  if (!atribuicao) throw erro(404, 'Atribuição não encontrada.', 'NAO_ENCONTRADO');
+  return atribuicao;
+}
+
+function anexoDoPost(turmaId: string, exercicioId: string, anexoId: string): ArquivoDoAnexo {
+  const anexo = posts[chaveDoPost(turmaId, exercicioId)]?.anexos.find((a) => a.id === anexoId);
+  if (!anexo) throw erro(404, 'Anexo não encontrado.', 'NAO_ENCONTRADO');
+  return { nome: anexo.nome, tipo: anexo.tipo, conteudo: anexo.conteudo };
+}
+
+function urlSegura(valor: unknown): string | null {
+  try {
+    const url = new URL(String(valor ?? ''));
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 function idsDoPercurso(): string[] {
@@ -1521,7 +1608,7 @@ function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
   const lista: ExercicioDaSala[] = [];
   for (const atribuicao of dados.atribuicoes[turmaId] ?? []) {
     const ex = dados.exercicios.find((e) => e.id === atribuicao.exerciseId);
-    if (!ex) continue;
+    if (!ex || !abertaParaAluno(turmaId, ex.id)) continue;
     const doExercicio = sessoes.filter((s) => s.exerciseId === ex.id);
     // A marca que aparece é a melhor das concluídas; sem nenhuma
     // concluída, a melhor das vezes em que o tempo acabou.
@@ -1545,6 +1632,47 @@ function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
     });
   }
   return lista;
+}
+
+// A página da atividade do aluno: a mesma linha da sala, mais o post e o status.
+function atividadeDoAluno(turmaId: string, exercicioId: string, token: string | null | undefined): AtividadeDoAluno {
+  const aluno = alunoDoToken(token);
+  const turma = salasDoAluno(aluno.id).find((t) => t.id === turmaId);
+  const lista = turma ? exerciciosDaSala(turma.id, aluno.id) : [];
+  const item = lista.find((e) => e.id === exercicioId);
+  if (!turma || !item) throw erro(404, 'Atividade não encontrada.', 'NAO_ENCONTRADO');
+  const post = postDaAtividade(turmaId, atribuicaoDaTurma(turmaId, exercicioId));
+  const sessoes = sessoesNaSala(turmaId, aluno.id).filter((s) => s.exerciseId === exercicioId);
+  const proxima = lista.find((e) => !e.bloqueada && e.estado !== 'feito');
+  return {
+    turma: { id: turma.id, nome: turma.nome ?? '' },
+    exercicioId,
+    titulo: post.titulo,
+    dificuldade: item.dificuldade,
+    repeticoes: item.repeticoes,
+    caracteres: item.caracteres,
+    tempoLimiteSegundos: item.tempoLimiteSegundos,
+    abertoEm: post.abertoEm,
+    prazo: post.prazo,
+    post: post.existe ? { instrucoes: post.instrucoes, links: post.links, anexos: post.anexos } : null,
+    bloqueada: item.bloqueada,
+    motivo: item.bloqueada ? `Conclua antes “${proxima?.titulo ?? 'a atividade anterior'}”.` : null,
+    situacao: situacaoDaAtividade(sessoes, post.prazo),
+    melhorWpm: item.melhorWpm,
+    melhorPrecisao: item.melhorPrecisao,
+    tentativas: sessoes.length,
+    ultimaTentativa: item.ultimaSessao,
+  };
+}
+
+// Como o back: concluída; só concluída depois do vencimento, com atraso.
+function situacaoDaAtividade(sessoes: Sessao[], prazo: string | null): SituacaoDaAtividade {
+  const concluidas = sessoes.filter((s) => s.concluida);
+  if (concluidas.length) {
+    const atrasada = (s: Sessao) => !!prazo && new Date(s.data).getTime() > new Date(prazo).getTime();
+    return concluidas.every(atrasada) ? 'concluida_com_atraso' : 'concluida';
+  }
+  return sessoes.length ? 'tempo_esgotado' : 'nao_feita';
 }
 
 function resumoDaSala(turma: Turma, alunoId: string): SalaDoAluno {
@@ -2650,6 +2778,104 @@ const rotas: [string, RegExp, Handler][] = [
     },
   ],
   [
+    'GET',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId/post'),
+    (params, corpo, token): PostDaAtividade => {
+      const [turmaId, exercicioId] = params;
+      turmaDaConta(turmaId, token);
+      return postDaAtividade(turmaId, atribuicaoDaTurma(turmaId, exercicioId));
+    },
+  ],
+  [
+    // Cria ou edita, como o back: título vazio vira o do exercício; até 5
+    // links http(s); o vencimento vai para a atribuição.
+    'PUT',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId/post'),
+    (params, corpo, token): PostDaAtividade => {
+      const [turmaId, exercicioId] = params;
+      turmaDaConta(turmaId, token);
+      recusarProfessorId(corpo);
+      const atribuicao = atribuicaoDaTurma(turmaId, exercicioId);
+      const links = corpo?.links ?? [];
+      if (!Array.isArray(links) || links.length > 5) throw erro(400, 'links é uma lista de até 5 { titulo, url }.', 'DADOS_INVALIDOS');
+      const limpos = links.map((l: LinkDoPost) => {
+        const url = urlSegura(l?.url);
+        if (!url) throw erro(400, 'Cada link precisa de uma URL http:// ou https://.', 'DADOS_INVALIDOS');
+        return { titulo: String(l?.titulo ?? '').trim() || url, url };
+      });
+      const titulo = String(corpo?.titulo ?? '').trim();
+      if (titulo.length > 150) throw erro(400, 'O título vai de 1 a 150 caracteres.', 'DADOS_INVALIDOS');
+      const instrucoes = String(corpo?.instrucoes ?? '');
+      if (instrucoes.length > 10000) throw erro(400, 'As instruções vão até 10000 caracteres.', 'DADOS_INVALIDOS');
+      const abre = corpo?.abertoEm ?? (atribuicao.atribuidoEm ? `${atribuicao.atribuidoEm}T00:00:00.000Z` : null);
+      if (corpo?.prazo && abre && new Date(corpo.prazo) <= new Date(abre)) {
+        throw erro(400, 'O vencimento precisa ser depois de "Aberto em".', 'DADOS_INVALIDOS');
+      }
+      const chave = chaveDoPost(turmaId, exercicioId);
+      posts[chave] = {
+        titulo: titulo || (dados.exercicios.find((e) => e.id === exercicioId)?.titulo ?? ''),
+        instrucoes: instrucoes.trim(),
+        links: limpos,
+        abertoEm: corpo?.abertoEm ?? null,
+        atualizadoEm: new Date().toISOString(),
+        anexos: posts[chave]?.anexos ?? [],
+      };
+      atribuicao.prazo = corpo?.prazo ?? null;
+      return postDaAtividade(turmaId, atribuicao);
+    },
+  ],
+  [
+    // O mock confia no tipo pelo nome; o back confere pelos primeiros bytes.
+    'POST',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId/post/anexos'),
+    (params, corpo, token): AnexoDoPost => {
+      const [turmaId, exercicioId] = params;
+      turmaDaConta(turmaId, token);
+      atribuicaoDaTurma(turmaId, exercicioId);
+      const post = posts[chaveDoPost(turmaId, exercicioId)];
+      if (!post) throw erro(404, 'Salve o post antes de anexar arquivos.', 'NAO_ENCONTRADO');
+      if (post.anexos.length >= 3) throw erro(400, 'O post já tem 3 anexos: remova um para enviar outro.', 'DADOS_INVALIDOS');
+      const conteudo = String(corpo?.conteudo ?? '').replace(/^data:[^,]*;base64,/, '');
+      const tamanho = Math.floor((conteudo.length * 3) / 4);
+      if (!conteudo || tamanho > 2 * 1024 * 1024) throw erro(400, 'O arquivo vai até 2 MB, em base64.', 'DADOS_INVALIDOS');
+      const extensao = String(corpo?.nome ?? '').toLowerCase().split('.').pop() ?? '';
+      const tipo = {
+        pdf: 'application/pdf',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        webp: 'image/webp',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      }[extensao];
+      if (!tipo) throw erro(400, 'Só PDF, PNG, JPG, WEBP e DOCX.', 'DADOS_INVALIDOS');
+      const anexo: AnexoMock = { id: `anx-${Date.now()}`, nome: String(corpo.nome), tipo, tamanho, enviadoEm: new Date().toISOString(), conteudo };
+      post.anexos.push(anexo);
+      return semConteudo(anexo);
+    },
+  ],
+  [
+    'GET',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId/post/anexos/:anexoId'),
+    (params, corpo, token): ArquivoDoAnexo => {
+      const [turmaId, exercicioId, anexoId] = params;
+      turmaDaConta(turmaId, token);
+      return anexoDoPost(turmaId, exercicioId, anexoId);
+    },
+  ],
+  [
+    'DELETE',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId/post/anexos/:anexoId'),
+    (params, corpo, token) => {
+      const [turmaId, exercicioId, anexoId] = params;
+      turmaDaConta(turmaId, token);
+      const post = posts[chaveDoPost(turmaId, exercicioId)];
+      const i = post?.anexos.findIndex((a) => a.id === anexoId) ?? -1;
+      if (i < 0) throw erro(404, 'Anexo não encontrado.', 'NAO_ENCONTRADO');
+      post.anexos.splice(i, 1);
+      return null;
+    },
+  ],
+  [
     // Muda as repetições de uma atribuição; vale para as próximas tentativas.
     'PATCH',
     montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId'),
@@ -2677,6 +2903,7 @@ const rotas: [string, RegExp, Handler][] = [
       const i = lista.findIndex((a) => a.exerciseId === exercicioId);
       if (i < 0) throw erro(404, 'Atribuição não encontrada.', 'NAO_ENCONTRADO');
       lista.splice(i, 1);
+      delete posts[chaveDoPost(turmaId, exercicioId)];
       turma.totalExercicios = lista.length;
       return null;
     },
@@ -2964,6 +3191,20 @@ const rotas: [string, RegExp, Handler][] = [
       const turma = salasDoAluno(aluno.id).find((t) => t.id === params[0]);
       if (!turma) throw erro(404, 'Sala não encontrada.', 'NAO_ENCONTRADO');
       return { ...resumoDaSala(turma, aluno.id), lista: exerciciosDaSala(turma.id, aluno.id) };
+    },
+  ],
+
+  [
+    'GET',
+    montarRegex('/aluno/salas/:id/atividades/:exercicioId'),
+    (params, corpo, token): AtividadeDoAluno => atividadeDoAluno(params[0], params[1], token),
+  ],
+  [
+    'GET',
+    montarRegex('/aluno/salas/:id/atividades/:exercicioId/anexos/:anexoId'),
+    (params, corpo, token): ArquivoDoAnexo => {
+      atividadeDoAluno(params[0], params[1], token);
+      return anexoDoPost(params[0], params[1], params[2]);
     },
   ],
 

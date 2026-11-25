@@ -10,11 +10,12 @@ import { AutenticacaoModule } from '../autenticacao/autenticacao.module.js';
 import { BancoModule } from '../banco/banco.module.js';
 import { AtribuicoesController } from './atribuicoes.controller.js';
 import { AtribuicoesService } from './atribuicoes.service.js';
+import { PostsService } from './posts.service.js';
 
 @Module({
   imports: [BancoModule, AutenticacaoModule],
   controllers: [AtribuicoesController],
-  providers: [AtribuicoesService],
+  providers: [AtribuicoesService, PostsService],
   // Exportado para o RelatoriosModule reaproveitar a linha da atribuição.
   exports: [AtribuicoesService],
 })

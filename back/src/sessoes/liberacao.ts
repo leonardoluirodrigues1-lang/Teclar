@@ -6,6 +6,7 @@
 // libera a seguinte. Tudo sai das sessões que já existem, sem coluna nova.
 import { ForbiddenException } from '@nestjs/common';
 import type { BancoService } from '../banco/banco.service.js';
+import { abertaParaAluno } from '../atribuicoes/posts.js';
 
 export interface Sequencia {
   concluidas: Set<string>;
@@ -62,8 +63,9 @@ function ordemDoPercurso<T extends { Nivel: number; Ordem: number }>(licoes: T[]
 // depois entra no fim.
 export function atribuicoesDaSala(banco: BancoService, turmaId: string) {
   return banco.atribuicoesprof.findMany({
-    where: { ClassID: turmaId, exerciciosprof: { Ativo: true } },
-    include: { exerciciosprof: true },
+    // A agendada (post com "Aberto em" no futuro) não existe para o aluno até lá.
+    where: { ClassID: turmaId, exerciciosprof: { Ativo: true }, ...abertaParaAluno() },
+    include: { exerciciosprof: true, atribuicoesposts: { select: { Titulo: true, AbertoEm: true } } },
     // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
     // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
     // em ordem alfabética, e o id para dois títulos iguais.

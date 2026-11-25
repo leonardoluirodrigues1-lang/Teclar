@@ -5,6 +5,7 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { json } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { montarSwagger } from './swagger.js';
@@ -32,6 +33,9 @@ async function iniciar(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   // 256 KB, e não os 100 KB padrão: a capa da turma vem em base64 (150 KB de
   // WEBP viram ~200 KB). O teto da imagem é conferido em turmas/capa.ts.
+  // O anexo do post da atividade vem em base64 (2 MB viram ~2,7 MB): só a
+  // rota dele ganha 3 MB; o teto do arquivo é conferido em atribuicoes/posts.ts.
+  app.use(/^\/api\/turmas\/[^/]+\/atribuicoes\/[^/]+\/post\/anexos$/, json({ limit: '3mb' }));
   app.useBodyParser('json', { limit: '256kb' });
   app.useBodyParser('urlencoded', { extended: true });
   // No Render há TRÊS proxies na frente do back, medidos em produção (a

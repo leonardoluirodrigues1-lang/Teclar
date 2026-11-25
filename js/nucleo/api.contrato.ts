@@ -632,11 +632,73 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         identidade: `O token: a turma tem de ser da conta.`,
         nota: `Vale para as próximas tentativas: as sessões já feitas ficam como foram.`,
       },
+      'turmas.post': {
+        rota: 'GET /turmas/:id/atribuicoes/:exercicioId/post',
+        resposta: `200 PostDaAtividade — o post, ou os padrões (existe false) se ainda não há
+  { "existe": true, "titulo": "Acentuação em foco", "instrucoes": "Leia **com calma**.",
+    "links": [{ "titulo": "Guia", "url": "https://exemplo.org/guia" }],
+    "anexos": [{ "id": "4c1e…", "nome": "roteiro.pdf", "tipo": "application/pdf", "tamanho": 81234,
+      "enviadoEm": "2026-11-24T13:00:00.000Z" }],
+    "abertoEm": "2026-11-25T11:00:00.000Z", "prazo": "2026-11-30T23:59:00.000Z",
+    "atualizadoEm": "2026-11-24T13:00:00.000Z" }`,
+        erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `Lê AtribuicoesPosts, AtribuicoesLinks e AtribuicoesAnexos (sem o Conteudo).
+  Sem post: titulo = o do exercício, abertoEm = AtribuicoesProf.Data_Atribuicao.
+  prazo = AtribuicoesProf.Prazo.`,
+      },
+      'turmas.salvarPost': {
+        rota: 'PUT /turmas/:id/atribuicoes/:exercicioId/post',
+        corpo: `DadosDoPost — cria ou edita
+  { "titulo": "Acentuação em foco", "instrucoes": "Leia **com calma**.",
+    "links": [{ "titulo": "Guia", "url": "https://exemplo.org/guia" }],
+    "abertoEm": null, "prazo": "2026-11-30T23:59:00.000Z" }`,
+        resposta: `200 PostDaAtividade — como ficou (existe true)`,
+        erros: `400 DADOS_INVALIDOS — título com mais de 150 caracteres, instruções com mais de 10.000, mais de 5 links, link sem URL http(s), data que não é ISO, vencimento antes de "Aberto em", ou o corpo traz professorId
+  404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `Grava numa transação: AtribuicoesPosts (título vazio = o do exercício;
+  AbertoEm null = aberta desde a atribuição), troca os links e grava
+  AtribuicoesProf.Prazo. As instruções são Markdown cru: a tela escapa
+  tudo e mostra como HTML sanitizado (js/utils/markdown.ts).`,
+        nota: `Com "Aberto em" no futuro, a atividade some para o aluno até lá: da
+  sala, do treino (GET /exercicios/:id e POST /sessoes dão 404) e da página dela.`,
+      },
+      'turmas.enviarAnexo': {
+        rota: 'POST /turmas/:id/atribuicoes/:exercicioId/post/anexos',
+        corpo: `{ nome, conteudo } — conteudo em base64 (ou data URL), até 2 MB
+  { "nome": "roteiro.pdf", "conteudo": "JVBERi0xLjQK…" }`,
+        resposta: `200 AnexoDoPost
+  { "id": "4c1e…", "nome": "roteiro.pdf", "tipo": "application/pdf", "tamanho": 81234,
+    "enviadoEm": "2026-11-24T13:00:00.000Z" }`,
+        erros: `400 DADOS_INVALIDOS — sem nome, conteudo que não é base64, mais de 2 MB, tipo que não é PDF, PNG, JPG, WEBP ou DOCX (conferido pelo conteúdo), o post já tem 3 anexos, ou o corpo traz professorId
+  404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou ainda não há post (salve antes)`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        back: `O tipo sai dos primeiros bytes, nunca do nome: um .exe renomeado é recusado.
+  Grava em AtribuicoesAnexos.Conteudo (MEDIUMBLOB). Só esta rota aceita corpo
+  de até 3 MB (as outras, 256 KB).`,
+      },
+      'turmas.baixarAnexo': {
+        rota: 'GET /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId',
+        resposta: `200 ArquivoDoAnexo — o arquivo em base64
+  { "nome": "roteiro.pdf", "tipo": "application/pdf", "conteudo": "JVBERi0xLjQK…" }`,
+        erros: `404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou anexo de outro post`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        nota: `A tela monta o arquivo e baixa (download), sem abrir no navegador.`,
+      },
+      'turmas.removerAnexo': {
+        rota: 'DELETE /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId',
+        resposta: `204 (sem corpo)`,
+        erros: `404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou anexo de outro post`,
+        identidade: `O token: a turma tem de ser da conta.`,
+      },
       'turmas.removerAtribuicao': {
         rota: 'DELETE /turmas/:id/atribuicoes/:exercicioId',
         resposta: `204 (sem corpo)`,
         erros: `404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela`,
         identidade: `O token: a turma tem de ser da conta.`,
+        back: `Apaga a linha de AtribuicoesProf; o post, os links e os anexos vão
+  junto (FK em cascata). As sessões ficam.`,
         nota: `A atribuição não tem id próprio: a remoção é pelo PAR turma +
   exercício, a chave primária de AtribuicoesProf.`,
       },
@@ -1129,6 +1191,30 @@ da conta, e mora em \`solo\`.`,
   com concluida = true) continuam abertos; tempo esgotado não libera o
   seguinte. Exercício arquivado ou com a atribuição removida sai da sequência,
   e o atribuído depois entra no fim.`,
+      },
+      'escola.aluno.atividade': {
+        rota: 'GET /aluno/salas/:turmaId/atividades/:exercicioId',
+        resposta: `200 AtividadeDoAluno — a página da atividade (datas, post e o status DELE)
+  { "turma": { "id": "turma-1", "nome": "9º Ano A — Manhã" }, "exercicioId": "ex-prof-1",
+    "titulo": "Acentuação em foco", "dificuldade": "medio", "repeticoes": 1, "caracteres": 247,
+    "tempoLimiteSegundos": 120, "abertoEm": "2026-02-03T00:00:00.000Z", "prazo": null,
+    "post": { "instrucoes": "Leia **com calma**.", "links": [], "anexos": [] },
+    "bloqueada": false, "motivo": null, "situacao": "concluida", "melhorWpm": 40,
+    "melhorPrecisao": 95, "tentativas": 3, "ultimaTentativa": "2026-02-18T14:10:00.000Z" }`,
+        erros: `404 NAO_ENCONTRADO — a sala não é dele, o exercício não está atribuído a ela, ou "Aberto em" ainda não chegou
+  403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token. O :turmaId é da SALA, nunca de aluno.`,
+        back: `post null = sem post. situacao: nao_feita, concluida, concluida_com_atraso
+  (só concluiu depois do vencimento; ainda vale, é treino) ou tempo_esgotado.
+  motivo diz qual concluir antes, quando bloqueada.`,
+      },
+      'escola.aluno.baixarAnexo': {
+        rota: 'GET /aluno/salas/:turmaId/atividades/:exercicioId/anexos/:anexoId',
+        resposta: `200 ArquivoDoAnexo — o arquivo em base64
+  { "nome": "roteiro.pdf", "tipo": "application/pdf", "conteudo": "JVBERi0xLjQK…" }`,
+        erros: `404 NAO_ENCONTRADO — não pode abrir a atividade (ver escola.aluno.atividade) ou anexo de outro post
+  403 TIPO_INVALIDO — token de conta`,
+        identidade: `O token: só quem pode abrir a atividade baixa.`,
       },
       'escola.aluno.capaDaSala': {
         rota: 'GET /aluno/salas/:turmaId/capa',

@@ -3097,7 +3097,7 @@
         ],
         "operationId": "turmas.removerAtribuicao",
         "summary": "removerAtribuicao: (sem corpo)",
-        "description": "**Chamada no front:** `api.turmas.removerAtribuicao`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nA atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.",
+        "description": "**Chamada no front:** `api.turmas.removerAtribuicao`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nApaga a linha de AtribuicoesProf; o post, os links e os anexos vão junto (FK em cascata). As sessões ficam.\n\n**Notas:**\n\nA atribuição não tem id próprio: a remoção é pelo PAR turma + exercício, a chave primária de AtribuicoesProf.",
         "parameters": [
           {
             "name": "id",
@@ -3138,6 +3138,508 @@
           },
           "404": {
             "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o exercício não está atribuído a ela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/atribuicoes/{exercicioId}/post": {
+      "get": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.post",
+        "summary": "(ainda não implementada) post: PostDaAtividade — o post, ou os padrões (existe false) se ainda não há",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.post`\n\n**Resposta:** 200 PostDaAtividade — o post, ou os padrões (existe false) se ainda não há\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nLê AtribuicoesPosts, AtribuicoesLinks e AtribuicoesAnexos (sem o Conteudo). Sem post: titulo = o do exercício, abertoEm = AtribuicoesProf.Data_Atribuicao. prazo = AtribuicoesProf.Prazo.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PostDaAtividade — o post, ou os padrões (existe false) se ainda não há",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "existe": true,
+                      "titulo": "Acentuação em foco",
+                      "instrucoes": "Leia **com calma**.",
+                      "links": [
+                        {
+                          "titulo": "Guia",
+                          "url": "https://exemplo.org/guia"
+                        }
+                      ],
+                      "anexos": [
+                        {
+                          "id": "4c1e…",
+                          "nome": "roteiro.pdf",
+                          "tipo": "application/pdf",
+                          "tamanho": 81234,
+                          "enviadoEm": "2026-11-24T13:00:00.000Z"
+                        }
+                      ],
+                      "abertoEm": "2026-11-25T11:00:00.000Z",
+                      "prazo": "2026-11-30T23:59:00.000Z",
+                      "atualizadoEm": "2026-11-24T13:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o exercício não está atribuído a ela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.salvarPost",
+        "summary": "(ainda não implementada) salvarPost: PostDaAtividade — como ficou (existe true)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.salvarPost`\n\n**Corpo:** DadosDoPost — cria ou edita\n\n**Resposta:** 200 PostDaAtividade — como ficou (existe true)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nGrava numa transação: AtribuicoesPosts (título vazio = o do exercício; AbertoEm null = aberta desde a atribuição), troca os links e grava AtribuicoesProf.Prazo. As instruções são Markdown cru: a tela escapa tudo e mostra como HTML sanitizado (js/utils/markdown.ts).\n\n**Notas:**\n\nCom \"Aberto em\" no futuro, a atividade some para o aluno até lá: da sala, do treino (GET /exercicios/:id e POST /sessoes dão 404) e da página dela.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "DadosDoPost — cria ou edita",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "titulo": "Acentuação em foco",
+                    "instrucoes": "Leia **com calma**.",
+                    "links": [
+                      {
+                        "titulo": "Guia",
+                        "url": "https://exemplo.org/guia"
+                      }
+                    ],
+                    "abertoEm": null,
+                    "prazo": "2026-11-30T23:59:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PostDaAtividade — como ficou (existe true)"
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — título com mais de 150 caracteres, instruções com mais de 10.000, mais de 5 links, link sem URL http(s), data que não é ISO, vencimento antes de \"Aberto em\", ou o corpo traz professorId",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, ou o exercício não está atribuído a ela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/atribuicoes/{exercicioId}/post/anexos": {
+      "post": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.enviarAnexo",
+        "summary": "(ainda não implementada) enviarAnexo: AnexoDoPost",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.enviarAnexo`\n\n**Corpo:** { nome, conteudo } — conteudo em base64 (ou data URL), até 2 MB\n\n**Resposta:** 200 AnexoDoPost\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nO tipo sai dos primeiros bytes, nunca do nome: um .exe renomeado é recusado. Grava em AtribuicoesAnexos.Conteudo (MEDIUMBLOB). Só esta rota aceita corpo de até 3 MB (as outras, 256 KB).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{ nome, conteudo } — conteudo em base64 (ou data URL), até 2 MB",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "exemplo1": {
+                  "summary": "Exemplo 1",
+                  "value": {
+                    "nome": "roteiro.pdf",
+                    "conteudo": "JVBERi0xLjQK…"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AnexoDoPost",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "id": "4c1e…",
+                      "nome": "roteiro.pdf",
+                      "tipo": "application/pdf",
+                      "tamanho": 81234,
+                      "enviadoEm": "2026-11-24T13:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`DADOS_INVALIDOS` — sem nome, conteudo que não é base64, mais de 2 MB, tipo que não é PDF, PNG, JPG, WEBP ou DOCX (conferido pelo conteúdo), o post já tem 3 anexos, ou o corpo traz professorId",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "DADOS_INVALIDOS",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "DADOS_INVALIDOS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, exercício não atribuído, ou ainda não há post (salve antes)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/turmas/{id}/atribuicoes/{exercicioId}/post/anexos/{anexoId}": {
+      "get": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.baixarAnexo",
+        "summary": "(ainda não implementada) baixarAnexo: ArquivoDoAnexo — o arquivo em base64",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.baixarAnexo`\n\n**Resposta:** 200 ArquivoDoAnexo — o arquivo em base64\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Notas:**\n\nA tela monta o arquivo e baixa (download), sem abrir no navegador.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "anexoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ArquivoDoAnexo — o arquivo em base64",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "nome": "roteiro.pdf",
+                      "tipo": "application/pdf",
+                      "conteudo": "JVBERi0xLjQK…"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, exercício não atribuído, ou anexo de outro post",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Turmas (professor)"
+        ],
+        "operationId": "turmas.removerAnexo",
+        "summary": "(ainda não implementada) removerAnexo: (sem corpo)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.turmas.removerAnexo`\n\n**Resposta:** 204 (sem corpo)\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "anexoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "(sem corpo)"
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — turma de outra conta, exercício não atribuído, ou anexo de outro post",
             "content": {
               "application/json": {
                 "examples": {
@@ -5773,6 +6275,235 @@
           },
           "404": {
             "description": "`NAO_ENCONTRADO` — a sala não existe ou ele não está nela",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/salas/{turmaId}/atividades/{exercicioId}": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.atividade",
+        "summary": "(ainda não implementada) atividade: AtividadeDoAluno — a página da atividade (datas, post e o status DELE)",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.atividade`\n\n**Resposta:** 200 AtividadeDoAluno — a página da atividade (datas, post e o status DELE)\n\n**Identidade:**\n\nO token. O :turmaId é da SALA, nunca de aluno.\n\n**Regras de negócio no back (a tela não calcula):**\n\npost null = sem post. situacao: nao_feita, concluida, concluida_com_atraso (só concluiu depois do vencimento; ainda vale, é treino) ou tempo_esgotado. motivo diz qual concluir antes, quando bloqueada.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AtividadeDoAluno — a página da atividade (datas, post e o status DELE)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "turma": {
+                        "id": "turma-1",
+                        "nome": "9º Ano A — Manhã"
+                      },
+                      "exercicioId": "ex-prof-1",
+                      "titulo": "Acentuação em foco",
+                      "dificuldade": "medio",
+                      "repeticoes": 1,
+                      "caracteres": 247,
+                      "tempoLimiteSegundos": 120,
+                      "abertoEm": "2026-02-03T00:00:00.000Z",
+                      "prazo": null,
+                      "post": {
+                        "instrucoes": "Leia **com calma**.",
+                        "links": [],
+                        "anexos": []
+                      },
+                      "bloqueada": false,
+                      "motivo": null,
+                      "situacao": "concluida",
+                      "melhorWpm": 40,
+                      "melhorPrecisao": 95,
+                      "tentativas": 3,
+                      "ultimaTentativa": "2026-02-18T14:10:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — a sala não é dele, o exercício não está atribuído a ela, ou \"Aberto em\" ainda não chegou",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "NAO_ENCONTRADO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "NAO_ENCONTRADO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/aluno/salas/{turmaId}/atividades/{exercicioId}/anexos/{anexoId}": {
+      "get": {
+        "tags": [
+          "Aluno"
+        ],
+        "operationId": "escola.aluno.baixarAnexo",
+        "summary": "(ainda não implementada) baixarAnexo: ArquivoDoAnexo — o arquivo em base64",
+        "description": "**Ainda não implementada:** a rota ainda não existe no back (hoje responde 404). O que está abaixo é o contrato que ela vai cumprir.\n\n**Chamada no front:** `api.escola.aluno.baixarAnexo`\n\n**Resposta:** 200 ArquivoDoAnexo — o arquivo em base64\n\n**Identidade:**\n\nO token: só quem pode abrir a atividade baixa.",
+        "parameters": [
+          {
+            "name": "turmaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exercicioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "anexoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ArquivoDoAnexo — o arquivo em base64",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "Exemplo 1",
+                    "value": {
+                      "nome": "roteiro.pdf",
+                      "tipo": "application/pdf",
+                      "conteudo": "JVBERi0xLjQK…"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`TOKEN_INVALIDO` — token ausente, vencido ou inválido",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TOKEN_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TOKEN_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`TIPO_INVALIDO` — token de conta",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "exemplo1": {
+                    "summary": "TIPO_INVALIDO",
+                    "value": {
+                      "mensagem": "...",
+                      "codigo": "TIPO_INVALIDO"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NAO_ENCONTRADO` — não pode abrir a atividade (ver escola.aluno.atividade) ou anexo de outro post",
             "content": {
               "application/json": {
                 "examples": {

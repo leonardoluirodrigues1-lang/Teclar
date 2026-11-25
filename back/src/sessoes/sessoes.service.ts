@@ -17,6 +17,7 @@ import type { CorpoComMedidas } from './medidas-da-sessao.js';
 import { sessaoNaForma } from './sessao-escola.js';
 import type { LinhaDeSessao, Sessao } from './sessao-escola.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { abertaParaAluno } from '../atribuicoes/posts.js';
 
 // O corpo do POST como chega (DadosSessaoTreino no contrato), em
 // snake_case como o motor da tela manda: o exercício, a turma e as medidas
@@ -205,10 +206,9 @@ export class SessoesService {
   // Arquivar já apaga as atribuições, então o Ativo aqui é só segurança:
   // as sessões antigas num exercício arquivado ficam, mas nova não nasce.
   private async exigirAtribuido(turmaId: string, exercicioId: string): Promise<void> {
-    const atribuicao = await this.banco.atribuicoesprof.findUnique({
-      where: {
-        ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: exercicioId },
-      },
+    // Agendada para depois de agora: ainda não existe para o aluno.
+    const atribuicao = await this.banco.atribuicoesprof.findFirst({
+      where: { ClassID: turmaId, ExerciseID: exercicioId, ...abertaParaAluno() },
       include: { exerciciosprof: { select: { Ativo: true } } },
     });
     if (!atribuicao || !atribuicao.exerciciosprof.Ativo) {

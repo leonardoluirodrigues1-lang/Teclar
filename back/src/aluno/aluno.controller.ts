@@ -10,7 +10,8 @@ import { GuardaDoToken, PermitidoSemSenha } from '../autenticacao/guarda-do-toke
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import type { Paginado } from '../relatorios/relatorios.service.js';
 import { AlunoService } from './aluno.service.js';
-import type { DesempenhoNaTurma, ResumoDoAluno, SalaDetalhe, SalaDoAluno, SessaoDoHistorico } from './aluno.service.js';
+import type { AtividadeDoAluno, DesempenhoNaTurma, ResumoDoAluno, SalaDetalhe, SalaDoAluno, SessaoDoHistorico } from './aluno.service.js';
+import type { ArquivoDoAnexo } from '../atribuicoes/posts.js';
 import type { ImagemDaCapa } from '../turmas/turmas.service.js';
 
 @Controller()
@@ -43,6 +44,25 @@ export class AlunoController {
   @Get('aluno/salas/:turmaId')
   sala(@Req() requisicao: RequisicaoComIdentidade, @Param('turmaId') turmaId: string): Promise<SalaDetalhe> {
     return this.aluno.sala(requisicao.identidade, turmaId);
+  }
+
+  @Get('aluno/salas/:turmaId/atividades/:exercicioId')
+  atividade(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+  ): Promise<AtividadeDoAluno> {
+    return this.aluno.atividade(requisicao.identidade, turmaId, exercicioId);
+  }
+
+  @Get('aluno/salas/:turmaId/atividades/:exercicioId/anexos/:anexoId')
+  anexo(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Param('anexoId') anexoId: string,
+  ): Promise<ArquivoDoAnexo> {
+    return this.aluno.anexo(requisicao.identidade, turmaId, exercicioId, anexoId);
   }
 
   @Get('aluno/salas/:turmaId/capa')

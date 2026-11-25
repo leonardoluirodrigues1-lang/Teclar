@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-75 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+82 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -30,12 +30,12 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **Autenticação**: `POST /auth/login`, `GET /auth/turmas/:codigo`, `POST /auth/aluno`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
 - **Conta (Configurações)**: `PATCH /conta`, `POST /conta/senha`, `PUT /conta/foto`, `GET /conta/foto`, `DELETE /conta/foto`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
-- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `PATCH /turmas/:id/atribuicoes/:exercicioId`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
+- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `PATCH /turmas/:id/atribuicoes/:exercicioId`, `GET /turmas/:id/atribuicoes/:exercicioId/post`, `PUT /turmas/:id/atribuicoes/:exercicioId/post`, `POST /turmas/:id/atribuicoes/:exercicioId/post/anexos`, `GET /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId`, `DELETE /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`, `GET /turmas/:id/alunos/:alunoId/foto`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/sistema`, `POST /exercicios/sistema/:id/copiar`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
 - **Sessões**: `POST /sessoes`, `GET /sessoes/:id`
-- **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `PUT /aluno/foto`, `GET /aluno/foto`, `DELETE /aluno/foto`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
+- **Aluno**: `POST /aluno/senha`, `PUT /aluno/senha`, `PUT /aluno/foto`, `GET /aluno/foto`, `DELETE /aluno/foto`, `GET /aluno/historico`, `GET /aluno/resumo`, `GET /aluno/salas`, `GET /aluno/salas/:turmaId`, `GET /aluno/salas/:turmaId/atividades/:exercicioId`, `GET /aluno/salas/:turmaId/atividades/:exercicioId/anexos/:anexoId`, `GET /aluno/salas/:turmaId/capa`, `GET /turmas/:turmaId/meu-desempenho`, `GET /turmas/:turmaId/ranking`
 - **Administração**: `GET /categorias`, `POST /categorias`, `PATCH /categorias/:id`, `DELETE /categorias/:id`, `GET /parametros`, `PUT /parametros`
 
 ## Autenticação
@@ -1172,6 +1172,150 @@ O token: a turma tem de ser da conta.
 
 Vale para as próximas tentativas: as sessões já feitas ficam como foram.
 
+### `GET /turmas/:id/atribuicoes/:exercicioId/post`
+
+Chamada no front: `api.turmas.post`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 PostDaAtividade — o post, ou os padrões (existe false) se ainda não há
+
+```json
+{ "existe": true, "titulo": "Acentuação em foco", "instrucoes": "Leia **com calma**.",
+  "links": [{ "titulo": "Guia", "url": "https://exemplo.org/guia" }],
+  "anexos": [{ "id": "4c1e…", "nome": "roteiro.pdf", "tipo": "application/pdf", "tamanho": 81234,
+    "enviadoEm": "2026-11-24T13:00:00.000Z" }],
+  "abertoEm": "2026-11-25T11:00:00.000Z", "prazo": "2026-11-30T23:59:00.000Z",
+  "atualizadoEm": "2026-11-24T13:00:00.000Z" }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Lê AtribuicoesPosts, AtribuicoesLinks e AtribuicoesAnexos (sem o Conteudo). Sem post: titulo = o do exercício, abertoEm = AtribuicoesProf.Data_Atribuicao. prazo = AtribuicoesProf.Prazo.
+
+### `PUT /turmas/:id/atribuicoes/:exercicioId/post`
+
+Chamada no front: `api.turmas.salvarPost`
+
+**Corpo:**
+
+DadosDoPost — cria ou edita
+
+```json
+{ "titulo": "Acentuação em foco", "instrucoes": "Leia **com calma**.",
+  "links": [{ "titulo": "Guia", "url": "https://exemplo.org/guia" }],
+  "abertoEm": null, "prazo": "2026-11-30T23:59:00.000Z" }
+```
+
+**Resposta:**
+
+200 PostDaAtividade — como ficou (existe true)
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — título com mais de 150 caracteres, instruções com mais de 10.000, mais de 5 links, link sem URL http(s), data que não é ISO, vencimento antes de "Aberto em", ou o corpo traz professorId
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Grava numa transação: AtribuicoesPosts (título vazio = o do exercício; AbertoEm null = aberta desde a atribuição), troca os links e grava AtribuicoesProf.Prazo. As instruções são Markdown cru: a tela escapa tudo e mostra como HTML sanitizado (js/utils/markdown.ts).
+
+**Notas:**
+
+Com "Aberto em" no futuro, a atividade some para o aluno até lá: da sala, do treino (GET /exercicios/:id e POST /sessoes dão 404) e da página dela.
+
+### `POST /turmas/:id/atribuicoes/:exercicioId/post/anexos`
+
+Chamada no front: `api.turmas.enviarAnexo`
+
+**Corpo:**
+
+{ nome, conteudo } — conteudo em base64 (ou data URL), até 2 MB
+
+```json
+{ "nome": "roteiro.pdf", "conteudo": "JVBERi0xLjQK…" }
+```
+
+**Resposta:**
+
+200 AnexoDoPost
+
+```json
+{ "id": "4c1e…", "nome": "roteiro.pdf", "tipo": "application/pdf", "tamanho": 81234,
+  "enviadoEm": "2026-11-24T13:00:00.000Z" }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — sem nome, conteudo que não é base64, mais de 2 MB, tipo que não é PDF, PNG, JPG, WEBP ou DOCX (conferido pelo conteúdo), o post já tem 3 anexos, ou o corpo traz professorId
+- 404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou ainda não há post (salve antes)
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+O tipo sai dos primeiros bytes, nunca do nome: um .exe renomeado é recusado. Grava em AtribuicoesAnexos.Conteudo (MEDIUMBLOB). Só esta rota aceita corpo de até 3 MB (as outras, 256 KB).
+
+### `GET /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId`
+
+Chamada no front: `api.turmas.baixarAnexo`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ArquivoDoAnexo — o arquivo em base64
+
+```json
+{ "nome": "roteiro.pdf", "tipo": "application/pdf", "conteudo": "JVBERi0xLjQK…" }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou anexo de outro post
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Notas:**
+
+A tela monta o arquivo e baixa (download), sem abrir no navegador.
+
+### `DELETE /turmas/:id/atribuicoes/:exercicioId/post/anexos/:anexoId`
+
+Chamada no front: `api.turmas.removerAnexo`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+204 (sem corpo)
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — turma de outra conta, exercício não atribuído, ou anexo de outro post
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
 ### `DELETE /turmas/:id/atribuicoes/:exercicioId`
 
 Chamada no front: `api.turmas.removerAtribuicao`
@@ -1189,6 +1333,10 @@ Chamada no front: `api.turmas.removerAtribuicao`
 **Identidade:**
 
 O token: a turma tem de ser da conta.
+
+**Regras de negócio no back (a tela não calcula):**
+
+Apaga a linha de AtribuicoesProf; o post, os links e os anexos vão junto (FK em cascata). As sessões ficam.
 
 **Notas:**
 
@@ -2124,6 +2272,61 @@ O token. O :turmaId é da SALA, nunca de aluno.
 **Regras de negócio no back (a tela não calcula):**
 
 Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. caracteres e tempoLimiteSegundos já contam as repeticoes (o texto N vezes, separado por espaço; o tempo × N). Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.
+
+### `GET /aluno/salas/:turmaId/atividades/:exercicioId`
+
+Chamada no front: `api.escola.aluno.atividade`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 AtividadeDoAluno — a página da atividade (datas, post e o status DELE)
+
+```json
+{ "turma": { "id": "turma-1", "nome": "9º Ano A — Manhã" }, "exercicioId": "ex-prof-1",
+  "titulo": "Acentuação em foco", "dificuldade": "medio", "repeticoes": 1, "caracteres": 247,
+  "tempoLimiteSegundos": 120, "abertoEm": "2026-02-03T00:00:00.000Z", "prazo": null,
+  "post": { "instrucoes": "Leia **com calma**.", "links": [], "anexos": [] },
+  "bloqueada": false, "motivo": null, "situacao": "concluida", "melhorWpm": 40,
+  "melhorPrecisao": 95, "tentativas": 3, "ultimaTentativa": "2026-02-18T14:10:00.000Z" }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — a sala não é dele, o exercício não está atribuído a ela, ou "Aberto em" ainda não chegou
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token. O :turmaId é da SALA, nunca de aluno.
+
+**Regras de negócio no back (a tela não calcula):**
+
+post null = sem post. situacao: nao_feita, concluida, concluida_com_atraso (só concluiu depois do vencimento; ainda vale, é treino) ou tempo_esgotado. motivo diz qual concluir antes, quando bloqueada.
+
+### `GET /aluno/salas/:turmaId/atividades/:exercicioId/anexos/:anexoId`
+
+Chamada no front: `api.escola.aluno.baixarAnexo`
+
+**Corpo:** nenhum.
+
+**Resposta:**
+
+200 ArquivoDoAnexo — o arquivo em base64
+
+```json
+{ "nome": "roteiro.pdf", "tipo": "application/pdf", "conteudo": "JVBERi0xLjQK…" }
+```
+
+**Erros:**
+
+- 404 NAO_ENCONTRADO — não pode abrir a atividade (ver escola.aluno.atividade) ou anexo de outro post
+- 403 TIPO_INVALIDO — token de conta
+
+**Identidade:**
+
+O token: só quem pode abrir a atividade baixa.
 
 ### `GET /aluno/salas/:turmaId/capa`
 

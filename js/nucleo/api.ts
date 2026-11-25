@@ -10,7 +10,12 @@ import { sessao } from './sessao.js';
 import { responderMock } from './mocks.js';
 import type {
   Aluno,
+  AnexoDoPost,
+  ArquivoDoAnexo,
+  AtividadeDoAluno,
   Atribuicao,
+  DadosDoPost,
+  PostDaAtividade,
   AtribuicaoProfessor,
   Campanha,
   Categoria,
@@ -362,6 +367,23 @@ export const api = {
     alterarAtribuicao: (turmaId: string, exercicioId: string, dados: { repeticoes: number }) =>
       patch<Atribuicao>(`/turmas/${turmaId}/atribuicoes/${exercicioId}`, dados),
 
+    // O post da atividade (instruções, links, anexos, Aberto em e Vencimento).
+    post: (turmaId: string, exercicioId: string) =>
+      get<PostDaAtividade>(`/turmas/${turmaId}/atribuicoes/${exercicioId}/post`),
+
+    salvarPost: (turmaId: string, exercicioId: string, dados: DadosDoPost) =>
+      put<PostDaAtividade>(`/turmas/${turmaId}/atribuicoes/${exercicioId}/post`, dados),
+
+    // conteudo: o arquivo em base64 (ou data URL), até 2 MB.
+    enviarAnexo: (turmaId: string, exercicioId: string, nome: string, conteudo: string) =>
+      post<AnexoDoPost>(`/turmas/${turmaId}/atribuicoes/${exercicioId}/post/anexos`, { nome, conteudo }),
+
+    baixarAnexo: (turmaId: string, exercicioId: string, anexoId: string) =>
+      get<ArquivoDoAnexo>(`/turmas/${turmaId}/atribuicoes/${exercicioId}/post/anexos/${anexoId}`),
+
+    removerAnexo: (turmaId: string, exercicioId: string, anexoId: string) =>
+      del(`/turmas/${turmaId}/atribuicoes/${exercicioId}/post/anexos/${anexoId}`),
+
     removerAtribuicao: (turmaId: string, exercicioId: string) =>
       del(`/turmas/${turmaId}/atribuicoes/${exercicioId}`),
   },
@@ -448,6 +470,15 @@ export const api = {
       sala: (id: string) => get<SalaDetalhe>(`/aluno/salas/${encodeURIComponent(id)}`),
 
       capaDaSala: (id: string) => get<ImagemDaCapa>(`/aluno/salas/${encodeURIComponent(id)}/capa`),
+
+      // A página da atividade: datas, post e o status DELE.
+      atividade: (turmaId: string, exercicioId: string) =>
+        get<AtividadeDoAluno>(`/aluno/salas/${encodeURIComponent(turmaId)}/atividades/${encodeURIComponent(exercicioId)}`),
+
+      baixarAnexo: (turmaId: string, exercicioId: string, anexoId: string) =>
+        get<ArquivoDoAnexo>(
+          `/aluno/salas/${encodeURIComponent(turmaId)}/atividades/${encodeURIComponent(exercicioId)}/anexos/${encodeURIComponent(anexoId)}`
+        ),
 
       desempenhoNaTurma: (turmaId: string) =>
         get<DesempenhoNaTurma>(`/turmas/${encodeURIComponent(turmaId)}/meu-desempenho`),

@@ -475,6 +475,56 @@ export interface AtribuicaoProfessor {
   totalAlunos: number;
 }
 
+/** Um link do post da atividade (só http/https). */
+export interface LinkDoPost {
+  titulo: string;
+  url: string;
+}
+
+/** Um anexo do post: os dados, sem o conteúdo (só sai no download). */
+export interface AnexoDoPost {
+  id: string;
+  nome: string;
+  /** O tipo conferido pelo conteúdo no back (application/pdf, image/png...). */
+  tipo: string;
+  /** Em bytes. */
+  tamanho: number;
+  enviadoEm: string | null;
+}
+
+/** GET/PUT /turmas/:id/atribuicoes/:exercicioId/post — o post da atividade
+ *  (a página de tarefa, estilo Moodle). Sem post (existe false), os padrões:
+ *  o título do exercício e "Aberto em" = a data da atribuição. */
+export interface PostDaAtividade {
+  existe: boolean;
+  titulo: string;
+  /** Markdown (parágrafos, **negrito**, *itálico*, listas e [links](https://...)). */
+  instrucoes: string;
+  links: LinkDoPost[];
+  anexos: AnexoDoPost[];
+  /** ISO. Antes disso o aluno não vê a atividade. */
+  abertoEm: string | null;
+  /** ISO. O vencimento (AtribuicoesProf.Prazo); null = sem prazo. */
+  prazo: string | null;
+  atualizadoEm: string | null;
+}
+
+/** Corpo do PUT do post. abertoEm null = aberta desde a atribuição. */
+export interface DadosDoPost {
+  titulo: string;
+  instrucoes: string;
+  links: LinkDoPost[];
+  abertoEm: string | null;
+  prazo: string | null;
+}
+
+/** O download de um anexo: o arquivo em base64. */
+export interface ArquivoDoAnexo {
+  nome: string;
+  tipo: string;
+  conteudo: string;
+}
+
 /** O miolo dos números de uma turma: a base de RelatorioTurma. Era a
  *  resposta de GET /turmas/:id/desempenho, apagada por repetir o
  *  relatório; o tipo fica como base, para o relatório não repetir campo.
@@ -823,6 +873,31 @@ export interface ExercicioDaSala {
   melhorPrecisao: number | null;
   /** Data da sessão mais recente. */
   ultimaSessao: string | null;
+}
+
+export type SituacaoDaAtividade = 'nao_feita' | 'concluida' | 'concluida_com_atraso' | 'tempo_esgotado';
+
+/** GET /aluno/salas/:turmaId/atividades/:exercicioId — a página da
+ *  atividade do aluno. post null = o professor não escreveu nada. */
+export interface AtividadeDoAluno {
+  turma: { id: string; nome: string };
+  exercicioId: string;
+  titulo: string;
+  dificuldade: Dificuldade;
+  repeticoes: number;
+  caracteres: number;
+  tempoLimiteSegundos: number;
+  abertoEm: string | null;
+  prazo: string | null;
+  post: { instrucoes: string; links: LinkDoPost[]; anexos: AnexoDoPost[] } | null;
+  bloqueada: boolean;
+  /** Por que está bloqueada; null quando não está. */
+  motivo: string | null;
+  situacao: SituacaoDaAtividade;
+  melhorWpm: number | null;
+  melhorPrecisao: number | null;
+  tentativas: number;
+  ultimaTentativa: string | null;
 }
 
 /** GET /aluno/salas/:id — a sala e os exercícios dela, na ordem em que o

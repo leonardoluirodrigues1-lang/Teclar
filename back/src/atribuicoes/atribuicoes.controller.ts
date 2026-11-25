@@ -3,16 +3,21 @@
 //
 // O GuardaDoToken fica na classe, como em turmas: aqui não há rota
 // pública, e uma rota nova não corre o risco de nascer sem ele.
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { AtribuicoesService } from './atribuicoes.service.js';
 import type { Atribuicao, AtribuicaoProfessor, CorpoDaAlteracao, CorpoDaAtribuicao } from './atribuicoes.service.js';
+import { PostsService } from './posts.service.js';
+import type { AnexoDoPost, ArquivoDoAnexo, CorpoDoAnexo, CorpoDoPost, PostDaAtividade } from './posts.js';
 
 @Controller('turmas/:turmaId/atribuicoes')
 @UseGuards(GuardaDoToken)
 export class AtribuicoesController {
-  constructor(private readonly atribuicoes: AtribuicoesService) {}
+  constructor(
+    private readonly atribuicoes: AtribuicoesService,
+    private readonly posts: PostsService,
+  ) {}
 
   @Get()
   listar(@Req() requisicao: RequisicaoComIdentidade, @Param('turmaId') turmaId: string): Promise<AtribuicaoProfessor[]> {
@@ -38,6 +43,59 @@ export class AtribuicoesController {
     @Body() corpo: CorpoDaAlteracao,
   ): Promise<Atribuicao> {
     return this.atribuicoes.alterar(requisicao.identidade, turmaId, exercicioId, corpo);
+  }
+
+  // --- o post da atividade (ver posts.service.ts) ---
+
+  @Get(':exercicioId/post')
+  lerPost(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+  ): Promise<PostDaAtividade> {
+    return this.posts.ler(requisicao.identidade, turmaId, exercicioId);
+  }
+
+  @Put(':exercicioId/post')
+  salvarPost(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Body() corpo: CorpoDoPost,
+  ): Promise<PostDaAtividade> {
+    return this.posts.salvar(requisicao.identidade, turmaId, exercicioId, corpo);
+  }
+
+  @Post(':exercicioId/post/anexos')
+  @HttpCode(HttpStatus.OK)
+  enviarAnexo(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Body() corpo: CorpoDoAnexo,
+  ): Promise<AnexoDoPost> {
+    return this.posts.enviarAnexo(requisicao.identidade, turmaId, exercicioId, corpo);
+  }
+
+  @Get(':exercicioId/post/anexos/:anexoId')
+  baixarAnexo(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Param('anexoId') anexoId: string,
+  ): Promise<ArquivoDoAnexo> {
+    return this.posts.baixarAnexo(requisicao.identidade, turmaId, exercicioId, anexoId);
+  }
+
+  @Delete(':exercicioId/post/anexos/:anexoId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removerAnexo(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Param('anexoId') anexoId: string,
+  ): Promise<void> {
+    return this.posts.removerAnexo(requisicao.identidade, turmaId, exercicioId, anexoId);
   }
 
   @Delete(':exercicioId')

@@ -22,6 +22,9 @@ import bcrypt from 'bcryptjs';
 import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno } from '../autenticacao/senha-do-aluno.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
+import { abertoEm, atribuicaoComPost, postNaForma } from '../atribuicoes/posts.js';
+import type { AnexoDoPost, ArquivoDoAnexo, LinkDoPost } from '../atribuicoes/posts.js';
+import { arquivoDoAnexo } from '../atribuicoes/posts.service.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -82,6 +85,31 @@ export interface ExercicioDaSala {
   melhorWpm: number | null;
   melhorPrecisao: number | null;
   ultimaSessao: string | null;
+}
+
+// GET /aluno/salas/:turmaId/atividades/:exercicioId: a página da atividade
+// (a de tarefa do Moodle). post null = o professor não escreveu nada.
+export type SituacaoDaAtividade = 'nao_feita' | 'concluida' | 'concluida_com_atraso' | 'tempo_esgotado';
+
+export interface AtividadeDoAluno {
+  turma: { id: string; nome: string };
+  exercicioId: string;
+  titulo: string;
+  dificuldade: string;
+  repeticoes: number;
+  caracteres: number;
+  tempoLimiteSegundos: number;
+  abertoEm: string | null;
+  prazo: string | null;
+  post: { instrucoes: string; links: LinkDoPost[]; anexos: AnexoDoPost[] } | null;
+  bloqueada: boolean;
+  // Por que está bloqueada ("Conclua antes “X”."); null quando não está.
+  motivo: string | null;
+  situacao: SituacaoDaAtividade;
+  melhorWpm: number | null;
+  melhorPrecisao: number | null;
+  tentativas: number;
+  ultimaTentativa: string | null;
 }
 
 export interface SalaDetalhe extends SalaDoAluno {
@@ -207,6 +235,51 @@ export class AlunoService {
     const turma = await this.salaDoAluno(alunoId, turmaId);
     const lista = await this.exerciciosDaSala(turmaId, alunoId);
     return { ...(await this.resumoDaSala(turma, lista)), lista };
+  }
+
+  // GET /aluno/salas/:turmaId/atividades/:exercicioId. Só a atividade da
+  // sala dele, e só a partir de "Aberto em": antes, o mesmo 404 de quem não
+  // é da sala (a lista da sala já não a traz).
+  async atividade(identidade: Identidade, turmaId: string, exercicioId: string): Promise<AtividadeDoAluno> {
+    const alunoId = alunoDoToken(identidade);
+    const turma = await this.salaDoAluno(alunoId, turmaId);
+    const lista = await this.exerciciosDaSala(turmaId, alunoId);
+    const item = lista.find((exercicio) => exercicio.id === exercicioId);
+    const linha = item ? await atribuicaoComPost(this.banco, turmaId, exercicioId) : null;
+    if (!item || !linha) {
+      throw atividadeNaoEncontrada();
+    }
+    const post = postNaForma(linha);
+    const sessoes = (await this.banco.sessionsprof.findMany({ where: { AlunoID: alunoId, ClassID: turmaId, ExerciseID: exercicioId } })).map(
+      sessaoNaForma,
+    );
+    const proxima = lista.find((exercicio) => !exercicio.bloqueada && exercicio.estado !== 'feito');
+    return {
+      turma: { id: turma.ClassID, nome: turma.NomeTurma ?? '' },
+      exercicioId,
+      titulo: post.titulo,
+      dificuldade: item.dificuldade,
+      repeticoes: item.repeticoes,
+      caracteres: item.caracteres,
+      tempoLimiteSegundos: item.tempoLimiteSegundos,
+      abertoEm: abertoEm(linha)?.toISOString() ?? null,
+      prazo: post.prazo,
+      post: post.existe ? { instrucoes: post.instrucoes, links: post.links, anexos: post.anexos } : null,
+      bloqueada: item.bloqueada,
+      motivo: item.bloqueada ? `Conclua antes “${proxima?.titulo ?? 'a atividade anterior'}”.` : null,
+      situacao: situacaoDaAtividade(sessoes),
+      melhorWpm: item.melhorWpm,
+      melhorPrecisao: item.melhorPrecisao,
+      tentativas: sessoes.length,
+      ultimaTentativa: item.ultimaSessao,
+    };
+  }
+
+  // GET /aluno/salas/:turmaId/atividades/:exercicioId/anexos/:anexoId: só
+  // quem pode abrir a atividade baixa.
+  async anexo(identidade: Identidade, turmaId: string, exercicioId: string, anexoId: string): Promise<ArquivoDoAnexo> {
+    await this.atividade(identidade, turmaId, exercicioId);
+    return arquivoDoAnexo(this.banco, turmaId, exercicioId, anexoId);
   }
 
   // GET /aluno/salas/:turmaId/capa. A mesma imagem que o professor vê, só
@@ -337,6 +410,18 @@ function alunoDoToken(identidade: Identidade): string {
     throw new ForbiddenException({ mensagem: 'Rota só para alunos.', codigo: 'TIPO_INVALIDO' });
   }
   return identidade.id;
+}
+
+// Alguma concluída: concluída. Sem concluir: tempo esgotado.
+function situacaoDaAtividade(sessoes: Sessao[]): SituacaoDaAtividade {
+  if (sessoes.some((sessao) => sessao.concluida)) {
+    return 'concluida';
+  }
+  return sessoes.length > 0 ? 'tempo_esgotado' : 'nao_feita';
+}
+
+function atividadeNaoEncontrada(): NotFoundException {
+  return new NotFoundException({ mensagem: 'Atividade não encontrada.', codigo: 'NAO_ENCONTRADO' });
 }
 
 // Sem sessão: não fez. Com alguma concluída: feito (uma vez feito, uma
