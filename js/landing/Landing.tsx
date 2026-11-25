@@ -92,45 +92,36 @@ function Hero() {
 // Barra fixa: marca + Entrar
 
 // Não é a Moldura.tsx: aquela é de tela com sessão (avatar, menu, troca de
-// modo). Aqui só marca e um link, dentro de uma pílula de vidro que existe
-// desde o primeiro quadro. No topo da página ela tem também a classe
-// .barra-no-topo, que a deixa discreta; a classe sai quando o sentinela do
-// topo sai da tela. IntersectionObserver, e não listener de scroll: o
-// canvas WebGL divide o mesmo quadro, e o observer só dispara ao cruzar a
-// linha. Classe direto no DOM, sem setState, pelo mesmo motivo do resto
-// da tela.
+// modo). Aqui só marca e um link, numa pílula de vidro. Enquanto o
+// "Começar a treinar" do hero está à vista, a barra fica escondida (seria
+// um segundo "entrar" na mesma tela); quando ele sai ao rolar, ela aparece
+// com um fade curto, e some de novo ao voltar ao topo. IntersectionObserver,
+// e não listener de scroll: o canvas WebGL divide o mesmo quadro, e o
+// observer só dispara ao cruzar a linha. Classe direto no DOM, sem
+// setState, pelo mesmo motivo do resto da tela.
 
 function Barra() {
-  const sentinela = useRef<HTMLDivElement>(null);
   const barra = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
-    // O sentinela é uma faixa de 24px no topo da página. Enquanto ela está
-    // na tela, a pessoa ainda não rolou.
+    const cta = document.querySelector('.cta-hero .btn');
+    if (!cta) return;
     const observador = new IntersectionObserver((entradas) => {
-      const aindaNoTopo = entradas[0].isIntersecting;
-      if (aindaNoTopo) {
-        barra.current?.classList.add('barra-no-topo');
-      } else {
-        barra.current?.classList.remove('barra-no-topo');
-      }
+      barra.current?.classList.toggle('barra-escondida', entradas[0].isIntersecting);
     });
-    observador.observe(sentinela.current);
+    observador.observe(cta);
     return () => observador.disconnect();
   }, []);
 
   return (
-    <>
-      <div className="barra-sentinela" aria-hidden="true" ref={sentinela}></div>
-      <header className="barra-landing vidro barra-no-topo" ref={barra}>
-        <a className="barra-marca" href="#top" aria-label="TECLAR, voltar ao topo">
-          <span>TECLAR</span>
-        </a>
-        <a className="btn barra-entrar" href="pages/login.html">
-          Entrar
-        </a>
-      </header>
-    </>
+    <header className="barra-landing vidro barra-escondida" ref={barra}>
+      <a className="barra-marca" href="#top" aria-label="TECLAR, voltar ao topo">
+        <span>TECLAR</span>
+      </a>
+      <a className="btn barra-entrar" href="pages/login.html">
+        Entrar
+      </a>
+    </header>
   );
 }
 
