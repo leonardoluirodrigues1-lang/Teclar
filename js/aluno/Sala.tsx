@@ -151,7 +151,7 @@ function Sala() {
       descricao="Suas atividades nesta turma, na ordem. Comece pela que está acesa."
       capa={sala?.temCapa ? { id: sala.id, capaSemente: sala.capaSemente, daSala: true } : null}
       acoes={proxima && (
-        <a className="btn btn-solido tecla tecla-clara" href={proxima.href}>
+        <a className="btn btn-solido tecla tecla-clara" href={`../treino/treino.html?${new URLSearchParams({ exercicio: proxima.id, turma: sala.id })}`}>
           Começar: {proxima.titulo}
         </a>
       )}
@@ -190,9 +190,12 @@ function AbaExercicios({ sala }: { sala: SalaDetalhe }) {
 
 // Quem diz o que está bloqueado é o back. Sobra um só não concluído e aberto:
 // o próximo. "Tempo esgotado" não libera o seguinte, então continua sendo ele.
+// Toda pedra abre a página da atividade (datas, instruções, status), até a
+// bloqueada, que lá diz o motivo; o "Começar" do topo vai direto ao treino.
 function pedraDoAluno(ex: ExercicioDaSala, idDaSala: string): PedraDaTrilha {
-  if (ex.bloqueada) return { id: ex.id, titulo: ex.titulo, estado: 'bloqueado', legenda: 'bloqueado' };
-  const href = `../treino/treino.html?${new URLSearchParams({ exercicio: ex.id, turma: idDaSala })}`;
+  const pagina = `atividade.html?${new URLSearchParams({ turma: idDaSala, exercicio: ex.id })}`;
+  if (ex.bloqueada) return { id: ex.id, titulo: ex.titulo, estado: 'bloqueado', legenda: 'bloqueado', href: pagina };
+  const href = pagina;
   if (ex.estado === 'feito') return { id: ex.id, titulo: ex.titulo, estado: 'feito', legenda: 'concluído', href };
   const legenda = ex.estado === 'tempo_esgotado' ? 'tempo esgotado: tente de novo' : 'é o próximo';
   return { id: ex.id, titulo: ex.titulo, estado: 'agora', legenda, href };

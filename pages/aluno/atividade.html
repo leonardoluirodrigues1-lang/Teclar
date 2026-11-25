@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Antes de qualquer CSS: as preferencias do aparelho (tamanho do texto,
+     contraste, movimento) entram no <html> antes da primeira pintura. -->
+<script src="../../js/nucleo/preferencias-cedo.js"></script>
+<title>Teclar &mdash; Atividade</title>
+<meta name="description" content="Uma atividade da sua sala no Teclar: datas, instru&ccedil;&otilde;es, anexos e o seu status.">
+<link rel="stylesheet" href="../../css/base/fontes.css">
+<link rel="stylesheet" href="../../css/base/tokens.css">
+<link rel="stylesheet" href="../../css/base/luz.css">
+<link rel="stylesheet" href="../../css/base/movimento.css">
+<link rel="stylesheet" href="../../css/componentes/vidro.css">
+<link rel="stylesheet" href="../../css/componentes/moldura.css">
+<link rel="stylesheet" href="../../css/componentes/modais.css">
+<link rel="stylesheet" href="../../css/base/reset.css">
+<link rel="stylesheet" href="../../css/escola.css">
+
+<!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
+     projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
+     nomes que o .js gerado pelo tsc importa. Tem de vir ANTES de qualquer
+     <script type="module">. "react-dom" (sem /client) &eacute; de onde saem
+     createPortal e flushSync, usados pelo Modal e pelas telas. -->
+<script type="importmap">
+{ "imports": {
+    "react": "../../vendor/react/react.mjs",
+    "react-dom": "../../vendor/react/react-dom.mjs",
+    "react-dom/client": "../../vendor/react/react-dom-client.mjs",
+    "react/jsx-runtime": "../../vendor/react/jsx-runtime.mjs"
+}}
+</script>
+<link rel="stylesheet" href="../../css/base/preferencias.css">
+</head>
+<body class="ceu-discreto">
+
+<!-- Fundo fixo: s&oacute; as estrelas e o gr&atilde;o (css/base/luz.css), como na tela
+     de salas. -->
+<div class="fundo grao" aria-hidden="true">
+  <div class="fundo-estrelas"></div>
+</div>
+
+<!-- O React monta a tela inteira aqui dentro (conta, cabe&ccedil;alho, abas e
+     o conte&uacute;do de cada uma). -->
+<div id="raiz"></div>
+
+<script type="module" src="../../js/componentes/campoDeEstrelas.js"></script>
+<!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
+<script type="module" src="../../js/utils/respiracaoDaLuz.js"></script>
+<!-- Aponta para o .js GERADO pelo tsc (npm run dev), n&atilde;o para o .tsx. -->
+<script type="module" src="../../js/aluno/Atividade.js"></script>
+</body>
+</html>

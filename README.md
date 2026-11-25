@@ -97,7 +97,7 @@ A lista completa está em `back/README.md`.
   repetição → sessão gravada → modal de conclusão que não fecha sozinho):
   `node js/treino/fimDaAtividade.check.mjs`, com o back rodando e o
   seed recém-rodado.
-- Acessibilidade (WCAG 2.1 A/AA: axe-core, contraste e primeiro Tab) nas 20
+- Acessibilidade (WCAG 2.1 A/AA: axe-core, contraste e primeiro Tab) nas 26
   telas, num Chrome headless e com o mock, sem back: `npm run build` e depois
   `npm run a11y` (ou `npm run a11y -- turmas` para só as telas com "turmas").
 - Para rodar o front sem back, ponha `MOCK: true` em `js/config.ts` e rode

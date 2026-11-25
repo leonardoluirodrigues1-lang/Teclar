@@ -2166,3 +2166,26 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 @media (max-width: 599px) {
   .linha-link, .campos-datas { grid-template-columns: 1fr; }
 }
+
+/* Página da atividade do aluno (js/aluno/Atividade.tsx), no desenho da
+   página de tarefa do Moodle: trilha, título com ícone, caixa de datas e
+   instruções, botão e tabela de status. */
+.pagina-atividade { display: grid; gap: var(--e-5); max-width: 56rem; }
+.trilha-de-pao ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--e-2); padding: 0; margin: 0;
+  font-size: var(--fs-sm); color: var(--cor-texto-fraco); }
+.trilha-de-pao li + li::before { content: "/"; margin-right: var(--e-2); color: var(--cor-texto-fraco); }
+.trilha-de-pao [aria-current="page"] { color: var(--cor-texto-suave); }
+.cabecalho-atividade { display: flex; align-items: center; gap: var(--e-4); }
+.icone-atividade { flex: none; display: grid; place-items: center; width: 52px; height: 52px;
+  border: 1px solid var(--cor-borda-forte); border-radius: 12px; color: var(--cor-texto); }
+.caixa-atividade { padding: var(--e-4) var(--e-5); border-radius: var(--raio-m, 12px); }
+.datas-atividade { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-6); margin: 0; }
+.datas-atividade dt { display: inline; font-weight: var(--peso-medio); color: var(--cor-texto); }
+.datas-atividade dt::after { content: ": "; }
+.datas-atividade dd { display: inline; margin: 0; color: var(--cor-texto-suave); }
+.post-atividade { margin-top: var(--e-4); padding-top: var(--e-4); border-top: 1px solid var(--cor-borda); }
+.links-atividade { padding-left: 1.2em; margin: 0 0 var(--e-3); }
+.acao-atividade { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-3); }
+.motivo-bloqueio { margin: 0; color: var(--cor-alerta); }
+.tabela-status th { width: 14rem; text-align: left; font-weight: var(--peso-medio); color: var(--cor-texto); }
+@media (max-width: 599px) { .tabela-status th { width: auto; } }

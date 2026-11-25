@@ -245,7 +245,7 @@ export function TurmaNaoEncontrada({ modo, texto, link }: PropsNaoEncontrada) {
  * Uma pedra da trilha. O estado diz como ela é desenhada:
  *   feito   — sólida, com o visto (o aluno concluiu);
  *   agora   — acesa (o próximo do aluno);
- *   bloqueado — apagada, com cadeado e sem link (os seguintes do aluno);
+ *   bloqueado — apagada, com cadeado (os seguintes do aluno; o link abre a página da atividade, com o motivo);
  *   turma   — neutra, com o número (a visão do professor, que não tem
  *             "o seu" estado: a legenda diz quantos concluíram).
  */
