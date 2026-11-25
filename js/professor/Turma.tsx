@@ -53,6 +53,7 @@ import {
 import { MenuDeAcoes } from '../componentes/MenuDeAcoes.js';
 import { AvatarDoAluno } from '../componentes/Avatar.js';
 import { RelatorioDaTurma } from './RelatorioDaTurma.js';
+import { ModalPost } from './ModalPost.js';
 import { ModalArquivar, ModalCapa, ModalNome } from './modaisDaTurma.js';
 import { Modal, type ModalHandle } from '../componentes/ModalReact.js';
 import { VOLTAR_TURMAS } from '../componentes/Moldura.js';
@@ -93,6 +94,7 @@ type ConfigModal =
   | { chave: number; tipo: 'mostrar-provisoria'; aluno: Aluno; gerada: SenhaProvisoriaGerada }
   | { chave: number; tipo: 'novo-codigo' }
   | { chave: number; tipo: 'remover-atribuicao'; item: AtribuicaoProfessor }
+  | { chave: number; tipo: 'post'; exercicioId: string }
   | { chave: number; tipo: 'renomear' }
   | { chave: number; tipo: 'capa' }
   | { chave: number; tipo: 'arquivar' };
@@ -130,7 +132,11 @@ function Turma() {
     const atribuidos = Number(url.searchParams.get('atribuidos'));
     if (!atribuidos) return;
     toasts.mostrar(atribuidos === 1 ? 'Exercício atribuído' : `${atribuidos} exercícios atribuídos`);
+    // Um exercício só: já abre o post dele, para escrever as instruções ao atribuir.
+    const post = url.searchParams.get('post');
+    if (post) setModal({ chave: ++proximaChave, tipo: 'post', exercicioId: post });
     url.searchParams.delete('atribuidos');
+    url.searchParams.delete('post');
     window.history.replaceState(null, '', url);
   }, []);
 
@@ -399,6 +405,15 @@ function Turma() {
       rotulo: 'Ação',
       classe: 'col-acoes',
       celula: (item) => (
+        <span className="acoes-da-atividade">
+        <button
+          type="button"
+          className="btn btn-vidro vidro tecla btn-pequeno"
+          aria-label={`${item.temPost ? 'Editar' : 'Escrever'} o post de “${item.titulo ?? 'este exercício'}”`}
+          onClick={() => setModal({ chave: ++proximaChave, tipo: 'post', exercicioId: item.exercicioId })}
+        >
+          {item.temPost ? 'Editar post' : 'Escrever post'}
+        </button>
         <button
           type="button"
           className="btn btn-vidro vidro tecla btn-pequeno"
@@ -407,6 +422,7 @@ function Turma() {
         >
           Retirar da turma
         </button>
+        </span>
       ),
     },
   ];
@@ -568,6 +584,27 @@ function Turma() {
           turma={turma as TurmaDaLista}
           // A turma arquivada sai da lista: não há mais o que ver aqui.
           aoConcluir={() => location.assign('turmas.html')}
+          aoFechar={fechar}
+        />
+      );
+    }
+
+    if (modal.tipo === 'post') {
+      const { exercicioId } = modal;
+      const item = atribuicoes.find((a) => a.exercicioId === exercicioId);
+      const mudar = (campos: Partial<AtribuicaoProfessor>) =>
+        atualizarAtribuicoes((lista) => lista.map((a) => (a.exercicioId === exercicioId ? { ...a, ...campos } : a)));
+      return (
+        <ModalPost
+          key={modal.chave}
+          turmaId={turmaId}
+          exercicioId={exercicioId}
+          tituloDoExercicio={item?.titulo ?? 'Atividade'}
+          aoSalvar={(post) => {
+            mudar({ temPost: true, prazo: post.prazo, abertoEm: post.abertoEm, anexos: post.anexos.length });
+            toasts.mostrar('Post salvo');
+          }}
+          aoMudarAnexos={(anexos) => mudar({ anexos })}
           aoFechar={fechar}
         />
       );

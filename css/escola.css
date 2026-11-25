@@ -2136,3 +2136,33 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   white-space: nowrap;
 }
 .metrica-item .selo-dias-seguidos { margin: 6px 0 0; }
+
+/* ---------------------------------------------------------------------------
+   Post da atividade: o editor do professor (js/professor/ModalPost.tsx) e
+   as instruções desenhadas do Markdown (js/componentes/Instrucoes.tsx), que
+   a página da atividade do aluno também usa.
+   ------------------------------------------------------------------------- */
+.editor-post fieldset { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+.editor-post legend { padding: 0; margin-bottom: 8px; font-family: var(--fonte-mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--cor-texto-fraco); }
+.editor-post .campo-modal + .campo-modal, .editor-post .campos-datas { margin-top: 18px; }
+.previa-instrucoes { margin-top: var(--e-3); padding: var(--e-3) var(--e-4);
+  border: 1px dashed var(--cor-borda-forte); border-radius: var(--raio-p, 4px); }
+.linha-link { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: var(--e-2); margin-bottom: var(--e-2); }
+.linha-link input { width: 100%; padding: 8px 10px; background: rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--raio-p, 4px); color: var(--cor-texto); }
+.lista-anexos { list-style: none; padding: 0; margin: 0 0 var(--e-3); display: grid; gap: var(--e-2); }
+.lista-anexos li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2) var(--e-3); }
+.anexo-meta { font-size: var(--fs-sm); color: var(--cor-texto-fraco); }
+.botao-arquivo { position: relative; cursor: pointer; }
+.botao-arquivo:focus-within { outline: 2px solid var(--cor-anel-foco); outline-offset: 2px; }
+.campos-datas { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-4); }
+.campos-datas .campo-modal + .campo-modal { margin-top: 0; }
+.acoes-da-atividade { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.instrucoes { line-height: var(--lh-solta); color: var(--cor-texto-suave); }
+.instrucoes p, .instrucoes ul, .instrucoes ol { margin: 0 0 var(--e-3); }
+.instrucoes ul, .instrucoes ol { padding-left: 1.4em; }
+.instrucoes strong { color: var(--cor-texto); }
+@media (max-width: 599px) {
+  .linha-link, .campos-datas { grid-template-columns: 1fr; }
+}

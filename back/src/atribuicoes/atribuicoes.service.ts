@@ -12,6 +12,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { repeticoesValidas } from './repeticoes.js';
+import { abertoEm } from './posts.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
@@ -38,6 +39,11 @@ export interface AtribuicaoProfessor {
   dificuldade: 'facil' | 'medio' | 'dificil';
   atribuidoEm: string | null;
   repeticoes: number;
+  temPost: boolean;
+  anexos: number;
+  // ISO: quando abre para o aluno (no futuro = agendada).
+  abertoEm: string | null;
+  prazo: string | null;
   concluidoPor: number;
   totalAlunos: number;
 }
@@ -61,7 +67,10 @@ export class AtribuicoesService {
 
     const atribuicoes = await this.banco.atribuicoesprof.findMany({
       where: { ClassID: turmaId },
-      include: { exerciciosprof: { select: { Titulo: true, Dificuldade: true } } },
+      include: {
+        exerciciosprof: { select: { Titulo: true, Dificuldade: true } },
+        atribuicoesposts: { select: { AbertoEm: true, _count: { select: { atribuicoesanexos: true } } } },
+      },
       // Atribuir vários exercícios de uma vez grava todos no mesmo segundo
       // (Data_Atribuicao é DATETIME, sem milissegundo): no empate, o título
       // em ordem alfabética, e o id para dois títulos iguais.
@@ -76,6 +85,10 @@ export class AtribuicoesService {
       dificuldade: linha.exerciciosprof.Dificuldade,
       atribuidoEm: soData(linha.Data_Atribuicao),
       repeticoes: linha.Repeticoes,
+      temPost: linha.atribuicoesposts !== null,
+      anexos: linha.atribuicoesposts?._count.atribuicoesanexos ?? 0,
+      abertoEm: abertoEm(linha)?.toISOString() ?? null,
+      prazo: linha.Prazo?.toISOString() ?? null,
       concluidoPor: concluintes.get(linha.ExerciseID) ?? 0,
       totalAlunos,
     }));

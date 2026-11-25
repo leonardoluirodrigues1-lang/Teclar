@@ -471,6 +471,14 @@ export interface AtribuicaoProfessor {
   atribuidoEm: string | null;
   /** 1 a 5: o aluno recebe o texto repetido, com o tempo limite × N. */
   repeticoes: number;
+  /** O professor escreveu o post da atividade. */
+  temPost: boolean;
+  /** Quantos anexos o post tem. */
+  anexos: number;
+  /** ISO. Quando abre para o aluno (agendada se no futuro). */
+  abertoEm: string | null;
+  /** ISO. O vencimento; null = sem prazo. */
+  prazo: string | null;
   concluidoPor: number;
   totalAlunos: number;
 }

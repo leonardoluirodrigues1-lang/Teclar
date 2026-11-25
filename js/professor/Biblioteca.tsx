@@ -249,7 +249,7 @@ function Biblioteca() {
       [...selecionadosDoSistema].forEach((id, i) => (porExercicio[copias[i].exercicio.id] = repeticoes.get(id) ?? 1));
       await api.turmas.atribuir(turmaDestino, [...ids], porExercicio);
       // A turma recarrega as atribuições ao abrir e avisa quantas entraram.
-      location.assign(hrefDaTurma({ atribuidos: String(ids.size) }));
+      location.assign(hrefDaTurma({ atribuidos: String(ids.size), ...(ids.size === 1 ? { post: [...ids][0] } : {}) }));
     } catch (excecao) {
       setErroAtribuir(mensagemDaFalha(excecao));
       atribuindo.current = false;

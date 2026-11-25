@@ -329,6 +329,24 @@ async function inserirTurmas(tx: Transacao): Promise<void> {
       atribuicao('turma-5', 'ex-prof-6', '2026-03-10'),
     ],
   });
+
+  // O post da atividade de demonstração (o mesmo do mock): a Ana Pires (R8VD3K)
+  // vê instruções, um link e o vencimento na página da atividade.
+  await tx.atribuicoesprof.update({
+    where: { ClassID_ExerciseID: { ClassID: 'turma-2', ExerciseID: 'ex-prof-3' } },
+    data: { Prazo: new Date('2026-12-15T23:59:00-03:00') },
+  });
+  await tx.atribuicoesposts.create({
+    data: {
+      ClassID: 'turma-2',
+      ExerciseID: 'ex-prof-3',
+      Titulo: 'Pontuação sem pressa',
+      Instrucoes:
+        'Leia o texto **uma vez** antes de começar.\n\n- Respeite as vírgulas\n- Não olhe para o teclado\n\n' +
+        'Dúvidas? Veja o [guia de digitação](https://pt.wikipedia.org/wiki/Datilografia).',
+      atribuicoeslinks: { create: [{ Ordem: 0, Titulo: 'Postura ao digitar', URL: 'https://pt.wikipedia.org/wiki/Ergonomia' }] },
+    },
+  });
 }
 
 function atribuicao(turmaId: string, exercicioId: string, data: string) {
