@@ -458,6 +458,8 @@ export interface Atribuicao {
   exerciseId: string;
   atribuidoEm?: string;
   prazo: string | null;
+  /** Quantas vezes (1 a 5) o aluno digita o texto, num bloco só. */
+  repeticoes: number;
 }
 
 /** Item de GET /turmas/:id/atribuicoes — a visão do PROFESSOR: o exercício
@@ -467,6 +469,8 @@ export interface AtribuicaoProfessor {
   titulo: string;
   dificuldade: Dificuldade;
   atribuidoEm: string | null;
+  /** 1 a 5: o aluno recebe o texto repetido, com o tempo limite × N. */
+  repeticoes: number;
   concluidoPor: number;
   totalAlunos: number;
 }
@@ -801,10 +805,13 @@ export interface ExercicioDaSala {
   id: string;
   titulo: string;
   dificuldade: Dificuldade;
-  /** Tamanho do texto, contado pelo back, que é quem tem o texto. */
+  /** Tamanho do texto, contado pelo back, que é quem tem o texto, já com
+   *  as repetições (o texto N vezes, separado por espaço). */
   caracteres: number;
-  /** Em segundos; 0 = sem limite. */
+  /** Em segundos, já × repetições; 0 = sem limite. */
   tempoLimiteSegundos: number;
+  /** Quantas vezes o texto vem repetido no treino (1 a 5). */
+  repeticoes: number;
   atribuidoEm: string | null;
   prazo: string | null;
   estado: EstadoExercicioDaSala;

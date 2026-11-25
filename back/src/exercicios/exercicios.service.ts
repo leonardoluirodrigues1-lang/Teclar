@@ -20,6 +20,7 @@ import { BancoService } from '../banco/banco.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
@@ -293,7 +294,13 @@ export class ExerciciosService {
     if (!aluno || !atribuicao || !atribuicao.exerciciosprof.Ativo) {
       throw naoEncontrado();
     }
-    return atribuicao.exerciciosprof;
+    // O aluno recebe as repetições já montadas: um texto, um cronômetro.
+    const exercicio = atribuicao.exerciciosprof;
+    return {
+      ...exercicio,
+      Texto: textoRepetido(exercicio.Texto, atribuicao.Repeticoes),
+      Tempo_Limite_Segundos: tempoRepetido(exercicio.Tempo_Limite_Segundos ?? 0, atribuicao.Repeticoes),
+    };
   }
 }
 

@@ -355,8 +355,12 @@ export const api = {
     atribuicoes: (turmaId: string) =>
       get<AtribuicaoProfessor[]>(`/turmas/${turmaId}/atribuicoes`),
 
-    atribuir: (turmaId: string, ids: string[]) =>
-      post<Atribuicao[]>(`/turmas/${turmaId}/atribuicoes`, { exercicioIds: ids }),
+    // repeticoes: { [exercicioId]: 1 a 5 }; quem não está fica com 1.
+    atribuir: (turmaId: string, ids: string[], repeticoes?: Record<string, number>) =>
+      post<Atribuicao[]>(`/turmas/${turmaId}/atribuicoes`, { exercicioIds: ids, repeticoes }),
+
+    alterarAtribuicao: (turmaId: string, exercicioId: string, dados: { repeticoes: number }) =>
+      patch<Atribuicao>(`/turmas/${turmaId}/atribuicoes/${exercicioId}`, dados),
 
     removerAtribuicao: (turmaId: string, exercicioId: string) =>
       del(`/turmas/${turmaId}/atribuicoes/${exercicioId}`),

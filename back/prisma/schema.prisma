@@ -19,6 +19,7 @@ model atribuicoesprof {
   ExerciseID      String         @db.VarChar(100)
   Data_Atribuicao DateTime?      @default(now()) @db.DateTime(0)
   Prazo           DateTime?      @db.DateTime(0)
+  Repeticoes      Int            @default(1)
   classesprof     classesprof    @relation(fields: [ClassID], references: [ClassID], onDelete: Cascade, onUpdate: NoAction, map: "atribuicoesprof_ibfk_1")
   exerciciosprof  exerciciosprof @relation(fields: [ExerciseID], references: [ExerciseID], onDelete: Cascade, onUpdate: NoAction, map: "atribuicoesprof_ibfk_2")
 

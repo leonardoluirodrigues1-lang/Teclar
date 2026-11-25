@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 74 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 75 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -177,7 +177,8 @@ confere('exercicios.atualizar', atualizado.titulo === 'Exercício Teste 2' && at
 const descartavel = await api.exercicios.criar({ titulo: 'Para arquivar', texto: TEXTO, dificuldade: 'dificil', tempoLimiteSegundos: 0 });
 
 const atribuidas = await api.turmas.atribuir(turma.id, [exercicio.id, descartavel.id]);
-confere('turmas.atribuir devolve a lista crua', atribuidas.length === 2 && atribuidas.every((a) => a.prazo === null));
+confere('turmas.atribuir devolve a lista crua', atribuidas.length === 2 && atribuidas.every((a) => a.prazo === null && a.repeticoes === 1));
+confere('turmas.alterarAtribuicao muda as repetições', (await api.turmas.alterarAtribuicao(turma.id, exercicio.id, { repeticoes: 2 })).repeticoes === 2);
 confere('turmas.removerAtribuicao devolve null (204)', (await api.turmas.removerAtribuicao(turma.id, descartavel.id)) === null);
 confere('exercicios.excluir devolve null (204)', (await api.exercicios.excluir(descartavel.id)) === null);
 const doSistema = await api.exercicios.sistema();
@@ -222,7 +223,7 @@ const sala = await api.escola.aluno.sala(turma.id);
 confere('escola.aluno.capaDaSala: a capa que o professor enviou', sala.temCapa === true && (await api.escola.aluno.capaDaSala(turma.id)).imagem === CAPA);
 confere('escola.aluno.sala: exercício não feito e liberado', sala.lista[0].id === exercicio.id && sala.lista[0].estado === 'nao_feito' && sala.lista[0].bloqueada === false);
 const paraTreinar = await api.exercicios.obter(exercicio.id, turma.id);
-confere('exercicios.obter (aluno, com ?turma=) traz o texto', paraTreinar.texto === TEXTO);
+confere('exercicios.obter (aluno, com ?turma=) traz o texto repetido (2 vezes)', paraTreinar.texto === `${TEXTO} ${TEXTO}`);
 await confereErro('exercicios.obter (aluno) de exercício fora da turma', api.exercicios.obter(descartavel.id, turma.id), 404, 'NAO_ENCONTRADO');
 
 // Treino: como a tela de treino envia (filaSessoes.enviar com mundo 'escola')
@@ -414,4 +415,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 74 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 75 funções do api.ts contra o back.`);

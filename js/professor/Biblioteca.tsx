@@ -111,6 +111,8 @@ function Biblioteca() {
   // Os da biblioteca pelo id do exercício; os do sistema pelo id da lição.
   const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set());
   const [selecionadosDoSistema, setSelecionadosDoSistema] = useState<Set<string>>(() => new Set());
+  // Repetições de cada marcado (1 a 5; sem entrada = 1), pela mesma chave da seleção.
+  const [repeticoes, setRepeticoes] = useState<Map<string, number>>(() => new Map());
   const [erroAtribuir, setErroAtribuir] = useState<string | null>(null);
   const atribuindo = useRef(false);
   const [ocupado, setOcupado] = useState(false);
@@ -241,7 +243,11 @@ function Biblioteca() {
       const copias = await Promise.all([...selecionadosDoSistema].map((id) => api.exercicios.copiarDoSistema(id)));
       copias.forEach((copia, i) => guardarCopia([...selecionadosDoSistema][i], copia.exercicio));
       const ids = new Set([...selecionados, ...copias.map((copia) => copia.exercicio.id)]);
-      await api.turmas.atribuir(turmaDestino, [...ids]);
+      // A lição do sistema entra pela cópia: a repetição dela vai no id da cópia.
+      const porExercicio: Record<string, number> = {};
+      for (const id of selecionados) porExercicio[id] = repeticoes.get(id) ?? 1;
+      [...selecionadosDoSistema].forEach((id, i) => (porExercicio[copias[i].exercicio.id] = repeticoes.get(id) ?? 1));
+      await api.turmas.atribuir(turmaDestino, [...ids], porExercicio);
       // A turma recarrega as atribuições ao abrir e avisa quantas entraram.
       location.assign(hrefDaTurma({ atribuidos: String(ids.size) }));
     } catch (excecao) {
@@ -252,6 +258,33 @@ function Biblioteca() {
   }
 
   // --- colunas --------------------------------------------------------------
+
+  // Só os marcados agora têm o campo; a prévia é a conta do que o aluno digita.
+  function celulaRepeticoes(id: string, titulo: string, caracteres: number, marcado: boolean) {
+    if (!marcado) return <span aria-hidden="true">—</span>;
+    const n = repeticoes.get(id) ?? 1;
+    return (
+      <span className="campo-repeticoes">
+        <select
+          className="seletor seletor-pequeno"
+          aria-label={`Repetições de “${titulo}”`}
+          aria-describedby={`previa-rep-${id}`}
+          value={n}
+          disabled={ocupado}
+          onChange={(evento) => setRepeticoes((atual) => new Map(atual).set(id, Number(evento.target.value)))}
+        >
+          {[1, 2, 3, 4, 5].map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <span className="previa-repeticoes" id={`previa-rep-${id}`}>
+          {n} × {caracteres} caracteres = {n * caracteres}
+        </span>
+      </span>
+    );
+  }
 
   const colunaTitulo: ColunaTabela<Exercicio> = {
     rotulo: 'Exercício',
@@ -332,6 +365,11 @@ function Biblioteca() {
       ),
     },
     ...colunasDeDados,
+    {
+      rotulo: 'Repetições',
+      classe: 'col-repeticoes',
+      celula: (ex) => celulaRepeticoes(ex.id, ex.titulo, tamanhoDoTexto(ex), selecionados.has(ex.id)),
+    },
   ];
 
   // Exercícios do sistema: a etiqueta, o título (sem link: a lição não é do
@@ -415,6 +453,11 @@ function Biblioteca() {
     },
     // Nível, caracteres e tempo; sem a coluna de ações.
     ...colunasDoSistema.slice(1, -1),
+    {
+      rotulo: 'Repetições',
+      classe: 'col-repeticoes',
+      celula: (ex) => celulaRepeticoes(ex.id, ex.titulo, tamanhoDoTexto(ex), selecionadosDoSistema.has(ex.id)),
+    },
   ];
 
   function renderizarSistema() {

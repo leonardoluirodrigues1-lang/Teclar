@@ -597,7 +597,7 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         rota: 'GET /turmas/:id/atribuicoes',
         resposta: `200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição
   [{ "exercicioId": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-     "atribuidoEm": "2026-02-03", "concluidoPor": 3, "totalAlunos": 4 }]`,
+     "atribuidoEm": "2026-02-03", "repeticoes": 1, "concluidoPor": 3, "totalAlunos": 4 }]`,
         erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com
@@ -606,18 +606,31 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
       },
       'turmas.atribuir': {
         rota: 'POST /turmas/:id/atribuicoes',
-        corpo: `{ exercicioIds } — vários de uma vez
-  { "exercicioIds": ["ex-prof-3", "ex-prof-4"] }`,
+        corpo: `{ exercicioIds, repeticoes? } — vários de uma vez; repeticoes é { [exercicioId]: 1 a 5 }, e quem não está nele fica com 1
+  { "exercicioIds": ["ex-prof-3", "ex-prof-4"], "repeticoes": { "ex-prof-3": 3 } }`,
         resposta: `200 Atribuicao[] — a lista crua de atribuições da turma, como ficou
-  [{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null },
-   { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null }]`,
-        erros: `400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, ou o corpo traz professorId
+  [{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null, "repeticoes": 1 },
+   { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null, "repeticoes": 3 }]`,
+        erros: `400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, o corpo traz professorId, ou repeticoes não é objeto, tem id fora de exercicioIds ou número que não é inteiro de 1 a 5
   404 NAO_ENCONTRADO — turma ou algum exercício não é da conta (ou está arquivado)`,
         identidade: `O token: a turma E cada exercício têm de ser da conta.`,
         back: `Confere todos os ids antes de gravar qualquer um. Repetir um já atribuído
-  não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).`,
+  não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID). As
+  repetições vão para AtribuicoesProf.Repeticoes (1 a 5, padrão 1); repetir um
+  já atribuído não muda as dele (para isso, o PATCH).`,
         nota: `A resposta não traz título nem concluidoPor: a tela relê
   GET /turmas/:id/atribuicoes depois.`,
+      },
+      'turmas.alterarAtribuicao': {
+        rota: 'PATCH /turmas/:id/atribuicoes/:exercicioId',
+        corpo: `{ repeticoes } — 1 a 5
+  { "repeticoes": 3 }`,
+        resposta: `200 Atribuicao — a linha como ficou
+  { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null, "repeticoes": 3 }`,
+        erros: `400 DADOS_INVALIDOS — sem repeticoes, número que não é inteiro de 1 a 5, ou o corpo traz professorId
+  404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela`,
+        identidade: `O token: a turma tem de ser da conta.`,
+        nota: `Vale para as próximas tentativas: as sessões já feitas ficam como foram.`,
       },
       'turmas.removerAtribuicao': {
         rota: 'DELETE /turmas/:id/atribuicoes/:exercicioId',
@@ -875,6 +888,9 @@ feitas.`,
         identidade: `Conta: o exercício tem de ser dela; ?turma= é ignorado.
   Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a
   dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.`,
+        back: `Aluno: o texto vem repetido AtribuicoesProf.Repeticoes vezes, num bloco
+  só separado por espaço, e o tempoLimiteSegundos × as repetições (0 continua
+  sem limite): um texto, um cronômetro, como a lição do Solo.`,
         nota: `A mesma regra vale no POST /sessoes, para o aluno descobrir na
   ABERTURA do treino, e não depois de digitar o texto inteiro.`,
       },
@@ -1098,7 +1114,7 @@ da conta, e mora em \`solo\`.`,
   { "id": "turma-1", "nome": "9º Ano A — Manhã", "professor": "Henrique Lima",
     "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3,
     "lista": [{ "id": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-      "caracteres": 247, "tempoLimiteSegundos": 120, "atribuidoEm": "2026-02-03",
+      "caracteres": 247, "tempoLimiteSegundos": 120, "repeticoes": 1, "atribuidoEm": "2026-02-03",
       "prazo": null, "estado": "feito", "bloqueada": false, "melhorWpm": 40, "melhorPrecisao": 95,
       "ultimaSessao": "2026-02-18T14:10:00.000Z" }] }`,
         erros: `404 NAO_ENCONTRADO — a sala não existe ou ele não está nela
@@ -1106,7 +1122,8 @@ da conta, e mora em \`solo\`.`,
         identidade: `O token. O :turmaId é da SALA, nunca de aluno.`,
         back: `Cada exercício na ordem da atribuição, com o estado dele (nao_feito,
   feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o
-  texto. Nenhum número de colega.
+  texto. caracteres e tempoLimiteSegundos já contam as repeticoes (o texto N
+  vezes, separado por espaço; o tempo × N). Nenhum número de colega.
   \`bloqueada\`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id).
   Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão
   com concluida = true) continuam abertos; tempo esgotado não libera o

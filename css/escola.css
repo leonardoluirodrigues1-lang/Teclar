@@ -2008,6 +2008,12 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
   cursor: pointer;
 }
 .caixa-selecao:disabled { cursor: not-allowed; }
+/* Repetições do exercício marcado (Biblioteca, modo de seleção) e da
+   atividade já atribuída (aba Atividades): o número e a conta ao lado. */
+.col-repeticoes { white-space: nowrap; }
+.campo-repeticoes { display: inline-flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.seletor.seletor-pequeno { min-width: 0; width: auto; padding-block: .25rem; }
+.previa-repeticoes { font-size: .8125rem; color: var(--cor-texto-fraco); }
 /* Já atribuído: a linha recua, mas o texto continua legível. */
 .tabela tr.linha-indisponivel td { color: var(--cor-texto-suave, #c4c4c4); }
 

@@ -4,7 +4,7 @@
 > mude a rota no api.contrato.ts e rode `npm run contrato` de novo.
 > Se este arquivo e o api.contrato.ts divergirem, vale o api.contrato.ts.
 
-74 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
+75 chamadas em 10 grupos. Os tipos citados (Turma, Sessao...) estão em `js/nucleo/tipos.ts`.
 
 ## Colunas que existem e nenhuma rota usa
 
@@ -30,7 +30,7 @@ Não é para criar nem para apagar: a coluna está no banco esperando a rota. At
 - **Autenticação**: `POST /auth/login`, `GET /auth/turmas/:codigo`, `POST /auth/aluno`, `POST /auth/cadastro`, `GET /auth/eu`, `POST /auth/logout`
 - **Conta (Configurações)**: `PATCH /conta`, `POST /conta/senha`, `PUT /conta/foto`, `GET /conta/foto`, `DELETE /conta/foto`
 - **Solo**: `GET /solo/campanha`, `POST /solo/campanha`, `GET /solo/campanhas/:id`, `DELETE /solo/campanhas/:id`, `GET /solo/missoes`, `GET /solo/missoes/:id`, `POST /solo/sessoes`, `GET /solo/historico`, `GET /solo/indicadores`, `GET /solo/estatisticas`
-- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
+- **Turmas (professor)**: `GET /turmas`, `GET /turmas?ativa=false`, `POST /turmas`, `GET /turmas/:id`, `PATCH /turmas/:id` (renomear), `PATCH /turmas/:id` (trocarCapa), `PUT /turmas/:id/capa`, `GET /turmas/:id/capa`, `DELETE /turmas/:id/capa`, `PATCH /turmas/:id` (arquivar), `PATCH /turmas/:id` (desarquivar), `POST /turmas/:id/codigo/novo`, `GET /turmas/:id/atribuicoes`, `POST /turmas/:id/atribuicoes`, `PATCH /turmas/:id/atribuicoes/:exercicioId`, `DELETE /turmas/:id/atribuicoes/:exercicioId`
 - **Alunos (professor)**: `GET /turmas/:id/alunos`, `POST /turmas/:id/alunos/importar`, `DELETE /turmas/:id/alunos/:alunoId`, `POST /turmas/:id/alunos/:alunoId/senha-provisoria`, `GET /turmas/:id/alunos/:alunoId/desempenho`, `GET /turmas/:id/alunos/:alunoId/foto`
 - **Relatórios (professor)**: `GET /turmas/:id/relatorio`, `GET /turmas/:id/relatorio/evolucao`, `GET /turmas/:id/relatorio/alunos`, `GET /turmas/:id/relatorio/exercicios`, `GET /turmas/:id/alunos/:alunoId/sessoes`
 - **Biblioteca de exercícios (professor)**: `GET /exercicios`, `GET /exercicios/sistema`, `POST /exercicios/sistema/:id/copiar`, `GET /exercicios/:id?turma=:turmaId`, `POST /exercicios`, `PATCH /exercicios/:id`, `DELETE /exercicios/:id`
@@ -1082,7 +1082,7 @@ Chamada no front: `api.turmas.atribuicoes`
 
 ```json
 [{ "exercicioId": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-   "atribuidoEm": "2026-02-03", "concluidoPor": 3, "totalAlunos": 4 }]
+   "atribuidoEm": "2026-02-03", "repeticoes": 1, "concluidoPor": 3, "totalAlunos": 4 }]
 ```
 
 **Erros:**
@@ -1107,10 +1107,10 @@ Chamada no front: `api.turmas.atribuir`
 
 **Corpo:**
 
-{ exercicioIds } — vários de uma vez
+{ exercicioIds, repeticoes? } — vários de uma vez; repeticoes é { [exercicioId]: 1 a 5 }, e quem não está nele fica com 1
 
 ```json
-{ "exercicioIds": ["ex-prof-3", "ex-prof-4"] }
+{ "exercicioIds": ["ex-prof-3", "ex-prof-4"], "repeticoes": { "ex-prof-3": 3 } }
 ```
 
 **Resposta:**
@@ -1118,13 +1118,13 @@ Chamada no front: `api.turmas.atribuir`
 200 Atribuicao[] — a lista crua de atribuições da turma, como ficou
 
 ```json
-[{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null },
- { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null }]
+[{ "exerciseId": "ex-prof-1", "atribuidoEm": "2026-02-03", "prazo": null, "repeticoes": 1 },
+ { "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null, "repeticoes": 3 }]
 ```
 
 **Erros:**
 
-- 400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, ou o corpo traz professorId
+- 400 DADOS_INVALIDOS — exercicioIds vazio, que não é lista de ids, o corpo traz professorId, ou repeticoes não é objeto, tem id fora de exercicioIds ou número que não é inteiro de 1 a 5
 - 404 NAO_ENCONTRADO — turma ou algum exercício não é da conta (ou está arquivado)
 
 **Identidade:**
@@ -1133,11 +1133,44 @@ O token: a turma E cada exercício têm de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Confere todos os ids antes de gravar qualquer um. Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID).
+Confere todos os ids antes de gravar qualquer um. Repetir um já atribuído não duplica: a chave de AtribuicoesProf é o par (ClassID, ExerciseID). As repetições vão para AtribuicoesProf.Repeticoes (1 a 5, padrão 1); repetir um já atribuído não muda as dele (para isso, o PATCH).
 
 **Notas:**
 
 A resposta não traz título nem concluidoPor: a tela relê GET /turmas/:id/atribuicoes depois.
+
+### `PATCH /turmas/:id/atribuicoes/:exercicioId`
+
+Chamada no front: `api.turmas.alterarAtribuicao`
+
+**Corpo:**
+
+{ repeticoes } — 1 a 5
+
+```json
+{ "repeticoes": 3 }
+```
+
+**Resposta:**
+
+200 Atribuicao — a linha como ficou
+
+```json
+{ "exerciseId": "ex-prof-3", "atribuidoEm": "2026-10-03", "prazo": null, "repeticoes": 3 }
+```
+
+**Erros:**
+
+- 400 DADOS_INVALIDOS — sem repeticoes, número que não é inteiro de 1 a 5, ou o corpo traz professorId
+- 404 NAO_ENCONTRADO — turma de outra conta, ou o exercício não está atribuído a ela
+
+**Identidade:**
+
+O token: a turma tem de ser da conta.
+
+**Notas:**
+
+Vale para as próximas tentativas: as sessões já feitas ficam como foram.
 
 ### `DELETE /turmas/:id/atribuicoes/:exercicioId`
 
@@ -1626,6 +1659,10 @@ Chamada no front: `api.exercicios.obter`
 
 Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.
 
+**Regras de negócio no back (a tela não calcula):**
+
+Aluno: o texto vem repetido AtribuicoesProf.Repeticoes vezes, num bloco só separado por espaço, e o tempoLimiteSegundos × as repetições (0 continua sem limite): um texto, um cronômetro, como a lição do Solo.
+
 **Notas:**
 
 A mesma regra vale no POST /sessoes, para o aluno descobrir na ABERTURA do treino, e não depois de digitar o texto inteiro.
@@ -2070,7 +2107,7 @@ Chamada no front: `api.escola.aluno.sala`
 { "id": "turma-1", "nome": "9º Ano A — Manhã", "professor": "Henrique Lima",
   "capaSemente": 7001, "totalAlunos": 4, "exerciciosFeitos": 2, "exerciciosTotal": 3,
   "lista": [{ "id": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-    "caracteres": 247, "tempoLimiteSegundos": 120, "atribuidoEm": "2026-02-03",
+    "caracteres": 247, "tempoLimiteSegundos": 120, "repeticoes": 1, "atribuidoEm": "2026-02-03",
     "prazo": null, "estado": "feito", "bloqueada": false, "melhorWpm": 40, "melhorPrecisao": 95,
     "ultimaSessao": "2026-02-18T14:10:00.000Z" }] }
 ```
@@ -2086,7 +2123,7 @@ O token. O :turmaId é da SALA, nunca de aluno.
 
 **Regras de negócio no back (a tela não calcula):**
 
-Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.
+Cada exercício na ordem da atribuição, com o estado dele (nao_feito, feito, tempo_esgotado), a melhor marca e a contagem de caracteres, sem o texto. caracteres e tempoLimiteSegundos já contam as repeticoes (o texto N vezes, separado por espaço; o tempo × N). Nenhum número de colega. `bloqueada`: os exercícios abrem nesta ordem (Data_Atribuicao, título, id). Só o primeiro não concluído fica aberto; os concluídos (ao menos uma sessão com concluida = true) continuam abertos; tempo esgotado não libera o seguinte. Exercício arquivado ou com a atribuição removida sai da sequência, e o atribuído depois entra no fim.
 
 ### `GET /aluno/salas/:turmaId/capa`
 

@@ -3,11 +3,11 @@
 //
 // O GuardaDoToken fica na classe, como em turmas: aqui não há rota
 // pública, e uma rota nova não corre o risco de nascer sem ele.
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { GuardaDoToken } from '../autenticacao/guarda-do-token.js';
 import type { RequisicaoComIdentidade } from '../autenticacao/guarda-do-token.js';
 import { AtribuicoesService } from './atribuicoes.service.js';
-import type { Atribuicao, AtribuicaoProfessor, CorpoDaAtribuicao } from './atribuicoes.service.js';
+import type { Atribuicao, AtribuicaoProfessor, CorpoDaAlteracao, CorpoDaAtribuicao } from './atribuicoes.service.js';
 
 @Controller('turmas/:turmaId/atribuicoes')
 @UseGuards(GuardaDoToken)
@@ -28,6 +28,16 @@ export class AtribuicoesController {
     @Body() corpo: CorpoDaAtribuicao,
   ): Promise<Atribuicao[]> {
     return this.atribuicoes.atribuir(requisicao.identidade, turmaId, corpo);
+  }
+
+  @Patch(':exercicioId')
+  alterar(
+    @Req() requisicao: RequisicaoComIdentidade,
+    @Param('turmaId') turmaId: string,
+    @Param('exercicioId') exercicioId: string,
+    @Body() corpo: CorpoDaAlteracao,
+  ): Promise<Atribuicao> {
+    return this.atribuicoes.alterar(requisicao.identidade, turmaId, exercicioId, corpo);
   }
 
   @Delete(':exercicioId')

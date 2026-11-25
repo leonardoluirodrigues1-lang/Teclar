@@ -156,7 +156,10 @@ CREATE TABLE teclardb_v10.atribuicoesprof (
     ExerciseID VARCHAR(100) NOT NULL,
     Data_Atribuicao DATETIME DEFAULT CURRENT_TIMESTAMP,
     Prazo DATETIME NULL,
+    -- Quantas vezes o aluno digita o texto, num bloco só (ver back/src/atribuicoes/repeticoes.ts).
+    Repeticoes INT NOT NULL DEFAULT 1,
     PRIMARY KEY (ClassID, ExerciseID),
+    CONSTRAINT chk_atribuicoes_repeticoes CHECK (Repeticoes BETWEEN 1 AND 5),
     FOREIGN KEY (ClassID) REFERENCES teclardb_v10.classesprof(ClassID) ON DELETE CASCADE,
     FOREIGN KEY (ExerciseID) REFERENCES teclardb_v10.exerciciosprof(ExerciseID) ON DELETE CASCADE
 ) ENGINE=InnoDB;

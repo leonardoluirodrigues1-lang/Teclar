@@ -3,12 +3,15 @@
 // foi dado a qual turma dele.
 //   GET    /turmas/:turmaId/atribuicoes                 visão do professor, com quem concluiu
 //   POST   /turmas/:turmaId/atribuicoes                 atribui vários de uma vez
+//   PATCH  /turmas/:turmaId/atribuicoes/:exercicioId    muda as repetições de uma
 //   DELETE /turmas/:turmaId/atribuicoes/:exercicioId    tira um da turma
 //
 // A atribuição não tem id próprio: a chave de AtribuicoesProf é o PAR
 // (ClassID, ExerciseID). Tirar um exercício da turma apaga só essa linha;
 // as sessões que os alunos já fizeram nele continuam.
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { dadosInvalidos } from '../dados-invalidos.js';
+import { repeticoesValidas } from './repeticoes.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
@@ -17,6 +20,14 @@ import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
 export interface CorpoDaAtribuicao {
   exercicioIds?: unknown;
+  // { [exercicioId]: 1 a 5 }; quem não está no mapa fica com 1.
+  repeticoes?: unknown;
+  professorId?: unknown;
+}
+
+// PATCH: o que muda numa atribuição que já existe.
+export interface CorpoDaAlteracao {
+  repeticoes?: unknown;
   professorId?: unknown;
 }
 
@@ -26,6 +37,7 @@ export interface AtribuicaoProfessor {
   titulo: string;
   dificuldade: 'facil' | 'medio' | 'dificil';
   atribuidoEm: string | null;
+  repeticoes: number;
   concluidoPor: number;
   totalAlunos: number;
 }
@@ -35,6 +47,7 @@ export interface Atribuicao {
   exerciseId: string;
   atribuidoEm: string | null;
   prazo: string | null;
+  repeticoes: number;
 }
 
 @Injectable()
@@ -62,6 +75,7 @@ export class AtribuicoesService {
       titulo: linha.exerciciosprof.Titulo,
       dificuldade: linha.exerciciosprof.Dificuldade,
       atribuidoEm: soData(linha.Data_Atribuicao),
+      repeticoes: linha.Repeticoes,
       concluidoPor: concluintes.get(linha.ExerciseID) ?? 0,
       totalAlunos,
     }));
@@ -74,6 +88,7 @@ export class AtribuicoesService {
     const professorId = professorDoToken(identidade);
     recusarProfessorIdNoCorpo(corpo);
     const ids = idsDoCorpo(corpo?.exercicioIds);
+    const repeticoes = repeticoesDoCorpo(corpo?.repeticoes, ids);
     await turmaDaConta(this.banco, professorId, turmaId);
 
     // Exercício arquivado conta como inexistente (404), como nas rotas de
@@ -86,9 +101,10 @@ export class AtribuicoesService {
     }
 
     // skipDuplicates: repetir um já atribuído não é erro nem duplica — a
-    // chave primária é o par, e a data da primeira atribuição fica.
+    // chave primária é o par, e a data (e as repetições) da primeira
+    // atribuição ficam: para mudar as repetições, o PATCH.
     await this.banco.atribuicoesprof.createMany({
-      data: ids.map((exercicioId) => ({ ClassID: turmaId, ExerciseID: exercicioId })),
+      data: ids.map((exercicioId) => ({ ClassID: turmaId, ExerciseID: exercicioId, Repeticoes: repeticoes.get(exercicioId) ?? 1 })),
       skipDuplicates: true,
     });
 
@@ -99,11 +115,30 @@ export class AtribuicoesService {
       // em ordem alfabética, e o id para dois títulos iguais.
       orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
-    return lista.map((linha) => ({
-      exerciseId: linha.ExerciseID,
-      atribuidoEm: soData(linha.Data_Atribuicao),
-      prazo: linha.Prazo?.toISOString() ?? null,
-    }));
+    return lista.map(atribuicaoNaForma);
+  }
+
+  // PATCH. Vale para as próximas tentativas: as sessões já feitas ficam
+  // como foram. Turma de outra conta ou exercício não atribuído: 404.
+  async alterar(identidade: Identidade, turmaId: string, exercicioId: string, corpo: CorpoDaAlteracao): Promise<Atribuicao> {
+    const professorId = professorDoToken(identidade);
+    recusarProfessorIdNoCorpo(corpo);
+    if (corpo?.repeticoes === undefined) {
+      throw dadosInvalidos('Mande repeticoes.');
+    }
+    const repeticoes = repeticoesValidas(corpo.repeticoes);
+    await turmaDaConta(this.banco, professorId, turmaId);
+    const alterou = await this.banco.atribuicoesprof.updateMany({
+      where: { ClassID: turmaId, ExerciseID: exercicioId },
+      data: { Repeticoes: repeticoes },
+    });
+    if (alterou.count === 0) {
+      throw new NotFoundException({ mensagem: 'Atribuição não encontrada.', codigo: 'NAO_ENCONTRADO' });
+    }
+    const linha = await this.banco.atribuicoesprof.findUniqueOrThrow({
+      where: { ClassID_ExerciseID: { ClassID: turmaId, ExerciseID: exercicioId } },
+    });
+    return atribuicaoNaForma(linha);
   }
 
   // DELETE. Turma de outra conta, ou exercício que não está atribuído a
@@ -145,6 +180,35 @@ function idsDoCorpo(valor: unknown): string[] {
     });
   }
   return [...new Set(valor as string[])];
+}
+
+// O mapa { [exercicioId]: repetições } do POST. Ausente: todos com 1. Id
+// que não está em exercicioIds é 400: a tela mandou repetição de um
+// exercício que não ia atribuir.
+function repeticoesDoCorpo(valor: unknown, ids: string[]): Map<string, number> {
+  if (valor === undefined) {
+    return new Map();
+  }
+  if (valor === null || typeof valor !== 'object' || Array.isArray(valor)) {
+    throw dadosInvalidos('repeticoes precisa ser um objeto { exercicioId: 1 a 5 }.');
+  }
+  const mapa = new Map<string, number>();
+  for (const [id, n] of Object.entries(valor)) {
+    if (!ids.includes(id)) {
+      throw dadosInvalidos('repeticoes tem um exercício que não está em exercicioIds.');
+    }
+    mapa.set(id, repeticoesValidas(n));
+  }
+  return mapa;
+}
+
+function atribuicaoNaForma(linha: { ExerciseID: string; Data_Atribuicao: Date | null; Prazo: Date | null; Repeticoes: number }): Atribuicao {
+  return {
+    exerciseId: linha.ExerciseID,
+    atribuidoEm: soData(linha.Data_Atribuicao),
+    prazo: linha.Prazo?.toISOString() ?? null,
+    repeticoes: linha.Repeticoes,
+  };
 }
 
 // Só a data ("2026-02-03"), como o contrato pede.

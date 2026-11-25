@@ -735,27 +735,27 @@ export const dados: BancoMock = {
   // `prazo`, que é a data de entrega.
   atribuicoes: {
     'turma-1': [
-      { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: null },
-      { exerciseId: 'ex-prof-2', atribuidoEm: '2026-02-17', prazo: null },
-      { exerciseId: 'ex-prof-7', atribuidoEm: '2026-03-20', prazo: null },
-      { exerciseId: 'ex-prof-8', atribuidoEm: '2026-03-24', prazo: null },
-      { exerciseId: 'ex-prof-9', atribuidoEm: '2026-03-27', prazo: null },
-      { exerciseId: 'ex-prof-10', atribuidoEm: '2026-03-31', prazo: null },
-      { exerciseId: 'ex-prof-11', atribuidoEm: '2026-04-03', prazo: null },
-      { exerciseId: 'ex-prof-12', atribuidoEm: '2026-04-07', prazo: null },
+      { exerciseId: 'ex-prof-1', atribuidoEm: '2026-02-03', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-2', atribuidoEm: '2026-02-17', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-7', atribuidoEm: '2026-03-20', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-8', atribuidoEm: '2026-03-24', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-9', atribuidoEm: '2026-03-27', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-10', atribuidoEm: '2026-03-31', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-11', atribuidoEm: '2026-04-03', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-12', atribuidoEm: '2026-04-07', prazo: null, repeticoes: 1 },
     ],
     'turma-2': [
-      { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: null },
-      { exerciseId: 'ex-prof-5', atribuidoEm: '2026-03-04', prazo: null },
+      { exerciseId: 'ex-prof-3', atribuidoEm: '2026-02-11', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-5', atribuidoEm: '2026-03-04', prazo: null, repeticoes: 1 },
     ],
     'turma-3': [
-      { exerciseId: 'ex-prof-1', atribuidoEm: '2025-08-20', prazo: null },
-      { exerciseId: 'ex-prof-2', atribuidoEm: '2025-08-20', prazo: null },
-      { exerciseId: 'ex-prof-3', atribuidoEm: '2025-09-01', prazo: null },
+      { exerciseId: 'ex-prof-1', atribuidoEm: '2025-08-20', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-2', atribuidoEm: '2025-08-20', prazo: null, repeticoes: 1 },
+      { exerciseId: 'ex-prof-3', atribuidoEm: '2025-09-01', prazo: null, repeticoes: 1 },
     ],
     // Vazia de propósito — ver o comentário na turma-4.
     'turma-4': [],
-    'turma-5': [{ exerciseId: 'ex-prof-6', atribuidoEm: '2026-03-10', prazo: null }],
+    'turma-5': [{ exerciseId: 'ex-prof-6', atribuidoEm: '2026-03-10', prazo: null, repeticoes: 1 }],
   },
 
   // Sessões do mundo Escola (SessionsProf). É a ÚNICA fonte dos relatórios
@@ -1251,6 +1251,19 @@ function exercicioAtribuidoAoAluno(
   return ex;
 }
 
+function repeticoesNaTurma(turmaId: string | null, exercicioId: string): number {
+  return (dados.atribuicoes[turmaId ?? ''] ?? []).find((a) => a.exerciseId === exercicioId)?.repeticoes ?? 1;
+}
+
+// 1 a 5, inteiro; ausente é 1. Igual a back/src/atribuicoes/repeticoes.ts.
+function repeticoesValidas(valor: unknown): number {
+  if (valor === undefined) return 1;
+  if (!Number.isInteger(valor) || (valor as number) < 1 || (valor as number) > 5) {
+    throw erro(400, 'repeticoes precisa ser um número inteiro de 1 a 5.', 'DADOS_INVALIDOS');
+  }
+  return valor as number;
+}
+
 // Aluno: a turma vem da query (?turma=), posta por Treino.tsx. Conta: a
 // query é ignorada, o filtro é o dono.
 function exercicioVisivel(
@@ -1259,7 +1272,12 @@ function exercicioVisivel(
   turmaId: string | null
 ): Exercicio {
   const usuario = usuarioDoToken(token);
-  if (usuario?.tipo === 'aluno') return exercicioAtribuidoAoAluno(id, usuario.id, turmaId);
+  if (usuario?.tipo === 'aluno') {
+    // O aluno recebe as repetições já montadas, como no back: um texto, um cronômetro.
+    const ex = exercicioAtribuidoAoAluno(id, usuario.id, turmaId);
+    const n = repeticoesNaTurma(turmaId, id);
+    return { ...ex, texto: Array(n).fill(ex.texto).join(' '), tempoLimiteSegundos: ex.tempoLimiteSegundos * n };
+  }
   return exercicioDaConta(id, token);
 }
 
@@ -1386,6 +1404,7 @@ function linhaPorExercicio(
     exercicioId: ex.id,
     titulo: ex.titulo,
     dificuldade: ex.dificuldade,
+    repeticoes: atribuicao.repeticoes ?? 1,
     atribuidoEm: atribuicao.atribuidoEm ?? null,
     concluidoPor: concluintes(turmaId, ex.id),
     totalAlunos,
@@ -1512,8 +1531,10 @@ function exerciciosDaSala(turmaId: string, alunoId: string): ExercicioDaSala[] {
       id: ex.id,
       titulo: ex.titulo,
       dificuldade: ex.dificuldade,
-      caracteres: ex.texto.length,
-      tempoLimiteSegundos: ex.tempoLimiteSegundos,
+      // Com as repetições, como o back: o que o aluno digita de fato.
+      caracteres: Array(atribuicao.repeticoes ?? 1).fill(ex.texto).join(' ').length,
+      tempoLimiteSegundos: ex.tempoLimiteSegundos * (atribuicao.repeticoes ?? 1),
+      repeticoes: atribuicao.repeticoes ?? 1,
       atribuidoEm: atribuicao.atribuidoEm ?? null,
       prazo: atribuicao.prazo,
       estado: estadoDoExercicio(doExercicio),
@@ -2589,6 +2610,7 @@ const rotas: [string, RegExp, Handler][] = [
             titulo: ex.titulo,
             dificuldade: ex.dificuldade,
             atribuidoEm: a.atribuidoEm ?? null,
+            repeticoes: a.repeticoes ?? 1,
             concluidoPor: concluintes(turmaId, ex.id),
             totalAlunos,
           };
@@ -2612,14 +2634,35 @@ const rotas: [string, RegExp, Handler][] = [
       // Id que não existe na biblioteca DESTA conta é recusado ANTES de
       // gravar qualquer um: metade atribuída é pior que nada atribuído.
       for (const exId of ids) exercicioDaConta(exId, token);
+      const repeticoes: Record<string, unknown> = corpo?.repeticoes ?? {};
+      for (const [exId, n] of Object.entries(repeticoes)) {
+        if (!ids.includes(exId)) throw erro(400, 'repeticoes tem um exercício que não está em exercicioIds.', 'DADOS_INVALIDOS');
+        repeticoesValidas(n);
+      }
 
       for (const exId of ids) {
         if (!lista.some((a) => a.exerciseId === exId)) {
-          lista.push({ exerciseId: exId, atribuidoEm: hoje(), prazo: null });
+          lista.push({ exerciseId: exId, atribuidoEm: hoje(), prazo: null, repeticoes: repeticoesValidas(repeticoes[exId]) });
         }
       }
       turma.totalExercicios = lista.length;
       return lista;
+    },
+  ],
+  [
+    // Muda as repetições de uma atribuição; vale para as próximas tentativas.
+    'PATCH',
+    montarRegex('/turmas/:turmaId/atribuicoes/:exercicioId'),
+    (params, corpo, token) => {
+      const [turmaId, exercicioId] = params;
+      turmaDaConta(turmaId, token);
+      recusarProfessorId(corpo);
+      if (corpo?.repeticoes === undefined) throw erro(400, 'Mande repeticoes.', 'DADOS_INVALIDOS');
+      const repeticoes = repeticoesValidas(corpo.repeticoes);
+      const atribuicao = (dados.atribuicoes[turmaId] ?? []).find((a) => a.exerciseId === exercicioId);
+      if (!atribuicao) throw erro(404, 'Atribuição não encontrada.', 'NAO_ENCONTRADO');
+      atribuicao.repeticoes = repeticoes;
+      return atribuicao;
     },
   ],
   [

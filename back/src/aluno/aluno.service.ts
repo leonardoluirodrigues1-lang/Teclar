@@ -21,6 +21,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import bcrypt from 'bcryptjs';
 import { CUSTO_BCRYPT_ALUNO, problemaNaSenhaDoAluno } from '../autenticacao/senha-do-aluno.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
+import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -73,6 +74,7 @@ export interface ExercicioDaSala {
   dificuldade: string;
   caracteres: number;
   tempoLimiteSegundos: number;
+  repeticoes: number;
   atribuidoEm: string | null;
   prazo: string | null;
   estado: EstadoDoExercicio;
@@ -311,8 +313,10 @@ export class AlunoService {
         id: exercicio.ExerciseID,
         titulo: exercicio.Titulo,
         dificuldade: exercicio.Dificuldade,
-        caracteres: exercicio.Texto.length,
-        tempoLimiteSegundos: exercicio.Tempo_Limite_Segundos ?? 0,
+        // Com as repetições: o que o aluno vai digitar de fato.
+        caracteres: textoRepetido(exercicio.Texto, atribuicao.Repeticoes).length,
+        tempoLimiteSegundos: tempoRepetido(exercicio.Tempo_Limite_Segundos ?? 0, atribuicao.Repeticoes),
+        repeticoes: atribuicao.Repeticoes,
         atribuidoEm: soData(atribuicao.Data_Atribuicao),
         prazo: atribuicao.Prazo?.toISOString() ?? null,
         estado: estadoDoExercicio(doExercicio),

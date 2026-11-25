@@ -354,6 +354,20 @@ function Turma() {
     },
   ];
 
+  async function mudarRepeticoes(item: AtribuicaoProfessor, repeticoes: number) {
+    const antes = item.repeticoes;
+    const trocar = (n: number) =>
+      atualizarAtribuicoes((lista) => lista.map((a) => (a.exercicioId === item.exercicioId ? { ...a, repeticoes: n } : a)));
+    trocar(repeticoes);
+    try {
+      await api.turmas.alterarAtribuicao(turmaId, item.exercicioId, { repeticoes });
+      toasts.mostrar(repeticoes === 1 ? 'Agora o texto vem 1 vez' : `Agora o texto vem ${repeticoes} vezes`);
+    } catch (excecao) {
+      trocar(antes);
+      toasts.mostrar(mensagemDaFalha(excecao));
+    }
+  }
+
   const colunasExercicios: ColunaTabela<AtribuicaoProfessor>[] = [
     { rotulo: 'Exercício', celula: (item) => <span className="celula-aluno-nome">{item.titulo ?? 'Sem título'}</span> },
     {
@@ -361,6 +375,25 @@ function Turma() {
       celula: (item) => <span className={`etiqueta etiqueta-${item.dificuldade}`}>{rotuloDificuldade(item.dificuldade)}</span>,
     },
     { rotulo: 'Atribuído em', celula: (item) => (item.atribuidoEm ? formatarData(item.atribuidoEm) : '—') },
+    {
+      rotulo: 'Repetições',
+      classe: 'col-repeticoes',
+      celula: (item) => (
+        // Salva na hora: vale para as próximas tentativas dos alunos.
+        <select
+          className="seletor seletor-pequeno"
+          aria-label={`Repetições de “${item.titulo ?? 'este exercício'}”`}
+          value={item.repeticoes ?? 1}
+          onChange={(evento) => mudarRepeticoes(item, Number(evento.target.value))}
+        >
+          {[1, 2, 3, 4, 5].map((v) => (
+            <option key={v} value={v}>
+              {v === 1 ? '1 vez' : `${v} vezes`}
+            </option>
+          ))}
+        </select>
+      ),
+    },
     { rotulo: 'Progresso', celula: (item) => <ProgressoDaAtividade item={item} /> },
     {
       rotulo: 'Ação',

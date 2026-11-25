@@ -5,7 +5,9 @@
 //     concluidoPor / totalAlunos contados no back.
 //   POST   — vários de uma vez; repetir não duplica nem muda a data; um id
 //     ruim recusa a lista inteira ANTES de gravar; os 400.
+//   PATCH  — muda as repetições (1 a 5) de uma atribuição.
 //   DELETE — pelo par turma + exercício; as sessões ficam.
+//   Repetições: padrão 1, limite 1 a 5, e o aluno recebe o texto repetido.
 //   E, nas três: sem token 401, token de aluno 403 TIPO_INVALIDO, turma ou
 //   exercício de outro professor 404 NAO_ENCONTRADO.
 //
@@ -251,6 +253,59 @@ confere(
   'outra conta: o leo não atribui a cópia do prof à turma dele (404)',
   ehErro(await chamar('POST', '/turmas/turma-5/atribuicoes', { exercicioIds: [copiaNaTurma.id] }, leo), 404, 'NAO_ENCONTRADO'),
 );
+
+// ============================================================================
+// Repetições: padrão 1, 1 a 5 no POST e no PATCH, e o aluno recebe o texto
+// repetido N vezes (separado por espaço) com o tempo limite × N.
+// ============================================================================
+
+r = await chamar('POST', '/exercicios', { titulo: `Teste ${agora} R`, texto: 'Repete este texto aqui.', dificuldade: 'facil', tempoLimiteSegundos: 30 }, prof);
+const exR = r.corpo;
+r = await chamar('GET', rota, null, prof);
+confere('repetições: as atribuições sem repetições ficam com 1', r.corpo.every((a) => a.repeticoes === 1));
+for (const [caso, rep] of [['0', 0], ['6', 6], ['2.5', 2.5], ['texto', '3']]) {
+  r = await chamar('POST', rota, { exercicioIds: [exR.id], repeticoes: { [exR.id]: rep } }, prof);
+  confere(`repetições: ${caso} no POST 400`, ehErro(r, 400, 'DADOS_INVALIDOS'));
+}
+r = await chamar('POST', rota, { exercicioIds: [exR.id], repeticoes: { [exC.id]: 2 } }, prof);
+confere('repetições: id fora de exercicioIds 400', ehErro(r, 400, 'DADOS_INVALIDOS'));
+r = await chamar('POST', rota, { exercicioIds: [exR.id], repeticoes: [3] }, prof);
+confere('repetições: lista em vez de objeto 400', ehErro(r, 400, 'DADOS_INVALIDOS'));
+confere('repetições: nos 400, nada foi gravado', (await banco.atribuicoesprof.count({ where: { ClassID: turma.id, ExerciseID: exR.id } })) === 0);
+r = await chamar('POST', rota, { exercicioIds: [exR.id], repeticoes: { [exR.id]: 3 } }, prof);
+confere('repetições: POST com 3 grava 3', r.status === 200 && r.corpo.find((a) => a.exerciseId === exR.id).repeticoes === 3);
+r = await chamar('GET', rota, null, prof);
+confere('repetições: o GET do professor mostra 3', r.corpo.find((a) => a.exercicioId === exR.id).repeticoes === 3);
+
+const { codigo } = (await chamar('GET', `/turmas/${turma.id}`, null, prof)).corpo;
+r = await chamar('POST', '/auth/aluno', { codigo, nome: 'Teo Lima', senha: 'teo2026' });
+assert.equal(r.status, 200, 'preparo: o Teo entra na turma de teste (primeiro acesso)');
+const tokenLia = r.corpo.token;
+r = await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, tokenLia);
+confere(
+  'repetições: o aluno recebe o texto 3 vezes, separado por espaço, com o tempo × 3',
+  r.status === 200 && r.corpo.texto === 'Repete este texto aqui. Repete este texto aqui. Repete este texto aqui.' && r.corpo.tempoLimiteSegundos === 90,
+);
+r = await chamar('GET', `/aluno/salas/${turma.id}`, null, tokenLia);
+const naSala = r.corpo.lista?.find((e) => e.id === exR.id);
+confere('repetições: a sala do aluno conta os caracteres repetidos', naSala?.caracteres === 'Repete este texto aqui.'.length * 3 + 2 && naSala.repeticoes === 3);
+
+for (const [caso, corpo] of [['sem repeticoes', {}], ['0', { repeticoes: 0 }], ['6', { repeticoes: 6 }], ['professorId', { repeticoes: 2, professorId: 'u-2' }]]) {
+  r = await chamar('PATCH', `${rota}/${exR.id}`, corpo, prof);
+  confere(`alterar: ${caso} 400`, ehErro(r, 400, 'DADOS_INVALIDOS'));
+}
+r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 5 }, prof);
+confere('alterar: 200 com a linha nova (5)', r.status === 200 && r.corpo.exerciseId === exR.id && r.corpo.repeticoes === 5);
+r = await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, tokenLia);
+confere('alterar: vale para a próxima tentativa (5 vezes)', r.corpo.texto.split('Repete').length - 1 === 5 && r.corpo.tempoLimiteSegundos === 150);
+r = await chamar('PATCH', `${rota}/${exA.id}`, { repeticoes: 2 }, prof);
+confere('alterar: exercício não atribuído 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('PATCH', '/turmas/turma-5/atribuicoes/ex-prof-6', { repeticoes: 2 }, prof);
+confere('alterar: turma de outra conta 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 2 }, tokenLia);
+confere('alterar: token de aluno 403', ehErro(r, 403, 'TIPO_INVALIDO'));
+r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 2 });
+confere('alterar: sem token 401', ehErro(r, 401, 'TOKEN_INVALIDO'));
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id}`);
