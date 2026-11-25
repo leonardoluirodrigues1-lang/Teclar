@@ -8,6 +8,10 @@
 //   PATCH  — muda as repetições (1 a 5) de uma atribuição.
 //   DELETE — pelo par turma + exercício; as sessões ficam.
 //   Repetições: padrão 1, limite 1 a 5, e o aluno recebe o texto repetido.
+//   Post da atividade: limites de tamanho, tipo e quantidade dos anexos, HTML
+//   nas instruções guardado como texto, aluno de outra turma, atividade
+//   agendada invisível antes da data, tentativa depois do prazo marcada com
+//   atraso, download só para quem pode, e retirar a atribuição apaga tudo.
 //   E, nas três: sem token 401, token de aluno 403 TIPO_INVALIDO, turma ou
 //   exercício de outro professor 404 NAO_ENCONTRADO.
 //
@@ -306,6 +310,149 @@ r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 2 }, tokenLia);
 confere('alterar: token de aluno 403', ehErro(r, 403, 'TIPO_INVALIDO'));
 r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 2 });
 confere('alterar: sem token 401', ehErro(r, 401, 'TOKEN_INVALIDO'));
+
+// ============================================================================
+// Post da atividade e anexos
+// ============================================================================
+
+const rotaPost = `${rota}/${exR.id}/post`;
+const ana = aluno; // Ana Pires, da turma-2: outra turma
+const b64 = (texto) => Buffer.from(texto, 'latin1').toString('base64');
+const PDF = b64('%PDF-1.4\n%teste\n');
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('resto')]).toString('base64');
+
+r = await chamar('GET', rotaPost, null, prof);
+confere('post: sem post, os padrões (título do exercício, aberto na atribuição)', r.status === 200 && r.corpo.existe === false && r.corpo.titulo === exR.titulo && r.corpo.abertoEm !== null && r.corpo.prazo === null);
+r = await chamar('POST', `${rotaPost}/anexos`, { nome: 'a.pdf', conteudo: PDF }, prof);
+confere('anexo: sem post salvo 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+
+const MALICIOSO = '<script>alert(1)</script> <img src=x onerror=alert(1)> **ok**';
+r = await chamar('PUT', rotaPost, { titulo: '', instrucoes: MALICIOSO, links: [{ titulo: 'Guia', url: 'https://exemplo.org/guia' }] }, prof);
+confere('post: PUT cria, título vazio vira o do exercício', r.status === 200 && r.corpo.existe === true && r.corpo.titulo === exR.titulo);
+confere('post: HTML nas instruções é guardado como texto cru (a tela escapa; ver js/utils/markdown.check.mjs)', r.corpo.instrucoes === MALICIOSO);
+for (const [caso, corpo] of [
+  ['link javascript:', { links: [{ titulo: 'x', url: 'javascript:alert(1)' }] }],
+  ['link data:', { links: [{ titulo: 'x', url: 'data:text/html,<b>oi</b>' }] }],
+  ['6 links', { links: Array.from({ length: 6 }, (_, i) => ({ titulo: `l${i}`, url: `https://exemplo.org/${i}` })) }],
+  ['título com 151', { titulo: 'x'.repeat(151) }],
+  ['instruções com 10.001', { instrucoes: 'x'.repeat(10001) }],
+  ['data inválida', { prazo: 'amanhã' }],
+  ['vencimento antes de Aberto em', { abertoEm: '2030-01-02T00:00:00.000Z', prazo: '2030-01-01T00:00:00.000Z' }],
+  ['professorId', { professorId: 'u-2' }],
+]) {
+  r = await chamar('PUT', rotaPost, corpo, prof);
+  confere(`post: ${caso} 400`, ehErro(r, 400, 'DADOS_INVALIDOS'));
+}
+
+// Anexos: tipo pelo conteúdo, até 2 MB, até 3.
+for (const [caso, corpo] of [
+  ['exe com nome .pdf', { nome: 'virus.pdf', conteudo: b64('MZ\u0090\u0000 executavel') }],
+  ['ZIP que não é DOCX', { nome: 'a.docx', conteudo: b64('PK\u0003\u0004 qualquer coisa') }],
+  ['HTML com nome .png', { nome: 'a.png', conteudo: b64('<html><script>alert(1)</script></html>') }],
+  ['mais de 2 MB', { nome: 'grande.pdf', conteudo: Buffer.concat([Buffer.from('%PDF-'), Buffer.alloc(2 * 1024 * 1024)]).toString('base64') }],
+  ['conteudo que não é base64', { nome: 'a.pdf', conteudo: '%%%' }],
+  ['sem nome', { conteudo: PDF }],
+]) {
+  r = await chamar('POST', `${rotaPost}/anexos`, corpo, prof);
+  confere(`anexo: ${caso} 400`, ehErro(r, 400, 'DADOS_INVALIDOS'));
+}
+r = await chamar('POST', `${rotaPost}/anexos`, { nome: 'C:\\pasta\\roteiro.pdf', conteudo: PDF }, prof);
+const anexoPdf = r.corpo;
+confere('anexo: PDF entra, só com o nome (sem pasta), o tipo do conteúdo e o tamanho', r.status === 200 && anexoPdf.nome === 'roteiro.pdf' && anexoPdf.tipo === 'application/pdf' && anexoPdf.tamanho === 16 && Boolean(anexoPdf.enviadoEm));
+r = await chamar('POST', `${rotaPost}/anexos`, { nome: 'foto.png', conteudo: `data:image/png;base64,${PNG}` }, prof);
+confere('anexo: PNG em data URL entra como image/png', r.status === 200 && r.corpo.tipo === 'image/png');
+r = await chamar('POST', `${rotaPost}/anexos`, { nome: 'outro.pdf', conteudo: PDF }, prof);
+confere('anexo: o 3º entra', r.status === 200);
+r = await chamar('POST', `${rotaPost}/anexos`, { nome: 'quarto.pdf', conteudo: PDF }, prof);
+confere('anexo: o 4º é recusado (400)', ehErro(r, 400, 'DADOS_INVALIDOS'));
+r = await chamar('GET', rotaPost, null, prof);
+confere('post: lê os 3 anexos sem o conteúdo, e o link', r.corpo.anexos.length === 3 && r.corpo.anexos.every((a) => a.conteudo === undefined) && r.corpo.links[0].url === 'https://exemplo.org/guia');
+r = await chamar('GET', rota, null, prof);
+const naLista = r.corpo.find((a) => a.exercicioId === exR.id);
+confere('lista do professor: temPost e 3 anexos', naLista.temPost === true && naLista.anexos === 3);
+
+// Download: o professor dono e o aluno da sala; outro professor, aluno de outra turma, sem token: não.
+r = await chamar('GET', `${rotaPost}/anexos/${anexoPdf.id}`, null, prof);
+confere('download (professor): o mesmo arquivo', r.status === 200 && r.corpo.conteudo === PDF && r.corpo.nome === 'roteiro.pdf');
+const rotaDoAluno = `/aluno/salas/${turma.id}/atividades/${exR.id}`;
+r = await chamar('GET', `${rotaDoAluno}/anexos/${anexoPdf.id}`, null, tokenLia);
+confere('download (aluno da sala): o mesmo arquivo', r.status === 200 && r.corpo.conteudo === PDF);
+r = await chamar('GET', `${rotaDoAluno}/anexos/${anexoPdf.id}`, null, ana);
+confere('download: aluno de outra turma 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('GET', `${rotaPost}/anexos/${anexoPdf.id}`, null, leo);
+confere('download: outro professor 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('GET', `${rotaPost}/anexos/${anexoPdf.id}`, null, tokenLia);
+confere('download: aluno na rota do professor 403', ehErro(r, 403, 'TIPO_INVALIDO'));
+r = await chamar('GET', `${rotaPost}/anexos/${anexoPdf.id}`);
+confere('download: sem token 401', r.status === 401);
+r = await chamar('GET', `/turmas/turma-2/atribuicoes/ex-prof-3/post/anexos/${anexoPdf.id}`, null, prof);
+confere('download: anexo pedido por outro post 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+for (const [metodo, caminho, corpo] of [
+  ['GET', rotaPost],
+  ['PUT', rotaPost, { titulo: 'x' }],
+  ['POST', `${rotaPost}/anexos`, { nome: 'a.pdf', conteudo: PDF }],
+  ['DELETE', `${rotaPost}/anexos/${anexoPdf.id}`],
+]) {
+  r = await chamar(metodo, caminho, corpo, leo);
+  confere(`${metodo} post (outra conta): 404`, ehErro(r, 404, 'NAO_ENCONTRADO'));
+}
+r = await chamar('DELETE', `${rotaPost}/anexos/${anexoPdf.id}`, null, prof);
+confere('anexo: remover 204', r.status === 204);
+r = await chamar('DELETE', `${rotaPost}/anexos/${anexoPdf.id}`, null, prof);
+confere('anexo: remover de novo 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+
+// O aluno lê a página da atividade: título do post, instruções, anexos, status.
+r = await chamar('GET', rotaDoAluno, null, tokenLia);
+confere(
+  'aluno: a página traz o post, as datas e o status (não feita)',
+  r.status === 200 && r.corpo.titulo === exR.titulo && r.corpo.post.instrucoes === MALICIOSO && r.corpo.post.anexos.length === 2 &&
+    r.corpo.situacao === 'nao_feita' && r.corpo.tentativas === 0 && r.corpo.prazo === null,
+);
+confere('aluno: bloqueada, com o motivo (o B, anterior, não foi concluído)', r.corpo.bloqueada === true && r.corpo.motivo === `Conclua antes “${exB.titulo}”.`);
+confere('aluno de outra turma: a página é 404', ehErro(await chamar('GET', rotaDoAluno, null, ana), 404, 'NAO_ENCONTRADO'));
+confere('conta na rota do aluno: 403', ehErro(await chamar('GET', rotaDoAluno, null, prof), 403, 'TIPO_INVALIDO'));
+
+// Agendada: antes de "Aberto em" o aluno não vê nem faz.
+r = await chamar('PUT', rotaPost, { abertoEm: '2099-01-01T12:00:00.000Z' }, prof);
+const umAnexo = r.corpo.anexos[0].id;
+confere('agendar: 200 com abertoEm no futuro', r.status === 200 && r.corpo.abertoEm === '2099-01-01T12:00:00.000Z');
+confere('agendar: o PUT sem instruções e links limpa os dois e mantém os anexos', r.corpo.instrucoes === '' && r.corpo.links.length === 0 && r.corpo.anexos.length === 2);
+confere('agendada: a página do aluno é 404', ehErro(await chamar('GET', rotaDoAluno, null, tokenLia), 404, 'NAO_ENCONTRADO'));
+confere('agendada: some da sala', !(await chamar('GET', `/aluno/salas/${turma.id}`, null, tokenLia)).corpo.lista.some((e) => e.id === exR.id));
+confere('agendada: o treino não abre (404)', ehErro(await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, tokenLia), 404, 'NAO_ENCONTRADO'));
+confere('agendada: o download do aluno é 404', ehErro(await chamar('GET', `${rotaDoAluno}/anexos/${umAnexo}`, null, tokenLia), 404, 'NAO_ENCONTRADO'));
+r = await chamar('GET', rota, null, prof);
+confere('agendada: o professor vê a data de abertura', r.corpo.find((a) => a.exercicioId === exR.id).abertoEm === '2099-01-01T12:00:00.000Z');
+
+// Vencida: o aluno ainda faz, e a tentativa fica marcada com atraso.
+r = await chamar('PUT', rotaPost, { abertoEm: '2020-01-01T00:00:00.000Z', prazo: '2020-01-02T00:00:00.000Z' }, prof);
+confere('prazo: 200 com o vencimento no passado', r.status === 200 && r.corpo.prazo === '2020-01-02T00:00:00.000Z');
+confere('vencida: a página do aluno abre (é treino)', (await chamar('GET', rotaDoAluno, null, tokenLia)).status === 200);
+const teo = await banco.alunosturmas.findFirst({ where: { ClassID: turma.id, Nome: 'Teo Lima' } });
+await gravarSessao(teo.AlunoID, exR.id, turma.id, true);
+r = await chamar('GET', rotaDoAluno, null, tokenLia);
+confere('vencida: concluída depois do prazo é "concluida_com_atraso"', r.corpo.situacao === 'concluida_com_atraso' && r.corpo.tentativas === 1);
+r = await chamar('GET', `/turmas/${turma.id}/alunos/${teo.AlunoID}/sessoes`, null, prof);
+confere('vencida: o professor vê a tentativa com atraso', r.corpo.itens.some((s) => s.exerciseId === exR.id && s.comAtraso === true));
+r = await chamar('GET', rota, null, prof);
+confere('vencida: a lista conta 1 com atraso', r.corpo.find((a) => a.exercicioId === exR.id).concluidoComAtraso === 1);
+await chamar('PUT', rotaPost, { prazo: null }, prof);
+confere('sem prazo: a mesma tentativa volta a ser só "concluida"', (await chamar('GET', rotaDoAluno, null, tokenLia)).corpo.situacao === 'concluida');
+
+// Retirar a atribuição apaga o post, os links e os anexos.
+await chamar('PUT', rotaPost, { links: [{ titulo: 'Guia', url: 'https://exemplo.org/guia' }] }, prof);
+const doPost = { where: { ClassID: turma.id, ExerciseID: exR.id } };
+confere(
+  'antes de retirar: post, link e anexos no banco',
+  (await banco.atribuicoesposts.count(doPost)) === 1 && (await banco.atribuicoeslinks.count(doPost)) === 1 && (await banco.atribuicoesanexos.count(doPost)) === 2,
+);
+r = await chamar('DELETE', `${rota}/${exR.id}`, null, prof);
+confere('retirar: 204', r.status === 204);
+confere(
+  'retirar: o post, os links e os anexos sumiram',
+  (await banco.atribuicoesposts.count(doPost)) === 0 && (await banco.atribuicoeslinks.count(doPost)) === 0 && (await banco.atribuicoesanexos.count(doPost)) === 0,
+);
+confere('retirar: as sessões ficam', (await banco.sessionsprof.count({ where: { ExerciseID: exR.id } })) === 1);
 
 await banco.$disconnect();
 console.log(`\nTudo certo. Turma de teste criada: ${turma.id}`);

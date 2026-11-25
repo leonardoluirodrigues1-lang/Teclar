@@ -1,6 +1,6 @@
 // api.back.check.mjs
 // Teste do front ligado no back de verdade: importa o api.js COMPILADO (o
-// mesmo que as telas usam) e chama cada uma das 75 funções contra o back
+// mesmo que as telas usam) e chama cada uma das 82 funções contra o back
 // rodando, sem navegador. Prova que o front fala a língua do back — rota,
 // corpo, query e tratamento de erro —, coisa que os testes do back (que
 // montam o fetch na mão) não provam.
@@ -179,6 +179,15 @@ const descartavel = await api.exercicios.criar({ titulo: 'Para arquivar', texto:
 const atribuidas = await api.turmas.atribuir(turma.id, [exercicio.id, descartavel.id]);
 confere('turmas.atribuir devolve a lista crua', atribuidas.length === 2 && atribuidas.every((a) => a.prazo === null && a.repeticoes === 1));
 confere('turmas.alterarAtribuicao muda as repetições', (await api.turmas.alterarAtribuicao(turma.id, exercicio.id, { repeticoes: 2 })).repeticoes === 2);
+confere('turmas.post sem post: os padrões', (await api.turmas.post(turma.id, exercicio.id)).existe === false);
+const postSalvo = await api.turmas.salvarPost(turma.id, exercicio.id, { titulo: 'Leia antes', instrucoes: 'Com **calma**.', links: [{ titulo: 'Guia', url: 'https://exemplo.org/' }], abertoEm: null, prazo: null });
+confere('turmas.salvarPost cria o post', postSalvo.existe === true && postSalvo.titulo === 'Leia antes' && postSalvo.links.length === 1);
+const PDF_DO_POST = Buffer.from('%PDF-1.4 teste').toString('base64');
+const anexoDoPost = await api.turmas.enviarAnexo(turma.id, exercicio.id, 'roteiro.pdf', PDF_DO_POST);
+confere('turmas.enviarAnexo: tipo pelo conteúdo', anexoDoPost.tipo === 'application/pdf' && anexoDoPost.nome === 'roteiro.pdf');
+confere('turmas.baixarAnexo devolve o arquivo', (await api.turmas.baixarAnexo(turma.id, exercicio.id, anexoDoPost.id)).conteudo === PDF_DO_POST);
+const anexoDescartavel = await api.turmas.enviarAnexo(turma.id, exercicio.id, 'outro.pdf', PDF_DO_POST);
+confere('turmas.removerAnexo devolve null (204)', (await api.turmas.removerAnexo(turma.id, exercicio.id, anexoDescartavel.id)) === null);
 confere('turmas.removerAtribuicao devolve null (204)', (await api.turmas.removerAtribuicao(turma.id, descartavel.id)) === null);
 confere('exercicios.excluir devolve null (204)', (await api.exercicios.excluir(descartavel.id)) === null);
 const doSistema = await api.exercicios.sistema();
@@ -222,6 +231,9 @@ confere('escola.aluno.salas: uma sala, nada feito', salas.length === 1 && salas[
 const sala = await api.escola.aluno.sala(turma.id);
 confere('escola.aluno.capaDaSala: a capa que o professor enviou', sala.temCapa === true && (await api.escola.aluno.capaDaSala(turma.id)).imagem === CAPA);
 confere('escola.aluno.sala: exercício não feito e liberado', sala.lista[0].id === exercicio.id && sala.lista[0].estado === 'nao_feito' && sala.lista[0].bloqueada === false);
+const atividade = await api.escola.aluno.atividade(turma.id, exercicio.id);
+confere('escola.aluno.atividade: o post e o status', atividade.titulo === 'Leia antes' && atividade.post.anexos.length === 1 && atividade.situacao === 'nao_feita');
+confere('escola.aluno.baixarAnexo devolve o arquivo', (await api.escola.aluno.baixarAnexo(turma.id, exercicio.id, anexoDoPost.id)).conteudo === PDF_DO_POST);
 const paraTreinar = await api.exercicios.obter(exercicio.id, turma.id);
 confere('exercicios.obter (aluno, com ?turma=) traz o texto repetido (2 vezes)', paraTreinar.texto === `${TEXTO} ${TEXTO}`);
 await confereErro('exercicios.obter (aluno) de exercício fora da turma', api.exercicios.obter(descartavel.id, turma.id), 404, 'NAO_ENCONTRADO');
@@ -415,4 +427,4 @@ await entrarCom(api.auth.entrar({ email: 'ana@teclar.dev', senha: SENHA }));
 const aoVoltar = await filaSessoes.sincronizar();
 confere('a mesma pessoa entra de novo: a sessão do 401 chega', aoVoltar.enviadas === 1 && aoVoltar.restantes === 0 && (await api.solo.historico()).total === 1);
 
-console.log(`\nTudo certo: ${verificacoes} verificações, as 75 funções do api.ts contra o back.`);
+console.log(`\nTudo certo: ${verificacoes} verificações, as 82 funções do api.ts contra o back.`);
