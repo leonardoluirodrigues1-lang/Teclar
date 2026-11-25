@@ -1082,7 +1082,9 @@ Chamada no front: `api.turmas.atribuicoes`
 
 ```json
 [{ "exercicioId": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-   "atribuidoEm": "2026-02-03", "repeticoes": 1, "concluidoPor": 3, "totalAlunos": 4 }]
+   "atribuidoEm": "2026-02-03", "repeticoes": 1, "temPost": true, "anexos": 1,
+   "abertoEm": "2026-02-03T00:00:00.000Z", "prazo": "2026-02-20T23:59:00.000Z",
+   "concluidoPor": 3, "concluidoComAtraso": 1, "totalAlunos": 4 }]
 ```
 
 **Erros:**
@@ -1095,7 +1097,7 @@ O token: a turma tem de ser da conta.
 
 **Regras de negócio no back (a tela não calcula):**
 
-concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.
+concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta. concluidoComAtraso = dos que concluíram, os que só concluíram depois do prazo. temPost, anexos e abertoEm vêm do post da atividade (abertoEm no futuro = agendada; sem post, a data da atribuição).
 
 **Notas:**
 

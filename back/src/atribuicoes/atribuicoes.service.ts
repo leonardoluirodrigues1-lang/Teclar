@@ -12,7 +12,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { repeticoesValidas } from './repeticoes.js';
-import { abertoEm } from './posts.js';
+import { abertoEm, feitaComAtraso } from './posts.js';
 import { professorDoToken, recusarProfessorIdNoCorpo } from '../autenticacao/professor-do-token.js';
 import type { Identidade } from '../autenticacao/token.js';
 import { BancoService } from '../banco/banco.service.js';
@@ -45,6 +45,8 @@ export interface AtribuicaoProfessor {
   abertoEm: string | null;
   prazo: string | null;
   concluidoPor: number;
+  // Dos que concluíram, quantos só concluíram depois do vencimento.
+  concluidoComAtraso: number;
   totalAlunos: number;
 }
 
@@ -77,7 +79,7 @@ export class AtribuicoesService {
       orderBy: [{ Data_Atribuicao: 'asc' }, { exerciciosprof: { Titulo: 'asc' } }, { ExerciseID: 'asc' }],
     });
     const totalAlunos = await this.banco.alunosturmas.count({ where: { ClassID: turmaId, Ativo: true } });
-    const concluintes = await this.concluintesPorExercicio(turmaId);
+    const primeiras = await this.primeirasConclusoes(turmaId);
 
     return atribuicoes.map((linha) => ({
       exercicioId: linha.ExerciseID,
@@ -89,7 +91,8 @@ export class AtribuicoesService {
       anexos: linha.atribuicoesposts?._count.atribuicoesanexos ?? 0,
       abertoEm: abertoEm(linha)?.toISOString() ?? null,
       prazo: linha.Prazo?.toISOString() ?? null,
-      concluidoPor: concluintes.get(linha.ExerciseID) ?? 0,
+      concluidoPor: primeiras.get(linha.ExerciseID)?.length ?? 0,
+      concluidoComAtraso: (primeiras.get(linha.ExerciseID) ?? []).filter((data) => feitaComAtraso(data, linha.Prazo)).length,
       totalAlunos,
     }));
   }
@@ -167,20 +170,24 @@ export class AtribuicoesService {
     }
   }
 
-  // Quantos alunos ATIVOS da turma concluíram cada exercício: pares
-  // (aluno, exercício) distintos de sessões concluídas, contados por
-  // exercício. Aluno que concluiu duas vezes conta uma.
-  private async concluintesPorExercicio(turmaId: string): Promise<Map<string, number>> {
-    const pares = await this.banco.sessionsprof.findMany({
+  // Por exercício, a PRIMEIRA conclusão de cada aluno ATIVO da turma (uma
+  // data por aluno: quem concluiu duas vezes conta uma). O tamanho da lista
+  // é o concluidoPor; a primeira data depois do vencimento é "com atraso".
+  private async primeirasConclusoes(turmaId: string): Promise<Map<string, Date[]>> {
+    const sessoes = await this.banco.sessionsprof.findMany({
       where: { ClassID: turmaId, Concluida: true, alunosturmas: { Ativo: true } },
-      select: { ExerciseID: true, AlunoID: true },
-      distinct: ['ExerciseID', 'AlunoID'],
+      select: { ExerciseID: true, AlunoID: true, Data_Sessao: true },
+      orderBy: { Data_Sessao: 'asc' },
     });
-    const contagem = new Map<string, number>();
-    for (const par of pares) {
-      contagem.set(par.ExerciseID, (contagem.get(par.ExerciseID) ?? 0) + 1);
+    const vistos = new Set<string>();
+    const porExercicio = new Map<string, Date[]>();
+    for (const sessao of sessoes) {
+      const par = `${sessao.ExerciseID}|${sessao.AlunoID}`;
+      if (vistos.has(par) || !sessao.Data_Sessao) continue;
+      vistos.add(par);
+      porExercicio.set(sessao.ExerciseID, [...(porExercicio.get(sessao.ExerciseID) ?? []), sessao.Data_Sessao]);
     }
-    return contagem;
+    return porExercicio;
   }
 }
 

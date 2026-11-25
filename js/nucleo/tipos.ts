@@ -480,6 +480,8 @@ export interface AtribuicaoProfessor {
   /** ISO. O vencimento; null = sem prazo. */
   prazo: string | null;
   concluidoPor: number;
+  /** Dos que concluíram, quantos só concluíram depois do vencimento. */
+  concluidoComAtraso: number;
   totalAlunos: number;
 }
 

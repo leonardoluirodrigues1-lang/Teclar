@@ -2775,7 +2775,7 @@
         ],
         "operationId": "turmas.atribuicoes",
         "summary": "atribuicoes: AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição",
-        "description": "**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
+        "description": "**Chamada no front:** `api.turmas.atribuicoes`\n\n**Resposta:** 200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição\n\n**Identidade:**\n\nO token: a turma tem de ser da conta.\n\n**Regras de negócio no back (a tela não calcula):**\n\nconcluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta. concluidoComAtraso = dos que concluíram, os que só concluíram depois do prazo. temPost, anexos e abertoEm vêm do post da atividade (abertoEm no futuro = agendada; sem post, a data da atribuição).\n\n**Notas:**\n\nA visão do aluno é GET /aluno/salas/:id, sem contagem da turma.",
         "parameters": [
           {
             "name": "id",
@@ -2801,7 +2801,12 @@
                         "dificuldade": "medio",
                         "atribuidoEm": "2026-02-03",
                         "repeticoes": 1,
+                        "temPost": true,
+                        "anexos": 1,
+                        "abertoEm": "2026-02-03T00:00:00.000Z",
+                        "prazo": "2026-02-20T23:59:00.000Z",
                         "concluidoPor": 3,
+                        "concluidoComAtraso": 1,
                         "totalAlunos": 4
                       }
                     ]

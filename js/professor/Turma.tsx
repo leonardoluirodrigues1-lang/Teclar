@@ -380,7 +380,31 @@ function Turma() {
       rotulo: 'Dificuldade',
       celula: (item) => <span className={`etiqueta etiqueta-${item.dificuldade}`}>{rotuloDificuldade(item.dificuldade)}</span>,
     },
-    { rotulo: 'Atribuído em', celula: (item) => (item.atribuidoEm ? formatarData(item.atribuidoEm) : '—') },
+    {
+      rotulo: 'Post',
+      celula: (item) =>
+        item.temPost ? (
+          <>
+            <span className="etiqueta etiqueta-facil">Com post</span>
+            {item.anexos > 0 && <span className="celula-trecho">{item.anexos === 1 ? '1 anexo' : `${item.anexos} anexos`}</span>}
+          </>
+        ) : (
+          <span className="celula-trecho">Sem post</span>
+        ),
+    },
+    {
+      rotulo: 'Datas',
+      celula: (item) => (
+        <>
+          {item.abertoEm && new Date(item.abertoEm).getTime() > Date.now() ? (
+            <span className="etiqueta etiqueta-espera">Abre em {formatarDataHora(item.abertoEm)}</span>
+          ) : (
+            <span>Atribuído em {item.atribuidoEm ? formatarData(item.atribuidoEm) : '—'}</span>
+          )}
+          <span className="celula-trecho">{item.prazo ? `Vence em ${formatarDataHora(item.prazo)}` : 'Sem prazo'}</span>
+        </>
+      ),
+    },
     {
       rotulo: 'Repetições',
       classe: 'col-repeticoes',
@@ -757,6 +781,7 @@ function ProgressoDaAtividade({ item }: { item: AtribuicaoProfessor }) {
       </span>
       <span>
         {contagem(feitos)} de {contagem(total)} {total === 1 ? 'aluno concluiu' : 'alunos concluíram'}
+        {item.concluidoComAtraso > 0 && ` (${item.concluidoComAtraso} com atraso)`}
       </span>
     </span>
   );

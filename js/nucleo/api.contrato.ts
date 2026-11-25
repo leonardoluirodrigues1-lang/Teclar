@@ -597,11 +597,16 @@ existe, para não confirmar a quem tenta ids que ela existe.`,
         rota: 'GET /turmas/:id/atribuicoes',
         resposta: `200 AtribuicaoProfessor[] — o que a turma recebeu, na ordem de atribuição
   [{ "exercicioId": "ex-prof-1", "titulo": "Acentuação em foco", "dificuldade": "medio",
-     "atribuidoEm": "2026-02-03", "repeticoes": 1, "concluidoPor": 3, "totalAlunos": 4 }]`,
+     "atribuidoEm": "2026-02-03", "repeticoes": 1, "temPost": true, "anexos": 1,
+     "abertoEm": "2026-02-03T00:00:00.000Z", "prazo": "2026-02-20T23:59:00.000Z",
+     "concluidoPor": 3, "concluidoComAtraso": 1, "totalAlunos": 4 }]`,
         erros: `404 NAO_ENCONTRADO — não existe ou é de outra conta`,
         identidade: `O token: a turma tem de ser da conta.`,
         back: `concluidoPor = alunos da turma (alunosturmas.ClassID, Ativo = TRUE) com
-  sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.`,
+  sessão concluída no exercício; totalAlunos = esses alunos. A tela não conta.
+  concluidoComAtraso = dos que concluíram, os que só concluíram depois do
+  prazo. temPost, anexos e abertoEm vêm do post da atividade (abertoEm no
+  futuro = agendada; sem post, a data da atribuição).`,
         nota: `A visão do aluno é GET /aluno/salas/:id, sem contagem da turma.`,
       },
       'turmas.atribuir': {

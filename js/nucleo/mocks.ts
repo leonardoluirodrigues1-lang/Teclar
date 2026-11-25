@@ -1414,6 +1414,7 @@ function linhaPorExercicio(
     titulo: ex.titulo,
     dificuldade: ex.dificuldade,
     repeticoes: atribuicao.repeticoes ?? 1,
+    concluidoComAtraso: concluintesComAtraso(turmaId, ex.id, atribuicao.prazo),
     temPost: !!posts[chaveDoPost(turmaId, ex.id)],
     anexos: posts[chaveDoPost(turmaId, ex.id)]?.anexos.length ?? 0,
     abertoEm: postDaAtividade(turmaId, atribuicao).abertoEm,
@@ -1555,6 +1556,18 @@ const posts: Record<string, PostMock> = {
 
 function chaveDoPost(turmaId: string | null | undefined, exercicioId: string): string {
   return `${turmaId ?? ''}|${exercicioId}`;
+}
+
+// Alunos cuja PRIMEIRA conclusão veio depois do vencimento (como o back).
+function concluintesComAtraso(turmaId: string, exercicioId: string, prazo: string | null): number {
+  if (!prazo) return 0;
+  const matriculas = matriculasDaTurma(turmaId);
+  const primeira = new Map<string, string>();
+  for (const s of dados.sessoes) {
+    if (s.exerciseId !== exercicioId || !s.concluida || !matriculas.has(s.alunoId)) continue;
+    if (!primeira.has(s.alunoId) || s.data < primeira.get(s.alunoId)!) primeira.set(s.alunoId, s.data);
+  }
+  return [...primeira.values()].filter((data) => new Date(data).getTime() > new Date(prazo).getTime()).length;
 }
 
 function abertaParaAluno(turmaId: string | null | undefined, exercicioId: string): boolean {
@@ -2748,6 +2761,7 @@ const rotas: [string, RegExp, Handler][] = [
             abertoEm: postDaAtividade(turmaId, a).abertoEm,
             prazo: a.prazo,
             concluidoPor: concluintes(turmaId, ex.id),
+            concluidoComAtraso: concluintesComAtraso(turmaId, ex.id, a.prazo),
             totalAlunos,
           };
         })
