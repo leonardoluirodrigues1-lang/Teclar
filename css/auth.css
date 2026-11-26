@@ -344,42 +344,44 @@ ul { list-style: none; }
 }
 .cartoes .cartao { width: auto; }
 
-/* Brilho do buraco negro fora dos cartões. Atrás do cartão escurecido a
-   luz quase some; em vez de clarear o cartão (o contraste do texto cai),
-   esta camada traz a luz por cima do fundo, como na landing: a FAIXA DO
+/* Brilho do buraco negro. Atrás do cartão escurecido a luz do fundo quase
+   some; esta camada traz a luz por cima dele, como na landing: a FAIXA DO
    DISCO, larga e inclinada (-8deg, a do .disco-centro), atravessando a tela
    inteira na altura do meio dos cartões; a aura do anel; e o banho largo.
-   A caixa passa 300px acima e abaixo da grade e meia tela (50vw) de cada
-   lado; o .tela corta o que sai da janela (overflow: clip, sem rolagem).
-   A máscara é a caixa inteira menos quatro retângulos: os dois cartões
-   (a 50vw das bordas, com o vão de 40px no meio), a coluna do título
-   (640px em cima) e a do link do aluno (embaixo, deixando 24px de brilho
-   logo abaixo dos cartões). */
+   Passa também atrás dos cartões: o fundo escuro do .cartao--modo segura o
+   contraste do texto. A caixa vai 300px acima e abaixo da grade e meia
+   tela (50vw) de cada lado; o .tela corta o que sai da janela (overflow:
+   clip, sem rolagem). Sem máscara: nenhum corte reto. */
 .cartoes { position: relative; }
 .tela:has(.cartoes) { overflow: clip; }
 .brilho-fora {
   --raio-anel: 261px; /* o raio do anel do .disco-centro (312px × escala) */
   --centro-y: 1px;    /* o centro do buraco menos o meio da grade */
+  --y-titulo: 202px;  /* o meio do título e do subtítulo, do topo da caixa */
+  --y-link: 242px;    /* o meio do link do aluno, do fundo da caixa */
   position: absolute;
   inset: -300px -50vw;
   z-index: -1;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000);
-  mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000);
-  -webkit-mask-position: 0 0, 50vw 300px, right 50vw top 300px, 50% 0, 50% 100%;
-  mask-position: 0 0, 50vw 300px, right 50vw top 300px, 50% 0, 50% 100%;
-  -webkit-mask-size: 100% 100%, calc(50% - 50vw - 20px) calc(100% - 600px), calc(50% - 50vw - 20px) calc(100% - 600px), 640px 300px, 640px 276px;
-  mask-size: 100% 100%, calc(50% - 50vw - 20px) calc(100% - 600px), calc(50% - 50vw - 20px) calc(100% - 600px), 640px 300px, 640px 276px;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
 }
-/* A luz, inclinada como o .disco-centro. De cima para baixo:
-     1. o miolo da faixa do disco: fino e forte, some só fora da tela;
-     2. o halo da faixa: a mesma faixa, mais alta e fraca;
-     3. a aura em volta do anel (aparece no vão e logo abaixo dos cartões);
-     4. o banho largo, que acende as laterais e o céu em volta dos cartões. */
+/* Sombra macia atrás do título e do link do aluno: elipses pretas que somem
+   até zero nas bordas, por cima da luz, para o texto ler bem sem caixa. */
+.brilho-fora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 520px 150px at 50% var(--y-titulo),
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0.6) 40%,
+      rgba(0, 0, 0, 0.25) 70%,
+      transparent 100%),
+    radial-gradient(ellipse 420px 90px at 50% calc(100% - var(--y-link)),
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0.6) 40%,
+      rgba(0, 0, 0, 0.25) 70%,
+      transparent 100%);
+}
 .brilho-fora > div {
   position: absolute;
   inset: 0;
@@ -411,14 +413,14 @@ ul { list-style: none; }
    desfocado, para o buraco negro aparecer atrás. Borda, brilho de cima e
    sombra continuam os do .vidro. */
 .cartao--modo {
-  /* o branco de 3% sobre um preto de 30%: o preto segura o contraste do
-     texto (#c4c4c4 ≥ 4.8:1) com a aura do buraco negro atrás */
-  background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.3);
+  /* o branco de 3% sobre um preto de 65%: o preto segura o contraste do
+     texto (#c4c4c4 ≥ 4.75:1) com a faixa do disco passando atrás */
+  background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.65);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
 /* No hover só a borda e o deslocamento mudam: clarear o fundo derrubaria o contraste. */
-.cartao--modo:hover { background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.3); }
+.cartao--modo:hover { background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.65); }
 /* Sem backdrop-filter, transparente demais para ler: fica quase opaco, como o .vidro. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .cartao--modo { background: rgba(18, 18, 18, 0.94); }
@@ -466,7 +468,7 @@ ul { list-style: none; }
   .cartao { min-height: 0; }
   .modo-aluno { margin-top: 28px; }
   .disco-centro { --desce-disco: 51px; --escala-disco: 0.68; }
-  .brilho-fora { --raio-anel: 212px; --centro-y: 5px; }
+  .brilho-fora { --raio-anel: 212px; --centro-y: 5px; --y-titulo: 214px; --y-link: 250px; }
 }
 @media (max-height: 760px) {
   .tela:has(.cartoes) { padding-top: 40px; padding-bottom: 24px; }
@@ -478,7 +480,7 @@ ul { list-style: none; }
   .cartao-itens { gap: 10px; }
   .modo-aluno { margin-top: 20px; }
   .disco-centro { --desce-disco: 45px; --escala-disco: 0.56; }
-  .brilho-fora { --raio-anel: 175px; --centro-y: 9px; }
+  .brilho-fora { --raio-anel: 175px; --centro-y: 9px; --y-titulo: 230px; --y-link: 258px; }
 }
 
 
