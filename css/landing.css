@@ -50,7 +50,8 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
 /* .teclar-typed-word e .teclar-caret (a marca se digitando) moram em
    css/base/movimento.css: a tela de turmas do professor usa a mesma. */
 
-.cta-hero{position:absolute;bottom:3rem;left:0;right:0;display:flex;justify-content:center;z-index:10}
+.cta-hero{position:absolute;bottom:3rem;left:0;right:0;display:flex;flex-direction:column;align-items:center;
+  gap:1rem;padding:0 1rem;z-index:10}
 .btn{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:5px;
   padding:.75rem 2rem;font-family:var(--font-mono);font-size:.875rem;letter-spacing:.18em;
   color:var(--foreground);text-decoration:none;background:rgba(0,0,0,.3);
@@ -60,6 +61,10 @@ h1.titulo{display:flex;max-width:100%;align-items:center;justify-content:center;
 .cta-hero .btn,.cta-final .btn{background:var(--foreground);color:var(--background);border-color:var(--foreground);
   font-weight:500}
 .cta-hero .btn:hover,.cta-final .btn:hover{box-shadow:0 0 36px rgba(255,255,255,.4)}
+/* o atalho do aluno: secundario — o .btn escuro, com borda mais suave, sem disputar com o principal */
+.cta-hero .btn-aluno{background:rgba(0,0,0,.3);color:var(--foreground);border-color:rgba(255,255,255,.35);
+  font-weight:400;min-height:44px;text-align:center}
+.cta-hero .btn-aluno:hover{background:var(--foreground);color:var(--background);box-shadow:0 0 24px rgba(255,255,255,.2)}
 
 /* ancora de orbita centrada no buraco negro */
 .orbit-anchor{position:absolute;left:50%;top:calc(50% + var(--hole-offset));height:0;width:0}

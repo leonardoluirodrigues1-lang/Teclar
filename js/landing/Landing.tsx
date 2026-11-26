@@ -83,6 +83,10 @@ function Hero() {
           <a className="btn" href="pages/modo.html">
             Começar a treinar
           </a>
+          {/* Atalho do aluno: a mesma entrada do cartão "Aluno" do modo.html. */}
+          <a className="btn btn-aluno" href="pages/login.html?aluno=1">
+            Sou aluno · entrar com código da turma
+          </a>
         </div>
       </div>
     </section>
