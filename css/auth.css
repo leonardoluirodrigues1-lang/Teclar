@@ -354,15 +354,16 @@ ul { list-style: none; }
    contraste do texto. A caixa vai 300px acima e abaixo da grade e meia
    tela (50vw) de cada lado; o .tela corta o que sai da janela (overflow:
    clip, sem rolagem). Sem máscara: nenhum corte reto. */
-.cartoes { position: relative; }
 .tela:has(.cartoes) { overflow: clip; }
+/* A caixa é o próprio .tela (a janela inteira): o título fica preso ao topo
+   e o link à base, e as duas sombras seguem a mesma conta. */
 .brilho-fora {
   --raio-anel: 261px; /* o raio do anel do .disco-centro (312px × escala) */
-  --centro-y: 1px;    /* o centro do buraco menos o meio da grade */
-  --y-titulo: 202px;  /* o meio do título e do subtítulo, do topo da caixa */
-  --y-link: 242px;    /* o meio do link do aluno, do fundo da caixa */
+  --centro-y: 9px;    /* o meio dos cartões menos o meio da janela */
+  --y-titulo: calc(var(--topo-modo) + 54px); /* o meio do título e do subtítulo */
+  --y-link: 46px;     /* o meio do link do aluno, da base da janela */
   position: absolute;
-  inset: -300px -50vw;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
 }
@@ -444,11 +445,12 @@ ul { list-style: none; }
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
-/* Em pé: ~60% da altura da janela (380 a 620px). O conteúdo continua o
-   mesmo; a sobra fica entre a lista e o botão (margin-top: auto do rodapé).
-   Ganha do ".cartao { min-height: 0 }" das faixas baixas. No cartão estreito
+/* Em pé: a altura vem da grade (.cartoes, ~60% da janela, 380 a 620px,
+   ver a disposição em coluna mais abaixo), que o cartão preenche; o mínimo
+   é o próprio conteúdo. A sobra fica entre a lista e o botão (margin-top:
+   auto do rodapé). No cartão estreito
    "PROFESSOR" não cabia ao lado do número com 0.20em: só o espaçamento cai. */
-.zona-vitrine .cartao--modo { min-height: clamp(380px, 60vh, 620px); }
+.zona-vitrine .cartao--modo { min-height: 0; }
 .zona-vitrine .cartao--modo .cartao-nome { letter-spacing: 0.14em; }
 
 /* Sem o brilho branco em volta (o 0 0 40px -10px do vidro da vitrine): com o
@@ -471,7 +473,8 @@ ul { list-style: none; }
    cartões. Pequena e cinza; o link mais claro e sublinhado. O link tem 44px
    de altura para ser fácil de acertar. */
 .modo-aluno {
-  margin-top: 36px;
+  /* preso na base: a sobra da janela fica entre os cartões e o link */
+  margin-top: auto;
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 13px;
   letter-spacing: 0.12em;
@@ -491,36 +494,56 @@ ul { list-style: none; }
 }
 .modo-aluno a:hover { color: var(--cor-texto, #fff); text-decoration-color: currentColor; }
 
-/* Janela baixa (notebook com o Chrome aberto): encolhem os ESPAÇOS, nunca a
-   fonte. Alvo: sem rolar e o link do aluno a 24px+ da borda de baixo em
-   1366×640 e 1280×620 de área útil. Só a tela de modo (.tela com .cartoes).
+/* Disposição em coluna (E2): o título perto do topo (--topo-modo, ~10% da
+   altura, ao lado da pílula "← TECLAR"), os cartões logo abaixo e o link do
+   aluno preso na base, 24px acima da borda. Os cartões crescem até ~60% da
+   altura (clamp 380–620px) e encolhem até o próprio conteúdo quando falta
+   espaço: em janela baixa encolhem os ESPAÇOS, nunca a fonte. Alvo: sem
+   rolar em 1536×695, 1366×640, 1280×620, 1440×900 e 1920×1080 de área útil.
 
-   Nas faixas baixas o cartão tem só a altura do conteúdo (min-height: 0):
-   assim a altura de tudo é fixa em cada faixa, e o buraco negro do fundo
-   (.disco-centro, css/base/luz.css) pode ser posto por conta: o topo do anel
-   24px abaixo do subtítulo e a base logo abaixo dos cartões, acima do link
-   do aluno. --desce-disco é quanto o centro do buraco fica abaixo do meio
-   da janela; --escala-disco, o tamanho do anel (1 = raio de 312px). Se
-   mudar um espaço destas faixas, refaça a conta dos dois. */
+   O buraco de CSS (.disco-centro, reserva sem WebGL) e a faixa do
+   .brilho-fora ficam no meio dos cartões: --desce-disco e --centro-y são
+   quanto esse meio fica abaixo do meio da janela em cada faixa. Se mudar
+   um espaço destas faixas, refaça a conta. */
+.tela:has(.cartoes) {
+  --topo-modo: clamp(56px, 10vh, 108px);
+  justify-content: flex-start;
+  padding-top: var(--topo-modo);
+  padding-bottom: 24px;
+}
+.cabecalho { margin-bottom: 24px; }
+.cartoes {
+  flex: 1 1 auto;
+  max-height: clamp(380px, 60vh, 620px);
+  margin-bottom: 16px;
+}
+.disco-centro { --desce-disco: 9px; }
 @media (max-height: 900px) {
-  .tela:has(.cartoes) { padding-top: 64px; padding-bottom: 40px; }
-  .cabecalho { margin-bottom: 32px; }
+  .cabecalho { margin-bottom: 20px; }
   .cartao { min-height: 0; }
-  .modo-aluno { margin-top: 28px; }
-  .disco-centro { --desce-disco: 51px; --escala-disco: 0.68; }
-  .brilho-fora { --raio-anel: 212px; --centro-y: 5px; --y-titulo: 214px; --y-link: 250px; }
+  .disco-centro { --desce-disco: 37px; --escala-disco: 0.68; }
+  .brilho-fora { --raio-anel: 212px; --centro-y: 37px; }
 }
 @media (max-height: 760px) {
-  .tela:has(.cartoes) { padding-top: 40px; padding-bottom: 24px; }
-  .cabecalho { margin-bottom: 20px; }
+  .cabecalho { margin-bottom: 16px; }
   .cabecalho h1 { margin-top: 8px; }
   .cartao { padding: 28px; }
   .cartao-resumo { margin-top: 12px; }
   .cartao-divisoria { margin: 18px 0; }
   .cartao-itens { gap: 10px; }
-  .modo-aluno { margin-top: 20px; }
-  .disco-centro { --desce-disco: 45px; --escala-disco: 0.56; }
-  .brilho-fora { --raio-anel: 175px; --centro-y: 9px; --y-titulo: 230px; --y-link: 258px; }
+  .disco-centro { --desce-disco: 46px; --escala-disco: 0.56; }
+  .brilho-fora { --raio-anel: 175px; --centro-y: 46px; --y-titulo: calc(var(--topo-modo) + 50px); }
+}
+/* 1366×640 e 1280×620, com o "Olá, nome" em cima: o cartão no mínimo do
+   conteúdo, o título a 9% da altura. */
+@media (max-height: 680px) {
+  .tela:has(.cartoes) { --topo-modo: 9vh; }
+  .cartoes { margin-bottom: 8px; }
+  .cartao { padding: 24px; }
+  .cartao-resumo { margin-top: 10px; }
+  .cartao-divisoria { margin: 14px 0; }
+  .cartao-itens { gap: 8px; margin-bottom: 16px; }
+  .cartao-rodape { padding-top: 12px; padding-bottom: 12px; }
 }
 
 
