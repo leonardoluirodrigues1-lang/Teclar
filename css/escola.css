@@ -2142,13 +2142,26 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
    as instruções desenhadas do Markdown (js/componentes/Instrucoes.tsx), que
    a página da atividade do aluno também usa.
    ------------------------------------------------------------------------- */
-.editor-post fieldset { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
-.editor-post legend { padding: 0; margin-bottom: 8px; font-family: var(--fonte-mono); font-size: 11px;
+/* Compacto: o editor é largo (menos altura), com campos e espaços menores
+   que o padrão do .campo-modal. */
+.modal:has(.editor-post) { max-width: 680px; padding: 28px; }
+.modal:has(.editor-post) .modal-corpo { margin-top: 12px; }
+.modal:has(.editor-post) .modal-acoes { margin-top: 18px; }
+.editor-post fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+.editor-post legend { padding: 0; margin-bottom: 6px; font-family: var(--fonte-mono); font-size: 11px;
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--cor-texto-fraco); }
-.editor-post .campo-modal + .campo-modal, .editor-post .campos-datas { margin-top: 18px; }
-.previa-instrucoes { margin-top: var(--e-3); padding: var(--e-3) var(--e-4);
+.editor-post .campo-modal + .campo-modal, .editor-post .campos-datas { margin-top: 12px; }
+.editor-post .campo-modal label { margin-bottom: 6px; }
+.editor-post .campo-modal input, .editor-post .campo-modal textarea { padding: 8px 10px; font-size: 14px; }
+.editor-post .campo-modal textarea { min-height: 96px; }
+.editor-post .ajuda-campo { margin-top: 4px; }
+/* A prévia tem rolagem própria: um texto longo não estica o modal. */
+.previa-instrucoes { margin-top: var(--e-2); padding: var(--e-2) var(--e-3); max-height: 12rem; overflow-y: auto;
   border: 1px dashed var(--cor-borda-forte); border-radius: var(--raio-p, 4px); }
-.linha-link { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: var(--e-2); margin-bottom: var(--e-2); }
+.previa-instrucoes .instrucoes { overflow-wrap: anywhere; }
+/* minmax(0, …): sem ele a coluna não encolhe abaixo da largura natural do
+   input (o datetime-local é largo) e o campo saía pela borda do modal. */
+.linha-link { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: var(--e-2); margin-bottom: var(--e-2); }
 .linha-link input { width: 100%; padding: 8px 10px; background: rgba(0,0,0,.45);
   border: 1px solid rgba(255,255,255,.16); border-radius: var(--raio-p, 4px); color: var(--cor-texto); }
 .lista-anexos { list-style: none; padding: 0; margin: 0 0 var(--e-3); display: grid; gap: var(--e-2); }
@@ -2156,7 +2169,8 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 .anexo-meta { font-size: var(--fs-sm); color: var(--cor-texto-fraco); }
 .botao-arquivo { position: relative; cursor: pointer; }
 .botao-arquivo:focus-within { outline: 2px solid var(--cor-anel-foco); outline-offset: 2px; }
-.campos-datas { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-4); }
+.campos-datas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); }
+.lista-anexos .btn-texto { overflow-wrap: anywhere; text-align: left; }
 .campos-datas .campo-modal + .campo-modal { margin-top: 0; }
 .acoes-da-atividade { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .instrucoes { line-height: var(--lh-solta); color: var(--cor-texto-suave); }
@@ -2170,22 +2184,27 @@ th[aria-sort="none"] .tabela-ordenar-seta { visibility: hidden; }
 /* Página da atividade do aluno (js/aluno/Atividade.tsx), no desenho da
    página de tarefa do Moodle: trilha, título com ícone, caixa de datas e
    instruções, botão e tabela de status. */
-.pagina-atividade { display: grid; gap: var(--e-5); max-width: 56rem; }
+.pagina-atividade { display: grid; gap: var(--e-4); max-width: 56rem; }
+.pagina-atividade > * { min-width: 0; }
 .trilha-de-pao ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--e-2); padding: 0; margin: 0;
   font-size: var(--fs-sm); color: var(--cor-texto-fraco); }
 .trilha-de-pao li + li::before { content: "/"; margin-right: var(--e-2); color: var(--cor-texto-fraco); }
 .trilha-de-pao [aria-current="page"] { color: var(--cor-texto-suave); }
-.cabecalho-atividade { display: flex; align-items: center; gap: var(--e-4); }
-.icone-atividade { flex: none; display: grid; place-items: center; width: 52px; height: 52px;
+.cabecalho-atividade { display: flex; align-items: center; gap: var(--e-3); }
+.icone-atividade { flex: none; display: grid; place-items: center; width: 40px; height: 40px;
   border: 1px solid var(--cor-borda-forte); border-radius: 12px; color: var(--cor-texto); }
-.caixa-atividade { padding: var(--e-4) var(--e-5); border-radius: var(--raio-m, 12px); }
+.caixa-atividade { padding: var(--e-3) var(--e-4); border-radius: var(--raio-m, 12px); overflow-wrap: anywhere; }
 .datas-atividade { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-6); margin: 0; }
 .datas-atividade dt { display: inline; font-weight: var(--peso-medio); color: var(--cor-texto); }
 .datas-atividade dt::after { content: ": "; }
 .datas-atividade dd { display: inline; margin: 0; color: var(--cor-texto-suave); }
-.post-atividade { margin-top: var(--e-4); padding-top: var(--e-4); border-top: 1px solid var(--cor-borda); }
+.post-atividade { margin-top: var(--e-3); padding-top: var(--e-3); border-top: 1px solid var(--cor-borda); }
 .links-atividade { padding-left: 1.2em; margin: 0 0 var(--e-3); }
 .acao-atividade { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-3); }
 .motivo-bloqueio { margin: 0; color: var(--cor-alerta); }
 .tabela-status th { width: 14rem; text-align: left; font-weight: var(--peso-medio); color: var(--cor-texto); }
+/* Duas colunas, rótulo e valor: não herda o min-width de 720px da .tabela
+   (que no celular empurrava a tabela para fora da tela). */
+.tabela.tabela-status { min-width: 0; }
+.tabela-status td { overflow-wrap: anywhere; white-space: normal; }
 @media (max-width: 599px) { .tabela-status th { width: auto; } }

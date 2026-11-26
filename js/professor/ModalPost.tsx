@@ -79,8 +79,23 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
     }
   }
 
+  // Depois de enviar ou remover, o foco volta para dentro do editor: o botão
+  // de anexar, ou (se ele sumiu, com 3 anexos) o último anexo. Sem isto o
+  // foco caía no <body> (o input focado era desabilitado ou o botão
+  // "Remover" clicado saía da tela) e o teclado deixava de rolar o modal.
+  const secaoAnexos = useRef<HTMLFieldSetElement>(null);
+  function devolverFoco() {
+    requestAnimationFrame(() => {
+      const alvo = arquivo.current?.isConnected
+        ? arquivo.current
+        : secaoAnexos.current?.querySelector<HTMLElement>('.lista-anexos li:last-child button');
+      alvo?.focus({ preventScroll: true });
+    });
+  }
+
   async function enviarAnexo(escolhido: File | undefined) {
-    if (!escolhido) return;
+    // Trava em vez de `disabled` no input: desabilitar o input focado jogava o foco no <body>.
+    if (!escolhido || enviandoAnexo) return;
     setErroAnexo(null);
     if (escolhido.size > ANEXO_BYTES) {
       setErroAnexo('O arquivo vai até 2 MB.');
@@ -97,6 +112,7 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
     } finally {
       setEnviandoAnexo(false);
       if (arquivo.current) arquivo.current.value = '';
+      devolverFoco();
     }
   }
 
@@ -110,6 +126,7 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
     } catch (excecao) {
       setErroAnexo(mensagem(excecao));
     }
+    devolverFoco();
   }
 
   async function baixar(anexo: AnexoDoPost) {
@@ -148,7 +165,7 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
             <label className="rotulo" htmlFor="post-instrucoes">Instruções</label>
             <textarea
               id="post-instrucoes"
-              rows={6}
+              rows={4}
               maxLength={10000}
               aria-describedby="post-instrucoes-ajuda"
               value={instrucoes}
@@ -183,7 +200,7 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
             )}
           </fieldset>
 
-          <fieldset className="campo-modal">
+          <fieldset className="campo-modal" ref={secaoAnexos}>
             <legend className="rotulo">Anexos (até {ANEXOS_MAXIMO}, de até 2 MB: PDF, PNG, JPG, WEBP ou DOCX)</legend>
             {!post.existe ? (
               <p className="ajuda-campo">Salve o post primeiro; depois, em “Editar post”, você anexa os arquivos.</p>
@@ -207,7 +224,7 @@ export function ModalPost({ turmaId, exercicioId, tituloDoExercicio, aoSalvar, a
                 {anexos.length < ANEXOS_MAXIMO && (
                   <label className="btn btn-vidro vidro tecla btn-pequeno botao-arquivo">
                     {enviandoAnexo ? 'Enviando…' : 'Anexar arquivo'}
-                    <input ref={arquivo} type="file" accept={ACEITOS} className="sr-only" disabled={enviandoAnexo} onChange={(e) => enviarAnexo(e.target.files?.[0])} />
+                    <input ref={arquivo} type="file" accept={ACEITOS} className="sr-only" aria-busy={enviandoAnexo} onChange={(e) => enviarAnexo(e.target.files?.[0])} />
                   </label>
                 )}
               </>
