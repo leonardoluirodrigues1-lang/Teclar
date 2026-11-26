@@ -229,6 +229,9 @@
   left: calc(50% - 1500px);
   transform: rotate(-8deg) scale(0.8);
   --disco-lado-aceso: 270deg;
+  /* Atrás de texto: mais baixo que nos cantos, para os cartões passarem de
+     4.5:1 com a aura atrás (a aura maior está na seção 6). */
+  --luz-disco-intensidade: 0.65;
 }
 
 /* ============================================================================
@@ -359,6 +362,17 @@
    estrelas e do conteúdo. */
 .zona-vitrine .fundo-estrelas {
   background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.78) 100%);
+}
+
+/* Escolha de modo: a aura do anel maior e mais macia — vai até 620px (antes
+   450px) e o pico é 60% do de cima, para espalhar a luz sem estourar atrás
+   do texto dos cartões. Mesma cor, mesmo cônico. */
+.zona-vitrine .disco-centro::before {
+  width: 1240px;
+  height: 1240px;
+  margin: -620px 0 0 -620px;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 292px, rgba(0, 0, 0, 0.6) 312px, transparent 620px);
+  mask-image: radial-gradient(circle at center, transparent 0 292px, rgba(0, 0, 0, 0.6) 312px, transparent 620px);
 }
 
 /* Solo: fundo parado. Sai o disco (e a respiração com ele); fica um eco,

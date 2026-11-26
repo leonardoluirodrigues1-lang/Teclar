@@ -348,11 +348,14 @@ ul { list-style: none; }
    desfocado, para o buraco negro aparecer atrás. Borda, brilho de cima e
    sombra continuam os do .vidro. */
 .cartao--modo {
-  background: rgba(255, 255, 255, 0.03);
+  /* o branco de 3% sobre um preto de 30%: o preto segura o contraste do
+     texto (#c4c4c4 ≥ 4.8:1) com a aura do buraco negro atrás */
+  background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.3);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
-.cartao--modo:hover { background: rgba(255, 255, 255, 0.06); }
+/* No hover só a borda e o deslocamento mudam: clarear o fundo derrubaria o contraste. */
+.cartao--modo:hover { background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.3); }
 /* Sem backdrop-filter, transparente demais para ler: fica quase opaco, como o .vidro. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .cartao--modo { background: rgba(18, 18, 18, 0.94); }
