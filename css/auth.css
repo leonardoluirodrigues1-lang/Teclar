@@ -388,11 +388,21 @@ ul { list-style: none; }
 
 /* Janela baixa (notebook com o Chrome aberto): encolhem os ESPAÇOS, nunca a
    fonte. Alvo: sem rolar e o link do aluno a 24px+ da borda de baixo em
-   1366×640 e 1280×620 de área útil. Só a tela de modo (.tela com .cartoes). */
-@media (max-height: 860px) {
+   1366×640 e 1280×620 de área útil. Só a tela de modo (.tela com .cartoes).
+
+   Nas faixas baixas o cartão tem só a altura do conteúdo (min-height: 0):
+   assim a altura de tudo é fixa em cada faixa, e o buraco negro do fundo
+   (.disco-centro, css/base/luz.css) pode ser posto por conta: o topo do anel
+   24px abaixo do subtítulo e a base logo abaixo dos cartões, acima do link
+   do aluno. --desce-disco é quanto o centro do buraco fica abaixo do meio
+   da janela; --escala-disco, o tamanho do anel (1 = raio de 312px). Se
+   mudar um espaço destas faixas, refaça a conta dos dois. */
+@media (max-height: 900px) {
   .tela:has(.cartoes) { padding-top: 64px; padding-bottom: 40px; }
   .cabecalho { margin-bottom: 32px; }
+  .cartao { min-height: 0; }
   .modo-aluno { margin-top: 28px; }
+  .disco-centro { --desce-disco: 51px; --escala-disco: 0.68; }
 }
 @media (max-height: 760px) {
   .tela:has(.cartoes) { padding-top: 40px; padding-bottom: 24px; }
@@ -403,6 +413,7 @@ ul { list-style: none; }
   .cartao-divisoria { margin: 18px 0; }
   .cartao-itens { gap: 10px; }
   .modo-aluno { margin-top: 20px; }
+  .disco-centro { --desce-disco: 45px; --escala-disco: 0.56; }
 }
 
 

@@ -220,14 +220,18 @@
   --disco-lado-aceso: 90deg;
 }
 
-/* Escolha de modo (modo.html): o buraco no CENTRO, atrás dos dois cartões,
-   um pouco acima do meio da tela. É o mesmo .disco, só reposicionado e um
-   pouco menor (scale), com o lado aceso do anel à esquerda, como na landing.
-   O -900px e o -1500px são metade da caixa de 3000×1800. */
+/* Escolha de modo (modo.html): o buraco no CENTRO, atrás dos dois cartões.
+   É o mesmo .disco, só reposicionado e menor (scale), com o lado aceso do
+   anel à esquerda, como na landing. O -900px e o -1500px são metade da
+   caixa de 3000×1800. Posição e tamanho vêm da conta do layout do modo:
+   os valores daqui são os da janela alta (> 900px); as faixas baixas
+   trocam as duas variáveis em css/auth.css. */
 .disco-centro {
-  top: calc(47% - 900px);
+  --desce-disco: 65px;
+  --escala-disco: 0.837;
+  top: calc(50% + var(--desce-disco) - 900px);
   left: calc(50% - 1500px);
-  transform: rotate(-8deg) scale(0.8);
+  transform: rotate(-8deg) scale(var(--escala-disco));
   --disco-lado-aceso: 270deg;
   /* Atrás de texto: mais baixo que nos cantos, para os cartões passarem de
      4.5:1 com a aura atrás (a aura maior está na seção 6). */
