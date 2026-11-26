@@ -28,16 +28,17 @@ import { querMenosMovimento } from '../utils/movimento.js';
 // Os valores que dá para ajustar olhando a tela.
 const QUADROS_POR_SEGUNDO = 40; // o mesmo teto da landing
 const ESCALA = 0.8; // 1 = o tamanho da landing
-// Fração da altura. O centro fica ~3% abaixo do meio da janela: no vão entre
-// os cartões, um pouco acima do meio deles (o meio da grade fica ~6% abaixo).
-const DESCER = 0.08;
+// Fração da altura. O centro fica ~4% abaixo do meio da janela
+// (0.06 × ESCALA − DESCER = −0.042): no vão entre os cartões, perto do meio
+// deles (que fica de 1% abaixo, em 1080px, a 7%, em 640px).
+const DESCER = 0.09;
 
 // Menos que na landing (16 raios, 52 partículas, 72 letras).
 const RAIOS = 8;
 const PARTICULAS = 26;
 const LETRAS = 30;
-// A altura do centro do buraco, em % da tela (50 + 3,2): para lá vão as letras puxadas.
-const CENTRO_Y = 53;
+// A altura do centro do buraco, em % da tela (50 + 4,2): para lá vão as letras puxadas.
+const CENTRO_Y = 54;
 
 const raiz = document.documentElement;
 let parar: PararBuracoNegro | null = null;

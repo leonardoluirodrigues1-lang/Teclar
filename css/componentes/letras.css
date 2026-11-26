@@ -19,8 +19,8 @@
   overflow: hidden;
   pointer-events: none;
   /* o centro do buraco negro em relação ao meio da tela (ESCALA e DESCER
-     de fundoDoModo.ts: 0.06 × 0.8 − 0.08 = −0.032 da altura) */
-  --centro-do-buraco: 3.2vh;
+     de fundoDoModo.ts: 0.06 × 0.8 − 0.09 = −0.042 da altura) */
+  --centro-do-buraco: 4.2vh;
 }
 .fundo-letras .orbit-anchor {
   position: absolute;
