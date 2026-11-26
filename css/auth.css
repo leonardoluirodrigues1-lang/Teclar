@@ -126,11 +126,13 @@ ul { list-style: none; }
 .cartao {
   display: flex;
   flex-direction: column;
-  width: 398px;
+  width: 520px;
   max-width: 100%;
-  min-height: 404px;
-  padding: 30px;
-  border-radius: 22px;
+  /* ~480px em 1440×900; encolhe em notebook baixo (1366×768, 1280×720)
+     para os cartões e o link do aluno caberem sem rolar. */
+  min-height: clamp(360px, calc(100vh - 420px), 480px);
+  padding: 40px;
+  border-radius: 26px;
   color: var(--cor-texto, #fff);
   transition:
     background var(--dur-normal, 240ms) var(--ease-padrao, ease),
@@ -149,7 +151,7 @@ ul { list-style: none; }
   justify-content: space-between;
   align-items: baseline;
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 24px;
+  font-size: 30px;
 }
 .cartao-nome {
   font-weight: var(--peso-medio, 500);
@@ -158,21 +160,21 @@ ul { list-style: none; }
 .cartao-numero { color: rgba(255, 255, 255, 0.22); }
 
 .cartao-resumo {
-  margin-top: 14px;
-  font-size: 15px;
+  margin-top: 18px;
+  font-size: 17px;
   color: var(--cor-texto-suave, #c4c4c4);
 }
 
 .cartao-divisoria {
   height: 1px;
-  margin: 22px 0;
+  margin: 28px 0;
   background: rgba(255, 255, 255, 0.12);
 }
 
 .cartao-itens {
   display: grid;
-  gap: 10px;
-  font-size: 13px;
+  gap: 14px;
+  font-size: 15px;
   color: var(--cor-texto-suave, #c4c4c4);
 }
 .cartao-itens li {
@@ -195,12 +197,12 @@ ul { list-style: none; }
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
-  padding: 12px 18px;
+  padding: 16px 22px;
   border-radius: var(--raio-total, 9999px);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.08em;
 }
 .cartao-rodape .seta {
@@ -333,10 +335,18 @@ ul { list-style: none; }
    ------------------------------------------------------------------------- */
 .cartoes {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 398px));
+  grid-template-columns: repeat(2, minmax(0, 520px));
   justify-content: center;
+  gap: 40px;
+  max-width: 1080px;
 }
 .cartoes .cartao { width: auto; }
+
+/* Notebook baixo (720–800px de altura): menos respiro em cima e embaixo. */
+@media (max-height: 800px) {
+  .tela:has(.cartoes) { padding-top: 96px; padding-bottom: 40px; }
+  .cabecalho { margin-bottom: 32px; }
+}
 
 /* "Nenhum dos dois? Entrar como aluno →": a entrada do aluno, abaixo dos
    cartões. Pequena e cinza; o link mais claro e sublinhado. O link tem 44px
