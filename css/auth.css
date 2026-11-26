@@ -409,6 +409,22 @@ ul { list-style: none; }
       transparent 100%);
 }
 
+/* O buraco negro em WebGL (canvas .fundo-buraco, js/componentes/fundoDoModo.ts)
+   cobre o fundo inteiro. A versão de CSS (o .disco-centro e a luz do
+   .brilho-fora) fica guardada como reserva: só aparece com .sem-webgl no
+   <html>, que o módulo põe quando o WebGL falta, falha ou a máquina é lenta.
+   A sombra macia atrás do título e do link (.brilho-fora::after) fica sempre. */
+.fundo-buraco {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.sem-webgl .fundo-buraco,
+:root:not(.sem-webgl) .disco-centro,
+:root:not(.sem-webgl) .brilho-fora > div { display: none; }
+
 /* Variação do .vidro para os cartões de modo: menos desfocado e com fundo
    escuro, para o texto ler bem com a faixa do disco atrás. Borda, brilho de
    cima e sombra continuam os do .vidro.

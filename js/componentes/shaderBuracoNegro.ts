@@ -13,7 +13,8 @@ import { querMenosMovimento } from '../utils/movimento.js';
    observadores e soltar o contexto) para o efeito usar ao desmontar.
 
    O que muda de um lugar para o outro vem nas opcoes: o teto de
-   quadros, a area que precisa estar na tela e a pausa sem foco. O
+   quadros, a area que precisa estar na tela, a pausa sem foco e o
+   enquadramento (escala e descer, usados na escolha de modo). O
    shader e o mesmo nos dois.
 
    ATENCAO: a imagem estatica (assets/img/buraco-negro.png), que a
@@ -34,6 +35,8 @@ uniform float uTime;
 uniform float uMotion; // 0 = reduced motion, 1 = full
 uniform float uQuality;
 uniform float uBrilho; // 1 = o desenho de sempre; a landing pede mais
+uniform float uEscala; // 1 = o tamanho da landing; menor = buraco menor
+uniform float uDescer; // 0 = a posicao da landing; em fracoes da altura
 
 // hash / noise ------------------------------------------------------
 float hash(vec3 p) {
@@ -57,7 +60,10 @@ float fbm(vec3 p) {
 }
 
 void main() {
-  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  vec2 uvTela = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  // enquadramento: move e escala a cena inteira junto (sombra, disco e anel),
+  // por isso a luz continua coincidindo com a sombra. A vinheta fica na tela.
+  vec2 uv = (uvTela + vec2(0.0, uDescer)) / uEscala;
 
   float t = uTime * uMotion;
 
@@ -174,7 +180,7 @@ void main() {
   outc = mix(outc, vec3(dot(outc, vec3(0.333))), 1.0); // strictly monochrome
 
   // vignette toward pure black edges
-  vec2 vuv = uv * vec2(0.58, 1.0);
+  vec2 vuv = uvTela * vec2(0.58, 1.0);
   float vig = exp(-2.2 * dot(vuv, vuv));
   outc *= vig;
 
@@ -210,6 +216,11 @@ export interface OpcoesBuracoNegro {
   /** Multiplica a luz do disco e do anel. Sem ele, 1: o desenho da imagem
       estatica (assets/img/buraco-negro.png) continua o mesmo. */
   brilho?: number;
+  /** Tamanho do buraco negro na tela. Sem ele, 1: o da landing. */
+  escala?: number;
+  /** Quanto o centro desce, em fracao da altura do canvas (0,1 = 10%).
+      Sem ele, 0: o centro fica 6% acima do meio, como na landing. */
+  descer?: number;
 }
 
 /* Recebe o canvas do buraco negro e inicia o WebGL: compila o programa,
@@ -242,6 +253,8 @@ export function iniciarBuracoNegro(canvas:HTMLCanvasElement,opcoes:OpcoesBuracoN
   const uMotion=gl.getUniformLocation(prog,'uMotion');
   const uQuality=gl.getUniformLocation(prog,'uQuality');
   gl.uniform1f(gl.getUniformLocation(prog,'uBrilho'),opcoes.brilho??1);
+  gl.uniform1f(gl.getUniformLocation(prog,'uEscala'),opcoes.escala??1);
+  gl.uniform1f(gl.getUniformLocation(prog,'uDescer'),opcoes.descer??0);
 
   const ESCALA=0.62;          /* mesma nitidez do projeto original */
   let small=false;
