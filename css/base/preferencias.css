@@ -22,6 +22,7 @@
   backdrop-filter: none;
 }
 .alto-contraste .fundo-estrelas,
+.alto-contraste .fundo-particulas,
 .alto-contraste .disco,
 .alto-contraste .grao::before,
 .alto-contraste .grao::after { display: none; }

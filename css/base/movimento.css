@@ -221,11 +221,13 @@
   50% { opacity: calc(var(--luz-disco-intensidade) * var(--respiracao-da-luz)); }
 }
 
-.disco {
+.disco,
+.fundo-particulas {
   animation: luz-respira var(--t-respiracao) var(--curva-respiracao) infinite;
 }
 
-.luz-parada .disco {
+.luz-parada .disco,
+.luz-parada .fundo-particulas {
   animation: none;
 }
 
@@ -320,6 +322,7 @@
   .estrela-nasce,
   .estrela-nasce .estrela-brilho,
   .disco,
+  .fundo-particulas,
   :focus-visible {
     animation: none;
   }
@@ -348,6 +351,7 @@
 .movimento-reduzido .estrela-nasce,
 .movimento-reduzido .estrela-nasce .estrela-brilho,
 .movimento-reduzido .disco,
+.movimento-reduzido .fundo-particulas,
 .movimento-reduzido :focus-visible {
   animation: none;
 }
