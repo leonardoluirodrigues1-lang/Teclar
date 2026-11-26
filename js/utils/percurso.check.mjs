@@ -53,21 +53,32 @@ assert.equal(progressoDoPercurso([], []), null, 'sem lição nenhuma, não há p
 
 console.log('percurso.check: ok');
 
-// O tempo das lições do Solo (js/nucleo/licoes.ts) é o do bloco inteiro
-// (texto × N), e os níveis 9 e 10 não pedem mais de 50 PPM.
+// O tempo das lições do Solo (js/nucleo/licoes.ts) vem da dificuldade
+// (js/utils/tempoLimite.ts): ⌈caracteres ÷ CPM × 60⌉, mínimo 60, × N.
 {
-  const { LICOES } = await import('../nucleo/licoes.js');
-  for (const [ordem, nivel, reps, tempo, texto] of LICOES) {
-    if (nivel < 9) continue;
-    const ppm = (texto.length * reps * 12) / tempo;
-    assert.ok(ppm <= 50.5, `lição ${ordem} pede ${ppm.toFixed(1)} PPM`);
+  const { tempoPelaDificuldade } = await import('./tempoLimite.js');
+  assert.equal(tempoPelaDificuldade(59, 'facil'), 60, 'curto: o mínimo de 60 s');
+  assert.equal(tempoPelaDificuldade(59, 'facil', 3), 180, 'com repetições: tempo × N');
+  assert.equal(tempoPelaDificuldade(250, 'facil'), 150, 'fácil: 100 CPM');
+  assert.equal(tempoPelaDificuldade(250, 'medio'), 188, 'médio: 80 CPM, arredonda para cima (187,5)');
+  assert.equal(tempoPelaDificuldade(250, 'dificil'), 250, 'difícil: 60 CPM');
+  assert.equal(tempoPelaDificuldade(61, 'dificil'), 61, 'sem erro de ponto flutuante (61 e não 62)');
+  const { LICOES, montarLicao } = await import('../nucleo/licoes.js');
+  for (const linha of LICOES) {
+    const licao = montarLicao(linha);
+    const [ordem, , reps, texto] = linha;
+    assert.equal(licao.tempoLimiteSegundos, tempoPelaDificuldade(texto.length, licao.dificuldade, reps), `lição ${ordem}`);
   }
+  // A mais difícil precisa de mais tempo por caractere que a fácil.
+  const porCaractere = (l) => l.tempoLimiteSegundos / l.tamanhoCaracteres;
+  const montadas = LICOES.map(montarLicao);
+  const longas = (d) => montadas.filter((l) => l.dificuldade === d && l.tamanhoCaracteres > 300);
+  assert.ok(Math.min(...longas('dificil').map(porCaractere)) > Math.max(...longas('facil').map(porCaractere)), 'difícil > fácil por caractere');
   assert.ok(LICOES.every(([, , reps]) => reps >= 1 && reps <= 3), 'nenhuma lição repete mais de 3 vezes');
-  const { montarLicao } = await import('../nucleo/licoes.js');
   const l1 = montarLicao(LICOES[0]);
-  const t1 = LICOES[0][4];
+  const t1 = LICOES[0][3];
   assert.equal(l1.texto, `${t1} ${t1} ${t1}`, 'lição 1: o texto 3 vezes num bloco, separado por espaço');
   assert.equal(l1.repeticoes, 1, 'lição 1: uma atividade só');
   assert.equal(l1.tamanhoCaracteres, 59 * 3 + 2, 'lição 1: tamanho do bloco');
-  assert.equal(l1.tempoLimiteSegundos, 144, 'lição 1: um cronômetro só, 48 s × 3');
+  assert.equal(l1.tempoLimiteSegundos, 180, 'lição 1: um cronômetro só, 60 s × 3');
 }

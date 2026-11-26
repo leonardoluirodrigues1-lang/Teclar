@@ -12,6 +12,7 @@ import {
 } from '../utils/validacao.js';
 import { Modal, type ModalHandle } from './ModalReact.js';
 import { DIFICULDADES } from '../utils/formato.js';
+import { tempoPelaDificuldade } from '../utils/tempoLimite.js';
 
 // As opções do tempo limite, em segundos (a API continua recebendo segundos).
 const TEMPOS = [0, 30, 60, 120, 180];
@@ -96,6 +97,15 @@ export function ModalExercicio({ exercicio, aoConcluir, aoFechar, rotuloCriar = 
   // A quebra não é erro: o motor trabalha com uma linha contínua, então ao
   // salvar ela vira espaço. Aviso discreto enquanto houver alguma.
   const temQuebra = /[\r\n]/.test(texto);
+  // O tempo da regra (utils/tempoLimite.ts) para o texto e a dificuldade de
+  // agora. Só uma sugestão: entra no campo quando a pessoa ESCOLHE a
+  // dificuldade, e o tempo que ela escolher depois é o que vale.
+  const sugerido = tempoPelaDificuldade(normalizarTextoExercicio(texto).length, dificuldade);
+
+  function escolherDificuldade(nova: Dificuldade) {
+    setDificuldade(nova);
+    setTempo(String(tempoPelaDificuldade(normalizarTextoExercicio(texto).length, nova)));
+  }
 
   function marcarErro(campo: keyof ErrosFormulario, mensagem: string | null) {
     setErros((atual) => ({ ...atual, [campo]: mensagem }));
@@ -241,7 +251,8 @@ export function ModalExercicio({ exercicio, aoConcluir, aoFechar, rotuloCriar = 
             <select
               id={`${id}-dificuldade`}
               value={dificuldade}
-              onChange={(evento) => setDificuldade(evento.target.value as Dificuldade)}
+              aria-describedby={`${id}-tempo-sugerido`}
+              onChange={(evento) => escolherDificuldade(evento.target.value as Dificuldade)}
             >
               {DIFICULDADES.map((d) => (
                 <option key={d.valor} value={d.valor}>
@@ -253,7 +264,12 @@ export function ModalExercicio({ exercicio, aoConcluir, aoFechar, rotuloCriar = 
 
           <div className="campo-modal">
             <label htmlFor={`${id}-tempo`}>Tempo limite</label>
-            <select id={`${id}-tempo`} value={tempo} onChange={(evento) => setTempo(evento.target.value)}>
+            <select
+              id={`${id}-tempo`}
+              value={tempo}
+              aria-describedby={`${id}-tempo-sugerido`}
+              onChange={(evento) => setTempo(evento.target.value)}
+            >
               {opcoesDeTempo.map((segundos) => (
                 <option key={segundos} value={String(segundos)}>
                   {segundos === 0 ? 'Sem limite' : formatarTempoLimite(segundos)}
@@ -262,6 +278,10 @@ export function ModalExercicio({ exercicio, aoConcluir, aoFechar, rotuloCriar = 
             </select>
           </div>
         </div>
+        <p className="aviso-campo" id={`${id}-tempo-sugerido`}>
+          Tempo sugerido para este texto e dificuldade: {formatarTempoLimite(sugerido)}. Ele entra no campo ao escolher a
+          dificuldade; você pode trocar.
+        </p>
 
         <p className="erro-campo" aria-live="polite">
           {erroEnvio}

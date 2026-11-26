@@ -2,7 +2,7 @@
 // (pages/treino/treino.html), num Chrome headless de verdade, com teclas de
 // verdade (CDP Input.*, que o navegador trata como digitação do usuário):
 //   · a lição é UMA atividade: o texto 3 vezes num bloco só, separado por
-//     espaço, com um cronômetro só (144 s) e sem "Repetição N de 3" no HUD;
+//     espaço, com um cronômetro só (180 s) e sem "Repetição N de 3" no HUD;
 //   · digitado o bloco, não há card de passagem: vai para "Salvando
 //     sessão…", grava UMA sessão (POST) e abre o modal de conclusão;
 //   · o modal fica de pé: 3 s depois ainda está lá, e um Espaço teclado
@@ -144,7 +144,7 @@ try {
   const frase = 'asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg';
   confere(`o texto é a frase 3 vezes num bloco (${texto.length} caracteres)`, texto === `${frase} ${frase} ${frase}`);
   confere('o HUD não fala em repetição', !/repeti/i.test(await avaliar(`document.querySelector('.hud').innerText`)));
-  confere('um cronômetro só, para o bloco inteiro (2:24)', (await avaliar(`document.getElementById('hud-tempo').innerText`)) === '2:24');
+  confere('um cronômetro só, para o bloco inteiro (3:00)', (await avaliar(`document.getElementById('hud-tempo').innerText`)) === '3:00');
 
   await avaliar(`document.querySelector('input')?.focus(); true`);
   for (const ch of texto) {

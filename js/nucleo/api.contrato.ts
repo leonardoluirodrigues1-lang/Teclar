@@ -339,7 +339,7 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
         resposta: `200 Missao[] — as 76 lições, na ordem do percurso, SEM o texto
   [{ "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
      "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-     "repeticoes": 1, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 179,
+     "repeticoes": 1, "tempoLimiteSegundos": 180, "tamanhoCaracteres": 179,
      "bloqueada": false }]`,
         erros: `404 NAO_ENCONTRADO — a conta ainda não tem campanha`,
         identidade: `O token (precisa ter campanha). Não recebe id.`,
@@ -356,7 +356,7 @@ marca" olham todas as sessões — refazer uma lição pior não as desfaz.`,
         resposta: `200 MissaoDetalhe — a lição com o texto
   { "exerciseId": "solo-001", "ordem": 1, "nivel": 1,
     "titulo": "Lição 01 — Linha-guia", "dificuldade": "facil",
-    "repeticoes": 1, "tempoLimiteSegundos": 144, "tamanhoCaracteres": 179,
+    "repeticoes": 1, "tempoLimiteSegundos": 180, "tamanhoCaracteres": 179,
     "texto": "asdfg asdfg … asdfg" }
   O texto já é o bloco inteiro: a frase do professor 3 vezes, separada por
   espaço, digitada de uma vez com um cronômetro só (repeticoes = 1).`,
