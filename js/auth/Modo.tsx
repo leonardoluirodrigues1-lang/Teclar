@@ -1,5 +1,6 @@
 // Modo.tsx — pages/modo.html
-// Escolha de MODO: Solo, Professor ou Aluno. A landing ("Começar a treinar"
+// Escolha de MODO: Solo e Professor em cartões; o Aluno é um link abaixo
+// deles ("Nenhum dos dois?"). A landing ("Começar a treinar"
 // e "Entrar") traz para cá, ANTES do login:
 //   Solo / Professor -> o login de conta; o modo clicado fica guardado
 //                       (guarda.guardarModoEscolhido) e, ao entrar, a conta
@@ -11,7 +12,7 @@
 // Modo não é perfil nem permissão: a mesma conta abre os dois, e pode
 // trocar a qualquer hora pelo "Trocar de modo" das telas.
 //
-// O cartão Aluno com sessão de conta NÃO navega sozinho: aluno é outro tipo
+// O link do Aluno com sessão de conta NÃO navega sozinho: aluno é outro tipo
 // de sessão (tabela Alunos), então abre um modal avisando que vai sair da
 // conta e, confirmado, encerra a sessão e manda para a entrada do aluno.
 // Classes de css/auth.css; o modal é o ModalReact, com css/componentes/modais.css.
@@ -66,15 +67,7 @@ const CARTOES: Cartao[] = [
   },
 ];
 
-const CARTAO_ALUNO: ConteudoCartao = {
-  nome: 'ALUNO',
-  numero: '03',
-  resumo: 'Entrar com o código da turma, o seu nome e a sua senha.',
-  itens: ['As atividades da sua turma', 'Seu histórico e seus dias seguidos', 'O ranking da turma'],
-  rodape: 'Entrar como aluno',
-};
-
-// O miolo de todo cartão — o mesmo desenho para os três.
+// O miolo de todo cartão — o mesmo desenho para os dois.
 function CorpoCartao({ cartao }: { cartao: ConteudoCartao }) {
   return (
     <>
@@ -150,14 +143,6 @@ function TelaModo() {
             <CorpoCartao cartao={cartao} />
           </a>
         ))}
-        <a
-          className="cartao cartao-aluno vidro"
-          href={ROTA_LOGIN_ALUNO}
-          aria-haspopup={logado ? 'dialog' : undefined}
-          onClick={aoClicarAluno}
-        >
-          <CorpoCartao cartao={CARTAO_ALUNO} />
-        </a>
       </nav>
 
       {/* O aluno é a saída secundária: link discreto abaixo dos cartões. */}
