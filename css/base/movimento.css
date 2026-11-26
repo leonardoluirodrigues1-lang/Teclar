@@ -222,13 +222,11 @@
 }
 
 .disco,
-.fundo-particulas,
 .brilho-fora {
   animation: luz-respira var(--t-respiracao) var(--curva-respiracao) infinite;
 }
 
 .luz-parada .disco,
-.luz-parada .fundo-particulas,
 .luz-parada .brilho-fora {
   animation: none;
 }
@@ -324,7 +322,6 @@
   .estrela-nasce,
   .estrela-nasce .estrela-brilho,
   .disco,
-  .fundo-particulas,
   .brilho-fora,
   :focus-visible {
     animation: none;
@@ -354,7 +351,6 @@
 .movimento-reduzido .estrela-nasce,
 .movimento-reduzido .estrela-nasce .estrela-brilho,
 .movimento-reduzido .disco,
-.movimento-reduzido .fundo-particulas,
 .movimento-reduzido .brilho-fora,
 .movimento-reduzido :focus-visible {
   animation: none;

@@ -11,11 +11,19 @@
 // este módulo põe .sem-webgl no <html> e o CSS antigo volta (css/auth.css).
 // Alto contraste: nada liga; o CSS deixa o fundo preto.
 //
+// Por cima do shader, os raios, as partículas e as letras voando da landing
+// (js/landing/letras.ts), em menos quantidade: aqui há conteúdo em cima. As
+// letras em órbita (iniciarLetrasOrbitando) ficam de fora: o raio delas
+// cruza o título e os cartões. Com movimento reduzido, nada disso nasce e o
+// shader fica num quadro parado (ele mesmo cuida disso).
+//
 // Pausa: o shader para quando a janela perde o foco ou o canvas sai da tela;
 // com a aba oculta o navegador já não chama o requestAnimationFrame. Ao sair
 // da página (pagehide) tudo é desligado e o contexto WebGL é solto.
 
 import { iniciarBuracoNegro, type PararBuracoNegro } from './shaderBuracoNegro.js';
+import { iniciarRaiosEParticulas, iniciarLetrasEspalhadas } from '../landing/letras.js';
+import { querMenosMovimento } from '../utils/movimento.js';
 
 // Os valores que dá para ajustar olhando a tela.
 const QUADROS_POR_SEGUNDO = 40; // o mesmo teto da landing
@@ -24,6 +32,13 @@ const ESCALA = 0.8; // 1 = o tamanho da landing
 // os cartões, um pouco acima do meio deles (o meio da grade fica ~6% abaixo).
 const DESCER = 0.08;
 
+// Menos que na landing (16 raios, 52 partículas, 72 letras).
+const RAIOS = 8;
+const PARTICULAS = 26;
+const LETRAS = 30;
+// A altura do centro do buraco, em % da tela (50 + 3,2): para lá vão as letras puxadas.
+const CENTRO_Y = 53;
+
 const raiz = document.documentElement;
 let parar: PararBuracoNegro | null = null;
 
@@ -31,9 +46,21 @@ function usarReserva(): void {
   raiz.classList.add('sem-webgl');
 }
 
+function ligarLetras(): void {
+  const host = document.querySelector<HTMLElement>('.fundo-letras');
+  if (!host || host.hasChildNodes() || querMenosMovimento()) return;
+  iniciarRaiosEParticulas(host, { raios: RAIOS, particulas: PARTICULAS });
+  iniciarLetrasEspalhadas(host, { quantidade: LETRAS, centroY: CENTRO_Y });
+}
+
+function apagarLetras(): void {
+  document.querySelector('.fundo-letras')?.replaceChildren();
+}
+
 function ligar(): void {
   if (parar || raiz.classList.contains('alto-contraste')) return;
   if (raiz.classList.contains('luz-parada')) return usarReserva();
+  ligarLetras();
 
   const canvas = document.querySelector<HTMLCanvasElement>('.fundo-buraco');
   if (!canvas) return;
@@ -60,6 +87,7 @@ function desligar(): void {
 new MutationObserver(() => {
   if (parar && raiz.classList.contains('luz-parada')) {
     desligar();
+    apagarLetras();
     usarReserva();
   }
 }).observe(raiz, { attributes: true, attributeFilter: ['class'] });

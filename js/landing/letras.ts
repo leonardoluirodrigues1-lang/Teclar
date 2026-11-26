@@ -27,14 +27,16 @@ function el<K extends keyof HTMLElementTagNameMap>(tag:K,css?:string):HTMLElemen
 /* ==================================================================
    HALOS, RAIOS E PARTICULAS
    ================================================================== */
-export function iniciarRaiosEParticulas(host:HTMLElement):void{
+/* As quantidades sao opcoes porque a escolha de modo (fundoDoModo.ts) usa
+   menos: la tem conteudo por cima. Sem opcoes, os numeros da landing. */
+export function iniciarRaiosEParticulas(host:HTMLElement,{raios=16,particulas=52}={}):void{
 
   /* os halos circulares tambem sairam: eram mais dois aneis competindo
      com o anel de foton do shader. Ficam so os raios de luz e as
      particulas, que nao tem forma de circulo. */
 
   let rand=rng(775511);
-  for(let i=0;i<16;i++){
+  for(let i=0;i<raios;i++){
     const top=44+rand()*40, width=24+rand()*46, left=rand()*55;
     const dur=3.5+rand()*9, delay=-rand()*10;
     const op=.08+rand()*.26, th=1+Math.round(rand()*2);
@@ -44,7 +46,7 @@ export function iniciarRaiosEParticulas(host:HTMLElement):void{
   }
 
   rand=rng(4242421);
-  for(let i=0;i<52;i++){
+  for(let i=0;i<particulas;i++){
     const angle=rand()*360, radius=16+rand()*44;
     const dur=6+rand()*14, delay=-rand()*18;
     const size=1+rand()*2.2, op=.25+rand()*.5;
@@ -101,7 +103,9 @@ export function iniciarLetrasOrbitando(host:HTMLElement):void{
 /* ==================================================================
    LETRAS ESPALHADAS - atravessam, sao puxadas ou apenas respiram
    ================================================================== */
-export function iniciarLetrasEspalhadas(host:HTMLElement):void{
+/* centroY: a altura (em %) do centro do buraco, para onde as letras puxadas
+   vao. 44 na landing, onde o furo fica 6% acima do meio. */
+export function iniciarLetrasEspalhadas(host:HTMLElement,{quantidade=72,centroY=44}={}):void{
   const rand=rng(99117733);
   const POOL='ASDFJKLÇQWERTYUIOPGHZXCVBNM'.split('');
 
@@ -109,7 +113,7 @@ export function iniciarLetrasEspalhadas(host:HTMLElement):void{
   const bordas=(v:number)=>{const t=Math.abs(v-.5)*2;const p=Math.pow(t,.42);
     return (v<.5?.5-p/2:.5+p/2)*100;};
 
-  for(let i=0;i<72;i++){
+  for(let i=0;i<quantidade;i++){
     const tipo=i%3;                       /* 0 atravessa | 1 puxada | 2 respira */
     const left=bordas(rand()), top=bordas(rand());
     const prof=rand();
@@ -138,7 +142,7 @@ export function iniciarLetrasEspalhadas(host:HTMLElement):void{
     } else if(tipo===1){
       /* vetor apontando para o centro do buraco negro */
       s.style.setProperty('--tx',((50-left)*.92).toFixed(1)+'vw');
-      s.style.setProperty('--ty',((44-top)*.92).toFixed(1)+'vh');
+      s.style.setProperty('--ty',((centroY-top)*.92).toFixed(1)+'vh');
       s.style.animationName='tc-pull';
       s.style.animationTimingFunction='cubic-bezier(.45,0,.9,.5)';
     } else {

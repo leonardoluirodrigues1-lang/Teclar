@@ -1,0 +1,75 @@
+/* ============================================================================
+   TECLAR — letras.css
+   Os raios, as partículas e as letras voando da landing, no fundo da escolha
+   de modo (pages/modo.html). Quem cria os nós é js/landing/letras.ts, o
+   mesmo da landing, chamado por js/componentes/fundoDoModo.ts com menos
+   elementos. As animações abaixo são CÓPIA das de css/landing.css (que esta
+   tela não carrega: ela traz o reset e o corpo da landing). Mudou lá, mude
+   aqui.
+
+   A camada fica no .fundo, atrás dos cartões; perto do título e do link a
+   sombra macia do .brilho-fora (css/auth.css) passa por cima e as apaga.
+   Alto contraste e movimento reduzido: a camada não existe (o módulo não
+   cria e o CSS esconde).
+   ========================================================================== */
+
+.fundo-letras {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* o centro do buraco negro em relação ao meio da tela (ESCALA e DESCER
+     de fundoDoModo.ts: 0.06 × 0.8 − 0.08 = −0.032 da altura) */
+  --centro-do-buraco: 3.2vh;
+}
+.fundo-letras .orbit-anchor {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--centro-do-buraco));
+  height: 0;
+  width: 0;
+}
+.fundo-letras .scatter {
+  position: absolute;
+  display: block;
+  user-select: none;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  color: #fff;
+}
+.fundo-letras .particle {
+  display: block;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.alto-contraste .fundo-letras { display: none; }
+
+@keyframes tc-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes tc-orbit-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+@keyframes tc-drift {
+  0%   { transform: translate3d(var(--fx), var(--fy), 0) scale(var(--fs, 1)) rotate(0deg); opacity: 0; }
+  14%  { opacity: var(--fo, .28); }
+  78%  { opacity: var(--fo, .28); }
+  100% { transform: translate3d(var(--tx), var(--ty), 0) scale(calc(var(--fs, 1) * .72)) rotate(var(--rot, 40deg)); opacity: 0; }
+}
+@keyframes tc-pull {
+  0%   { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: 0; filter: blur(0px); }
+  16%  { opacity: var(--fo, .32); }
+  70%  { opacity: calc(var(--fo, .32) * .85); }
+  100% { transform: translate3d(var(--tx), var(--ty), 0) scale(calc(var(--fs, 1) * .12)); opacity: 0; filter: blur(1.8px); }
+}
+@keyframes tc-breathe {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(var(--fs, 1)); opacity: var(--fo, .2); }
+  50%      { transform: translate3d(var(--tx), var(--ty), 0) scale(calc(var(--fs, 1) * 1.12)); opacity: calc(var(--fo, .2) * 1.7); }
+}
+@keyframes teclar-streak {
+  0%   { transform: translate3d(-60%, 0, 0) scaleX(0.6); opacity: 0; }
+  15%  { opacity: var(--so, 0.5); }
+  85%  { opacity: var(--so, 0.5); }
+  100% { transform: translate3d(60%, 0, 0) scaleX(1.6); opacity: 0; }
+}
+@keyframes teclar-particle {
+  0%   { transform: translate3d(var(--r), 0, 0) scale(1); opacity: 0; }
+  20%  { opacity: var(--o, 0.6); }
+  100% { transform: translate3d(0, 0, 0) scale(0.2); opacity: 0; }
+}

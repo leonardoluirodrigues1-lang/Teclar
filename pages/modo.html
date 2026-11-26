@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="../css/base/reset.css">
 <link rel="stylesheet" href="../css/auth.css">
 <link rel="stylesheet" href="../css/componentes/campos.css">
+<link rel="stylesheet" href="../css/componentes/letras.css">
 
 <!-- React vem de vendor/react/ (build ESM 18.3.1 copiado para dentro do
      projeto, sem depender de internet), n&atilde;o de node_modules. O import map traduz os
@@ -39,8 +40,8 @@
        Sem WebGL, o .disco-centro e o brilho de CSS voltam (.sem-webgl). -->
   <canvas class="fundo-buraco" aria-hidden="true"></canvas>
   <div class="disco disco-centro"></div>
+  <div class="fundo-letras"></div>
   <div class="fundo-estrelas"></div>
-  <div class="fundo-particulas"></div>
 </div>
 
 <header class="topo">
@@ -55,7 +56,6 @@
 <main id="raiz" class="tela entrada-da-pagina"></main>
 
 <script type="module" src="../js/componentes/campoDeEstrelas.js"></script>
-<script type="module" src="../js/componentes/particulasDoFundo.js"></script>
 <script type="module" src="../js/componentes/fundoDoModo.js"></script>
 <!-- A luz do horizonte para de respirar em m&aacute;quina lenta (js/utils/respiracaoDaLuz.ts). -->
 <script type="module" src="../js/utils/respiracaoDaLuz.js"></script>

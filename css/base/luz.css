@@ -317,27 +317,6 @@
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
 }
 
-/* Partículas da escolha de modo: pontos e letras soltas, brancos e fracos,
-   só nas bordas (js/componentes/particulasDoFundo.ts). Paradas; a camada
-   só respira com a luz (css/base/movimento.css). */
-.fundo-particulas {
-  position: absolute;
-  inset: 0;
-}
-.fundo-particulas span {
-  position: absolute;
-  color: #fff;
-  user-select: none;
-}
-.fundo-particulas .ponto {
-  border-radius: 50%;
-  background: #fff;
-}
-.fundo-particulas .letra {
-  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
-  line-height: 1;
-}
-
 /* ============================================================================
    6. LUZ POR ZONA (Figma "TECLAR — Estética por zona"; a zona é a classe
    do <body>, ver css/componentes/vidro.css)
