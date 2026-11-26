@@ -361,6 +361,30 @@ ul { list-style: none; }
   .cartoes { grid-template-columns: minmax(0, 398px); }
 }
 
+/* "Nenhum dos dois? Entrar como aluno →": a entrada do aluno, abaixo dos
+   cartões. Pequena e cinza; o link mais claro e sublinhado. O link tem 44px
+   de altura para ser fácil de acertar. */
+.modo-aluno {
+  margin-top: 36px;
+  font-family: var(--fonte-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--cor-texto-fraco, #8a8a8a);
+  text-align: center;
+}
+.modo-aluno a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--cor-texto-suave, #c4c4c4);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  transition: color var(--t-rapido, 160ms) var(--curva, ease-out);
+}
+.modo-aluno a:hover { color: var(--cor-texto, #fff); text-decoration-color: currentColor; }
+
 
 /* "Conta criada! Entre com sua senha." — vindo do cadastro. E o aviso de
    servidor acordando (AvisoAcordando, em js/auth/Formulario.tsx). */

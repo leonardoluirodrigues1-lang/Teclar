@@ -160,6 +160,14 @@ function TelaModo() {
         </a>
       </nav>
 
+      {/* O aluno é a saída secundária: link discreto abaixo dos cartões. */}
+      <p className="modo-aluno">
+        Nenhum dos dois?{' '}
+        <a href={ROTA_LOGIN_ALUNO} aria-haspopup={logado ? 'dialog' : undefined} onClick={aoClicarAluno}>
+          Entrar como aluno →
+        </a>
+      </p>
+
       {modal != null && (
         <Modal
           key={modal}
