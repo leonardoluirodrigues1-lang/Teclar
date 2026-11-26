@@ -409,21 +409,26 @@ ul { list-style: none; }
       transparent 100%);
 }
 
-/* Variação do .vidro para os cartões de modo: mais transparente e menos
-   desfocado, para o buraco negro aparecer atrás. Borda, brilho de cima e
-   sombra continuam os do .vidro. */
-.cartao--modo {
+/* Variação do .vidro para os cartões de modo: menos desfocado e com fundo
+   escuro, para o texto ler bem com a faixa do disco atrás. Borda, brilho de
+   cima e sombra continuam os do .vidro.
+   ESPECIFICIDADE: o vidro da vitrine é ".zona-vitrine .vidro" (0,2,0, em
+   css/componentes/vidro.css); só ".cartao--modo" (0,1,0) perdia para ele, e
+   o fundo e o desfoque daqui nunca entravam. Com ".zona-vitrine" na frente
+   empata e ganha por vir depois. Também ganha do ".cartao:hover" (0,2,0, mais
+   acima neste arquivo): no hover o fundo não clareia, só a borda e o
+   deslocamento mudam. O alto contraste (".alto-contraste .vidro", em
+   preferencias.css, carregado por último) continua ganhando daqui. */
+.zona-vitrine .cartao--modo {
   /* o branco de 3% sobre um preto de 65%: o preto segura o contraste do
      texto (#c4c4c4 ≥ 4.75:1) com a faixa do disco passando atrás */
   background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.65);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
-/* No hover só a borda e o deslocamento mudam: clarear o fundo derrubaria o contraste. */
-.cartao--modo:hover { background: linear-gradient(rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03)), rgba(0, 0, 0, 0.65); }
 /* Sem backdrop-filter, transparente demais para ler: fica quase opaco, como o .vidro. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .cartao--modo { background: rgba(18, 18, 18, 0.94); }
+  .zona-vitrine .cartao--modo { background: rgba(18, 18, 18, 0.94); }
 }
 
 
