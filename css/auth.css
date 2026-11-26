@@ -128,9 +128,9 @@ ul { list-style: none; }
   flex-direction: column;
   width: 520px;
   max-width: 100%;
-  /* ~480px em 1440×900; encolhe em notebook baixo (1366×768, 1280×720)
-     para os cartões e o link do aluno caberem sem rolar. */
-  min-height: clamp(360px, calc(100vh - 420px), 480px);
+  /* Só altura MÍNIMA (até 480px em tela alta): o conteúdo manda. Em tela
+     baixa quem encolhe são os espaços (ver os @media max-height do modo). */
+  min-height: min(480px, calc(100vh - 420px));
   padding: 40px;
   border-radius: 26px;
   color: var(--cor-texto, #fff);
@@ -172,6 +172,8 @@ ul { list-style: none; }
 }
 
 .cartao-itens {
+  /* nunca menos de 24px entre a lista e o botão do rodapé */
+  margin-bottom: 24px;
   display: grid;
   gap: 14px;
   font-size: 15px;
@@ -356,11 +358,6 @@ ul { list-style: none; }
   .cartao--modo { background: rgba(18, 18, 18, 0.94); }
 }
 
-/* Notebook baixo (720–800px de altura): menos respiro em cima e embaixo. */
-@media (max-height: 800px) {
-  .tela:has(.cartoes) { padding-top: 96px; padding-bottom: 40px; }
-  .cabecalho { margin-bottom: 32px; }
-}
 
 /* "Nenhum dos dois? Entrar como aluno →": a entrada do aluno, abaixo dos
    cartões. Pequena e cinza; o link mais claro e sublinhado. O link tem 44px
@@ -385,6 +382,25 @@ ul { list-style: none; }
   transition: color var(--t-rapido, 160ms) var(--curva, ease-out);
 }
 .modo-aluno a:hover { color: var(--cor-texto, #fff); text-decoration-color: currentColor; }
+
+/* Janela baixa (notebook com o Chrome aberto): encolhem os ESPAÇOS, nunca a
+   fonte. Alvo: sem rolar e o link do aluno a 24px+ da borda de baixo em
+   1366×640 e 1280×620 de área útil. Só a tela de modo (.tela com .cartoes). */
+@media (max-height: 860px) {
+  .tela:has(.cartoes) { padding-top: 64px; padding-bottom: 40px; }
+  .cabecalho { margin-bottom: 32px; }
+  .modo-aluno { margin-top: 28px; }
+}
+@media (max-height: 760px) {
+  .tela:has(.cartoes) { padding-top: 40px; padding-bottom: 24px; }
+  .cabecalho { margin-bottom: 20px; }
+  .cabecalho h1 { margin-top: 8px; }
+  .cartao { padding: 28px; }
+  .cartao-resumo { margin-top: 12px; }
+  .cartao-divisoria { margin: 18px 0; }
+  .cartao-itens { gap: 10px; }
+  .modo-aluno { margin-top: 20px; }
+}
 
 
 /* "Conta criada! Entre com sua senha." — vindo do cadastro. E o aviso de
