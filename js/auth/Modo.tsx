@@ -135,7 +135,7 @@ function TelaModo() {
         {CARTOES.map((cartao) => (
           <a
             key={cartao.modo}
-            className="cartao vidro"
+            className="cartao cartao--modo vidro"
             href={logado ? ROTA_INICIAL[cartao.modo] : ROTA_LOGIN}
             data-modo={cartao.modo}
             onClick={() => (logado ? sessao.definirModo(cartao.modo) : guarda.guardarModoEscolhido(cartao.modo))}

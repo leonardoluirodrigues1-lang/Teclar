@@ -342,6 +342,20 @@ ul { list-style: none; }
 }
 .cartoes .cartao { width: auto; }
 
+/* Variação do .vidro para os cartões de modo: mais transparente e menos
+   desfocado, para o buraco negro aparecer atrás. Borda, brilho de cima e
+   sombra continuam os do .vidro. */
+.cartao--modo {
+  background: rgba(255, 255, 255, 0.03);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+}
+.cartao--modo:hover { background: rgba(255, 255, 255, 0.06); }
+/* Sem backdrop-filter, transparente demais para ler: fica quase opaco, como o .vidro. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cartao--modo { background: rgba(18, 18, 18, 0.94); }
+}
+
 /* Notebook baixo (720–800px de altura): menos respiro em cima e embaixo. */
 @media (max-height: 800px) {
   .tela:has(.cartoes) { padding-top: 96px; padding-bottom: 40px; }
