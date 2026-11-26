@@ -220,6 +220,17 @@
   --disco-lado-aceso: 90deg;
 }
 
+/* Escolha de modo (modo.html): o buraco no CENTRO, atrás dos dois cartões,
+   um pouco acima do meio da tela. É o mesmo .disco, só reposicionado e um
+   pouco menor (scale), com o lado aceso do anel à esquerda, como na landing.
+   O -900px e o -1500px são metade da caixa de 3000×1800. */
+.disco-centro {
+  top: calc(47% - 900px);
+  left: calc(50% - 1500px);
+  transform: rotate(-8deg) scale(0.8);
+  --disco-lado-aceso: 270deg;
+}
+
 /* ============================================================================
    3. TECLA
    Para o que se aperta: botão, item de nav, avatar, os quadrados da
