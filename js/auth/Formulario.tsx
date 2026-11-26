@@ -24,6 +24,7 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { forcaDaSenhaAluno, type ForcaDaSenha, type Validacao } from '../utils/validacao.js';
+import { EVENTO_ACORDANDO } from '../nucleo/api.js';
 
 // Erro por campo
 
@@ -267,4 +268,24 @@ export function useForcaDaSenha(ref: RefObject<HTMLInputElement>, nome: () => st
     setEstado(valor.trim() === '' ? { forca: null, falta: null } : forcaDaSenhaAluno(valor, nome()));
   }
   return { ...estado, atualizar };
+}
+
+// --- Servidor acordando --------------------------------------------------------
+// O api.ts insiste por até 1 min nas rotas de entrada enquanto o back sobe
+// (js/nucleo/insistir.ts) e avisa por EVENTO_ACORDANDO. Sem o aviso, o botão
+// ficaria em "Entrando…" sem explicação, e a pessoa acharia que travou.
+
+export function AvisoAcordando() {
+  const [acordando, setAcordando] = useState(false);
+  useEffect(() => {
+    const aoMudar = (evento: Event) => setAcordando((evento as CustomEvent<boolean>).detail);
+    window.addEventListener(EVENTO_ACORDANDO, aoMudar);
+    return () => window.removeEventListener(EVENTO_ACORDANDO, aoMudar);
+  }, []);
+  // role="status" sempre no DOM: o leitor de tela anuncia quando o texto aparece.
+  return (
+    <p className={acordando ? 'aviso-acordando' : undefined} role="status">
+      {acordando ? 'Acordando o servidor… pode levar até um minuto. Não feche a página.' : ''}
+    </p>
+  );
 }

@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CONFIG, ROTA_LOGIN } from '../config.js';
-import { api } from '../nucleo/api.js';
+import { api, acordarServidor } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts, type Toasts } from '../componentes/toast.js';
 import {
@@ -24,7 +24,7 @@ import {
   validarConfirmacao,
 } from '../utils/validacao.js';
 import { mensagemDoErro, ehConflito } from './comum.js';
-import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha } from './Formulario.js';
+import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha, AvisoAcordando } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 // O host dos toasts fica fora da raiz do React (ver cadastro.html), e o
@@ -217,6 +217,7 @@ function Cadastro() {
         <p className="erro" id="erro-form" aria-live="polite">
           {erroForm}
         </p>
+        <AvisoAcordando />
       </form>
 
       <p className="linha-rodape">
@@ -234,6 +235,7 @@ function Cadastro() {
 // Quem já está logado não tem o que fazer criando conta.
 if (!guarda.redirecionarSeLogado()) {
   toasts = criarToasts(document.getElementById('toasts'), { maximo: 1 });
+  acordarServidor();
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Cadastro />);
 }

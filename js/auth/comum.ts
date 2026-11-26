@@ -27,7 +27,8 @@ export const MENSAGENS = {
   SENHA_PRIMEIRO_ACESSO: 'A senha precisa ter de 6 a 20 caracteres, com letras e números.',
   // 429 do login: 5 senhas erradas no mesmo minuto (back/src/autenticacao/tentativas-de-login.ts).
   MUITAS_TENTATIVAS: 'Muitas tentativas seguidas. Espere um minuto e tente de novo.',
-  CONEXAO: 'Não foi possível conectar. Tente de novo.',
+  // Rede fora, ou o back não acordou em 1 min (ver nucleo/insistir.ts).
+  CONEXAO: 'Não conseguimos falar com o servidor. Confira a internet e tente de novo em instantes.',
 };
 
 /** A forma que se lê de um erro de API, seja o ErroApi ou o do mock. */

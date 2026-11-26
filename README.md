@@ -93,6 +93,9 @@ A lista completa está em `back/README.md`.
 - Motor de digitação (erro corrigido em amarelo, nos dois modos):
   `node js/treino/typingEngine.check.mjs`, sem back.
 - Preferências do aparelho (Configurações): `node js/nucleo/preferencias.check.mjs`, sem back.
+- Entrada com o back dormindo (Render grátis): login, cadastro e código da turma tentam
+  de novo por até 1 min com o aviso "Acordando o servidor…" e só repetem quando o back
+  não respondeu (rede, 502/503/504): `node js/nucleo/insistir.check.mjs`, sem back.
 - Instruções do post da atividade (Markdown seguro: HTML vira texto, link só http/https):
   `node js/utils/markdown.check.mjs`, sem back.
 - Fim de atividade num Chrome headless, com teclas de verdade (última

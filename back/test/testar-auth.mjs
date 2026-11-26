@@ -272,6 +272,14 @@ r = await entrarNaTurma('Nina Teste', 'abc');
 confere('primeiro acesso com senha fora da regra: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
 r = await entrarNaTurma('Nina Teste', 'ninateste');
 confere('primeiro acesso com senha sem número: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
+r = await entrarNaTurma('Nina Teste', '839201');
+confere('primeiro acesso com senha só de números: 400 "Coloque pelo menos uma letra."', r.status === 400 && r.corpo.mensagem === 'Coloque pelo menos uma letra.');
+// Nome com acento, código em minúsculas e com espaço no fim (como vem da lousa).
+r = await entrarNaTurma('Conceição Ávila', 'ceci2026', `${turmaDaEntrada.codigo.toLowerCase()} `);
+const conceicao = r.corpo?.usuario;
+confere('primeiro acesso: nome com acento e código minúsculo com espaço 200', r.status === 200 && conceicao?.nome === 'Conceição Ávila');
+r = await entrarNaTurma('conceicao avila', 'ceci2026');
+confere('login: o mesmo nome sem acento acha a mesma aluna (não cria outra)', r.status === 200 && r.corpo.usuario.id === conceicao?.id);
 r = await entrarNaTurma('N', 'nina2026');
 confere('primeiro acesso com nome curto: 400 DADOS_INVALIDOS', r.status === 400 && r.corpo.codigo === 'DADOS_INVALIDOS');
 r = await entrarNaTurma('Nina Teste', 'nina2026', 'ZZZZZZ');
@@ -285,7 +293,10 @@ confere(`nome igual ao mesmo tempo: um 200 e o outro 401 ou 409 (${statusJuntos}
 const conflito = juntos.find((x) => x.status === 409);
 confere('nome igual: o 409 é NOME_EM_USO com a frase do sobrenome', !conflito || (conflito.corpo.codigo === 'NOME_EM_USO' && conflito.corpo.mensagem.includes('sobrenome')));
 r = await naApi('GET', `/turmas/${turmaDaEntrada.id}/alunos`, null, tokenDoCadastro);
-confere('nome igual: a turma tem Zeca e uma Duda só, sem ID órfão', r.status === 200 && r.corpo.map((a) => a.nome).join() === 'Duda Teste,Zeca Teste');
+confere(
+  'nome igual: a turma tem Conceição, Zeca e uma Duda só, sem ID órfão',
+  r.status === 200 && r.corpo.map((a) => a.nome).sort().join() === 'Conceição Ávila,Duda Teste,Zeca Teste',
+);
 
 // A provisória do professor (para quem esqueceu) entra uma vez, com precisaTrocarSenha.
 const zeca = r.corpo.find((a) => a.nome === 'Zeca Teste');

@@ -362,8 +362,10 @@ ul { list-style: none; }
 }
 
 
-/* "Conta criada! Entre com sua senha." — vindo do cadastro. */
-.aviso-sucesso {
+/* "Conta criada! Entre com sua senha." — vindo do cadastro. E o aviso de
+   servidor acordando (AvisoAcordando, em js/auth/Formulario.tsx). */
+.aviso-sucesso,
+.aviso-acordando {
   margin-top: 14px;
   padding: 10px 12px;
   border: 1px solid var(--cor-borda-forte, #454545);

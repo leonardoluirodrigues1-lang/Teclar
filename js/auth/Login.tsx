@@ -24,7 +24,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CONFIG, ROTA_CADASTRO } from '../config.js';
-import { api } from '../nucleo/api.js';
+import { api, acordarServidor } from '../nucleo/api.js';
 import { sessao } from '../nucleo/sessao.js';
 import { guarda } from '../nucleo/guarda.js';
 import { criarToasts } from '../componentes/toast.js';
@@ -38,7 +38,7 @@ import {
   normalizarCodigo,
 } from '../utils/validacao.js';
 import { mensagemDoErro, mensagemDoCodigo, mensagemDaEntrada, MENSAGENS } from './comum.js';
-import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha, MedidorDeSenha, useForcaDaSenha } from './Formulario.js';
+import { useErrosDeCampo, atributosDeErro, ErroCampo, CampoEmail, CampoSenha, MedidorDeSenha, useForcaDaSenha, AvisoAcordando } from './Formulario.js';
 import { ativarSaidaAoNavegar } from '../utils/movimento.js';
 
 type Modo = 'conta' | 'aluno';
@@ -475,6 +475,7 @@ function Login() {
         </button>
       </section>
 
+      <AvisoAcordando />
     </div>
   );
 }
@@ -502,6 +503,7 @@ if (!guarda.redirecionarSeLogado()) {
     criarToasts(document.getElementById('toasts'), { maximo: 1 }).mostrar('Sua sessão expirou');
   }
 
+  acordarServidor();
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<Login />);
 }

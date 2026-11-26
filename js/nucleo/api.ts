@@ -8,6 +8,7 @@
 import { CONFIG, ROTA_LOGIN, ROTA_SENHA_ALUNO } from '../config.js';
 import { sessao } from './sessao.js';
 import { responderMock } from './mocks.js';
+import { insistir } from './insistir.js';
 import type {
   Aluno,
   AnexoDoPost,
@@ -158,6 +159,28 @@ type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface OpcoesReq {
   publico?: boolean;
+  // Rota de entrada (login, cadastro, código da turma): tenta de novo por
+  // até 1 min enquanto o back acorda, com o aviso na tela (ver insistir.ts).
+  insistirAteAcordar?: boolean;
+}
+
+/** Disparado em window com detail true/false: o back está acordando (insistir.ts). */
+export const EVENTO_ACORDANDO = 'teclar:acordando';
+
+function avisarAcordando(acordando: boolean): void {
+  // ?.: fora do navegador (api.back.check.mjs) não há quem ouvir.
+  window.dispatchEvent?.(new CustomEvent(EVENTO_ACORDANDO, { detail: acordando }));
+}
+
+/**
+ * Cutuca o back ao abrir as telas de entrada: enquanto a pessoa digita, o
+ * Render (plano grátis, desliga sem uso) já vai subindo. Dispara e esquece.
+ * no-cors: só precisa CHEGAR no back, a resposta não é lida (e sem
+ * preflight, que poderia voltar sem CORS no meio da subida).
+ */
+export function acordarServidor(): void {
+  if (CONFIG.MOCK) return;
+  fetch(`${CONFIG.BASE_URL}/docs`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
 }
 
 // `publico`: rota que pode responder 401 como resultado legítimo (as de
@@ -170,10 +193,12 @@ async function req<T = unknown>(
   metodo: Metodo,
   rota: string,
   corpo?: unknown,
-  { publico = false }: OpcoesReq = {}
+  { publico = false, insistirAteAcordar = false }: OpcoesReq = {}
 ): Promise<T> {
   try {
-    return await executar<T>(metodo, rota, corpo);
+    return insistirAteAcordar && !CONFIG.MOCK
+      ? await insistir((restanteMs) => executar<T>(metodo, rota, corpo, restanteMs), { aoAcordar: avisarAcordando })
+      : await executar<T>(metodo, rota, corpo);
   } catch (erro) {
     if (!publico && erro?.status === 401) {
       expirarSessao();
@@ -185,7 +210,8 @@ async function req<T = unknown>(
   }
 }
 
-async function executar<T = unknown>(metodo: Metodo, rota: string, corpo?: unknown): Promise<T> {
+// `prazoMs`: aborta a requisição depois dele (vira o mesmo erro de rede).
+async function executar<T = unknown>(metodo: Metodo, rota: string, corpo?: unknown, prazoMs?: number): Promise<T> {
   // Modo mock: devolve dado falso, com o atraso de CONFIG.ATRASO_MOCK,
   // e nenhuma requisição de rede acontece. O token vai junto porque o mock
   // também o confere: sem isso, "sessão expirada" seria um caminho que só
@@ -201,6 +227,7 @@ async function executar<T = unknown>(metodo: Metodo, rota: string, corpo?: unkno
   }
 
   const opcoes: RequestInit = { method: metodo, headers: cabecalhos };
+  if (prazoMs !== undefined) opcoes.signal = AbortSignal.timeout(prazoMs);
   if (corpo !== undefined) {
     opcoes.body = JSON.stringify(corpo);
   }
@@ -209,7 +236,8 @@ async function executar<T = unknown>(metodo: Metodo, rota: string, corpo?: unkno
   try {
     resposta = await fetch(CONFIG.BASE_URL + rota, opcoes);
   } catch {
-    // fetch só rejeita quando não houve resposta nenhuma (rede, DNS, CORS).
+    // fetch só rejeita quando não houve resposta nenhuma (rede, DNS, CORS,
+    // ou o prazoMs esgotado).
     // Erro HTTP (4xx/5xx) não cai aqui — é tratado logo abaixo.
     throw new ErroApi('Não foi possível falar com o servidor.', 0, 'REDE');
   }
@@ -247,8 +275,9 @@ const get = <T = unknown>(rota: string): Promise<T> => {
 const post = <T = unknown>(rota: string, corpo?: unknown, opcoes?: OpcoesReq) =>
   req<T>('POST', rota, corpo, opcoes);
 // Rota de autenticação: 401 é resposta esperada, não sessão expirada.
+// E insiste enquanto o back acorda: é a primeira chamada de quem chega.
 const postPublico = <T = unknown>(rota: string, corpo?: unknown) =>
-  post<T>(rota, corpo, { publico: true });
+  post<T>(rota, corpo, { publico: true, insistirAteAcordar: true });
 const put = <T = unknown>(rota: string, corpo?: unknown) => req<T>('PUT', rota, corpo);
 const patch = <T = unknown>(rota: string, corpo?: unknown) => req<T>('PATCH', rota, corpo);
 const del = <T = null>(rota: string) => req<T>('DELETE', rota);
@@ -283,7 +312,8 @@ export const api = {
 
     // Os dois passos da tela do aluno: o código existe? e entrar (ou
     // matricular-se, no primeiro acesso).
-    turmaDoCodigo: (codigo: string) => get<TurmaDoCodigo>(`/auth/turmas/${encodeURIComponent(codigo)}`),
+    turmaDoCodigo: (codigo: string) =>
+      req<TurmaDoCodigo>('GET', `/auth/turmas/${encodeURIComponent(codigo)}`, undefined, { publico: true, insistirAteAcordar: true }),
 
     entrarNaTurma: (credenciais: CredenciaisAluno) => postPublico<RespostaLogin>('/auth/aluno', credenciais),
 

@@ -19,7 +19,7 @@
 import { useState, type MouseEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ROTA_INICIAL, ROTA_LOGIN } from '../config.js';
-import { api } from '../nucleo/api.js';
+import { api, acordarServidor } from '../nucleo/api.js';
 import { guarda } from '../nucleo/guarda.js';
 import { sessao } from '../nucleo/sessao.js';
 import type { Modo } from '../nucleo/tipos.js';
@@ -183,6 +183,8 @@ function TelaModo() {
 // Abre sem login e para sessão de conta; aluno logado volta para a sala
 // dele (o guarda.exigir redireciona e devolve null).
 if (!sessao.logado() || guarda.exigir('conta')) {
+  // Sem login, o próximo passo é entrar: o back já vai subindo (ver api.acordarServidor).
+  if (!sessao.logado()) acordarServidor();
   ativarSaidaAoNavegar();
   createRoot(document.getElementById('raiz')).render(<TelaModo />);
 }
