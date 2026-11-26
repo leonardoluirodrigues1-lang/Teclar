@@ -1273,8 +1273,9 @@ function repeticoesValidas(valor: unknown): number {
   return valor as number;
 }
 
-// Aluno: a turma vem da query (?turma=), posta por Treino.tsx. Conta: a
-// query é ignorada, o filtro é o dono.
+// Aluno: a turma vem da query (?turma=), posta por Treino.tsx. Conta: o
+// filtro é o dono; com ?turma= (o "Praticar" da aba Atividades), o exercício
+// precisa estar atribuído à turma e vem com as repetições dela, como no back.
 function exercicioVisivel(
   id: string,
   token: string | null | undefined,
@@ -1287,7 +1288,11 @@ function exercicioVisivel(
     const n = repeticoesNaTurma(turmaId, id);
     return { ...ex, texto: Array(n).fill(ex.texto).join(' '), tempoLimiteSegundos: ex.tempoLimiteSegundos * n };
   }
-  return exercicioDaConta(id, token);
+  const ex = exercicioDaConta(id, token);
+  if (!turmaId) return ex;
+  if (!(dados.atribuicoes[turmaId] ?? []).some((a) => a.exerciseId === id)) throw erro(404, 'Exercício não encontrado.', 'NAO_ENCONTRADO');
+  const n = repeticoesNaTurma(turmaId, id);
+  return { ...ex, texto: Array(n).fill(ex.texto).join(' '), tempoLimiteSegundos: ex.tempoLimiteSegundos * n };
 }
 
 // A linha de Alunos como as rotas devolvem: o que a tabela guarda mais os

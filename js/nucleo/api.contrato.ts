@@ -954,7 +954,7 @@ feitas.`,
   { "id": "ex-prof-1", "professorId": "u-2", "titulo": "Acentuação em foco",
     "texto": "...", "dificuldade": "medio", "tempoLimiteSegundos": 120, "atribuidoA": 2 }`,
         erros: `404 NAO_ENCONTRADO — não existe, é de outra conta, está arquivado, ou (aluno) não está atribuído à turma dele`,
-        identidade: `Conta: o exercício tem de ser dela; ?turma= é ignorado.
+        identidade: `Conta: o exercício tem de ser dela; com ?turma= (o "Praticar" do professor, modo prévia), a turma tem de ser dela e o exercício atribuído a ela, e o texto e o tempo vêm com as repetições da atribuição, como para o aluno (senão 404).
   Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a
   dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.`,
         back: `Aluno: o texto vem repetido AtribuicoesProf.Repeticoes vezes, num bloco

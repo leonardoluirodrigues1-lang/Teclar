@@ -1807,7 +1807,7 @@ Chamada no front: `api.exercicios.obter`
 
 **Identidade:**
 
-Conta: o exercício tem de ser dela; ?turma= é ignorado. Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.
+Conta: o exercício tem de ser dela; com ?turma= (o "Praticar" do professor, modo prévia), a turma tem de ser dela e o exercício atribuído a ela, e o texto e o tempo vêm com as repetições da atribuição, como para o aluno (senão 404). Aluno: ?turma= é a turma em que ele está treinando, que tem de ser a dele (alunosturmas.ClassID), e o exercício tem de estar atribuído a ela.
 
 **Regras de negócio no back (a tela não calcula):**
 

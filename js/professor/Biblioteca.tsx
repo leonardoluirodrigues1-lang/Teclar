@@ -318,6 +318,10 @@ function Biblioteca() {
       rotulo: 'Ações',
       classe: 'col-acoes',
       celula: (ex) => (
+        <span className="acoes-da-atividade">
+        <a className="btn btn-vidro vidro tecla btn-pequeno" href={urlDaPrevia(ex.id)} aria-label={`Praticar “${ex.titulo}” (modo prévia, não salva)`}>
+          Praticar
+        </a>
         <MenuDeAcoes
           rotulo={`Ações de “${ex.titulo}”`}
           acoes={[
@@ -333,6 +337,7 @@ function Biblioteca() {
             },
           ]}
         />
+        </span>
       ),
     },
   ];

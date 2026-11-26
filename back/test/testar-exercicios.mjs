@@ -145,7 +145,7 @@ confere('listar: atribuidoA contado no back (ex-prof-1 está em turma)', r.corpo
 r = await chamar('GET', `/exercicios/${criado.id}`, null, prof);
 confere('obter: o próprio, 200 igual ao da criação', r.status === 200 && JSON.stringify(r.corpo) === JSON.stringify(criado));
 r = await chamar('GET', '/exercicios/ex-prof-1?turma=turma-5', null, prof);
-confere('obter: professor ignora o ?turma=', r.status === 200 && r.corpo.id === 'ex-prof-1');
+confere('obter: professor com ?turma= de outra conta 404 (o "Praticar" só na turma dele)', r.status === 404 && r.corpo.codigo === 'NAO_ENCONTRADO');
 
 // ============================================================================
 // GET /exercicios/:id (aluno: Ana Pires, da turma-1)

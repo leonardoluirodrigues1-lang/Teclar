@@ -430,6 +430,15 @@ function Turma() {
       classe: 'col-acoes',
       celula: (item) => (
         <span className="acoes-da-atividade">
+        {/* Modo prévia: o mesmo treino do aluno (texto, repetições e tempo da
+            atribuição, ver GET /exercicios/:id?turma=), sem gravar sessão. */}
+        <a
+          className="btn btn-vidro vidro tecla btn-pequeno"
+          href={`../treino/treino.html?${new URLSearchParams({ exercicio: item.exercicioId, turma: turmaId ?? '', previa: '1' })}`}
+          aria-label={`Praticar “${item.titulo ?? 'este exercício'}” (modo prévia, não salva)`}
+        >
+          Praticar
+        </a>
         <button
           type="button"
           className="btn btn-vidro vidro tecla btn-pequeno"

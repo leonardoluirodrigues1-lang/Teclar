@@ -22,6 +22,7 @@ import { temCaractereDeControle } from '../texto-limpo.js';
 import { dadosInvalidos } from '../dados-invalidos.js';
 import { tempoRepetido, textoRepetido } from '../atribuicoes/repeticoes.js';
 import { abertaParaAluno } from '../atribuicoes/posts.js';
+import { turmaDaConta } from '../turmas/turma-da-conta.js';
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil';
 
@@ -208,6 +209,10 @@ export class ExerciciosService {
     if (identidade.tipo === 'aluno') {
       return exercicioNaForma(await this.exercicioDoAluno(identidade.id, id, turmaId));
     }
+    // Com ?turma=: o "Praticar" do professor (modo prévia), o mesmo treino do aluno.
+    if (turmaId) {
+      return exercicioNaForma(await this.exercicioDaTurmaDaConta(identidade.id, id, turmaId));
+    }
     return exercicioNaForma(await this.exercicioDaConta(identidade.id, id));
   }
 
@@ -272,6 +277,28 @@ export class ExerciciosService {
       throw naoEncontrado();
     }
     return exercicio;
+  }
+
+  // A atividade de uma turma DA CONTA, vista pelo professor no "Praticar":
+  // o mesmo texto, repetições e tempo que o aluno recebe (exercicioDoAluno).
+  // Turma de outra conta ou exercício que não está nela: 404. Agendada para
+  // depois também abre: o professor pratica antes de os alunos verem. Não
+  // grava nada: a prévia não chama POST /sessoes (ver js/treino/Treino.tsx).
+  private async exercicioDaTurmaDaConta(professorId: string, id: string, turmaId: string): Promise<ExercicioComContagem> {
+    await turmaDaConta(this.banco, professorId, turmaId);
+    const atribuicao = await this.banco.atribuicoesprof.findFirst({
+      where: { ClassID: turmaId, ExerciseID: id },
+      include: { exerciciosprof: { include: COM_ATRIBUIDO_A } },
+    });
+    if (!atribuicao || !atribuicao.exerciciosprof.Ativo) {
+      throw naoEncontrado();
+    }
+    const exercicio = atribuicao.exerciciosprof;
+    return {
+      ...exercicio,
+      Texto: textoRepetido(exercicio.Texto, atribuicao.Repeticoes),
+      Tempo_Limite_Segundos: tempoRepetido(exercicio.Tempo_Limite_Segundos ?? 0, atribuicao.Repeticoes),
+    };
   }
 
   // O exercício visto pelo aluno: o aluno é da turma do ?turma= E o

@@ -302,6 +302,19 @@ r = await chamar('PATCH', `${rota}/${exR.id}`, { repeticoes: 5 }, prof);
 confere('alterar: 200 com a linha nova (5)', r.status === 200 && r.corpo.exerciseId === exR.id && r.corpo.repeticoes === 5);
 r = await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, tokenLia);
 confere('alterar: vale para a próxima tentativa (5 vezes)', r.corpo.texto.split('Repete').length - 1 === 5 && r.corpo.tempoLimiteSegundos === 150);
+// "Praticar" (modo prévia): o professor dono recebe o MESMO treino do aluno.
+const doAluno = r.corpo;
+r = await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, prof);
+confere(
+  'praticar: o dono da turma recebe o mesmo texto e tempo do aluno (5 vezes, 150 s)',
+  r.status === 200 && r.corpo.texto === doAluno.texto && r.corpo.tempoLimiteSegundos === doAluno.tempoLimiteSegundos,
+);
+r = await chamar('GET', `/exercicios/${exR.id}?turma=${turma.id}`, null, leo);
+confere('praticar: outra conta 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('GET', `/exercicios/${exA.id}?turma=${turma.id}`, null, prof);
+confere('praticar: exercício que não está na turma 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
+r = await chamar('GET', `/exercicios/${exR.id}`, null, prof);
+confere('praticar: sem ?turma= (Biblioteca) é o exercício como foi escrito, 1 vez', r.status === 200 && r.corpo.texto === 'Repete este texto aqui.');
 r = await chamar('PATCH', `${rota}/${exA.id}`, { repeticoes: 2 }, prof);
 confere('alterar: exercício não atribuído 404', ehErro(r, 404, 'NAO_ENCONTRADO'));
 r = await chamar('PATCH', '/turmas/turma-5/atribuicoes/ex-prof-6', { repeticoes: 2 }, prof);

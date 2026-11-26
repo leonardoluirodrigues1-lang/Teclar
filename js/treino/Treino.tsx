@@ -174,6 +174,10 @@ function modoTreinoDe(usuario: Usuario, params: URLSearchParams): ModoTreino {
   return params.get('previa') === '1' ? 'previa' : 'solo';
 }
 
+// O "Praticar" do professor (?previa=1): o resultado aparece, mas nenhuma
+// sessão é gravada (finalizar() sai antes do envio).
+const AVISO_DA_PREVIA = 'Modo prévia — resultado não é salvo';
+
 // Quem decide é o back: a prévia do professor não grava e não tem bloqueio.
 async function atividadeBloqueada(modo: ModoTreino, exercicioId: string, turmaId: string | null): Promise<boolean> {
   if (modo === 'solo') {
@@ -573,8 +577,8 @@ function Treino({ usuario }: PropsTreino) {
         abrirModalFim({
           metricas: corpoBase,
           eyebrow: 'Prévia concluída',
-          titulo: 'Nada foi registrado.',
-          mensagem: 'A prévia do professor não conta como sessão de aluno.',
+          titulo: AVISO_DA_PREVIA,
+          mensagem: 'Não entra em ranking, relatórios nem progresso.',
         });
       }
       return;
@@ -767,7 +771,7 @@ function Treino({ usuario }: PropsTreino) {
         : consultaIndisponivel
           ? 'Não foi possível verificar a sequência.'
           : modoTreino === 'previa'
-            ? 'Prévia concluída.'
+            ? AVISO_DA_PREVIA
             : 'Sequência concluída.',
       conteudo: conteudoConclusao(null, consultaPendente, consultaIndisponivel),
       acoes: acoesConclusao(null, consultaPendente, consultaIndisponivel),
