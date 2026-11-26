@@ -337,9 +337,11 @@ ul { list-style: none; }
    ------------------------------------------------------------------------- */
 .cartoes {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 520px));
+  /* cartões EM PÉ: cada um com ~25% da largura da janela (340 a 460px) e
+     um vão pequeno; os dois juntos ficam pouco acima da metade da tela */
+  grid-template-columns: repeat(2, clamp(340px, 25vw, 460px));
   justify-content: center;
-  gap: 40px;
+  gap: 14px;
   max-width: 1080px;
 }
 .cartoes .cartao { width: auto; }
@@ -442,6 +444,13 @@ ul { list-style: none; }
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
+/* Em pé: ~60% da altura da janela (380 a 620px). O conteúdo continua o
+   mesmo; a sobra fica entre a lista e o botão (margin-top: auto do rodapé).
+   Ganha do ".cartao { min-height: 0 }" das faixas baixas. No cartão estreito
+   "PROFESSOR" não cabia ao lado do número com 0.20em: só o espaçamento cai. */
+.zona-vitrine .cartao--modo { min-height: clamp(380px, 60vh, 620px); }
+.zona-vitrine .cartao--modo .cartao-nome { letter-spacing: 0.14em; }
+
 /* Sem o brilho branco em volta (o 0 0 40px -10px do vidro da vitrine): com o
    buraco negro atrás ele virava um halo. Ficam o brilho de 1px no topo e a
    sombra preta embaixo. ESPECIFICIDADE: a regra do vidro é
