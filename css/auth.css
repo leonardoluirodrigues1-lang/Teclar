@@ -442,6 +442,16 @@ ul { list-style: none; }
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
 }
+/* Sem o brilho branco em volta (o 0 0 40px -10px do vidro da vitrine): com o
+   buraco negro atrás ele virava um halo. Ficam o brilho de 1px no topo e a
+   sombra preta embaixo. ESPECIFICIDADE: a regra do vidro é
+   ".zona-vitrine .vidro:not(.tecla)" (0,3,0); ".cartao--modo.vidro" empata e
+   ganha por vir depois. */
+.zona-vitrine .cartao--modo.vidro {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 24px 60px -16px rgba(0, 0, 0, 0.60);
+}
 /* Sem backdrop-filter, transparente demais para ler: fica quase opaco, como o .vidro. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .zona-vitrine .cartao--modo { background: rgba(18, 18, 18, 0.94); }
