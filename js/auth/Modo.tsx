@@ -132,6 +132,10 @@ function TelaModo() {
           de novo, guarda.soConta). Sem login, o href é o login e o clique
           guarda o modo escolhido para depois da entrada. */}
       <nav className="cartoes" aria-label="Modos">
+        {/* Brilho do buraco negro só FORA dos cartões (css/auth.css). */}
+        <div className="brilho-fora" aria-hidden="true">
+          <div />
+        </div>
         {CARTOES.map((cartao) => (
           <a
             key={cartao.modo}

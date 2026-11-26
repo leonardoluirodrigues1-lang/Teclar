@@ -344,6 +344,60 @@ ul { list-style: none; }
 }
 .cartoes .cartao { width: auto; }
 
+/* Brilho fora dos cartões. Atrás do cartão escurecido a luz do buraco negro
+   quase some; em vez de clarear o cartão (o contraste do texto cai), esta
+   camada reforça a aura, o disco e o banho de luz SÓ fora deles: nas
+   laterais, no vão entre os dois e logo abaixo. Mesmas formas do .disco
+   (css/base/luz.css), em branco, centradas no buraco.
+   A máscara é a caixa inteira menos cinco retângulos: os dois cartões, a
+   coluna do título (em cima) e a do link do aluno (embaixo, deixando 24px
+   de brilho sob os cartões). A caixa passa 200px acima e abaixo da grade
+   e 280px de cada lado; por isso os 200px, 280px e 300px (280 + metade do
+   vão de 40px) da máscara. */
+.cartoes { position: relative; }
+.tela:has(.cartoes) { overflow: clip; }
+.brilho-fora {
+  --raio-anel: 261px; /* o raio do anel do .disco-centro (312px × escala) */
+  --centro-y: 1px;    /* o centro do buraco menos o meio da grade */
+  position: absolute;
+  inset: -200px -280px;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000);
+  mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000);
+  -webkit-mask-position: 0 0, 280px 200px, right 280px top 200px, 50% 0, 50% 100%;
+  mask-position: 0 0, 280px 200px, right 280px top 200px, 50% 0, 50% 100%;
+  -webkit-mask-size: 100% 100%, calc(50% - 300px) calc(100% - 400px), calc(50% - 300px) calc(100% - 400px), 640px 200px, 640px 176px;
+  mask-size: 100% 100%, calc(50% - 300px) calc(100% - 400px), calc(50% - 300px) calc(100% - 400px), 640px 200px, 640px 176px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+/* A luz, inclinada como o .disco-centro (-8deg). De cima para baixo: o
+   disco (faixa achatada), a aura em volta do anel e o banho largo. */
+.brilho-fora > div {
+  position: absolute;
+  inset: 0;
+  transform: translateY(var(--centro-y)) rotate(-8deg);
+  background:
+    radial-gradient(ellipse calc(var(--raio-anel) * 3.05) calc(var(--raio-anel) * 0.55) at center,
+      transparent 0 34%,
+      rgba(255, 255, 255, 0.30) 42%,
+      rgba(255, 255, 255, 0.12) 56%,
+      rgba(255, 255, 255, 0.04) 76%,
+      transparent 100%),
+    radial-gradient(circle at center,
+      transparent calc(var(--raio-anel) - 4px),
+      rgba(255, 255, 255, 0.30) calc(var(--raio-anel) + 4px),
+      rgba(255, 255, 255, 0.10) calc(var(--raio-anel) * 1.35),
+      transparent calc(var(--raio-anel) * 1.6)),
+    radial-gradient(ellipse calc(var(--raio-anel) * 3.2) calc(var(--raio-anel) * 1.5) at center,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.05) 45%,
+      transparent 75%);
+}
+
 /* Variação do .vidro para os cartões de modo: mais transparente e menos
    desfocado, para o buraco negro aparecer atrás. Borda, brilho de cima e
    sombra continuam os do .vidro. */
@@ -403,6 +457,7 @@ ul { list-style: none; }
   .cartao { min-height: 0; }
   .modo-aluno { margin-top: 28px; }
   .disco-centro { --desce-disco: 51px; --escala-disco: 0.68; }
+  .brilho-fora { --raio-anel: 212px; --centro-y: 5px; }
 }
 @media (max-height: 760px) {
   .tela:has(.cartoes) { padding-top: 40px; padding-bottom: 24px; }
@@ -414,6 +469,7 @@ ul { list-style: none; }
   .cartao-itens { gap: 10px; }
   .modo-aluno { margin-top: 20px; }
   .disco-centro { --desce-disco: 45px; --escala-disco: 0.56; }
+  .brilho-fora { --raio-anel: 175px; --centro-y: 9px; }
 }
 
 
